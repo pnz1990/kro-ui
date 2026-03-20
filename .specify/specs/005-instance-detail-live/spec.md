@@ -262,3 +262,60 @@ describe("resolveResourceName", () => {
   with fake timers
 - **SC-005**: TypeScript strict mode passes with 0 errors
 - **SC-006**: All unit tests pass with `vitest run`
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/005-live-instance.spec.ts`
+**Cluster pre-conditions**: kind cluster running, kro installed, `test-app` RGD
+applied, `test-instance` CR applied in namespace `kro-ui-e2e`, instance is
+reconciled (kro has created child resources: a Namespace and a ConfigMap)
+
+### Journey: Operator watches a live instance and inspects a resource node
+
+```
+Step 1: Navigate to instance detail
+  - Navigate to
+    http://localhost:10174/rgds/test-app/instances/kro-ui-e2e/test-instance
+  - Assert: [data-testid="instance-detail-page"] is visible
+  - Assert: [data-testid="dag-svg"] is visible within the page
+
+Step 2: DAG renders with live node states
+  - Assert: [data-testid="dag-node-root"] is visible
+  - Assert: [data-testid="dag-node-configmap"] is visible
+  - Assert: [data-testid="live-refresh-indicator"] is visible (the "refreshed
+    Xs ago" counter)
+
+Step 3: Poll fires and refresh indicator updates (5s wait)
+  - Record the text content of [data-testid="live-refresh-indicator"]
+    (e.g., "refreshed 1s ago")
+  - Wait 6000ms
+  - Assert: text content of [data-testid="live-refresh-indicator"] has changed
+    from the recorded value (poll fired at least once)
+
+Step 4: Click a resource node → detail panel opens
+  - Click [data-testid="dag-node-configmap"]
+  - Assert: [data-testid="node-detail-panel"] is visible
+  - Assert: [data-testid="node-detail-kind"] has text "ConfigMap"
+  - Assert: [data-testid="node-detail-state-badge"] is visible
+  - Assert: [data-testid="node-yaml-section"] is visible (YAML section renders;
+    may show spinner or actual YAML depending on fetch timing)
+
+Step 5: Poll fires while panel is open — panel stays open
+  - Wait 6000ms (another poll cycle)
+  - Assert: [data-testid="node-detail-panel"] is STILL visible (panel did not
+    close due to state refresh)
+  - Assert: [data-testid="node-detail-kind"] still has text "ConfigMap"
+
+Step 6: Spec, conditions, and events sections are visible
+  - Assert: [data-testid="spec-panel"] is visible
+  - Assert: [data-testid="conditions-panel"] is visible
+  - Assert: [data-testid="events-panel"] is visible
+```
+
+**What this journey does NOT cover** (unit tests only):
+- `resolveResourceName` CR suffix stripping
+- `buildNodeStateMap` state derivation logic
+- `usePolling` cleanup on unmount (fake timers test)
+- Memory leak detection (manual DevTools check)

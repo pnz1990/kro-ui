@@ -152,3 +152,54 @@ describe("Instances tab", () => {
   states, verified by unit tests
 - **SC-004**: Active namespace is preserved in and restored from the URL
 - **SC-005**: TypeScript strict mode passes with 0 errors
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/004-instance-list.spec.ts`
+**Cluster pre-conditions**: kind cluster running, kro installed, `test-app` RGD
+applied, `test-instance` CR applied in namespace `kro-ui-e2e`
+
+### Journey: Operator finds and opens a live instance
+
+```
+Step 1: Navigate to Instances tab
+  - Navigate to http://localhost:10174/rgds/test-app?tab=instances
+  - Assert: [data-testid="tab-instances"] has aria-selected="true"
+  - Assert: [data-testid="instance-table"] is visible
+
+Step 2: Test instance appears in table
+  - Assert: [data-testid="instance-row-test-instance"] is visible
+  - Assert: within that row, [data-testid="instance-name"] has text
+    "test-instance"
+  - Assert: within that row, [data-testid="instance-namespace"] has text
+    "kro-ui-e2e"
+  - Assert: within that row, [data-testid="instance-age"] is visible and
+    non-empty
+  - Assert: within that row, [data-testid="readiness-badge"] is visible
+
+Step 3: Namespace filter scopes results
+  - Select "kro-ui-e2e" in [data-testid="namespace-filter"]
+  - Assert: URL contains ?namespace=kro-ui-e2e
+  - Assert: [data-testid="instance-row-test-instance"] is still visible
+  - Select "kro-system" in [data-testid="namespace-filter"] (kro pods live here;
+    no TestApp instances in kro-system)
+  - Assert: [data-testid="instance-empty-state"] is visible
+  - Assert: [data-testid="instance-row-test-instance"] is not visible
+
+Step 4: Namespace filter persists on reload
+  - Navigate to /rgds/test-app?tab=instances&namespace=kro-ui-e2e
+  - Assert: [data-testid="namespace-filter"] selected value is "kro-ui-e2e"
+  - Assert: [data-testid="instance-row-test-instance"] is visible
+
+Step 5: Navigate to instance detail
+  - Click [data-testid="instance-row-test-instance"] [data-testid="btn-open"]
+  - Assert: URL is /rgds/test-app/instances/kro-ui-e2e/test-instance
+  - Assert: [data-testid="instance-detail-page"] is visible
+```
+
+**What this journey does NOT cover** (unit tests only):
+- ReadinessBadge color logic for all 3 states
+- Error state on API failure
+- Instance name truncation for very long names

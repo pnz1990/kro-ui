@@ -239,3 +239,59 @@ describe("tokenize", () => {
   `performance.now()`
 - **SC-005**: TypeScript strict mode passes with 0 errors
 - **SC-006**: All tokenizer unit tests pass with `vitest run`
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/006-cel-highlighting.spec.ts`
+**Browser**: Chromium (required — CSS custom property resolution via
+`getComputedStyle` works in Chromium headless)
+**Cluster pre-conditions**: kind cluster running, `test-app` RGD applied. The
+`test-app` fixture YAML must contain at least one `${...}` CEL expression and
+one `readyWhen:` field so token colors can be asserted.
+
+### Journey: Operator reads highlighted kro YAML and token colors are correct
+
+This journey uses Playwright's `evaluate()` + `getComputedStyle()` to assert
+the actual rendered CSS color values of highlighted tokens — not just the
+presence of CSS class names.
+
+```
+Step 1: Navigate to the YAML tab
+  - Navigate to http://localhost:10174/rgds/test-app?tab=yaml
+  - Assert: [data-testid="kro-code-block"] is visible
+
+Step 2: CEL expression token is the correct blue
+  - Locate the first span.token-cel inside [data-testid="kro-code-block"]
+  - Assert it exists (the test-app fixture has a CEL expression)
+  - Use page.evaluate() with getComputedStyle() to read its color property
+  - Assert: computed color equals rgb(147, 197, 253) — which is #93c5fd
+    (dark mode default, Chromium resolves CSS variables to their computed value)
+
+Step 3: kro keyword token is the correct dark slate
+  - Locate the first span.token-kro-keyword
+  - Assert: computed color equals rgb(214, 211, 209) — which is #d6d3d1
+
+Step 4: YAML key token is the correct warm gray
+  - Locate the first span.token-yaml-key
+  - Assert: computed color equals rgb(168, 162, 158) — which is #a8a29e
+
+Step 5: Copy button works
+  - Click [data-testid="code-block-copy-btn"] inside the YAML tab
+  - Assert: clipboard contains the full raw YAML of the test-app RGD
+    (use page.evaluate(() => navigator.clipboard.readText()))
+  - Note: Playwright grants clipboard permissions automatically in Chromium;
+    no special permission grant needed in playwright.config.ts context options
+```
+
+**Implementation note**: CSS custom property values are resolved by Chromium at
+render time. `getComputedStyle(el).color` returns the fully-resolved `rgb()`
+value even when the property was set via `var(--hl-cel-expression)`. This is
+why Chromium is required for this journey.
+
+**What this journey does NOT cover** (unit tests only):
+- All 8 token type tokenization rules
+- Light mode color values (CSS variable switch)
+- Performance (500-line YAML < 10ms)
+- Edge cases: unclosed `${`, multiline CEL, empty input

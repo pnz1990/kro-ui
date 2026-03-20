@@ -222,3 +222,66 @@ describe("ContextSwitcher", () => {
   concurrent context switch + read
 - **SC-005**: TypeScript strict mode passes with 0 errors
 - **SC-006**: All unit tests pass (Go with `-race`, TypeScript with `vitest run`)
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/007-context-switcher.spec.ts`
+**Cluster pre-conditions**: kind cluster running, kro installed, `test-app` RGD
+applied. The global setup creates **two kubeconfig contexts** pointing at the
+same kind cluster endpoint:
+- `kro-ui-e2e` — primary context (server starts with this one)
+- `kro-ui-e2e-alt` — alternate context (same cluster, different context name;
+  used to test the switch UI without needing a second cluster)
+
+### Journey: Operator switches context and RGD list reloads
+
+The two contexts point at the same cluster so both will return the same `test-app`
+RGD. The test validates the UI flow (dropdown → switch → reload) rather than
+cluster isolation, which is covered by the `ClientFactory` unit tests.
+
+```
+Step 1: Verify initial context is shown
+  - Navigate to http://localhost:10174
+  - Assert: [data-testid="context-name"] is visible
+  - Assert: [data-testid="context-name"] text contains "kro-ui-e2e"
+
+Step 2: Open context switcher dropdown
+  - Click [data-testid="context-switcher-btn"]
+  - Assert: [data-testid="context-dropdown"] is visible
+  - Assert: option for "kro-ui-e2e" has aria-selected="true" or data-active="true"
+  - Assert: option for "kro-ui-e2e-alt" is visible
+
+Step 3: Switch to alternate context
+  - Click the option for "kro-ui-e2e-alt"
+  - Assert: [data-testid="context-dropdown"] closes (or disappears)
+  - Assert: [data-testid="context-name"] text contains "kro-ui-e2e-alt"
+    (updates without page reload)
+
+Step 4: RGD list reloads from new context
+  - Assert: [data-testid="rgd-card-test-app"] is visible (same RGD appears
+    because both contexts point at the same cluster)
+  - Assert: URL is still / (no navigation occurred)
+
+Step 5: Long context name is truncated
+  - The global setup also registers a context named
+    "arn:aws:eks:us-west-2:000000000000:cluster/kro-ui-e2e-long-name" (fake
+    ARN, same endpoint) in the kubeconfig
+  - Switch to that context via the dropdown
+  - Assert: [data-testid="context-name"] does NOT contain the full ARN string
+    character-for-character in its visible text (it is truncated)
+  - Assert: [data-testid="context-name"] has a title attribute containing the
+    full ARN string
+
+Step 6: Switch back to primary
+  - Click [data-testid="context-switcher-btn"]
+  - Click the option for "kro-ui-e2e"
+  - Assert: [data-testid="context-name"] text contains "kro-ui-e2e"
+  - Assert: [data-testid="rgd-card-test-app"] is visible
+```
+
+**What this journey does NOT cover** (unit tests only):
+- Switch failure handling (unreachable context)
+- `ClientFactory.SwitchContext` concurrency under load
+- Switch loading spinner timing

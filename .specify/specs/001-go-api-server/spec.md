@@ -256,3 +256,54 @@ Ginkgo suite against `envtest` API server. Required before v1.0 release tag.
 - **SC-005**: `go vet ./...` passes; `golangci-lint run` passes with zero findings
 - **SC-006**: All unit tests pass with `-race` flag
 - **SC-007**: Binary embeds frontend and runs fully offline
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/001-server-health.spec.ts`
+**Cluster pre-conditions**: kind cluster running, kro installed, `test-app` RGD
+and `test-instance` CR applied (see `test/e2e/fixtures/`)
+
+### Journey: Server connects to cluster and exposes API
+
+This journey validates that the running binary correctly connects to the kind
+cluster and exposes all endpoints the frontend depends on. It is the foundation
+that every other journey implicitly relies on.
+
+```
+Step 1: Verify healthz
+  - HTTP GET http://localhost:10174/api/v1/healthz
+  - Assert: status 200, body "ok"
+  - Assert: response time < 200ms (Playwright request timing)
+
+Step 2: Verify RGD list returns test fixture
+  - HTTP GET http://localhost:10174/api/v1/rgds
+  - Assert: status 200
+  - Assert: response JSON contains items array
+  - Assert: at least one item has metadata.name === "test-app"
+
+Step 3: Verify single RGD fetch
+  - HTTP GET http://localhost:10174/api/v1/rgds/test-app
+  - Assert: status 200
+  - Assert: response.spec.schema.kind === "TestApp"
+
+Step 4: Verify instance list resolves correctly
+  - HTTP GET http://localhost:10174/api/v1/rgds/test-app/instances
+  - Assert: status 200
+  - Assert: items array contains one item with metadata.name === "test-instance"
+
+Step 5: Verify 404 for unknown RGD
+  - HTTP GET http://localhost:10174/api/v1/rgds/does-not-exist
+  - Assert: status 404
+  - Assert: response JSON has "error" key
+
+Step 6: Verify metrics stub
+  - HTTP GET http://localhost:10174/api/v1/metrics
+  - Assert: status 501
+```
+
+**What this journey does NOT cover** (unit tests only):
+- Irregular plural resolution internals
+- ClientFactory concurrency under load
+- Context switch atomicity

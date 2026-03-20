@@ -232,3 +232,63 @@ describe("NodeDetailPanel", () => {
   produce identical SVG structure (verified by unit test)
 - **SC-005**: TypeScript strict mode passes with 0 errors
 - **SC-006**: `buildDAGGraph` unit tests cover all node type classifications
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/003-rgd-dag.spec.ts`
+**Cluster pre-conditions**: kind cluster running, kro installed, `test-app` RGD
+applied. The `test-app` fixture has: 1 root CR (TestApp), 2 managed resource
+nodes (Namespace, ConfigMap), 1 specPatch node, 1 includeWhen conditional node.
+
+### Journey: Operator reads an RGD's dependency graph and inspects a node
+
+```
+Step 1: Navigate to RGD detail (Graph tab)
+  - Navigate to http://localhost:10174/rgds/test-app
+  - Assert: [data-testid="dag-svg"] is visible
+  - Assert: [data-testid="tab-graph"] has aria-selected="true"
+
+Step 2: All expected nodes are rendered
+  - Assert: [data-testid="dag-node-root"] is visible (root CR node)
+  - Assert: [data-testid="dag-node-configmap"] is visible
+  - Assert: [data-testid="dag-node-namespace"] is visible
+  - Assert: [data-testid="dag-node-specpatch-1"] is visible
+  - Assert: count of [data-testid^="dag-node-"] equals 5
+
+Step 3: Node type visual distinction
+  - Assert: [data-testid="dag-node-specpatch-1"] has CSS class "node-specpatch"
+    (amber fill)
+  - Assert: [data-testid="dag-node-conditional-1"] has CSS class
+    "node-conditional" (dashed border)
+
+Step 4: Click a resource node → detail panel opens
+  - Click [data-testid="dag-node-configmap"]
+  - Assert: [data-testid="node-detail-panel"] is visible
+  - Assert: [data-testid="node-detail-kind"] has text "ConfigMap"
+  - Assert: [data-testid="node-detail-concept"] is visible (concept explanation
+    rendered)
+  - Assert: panel did NOT navigate away (URL is still /rgds/test-app)
+
+Step 5: Close panel
+  - Click [data-testid="node-detail-close"]
+  - Assert: [data-testid="node-detail-panel"] is not visible
+
+Step 6: Switch to YAML tab
+  - Click [data-testid="tab-yaml"]
+  - Assert: URL contains ?tab=yaml
+  - Assert: [data-testid="kro-code-block"] is visible
+  - Assert: at least one span with class "token-cel" is present in the code
+    block (the test-app fixture YAML contains at least one ${...} expression)
+
+Step 7: YAML tab persists on reload
+  - Reload the page
+  - Assert: [data-testid="tab-yaml"] has aria-selected="true"
+  - Assert: [data-testid="kro-code-block"] is visible
+```
+
+**What this journey does NOT cover** (unit tests only):
+- DAG layout determinism (3-render stability check)
+- All node type classifications in detail
+- CEL token color accuracy (covered by journey 006)

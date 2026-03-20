@@ -190,3 +190,48 @@ No snapshot tests.
   and visually distinct when observed manually
 - **SC-005**: TypeScript strict mode passes — `tsc --noEmit` reports 0 errors
 - **SC-006**: Keyboard navigation: Tab → card buttons reachable; Enter → navigates
+
+---
+
+## E2E User Journey
+
+**File**: `test/e2e/journeys/002-home-page.spec.ts`
+**Cluster pre-conditions**: kind cluster running, kro installed, `test-app` RGD
+applied and `Ready=True`, `test-instance` CR applied
+
+### Journey: Operator opens dashboard and navigates to an RGD
+
+```
+Step 1: Open the dashboard
+  - Navigate to http://localhost:10174
+  - Assert: page title contains "kro-ui"
+  - Assert: top bar is visible and contains the kind cluster context name
+    (data-testid="context-name")
+
+Step 2: RGD card renders
+  - Assert: element [data-testid="rgd-card-test-app"] is visible
+  - Assert: within that card, [data-testid="rgd-name"] has text "test-app"
+  - Assert: within that card, [data-testid="rgd-kind"] has text "TestApp"
+  - Assert: within that card, [data-testid="status-dot"] has CSS class
+    containing "alive" or "unknown" (Ready condition may not be True yet in
+    test fixture — either is acceptable; red/error is NOT acceptable for a
+    healthy test RGD)
+
+Step 3: Navigate to RGD graph via "Graph" button
+  - Click [data-testid="rgd-card-test-app"] [data-testid="btn-graph"]
+  - Assert: URL is /rgds/test-app (no full reload — React Router navigation)
+  - Assert: [data-testid="dag-svg"] is visible
+
+Step 4: Navigate back and use "Instances" button
+  - Click browser back button
+  - Assert: URL is /
+  - Assert: [data-testid="rgd-card-test-app"] is still visible (scroll position
+    preserved)
+  - Click [data-testid="rgd-card-test-app"] [data-testid="btn-instances"]
+  - Assert: URL is /rgds/test-app?tab=instances
+  - Assert: [data-testid="instance-table"] is visible
+```
+
+**What this journey does NOT cover** (unit tests only):
+- Skeleton/loading/error/empty states (no network interception in E2E)
+- Status dot color logic for all 3 states (covered by StatusDot unit tests)
