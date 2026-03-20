@@ -1,33 +1,47 @@
-# Binaries
+# ── Binaries ─────────────────────────────────────────────────────────
 bin/
-dist/
 
-# Frontend build
-web/dist/
-web/node_modules/
-
-# E2E test artifacts
-test/e2e/node_modules/
-test/e2e/playwright-report/
-test/e2e/test-results/
-test/e2e/bun.lock
-
-# Go
+# ── Go ────────────────────────────────────────────────────────────────
 *.exe
 *.test
 *.out
 vendor/
+# Coverage profiles
+*.coverprofile
+cover.out
+unit-cover.out
+integration-cover.out
 
-# IDE
+# ── Frontend build ────────────────────────────────────────────────────
+web/dist/
+web/node_modules/
+web/bun.lock
+web/bun.lockb
+
+# ── E2E test artifacts ────────────────────────────────────────────────
+test/e2e/node_modules/
+test/e2e/playwright-report/
+test/e2e/test-results/
+test/e2e/bun.lock
+test/e2e/bun.lockb
+
+# ── Worktrunk worktrees ───────────────────────────────────────────────
+# worktrees are created as siblings: ../kro-ui.branch-name
+# nothing to ignore here — they live outside the repo root
+
+# ── IDE ───────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
-.DS_Store
+*.DS_Store
 Thumbs.db
 
-# Env
+# ── Environment / secrets ─────────────────────────────────────────────
 .env
 .env.*
+!.env.example
+
+# ── Temporary kubeconfigs created by e2e setup ────────────────────────
+/tmp/kro-ui-e2e-kubeconfig.yaml
+

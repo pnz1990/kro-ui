@@ -1,0 +1,46 @@
+# kro-ui worktrunk project configuration
+#
+# Shared team settings for wt worktree workflows.
+# Docs: https://worktrunk.dev/hook/
+#
+# To use: install worktrunk (brew install worktrunk && wt config shell install)
+# Then: wt switch --create 001-server-core
+
+# ── Dev server URL per worktree in wt list ────────────────────────────
+# Each worktree runs kro-ui on a deterministic port derived from the branch name.
+[list]
+url = "http://localhost:{{ branch | hash_port }}"
+
+# ── post-create: blocking setup ───────────────────────────────────────
+# Runs synchronously before the worktree is usable. Installs all deps so
+# the developer doesn't hit a cold start when they first cd into the worktree.
+[post-create]
+go-deps = "GOPROXY=direct GONOSUMDB='*' go mod download"
+frontend-deps = "cd web && bun install"
+e2e-deps = "cd test/e2e && bun install"
+
+# ── post-start: background tasks ─────────────────────────────────────
+# Runs in the background after the worktree is created. Copies gitignored
+# files (node_modules, web/dist) from the base worktree so cold starts are
+# avoided. This copies what post-create would re-download.
+[post-start]
+copy-caches = "wt step copy-ignored"
+
+# ── pre-commit: fast local checks (runs during wt merge) ─────────────
+[pre-commit]
+go-vet = "go vet ./..."
+ts-typecheck = "cd web && bun run typecheck"
+
+# ── pre-merge: full validation gate before merging to main ───────────
+[pre-merge]
+go-test = "go test -race ./..."
+go-build = "GOPROXY=direct GONOSUMDB='*' go build ./cmd/kro-ui"
+
+# ── aliases: shortcuts runnable with `wt step <name>` ─────────────────
+[aliases]
+# Start kro-ui server for this worktree on its hashed port
+serve = "go run ./cmd/kro-ui serve --port {{ branch | hash_port }}"
+# Build everything (frontend + Go binary)
+build = "make build"
+# Run unit tests with race detector
+test = "go test -race ./..."
