@@ -3,69 +3,152 @@
 **Feature Branch**: `004-instance-list`
 **Created**: 2026-03-20
 **Status**: Draft
-
-## User Scenarios & Testing
-
-### User Story 1 — User views all live instances of an RGD (Priority: P1)
-
-On the RGD detail page (Instances tab), the user sees a table of all live CR instances for that RGD across all namespaces — name, namespace, age, readiness, and a link to the instance detail page.
-
-**Why this priority**: Without instance listing there is no way to navigate to the live observability view.
-
-**Independent Test**: On the Instances tab of `dungeon-graph`, confirm `asdasda` (namespace: `default`) appears in the list with correct age and readiness.
-
-**Acceptance Scenarios**:
-
-1. **Given** an RGD with 2 live instances across 2 namespaces, **When** the Instances tab loads with no namespace filter, **Then** both instances appear
-2. **Given** the user selects namespace `default` in the namespace filter, **When** the list updates, **Then** only instances in `default` appear
-3. **Given** an instance whose `status.conditions` includes `Ready=True`, **When** the row renders, **Then** a green badge is shown
-4. **Given** an instance with no conditions, **When** the row renders, **Then** a gray "Unknown" badge is shown
-5. **Given** the user clicks an instance row, **When** navigating, **Then** the browser goes to `/rgds/:rgdName/instances/:namespace/:name`
+**Depends on**: `003-rgd-detail-dag` (merged) — rendered inside the Instances tab
+**Constitution ref**: §II (dynamic client), §V (Simplicity — no pagination library)
 
 ---
 
-### User Story 2 — User filters instances by namespace (Priority: P2)
+## User Scenarios & Testing
 
-A dropdown or segmented control lets the user filter the instance list by namespace, or show all namespaces. The filter persists while navigating within the RGD detail page.
+### User Story 1 — Operator lists all live instances of an RGD (Priority: P1)
 
-**Why this priority**: In real clusters there are many namespaces. Filtering is essential for usability at scale.
+On the Instances tab of an RGD detail page, the operator sees a table of all
+live CR instances for that RGD — across all namespaces by default — with enough
+information to identify which instance to inspect.
 
-**Independent Test**: Select namespace `kro-system` from the filter dropdown. Confirm only instances in that namespace are shown.
+**Why this priority**: Without instance listing there is no path to the live
+observability view (spec 005).
+
+**Independent Test**: Navigate to `/rgds/dungeon-graph?tab=instances` with a
+live cluster. Confirm the `asdasda` instance (namespace: `default`) appears with
+its age and readiness badge.
 
 **Acceptance Scenarios**:
 
-1. **Given** instances in 3 namespaces, **When** "All Namespaces" is selected, **Then** all instances are shown
-2. **Given** instances in 3 namespaces, **When** `default` is selected, **Then** only `default` instances are shown
-3. **Given** a namespace with 0 instances, **When** that namespace is selected, **Then** an empty state is shown
+1. **Given** 2 live instances of `dungeon-graph` across 2 namespaces, **When**
+   the Instances tab loads with no namespace filter, **Then** both rows are
+   shown with correct name, namespace, age, and readiness badge
+2. **Given** an instance with `status.conditions` `Ready=True`, **When**
+   rendered, **Then** a green "Ready" badge is shown
+3. **Given** an instance with `status.conditions` `Ready=False`, **When**
+   rendered, **Then** a red "Not Ready" badge is shown with the `reason` value
+   in a tooltip
+4. **Given** an instance with no conditions, **When** rendered, **Then** a gray
+   "Unknown" badge is shown — never blank
+5. **Given** 0 instances exist, **When** the tab loads, **Then** an empty state
+   is shown: "No instances found. Create one with `kubectl apply`."
+6. **Given** the API call fails, **When** the tab renders, **Then** an error
+   state with a "Retry" button is shown
+7. **Given** a row is clicked, **When** navigating, **Then** the browser goes
+   to `/rgds/:rgdName/instances/:namespace/:name`
+
+---
+
+### User Story 2 — Operator filters instances by namespace (Priority: P2)
+
+A dropdown allows the operator to scope the instance list to a specific
+namespace or view all namespaces.
+
+**Why this priority**: Production clusters have many namespaces. Without
+filtering, a table with 100+ rows across namespaces is unusable.
+
+**Independent Test**: Select `default` from the namespace dropdown. Confirm only
+instances in `default` appear. Select "All Namespaces" → all instances return.
+
+**Acceptance Scenarios**:
+
+1. **Given** instances in 3 namespaces, **When** "All Namespaces" is selected
+   (default), **Then** all instances are shown
+2. **Given** instances in 3 namespaces, **When** `default` is selected, **Then**
+   only `default` instances are shown; the URL updates to
+   `/rgds/:name?tab=instances&namespace=default`
+3. **Given** a namespace with 0 instances, **When** selected, **Then** the
+   empty state is shown (not an error)
+4. **Given** the user reloads with `?namespace=default` in the URL, **When**
+   the page renders, **Then** the namespace filter is pre-selected to `default`
 
 ---
 
 ### Edge Cases
 
-- What if the RGD has 0 instances? → Show an empty state with the message "No instances found. Create one with `kubectl apply`."
-- What if the API call fails? → Show an error state with retry.
-- What if an instance name is very long? → Truncate with a tooltip showing the full name.
+- Instance name longer than 63 characters → truncate with `…` and show full
+  name in a `title` tooltip
+- `spec.schema.kind` absent from the RGD → the API cannot resolve instances;
+  show a clear error: "Cannot list instances: RGD has no spec.schema.kind"
+- namespace filter options populated from the instance list returned by "all
+  namespaces" call — not a separate API call
+- Discovery failure on irregular plural → API falls back per spec 001 FR-005;
+  UI shows results normally
+
+---
 
 ## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: Instance list MUST fetch from `GET /api/v1/rgds/:name/instances` (all namespaces) or `GET /api/v1/rgds/:name/instances?namespace=:ns`
-- **FR-002**: Each row MUST show: instance name, namespace, age, readiness badge, "Open" link
-- **FR-003**: A namespace filter dropdown MUST be provided with "All Namespaces" as the default option
-- **FR-004**: The list MUST show a loading state while fetching
-- **FR-005**: The list MUST show an error state with retry on failure
-- **FR-006**: The list MUST show an empty state when 0 instances exist
-- **FR-007**: Clicking a row or "Open" MUST navigate to the instance detail page
+- **FR-001**: Instance list MUST fetch from `GET /api/v1/rgds/:name/instances`
+  (no namespace filter) on initial load
+- **FR-002**: Namespace filter MUST re-fetch from
+  `GET /api/v1/rgds/:name/instances?namespace=:ns` when a namespace is selected
+- **FR-003**: Namespace dropdown options MUST be derived from the namespaces
+  present in the unfiltered instance list — no separate API call
+- **FR-004**: Each row MUST show: name, namespace, age, readiness badge, and an
+  "Open" link
+- **FR-005**: "Open" link MUST navigate to
+  `/rgds/:rgdName/instances/:namespace/:name`
+- **FR-006**: Active namespace selection MUST be reflected in and restored from
+  the `?namespace=` URL query parameter
+- **FR-007**: Loading, error, and empty states MUST all be handled
+- **FR-008**: Readiness badge tooltip MUST show the `reason` and `message` from
+  the `Ready` condition when `Ready=False`
+- **FR-009**: TypeScript strict mode must be satisfied
 
-### Key Entities
+### Non-Functional Requirements
 
-- **InstanceTable**: table with name, namespace, age, readiness badge, link
-- **NamespaceFilter**: dropdown populated from the namespaces seen in the instance list
-- **ReadinessBadge**: green/red/gray based on `Ready` condition
+- **NFR-001**: Instance table renders within 1s of API response
+- **NFR-002**: Namespace filter change triggers re-render in under 200ms
+- **NFR-003**: No pagination library — for v0.1.0 all rows are rendered; virtual
+  scrolling is out of scope
+
+### Key Components
+
+- **`InstanceTable`** (`web/src/components/InstanceTable.tsx`): table rendering
+  name, namespace, age, readiness badge, link per row
+- **`NamespaceFilter`** (`web/src/components/NamespaceFilter.tsx`): `<select>`
+  element with "All Namespaces" + derived namespace options
+- **`ReadinessBadge`** (`web/src/components/ReadinessBadge.tsx`): colored badge
+  derived from the `Ready` condition; gray for missing conditions
+
+---
+
+## Testing Requirements
+
+### Unit Tests (required before merge)
+
+```typescript
+// web/src/components/ReadinessBadge.test.tsx
+describe("ReadinessBadge", () => {
+  it("renders green Ready badge when Ready=True", () => { ... })
+  it("renders red Not Ready badge when Ready=False with reason tooltip", () => { ... })
+  it("renders gray Unknown badge when conditions are absent", () => { ... })
+})
+
+// web/src/pages/RGDDetail.test.tsx (Instances tab section)
+describe("Instances tab", () => {
+  it("renders a row per instance item", () => { ... })
+  it("shows empty state when items is empty", () => { ... })
+  it("shows error state on fetch failure with retry button", () => { ... })
+  it("filters by namespace when namespace param is in URL", () => { ... })
+})
+```
+
+---
 
 ## Success Criteria
 
-- **SC-001**: Instance list renders within 1 second of API response
-- **SC-002**: Namespace filter correctly scopes results with no full page reload
-- **SC-003**: Empty, loading, and error states are all visually distinct and informative
+- **SC-001**: Instance table renders within 1s of API response
+- **SC-002**: Namespace filter scopes results correctly without full page reload
+- **SC-003**: Readiness badge accurately reflects `Ready` condition in all 3
+  states, verified by unit tests
+- **SC-004**: Active namespace is preserved in and restored from the URL
+- **SC-005**: TypeScript strict mode passes with 0 errors

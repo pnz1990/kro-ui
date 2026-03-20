@@ -3,87 +3,190 @@
 **Feature Branch**: `002-rgd-list-home`
 **Created**: 2026-03-20
 **Status**: Draft
+**Depends on**: `001-go-api-server` (merged)
+**Constitution ref**: §I (Iterative-First), §V (Simplicity), §IX (Theme)
+
+---
 
 ## User Scenarios & Testing
 
-### User Story 1 — User opens the dashboard and sees all RGDs (Priority: P1)
+### User Story 1 — Operator opens the dashboard and sees all RGDs (Priority: P1)
 
-A kro operator opens `http://localhost:10174` and immediately sees all ResourceGraphDefinitions in their cluster displayed as cards — name, API kind, resource count, instance count, age, and readiness status.
+A kro operator opens `http://localhost:10174` and immediately sees all
+ResourceGraphDefinitions in their cluster as cards. Each card shows enough
+information to understand the RGD's purpose and status without kubectl.
 
-**Why this priority**: This is the entry point of the entire UI. Without it nothing else is discoverable.
+**Why this priority**: This is the entry point of the entire UI. Nothing else is
+discoverable without it.
 
-**Independent Test**: With a running server and a cluster with ≥1 RGD, open the browser and confirm RGD cards are visible with correct names and metadata.
+**Independent Test**: With a running server and ≥1 RGD in the cluster, open the
+browser and confirm RGD cards are visible with correct name, kind, and status.
 
 **Acceptance Scenarios**:
 
-1. **Given** a cluster with 3 RGDs, **When** the home page loads, **Then** 3 cards are shown, each with the RGD name, generated kind, resource count, and age
-2. **Given** an RGD whose `status.conditions` includes `Ready=True`, **When** the card renders, **Then** a green status indicator is shown
-3. **Given** an RGD whose `status.conditions` includes `Ready=False`, **When** the card renders, **Then** a red/orange status indicator is shown
-4. **Given** a cluster with 0 RGDs, **When** the home page loads, **Then** an empty state is shown with a message explaining how to create an RGD
-5. **Given** the API call is in flight, **When** the page renders, **Then** skeleton loading cards are shown
+1. **Given** a cluster with 3 RGDs (`dungeon-graph`, `hero-graph`, `boss-graph`),
+   **When** the home page loads, **Then** 3 cards are rendered, each showing:
+   - RGD name (`dungeon-graph`)
+   - Generated kind (`Dungeon`)
+   - Resource count (number of entries in `spec.resources`)
+   - Age (derived from `metadata.creationTimestamp`)
+   - Status indicator (green/orange/red dot based on `Ready` condition)
+2. **Given** an RGD whose `status.conditions` has `Ready=True`, **When** the
+   card renders, **Then** the status dot is green (`--color-alive`)
+3. **Given** an RGD whose `status.conditions` has `Ready=False`, **When** the
+   card renders, **Then** the status dot is red (`--color-error`)
+4. **Given** an RGD with no conditions, **When** the card renders, **Then** the
+   status dot is gray (`--color-unknown`) — never blank, never broken
+5. **Given** the `GET /api/v1/rgds` call is in-flight, **When** the page
+   renders, **Then** skeleton loading cards are shown (not a spinner over
+   empty content)
+6. **Given** a cluster with 0 RGDs, **When** the home page loads, **Then** an
+   empty state is displayed explaining that no RGDs were found and linking to
+   the kro documentation
+7. **Given** `GET /api/v1/rgds` returns a non-2xx status, **When** the page
+   renders, **Then** an error state is displayed with the error message and a
+   "Retry" button
 
 ---
 
-### User Story 2 — User navigates to an RGD detail from the home page (Priority: P1)
+### User Story 2 — Operator navigates from a card to an RGD's graph or instances (Priority: P1)
 
-From the home page, the user can click a "Graph" button on an RGD card to navigate to the RGD's detail/DAG view, and an "Instances" button to go directly to that RGD's instance list.
+Every RGD card has two explicit action buttons so the operator can go directly
+to the view they need.
 
-**Why this priority**: Navigation is the core UX flow. These buttons are the primary action on every card.
+**Why this priority**: Card navigation is the primary UX flow. Without it the
+home page is a dead end.
 
-**Independent Test**: Click "Graph" on a card → URL changes to `/rgds/:name`. Click "Instances" → URL changes to `/rgds/:name?tab=instances`.
+**Independent Test**: Click "Graph" on the `dungeon-graph` card → URL becomes
+`/rgds/dungeon-graph`. Click "Instances" → URL becomes
+`/rgds/dungeon-graph?tab=instances`. Press browser Back → home page at same
+scroll position.
 
 **Acceptance Scenarios**:
 
-1. **Given** the home page with RGD cards, **When** "Graph" is clicked, **Then** the browser navigates to `/rgds/:name`
-2. **Given** the home page with RGD cards, **When** "Instances" is clicked, **Then** the browser navigates to `/rgds/:name?tab=instances`
-3. **Given** the user presses browser back, **When** navigating back to home, **Then** the card grid is shown again at the same scroll position
+1. **Given** an RGD card, **When** "Graph" is clicked, **Then** the browser
+   navigates to `/rgds/:name` using React Router (`<Link>`, no full page reload)
+2. **Given** an RGD card, **When** "Instances" is clicked, **Then** the browser
+   navigates to `/rgds/:name?tab=instances`
+3. **Given** the user navigates away and presses the browser Back button,
+   **When** returning to the home page, **Then** the card grid is shown at the
+   same scroll position (React Router preserves state)
 
 ---
 
-### User Story 3 — Top bar shows active cluster context (Priority: P2)
+### User Story 3 — Active cluster context is always visible (Priority: P2)
 
-The top bar of the UI shows the active kubeconfig context name at all times so the user always knows which cluster they are looking at.
+The top bar shows the active kubeconfig context name on every page. The operator
+always knows which cluster they are looking at.
 
-**Why this priority**: Context visibility prevents confusion when switching between clusters.
+**Why this priority**: Without context visibility, an operator might act on
+production data believing they are on staging. This is a safety concern.
 
-**Independent Test**: The top bar shows the context name matching what `kubectl config current-context` returns.
+**Independent Test**: The top bar shows the string matching
+`kubectl config current-context` for the connected server context.
 
 **Acceptance Scenarios**:
 
-1. **Given** a running server with context `arn:aws:eks:us-west-2:123:cluster/my-cluster`, **When** any page loads, **Then** the top bar shows the cluster context name (truncated if needed, full name in tooltip)
-2. **Given** a context switch has occurred via the context switcher, **When** the home page refreshes, **Then** the top bar shows the new context name and the RGD list reloads
+1. **Given** a running server connected to context
+   `arn:aws:eks:us-west-2:123:cluster/my-cluster`, **When** any page loads,
+   **Then** the top bar shows the context name, truncated if longer than ~40
+   characters, with the full name in a `title` tooltip
+2. **Given** a context name of `minikube`, **When** displayed, **Then** no
+   truncation is applied
 
 ---
 
 ### Edge Cases
 
-- What if the API call to `/api/v1/rgds` fails? → Show an error state with the error message and a "Retry" button.
-- What if an RGD has no `spec.schema.kind`? → Show the RGD name only, omit the kind badge.
-- What if there are 50+ RGDs? → Cards render in a responsive grid; no pagination needed at this stage.
+- `GET /api/v1/rgds` network error (DNS failure, connection refused) → show
+  error state with the underlying message and a "Retry" button
+- RGD card with missing `spec.schema.kind` → show RGD name only, omit kind
+  badge; do not crash
+- 50+ RGDs → responsive CSS grid, all cards rendered; no pagination required
+  for v0.1.0
+- RGD name contains special URL characters → URL-encode on `<Link to>`;
+  decode in the route component
+
+---
 
 ## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: Home page MUST fetch `/api/v1/rgds` on mount and render one card per RGD
-- **FR-002**: Each card MUST show: name, generated kind, resource count (`spec.resources` length), instance count (from `status` or 0 if unavailable), age (from `metadata.creationTimestamp`), readiness status dot
-- **FR-003**: Each card MUST have a "Graph" button and an "Instances" button
-- **FR-004**: The top bar MUST show the active kubeconfig context name
-- **FR-005**: A skeleton loading state MUST be shown while the API call is in flight
-- **FR-006**: An error state MUST be shown if the API call fails, with a "Retry" button
-- **FR-007**: An empty state MUST be shown if the cluster has no RGDs
-- **FR-008**: The page MUST NOT auto-refresh (home page is static; instance detail refreshes, not this)
-- **FR-009**: The UI MUST use the kro.run color palette and dark theme by default
+- **FR-001**: Home page MUST fetch `GET /api/v1/rgds` on mount and render one
+  `RGDCard` component per item in the `items` array
+- **FR-002**: Each `RGDCard` MUST display: name, kind (from
+  `spec.schema.kind`), resource count (`spec.resources.length`), age, status dot
+- **FR-003**: Status dot MUST be derived from `status.conditions`:
+  `Ready=True` → green, `Ready=False` → red, absent/unknown → gray
+- **FR-004**: Each card MUST render a "Graph" `<Link>` to `/rgds/:name` and an
+  "Instances" `<Link>` to `/rgds/:name?tab=instances`
+- **FR-005**: A skeleton loading state (CSS-only, no library) MUST be shown
+  while the API call is in-flight
+- **FR-006**: An error state with "Retry" button MUST be shown on API failure
+- **FR-007**: An empty state with a link to kro docs MUST be shown when the
+  cluster has 0 RGDs
+- **FR-008**: Home page MUST NOT auto-refresh — it is a static snapshot
+- **FR-009**: Top bar MUST display the active context name from
+  `GET /api/v1/contexts` (`.active` field)
+- **FR-010**: All styles MUST use the CSS tokens defined in `tokens.css`
+  (constitution §IX); no inline styles except for dynamic values
 
-### Key Entities
+### Non-Functional Requirements
 
-- **RGDCard**: displays one RGD's summary
-- **StatusDot**: green/orange/red dot based on `Ready` condition
-- **TopBar**: context name, theme toggle (phase 2)
+- **NFR-001**: Cards MUST render within 500ms of receiving the API response
+- **NFR-002**: TypeScript strict mode MUST be satisfied — no `any`, no `@ts-ignore`
+- **NFR-003**: No external component libraries (constitution §V)
+- **NFR-004**: The home page MUST be usable with keyboard navigation (tab to
+  card buttons, Enter to activate)
+
+### Key Components
+
+- **`Home`** (`web/src/pages/Home.tsx`): fetches RGD list, renders grid
+- **`RGDCard`** (`web/src/components/RGDCard.tsx`): displays one RGD summary
+- **`StatusDot`** (`web/src/components/StatusDot.tsx`): colored dot with
+  `title` tooltip showing condition details
+- **`SkeletonCard`** (`web/src/components/SkeletonCard.tsx`): CSS animation
+  placeholder, same dimensions as `RGDCard`
+- **`Layout`** (`web/src/components/Layout.tsx`): top bar + `<Outlet />`
+- **`TopBar`** (`web/src/components/TopBar.tsx`): context name + theme toggle
+  (theme toggle is display-only for v0.2.0)
+
+---
+
+## Testing Requirements
+
+### Unit Tests (required before merge)
+
+```typescript
+// web/src/components/StatusDot.test.tsx
+describe("StatusDot", () => {
+  it("renders green when Ready=True", () => { ... })
+  it("renders red when Ready=False", () => { ... })
+  it("renders gray when no conditions", () => { ... })
+})
+
+// web/src/pages/Home.test.tsx
+describe("Home", () => {
+  it("shows skeleton cards while loading", () => { ... })
+  it("renders one card per RGD item", () => { ... })
+  it("shows empty state when items is empty", () => { ... })
+  it("shows error state and retry button on fetch failure", () => { ... })
+})
+```
+
+Framework: Vitest + React Testing Library (already in Vite ecosystem).
+No snapshot tests.
+
+---
 
 ## Success Criteria
 
-- **SC-001**: Home page renders all cards within 1 second of API response
-- **SC-002**: Clicking "Graph" navigates in under 100ms (client-side routing)
-- **SC-003**: Status dot correctly reflects `Ready` condition for 100% of RGDs shown in manual testing
-- **SC-004**: Empty state, loading state, and error state are all visible and clearly communicate the situation
+- **SC-001**: Home page renders all cards within 500ms of receiving API data
+- **SC-002**: "Graph" and "Instances" links navigate in under 100ms (client-side)
+- **SC-003**: Status dot correctly reflects `Ready` condition in all 3 states
+  (green/red/gray) verified by unit tests
+- **SC-004**: Skeleton, empty, and error states are all reachable via unit tests
+  and visually distinct when observed manually
+- **SC-005**: TypeScript strict mode passes — `tsc --noEmit` reports 0 errors
+- **SC-006**: Keyboard navigation: Tab → card buttons reachable; Enter → navigates

@@ -1,43 +1,293 @@
 # kro-ui Constitution
 
+> This document governs all development decisions for kro-ui. It supersedes any
+> conflicting guidance in individual specs or implementation plans. Amendments
+> require explicit rationale documented in the relevant spec and a version bump
+> to this file.
+>
+> kro-ui is intended for donation to `kubernetes-sigs`. Every standard here is
+> chosen to be consistent with or stricter than the practices used in the
+> [kro codebase](https://github.com/kubernetes-sigs/kro).
+
+---
+
 ## I. Iterative-First (NON-NEGOTIABLE)
 
-Build the smallest working thing, then expand. Every feature must be shippable before the next one starts. No spec, plan, or task may depend on unimplemented prior work. Each iteration must leave the app in a runnable, deployable state.
+Build the smallest working thing, then expand. Every spec is independently
+shippable. No spec, plan, or task may depend on code that has not yet been
+merged. Each iteration leaves the binary in a runnable, deployable state.
+Ship `001` before starting `002`. Ship `002` before starting `003`.
 
-## II. Cluster Adaptability
+---
 
-kro evolves rapidly. All cluster access MUST use the Kubernetes dynamic client and server-side discovery. No hardcoded API group versions, field paths, or resource kinds outside of a single, isolated mapping layer. When kro adds a new CRD (e.g., GraphRevision), the UI must pick it up with zero or minimal code changes.
+## II. Cluster Adaptability (NON-NEGOTIABLE)
 
-## III. Read-Only
+kro is a rapidly evolving project. kro-ui must absorb new CRDs, fields, and
+concepts with zero or minimal code changes.
 
-kro-ui is an observability tool. It MUST NOT mutate any cluster resource. No `create`, `update`, `patch`, `delete`, or `apply` operations. The RBAC rules in the Helm chart must enforce this at the cluster level.
+- All cluster access MUST use `k8s.io/client-go/dynamic` — no typed clients
+  for kro resources
+- Resource kind resolution MUST use server-side discovery
+  (`discovery.ServerResourcesForGroupVersion`) as the primary mechanism;
+  naive pluralization is a last-resort fallback only
+- No kro API field paths (e.g., `spec.resources[].id`) may be hardcoded outside
+  of a single, isolated `internal/kro/` mapping package
+- When kro adds a new CRD (e.g., `GraphRevision`), the handler and a new tab
+  are the only changes required — no changes to the client factory, no changes
+  to routing infrastructure
+
+---
+
+## III. Read-Only (NON-NEGOTIABLE)
+
+kro-ui is an observability tool. It MUST NOT issue any mutating Kubernetes API
+call. Prohibited verbs: `create`, `update`, `patch`, `delete`, `apply`. The
+Helm chart MUST enforce this at the RBAC level via a `ClusterRole` containing
+only `get`, `list`, and `watch` verbs.
+
+---
 
 ## IV. Single Binary Distribution
 
-The Go binary embeds the frontend via `go:embed`. There is no separate static file server, no CDN, no external asset fetching at runtime. The binary must run with `./kro-ui serve` and work offline after download.
+The Go binary MUST embed the compiled frontend via `go:embed`. No external
+CDN, no runtime asset fetching, no separate static server. `./kro-ui serve`
+is the only command required to run the full application. The binary MUST
+work without any internet access after download.
+
+---
 
 ## V. Simplicity Over Cleverness
 
-No ORMs, no GraphQL, no state management libraries (no Redux, Zustand, Jotai). The API layer is plain REST with polling. The frontend uses React + React Router only. Add a dependency only when the alternative is significantly more complex.
+Add a dependency only when the alternative is significantly more complex to
+write correctly. Default to the standard library.
 
-## VI. Theme Alignment
+Prohibited on the backend:
+- ORMs of any kind
+- GraphQL
+- Server-Sent Events or WebSockets (plain HTTP polling is sufficient)
 
-The UI MUST use the kro.run color palette (`#5b7fc9` primary, `#1b1b1d` dark background). Dark mode is the default. The kro CEL/schema highlighter token colors must match kro.run exactly. No generic code highlighting libraries (no highlight.js, no Prism).
+Prohibited on the frontend:
+- State management libraries (Redux, Zustand, Jotai, Recoil)
+- CSS frameworks (Tailwind, Bootstrap, MUI, Chakra)
+- Code highlighting libraries (highlight.js, Prism, shiki)
+- Component libraries (shadcn, Radix UI, etc.)
 
-## VII. Spec Before Code (NON-NEGOTIABLE)
+Permitted:
+- `github.com/go-chi/chi/v5` — HTTP routing
+- `github.com/rs/cors` — CORS middleware
+- `github.com/rs/zerolog` — structured logging (see §VIII)
+- `github.com/spf13/cobra` — CLI
+- React 19 + React Router v7 + Vite
+- Plain CSS with CSS custom properties
 
-Every feature starts with a spec. No implementation begins without a corresponding `.specify/specs/NNN-feature-name/spec.md`. Tasks are derived from the spec, not invented during coding.
+---
 
-## Constraints
+## VI. Go Code Standards
 
-- **Go version**: 1.25+
-- **Frontend**: React 19 + Vite + TypeScript (strict mode)
-- **No CSS frameworks**: Tailwind, Bootstrap, MUI are prohibited. Plain CSS with CSS custom properties only.
-- **Port**: 10174 (k=10, r=17, o=14 with A=0)
-- **Image size target**: < 20MB final Docker image
+These mirror the conventions used in `kubernetes-sigs/kro`.
+
+### Error Handling
+
+- Wrap with context: `fmt.Errorf("failed to list RGDs: %w", err)`
+- Accumulate multiple errors: `errors.Join(err1, err2)`
+- Use typed error structs with `Unwrap()` for categories that callers must
+  distinguish (e.g., `clusterError`, `discoveryError`)
+- Never silence errors. No `_ = someErr`.
+- No `panic` in production code paths
+
+### Logging
+
+- Library: `github.com/rs/zerolog` via `zerolog.Ctx(ctx)` — structured,
+  contextual, zero-allocation
+- Levels: `log.Debug()` for operational detail, `log.Info()` for normal flow,
+  `log.Error().Err(err).Msg(...)` at the call site that handles the error
+- Always include structured fields: `.Str("rgd", name)`, `.Str("context", ctx)`,
+  `.Int("port", port)`
+- Logger is injected via `context.Context` (same pattern as `ctrl.LoggerFrom`)
+
+### Package Structure
+
+Mirrors the kro controller layout:
+
+```
+cmd/kro-ui/           # Binary entrypoint only — wires cobra, calls internal/
+internal/
+  server/
+    server.go         # HTTP server setup, go:embed, routes
+  api/
+    handlers/
+      handler.go      # Shared Handler struct, respond(), respondError()
+      contexts.go     # ListContexts, SwitchContext handlers
+      rgds.go         # ListRGDs, GetRGD, ListInstances handlers
+      instances.go    # GetInstance, GetInstanceEvents, GetInstanceChildren handlers
+      resources.go    # GetResource handler
+    types/
+      response.go     # Shared API response types
+  k8s/
+    client.go         # ClientFactory: dynamic + discovery clients, context switch
+    rgd.go            # kro-specific field extraction helpers (the ONLY place that
+                      # knows kro field paths)
+    graph.go          # RGD → DAGGraph builder (port from open-krode)
+    discover.go       # discoverPlural(), listChildResources()
+  version/
+    version.go        # Build-time version info (ldflags)
+```
+
+### File Naming
+
+- `handler.go` — shared struct and helpers
+- `<resource>.go` — handlers for a specific resource
+- `<file>_test.go` — tests in the same package as the code under test
+- No `util.go`, no `helpers.go`, no `common.go`
+
+### Interface Definition
+
+Define interfaces at the **consumption site**, not the implementation site.
+Keep them small (1–3 methods). Do not create interfaces preemptively.
+
+```go
+// In internal/api/handlers/rgds.go
+type rgdLister interface {
+    ListRGDs(ctx context.Context) ([]unstructured.Unstructured, error)
+    GetRGD(ctx context.Context, name string) (*unstructured.Unstructured, error)
+}
+```
+
+### Copyright Header
+
+Every `.go` file MUST begin with:
+
+```go
+// Copyright 2026 The Kubernetes Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+```
+
+---
+
+## VII. Testing Standards
+
+These mirror the test conventions in `kubernetes-sigs/kro`.
+
+### Unit Tests
+
+- Location: `<file>_test.go` in the **same package** as the code under test
+  (white-box, `package handlers` not `package handlers_test`)
+- Framework: standard `testing` package + `github.com/stretchr/testify/assert`
+  (non-fatal) + `github.com/stretchr/testify/require` (fatal)
+- All test helpers MUST call `t.Helper()`
+- Use `t.Cleanup()` for teardown, not `defer` in test bodies
+- Table-driven tests MUST use a `build` func + `check` func structure per case
+  (same pattern as kro's controller tests)
+- Stubs are written by hand as unexported structs — no mockery, no gomock
+- Run with `-race` always: `go test -race -v ./...`
+
+### Integration Tests
+
+- Use `sigs.k8s.io/controller-runtime/pkg/envtest` for tests that need a real
+  API server
+- Located in `test/integration/` using Ginkgo suites
+- Not required for v0.1.0 — add when the k8s client layer is complex enough
+  to warrant it
+
+### Frontend Tests
+
+- Unit tests for pure functions (tokenizer, DAG layout) via Vitest
+- No snapshot tests, no visual regression tests at this stage
+- Test files: `*.test.ts` alongside the source file
+
+### Coverage
+
+No hard coverage threshold in CI for v0.1.0. Coverage is tracked via
+`go test -coverprofile` and reported but not gated.
+
+---
+
+## VIII. Commit and Branch Conventions
+
+Following `kubernetes-sigs/kro`:
+
+### Commit Messages — Conventional Commits
+
+```
+type(scope): short summary in imperative mood, ≤72 chars
+
+Optional body: explain WHY the change is needed, not WHAT.
+Reference specs: "Implements spec 001-go-api-server FR-004."
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`
+Scopes: `api`, `k8s`, `server`, `dag`, `highlighter`, `helm`, `web`, `spec`
+
+Examples:
+```
+feat(k8s): add ClientFactory with runtime context switching
+feat(api): implement RGD list and get endpoints
+fix(k8s): use discovery for plural resolution instead of naive +s
+docs(spec): add kro development standards to constitution
+chore(helm): add read-only ClusterRole for in-cluster deployment
+test(api): add table-driven unit tests for context handler
+```
+
+### Branch Naming
+
+```
+NNN-short-description        # maps to spec number
+001-go-api-server
+002-rgd-list-home
+```
+
+### Design Proposals
+
+Significant architectural decisions MUST be documented as a proposal under
+`docs/design/proposals/NNN-title.md` before implementation. Format follows
+kro's KREP structure:
+- Problem statement
+- Proposal / overview
+- Design details
+- Alternatives considered
+- Testing strategy
+
+---
+
+## IX. Theme and UI Standards
+
+- **Color palette**: kro.run (`#5b7fc9` primary, `#1b1b1d` dark background)
+- **Dark mode**: default; light mode toggled via `data-theme="light"` on `<html>`
+- **Fonts**: Inter (UI) + JetBrains Mono (code) loaded from Google Fonts in
+  `index.html` only — the binary works without internet, fonts fall back to
+  system stack
+- **CEL highlighter**: 8 token types, colors MUST match kro.run's documentation
+  page exactly. No external highlighting library.
+
+---
+
+## X. Licensing and Attribution
+
+- License: Apache 2.0 (same as `kubernetes-sigs/kro`)
+- `LICENSE` file MUST be present in the repo root
+- Every Go source file MUST have the Apache 2.0 copyright header (§VI)
+- `CONTRIBUTING.md` MUST reference `kubernetes-sigs` contribution guidelines
+  as a model
+
+---
 
 ## Governance
 
-This constitution supersedes all implementation decisions. Any deviation requires a comment in the relevant spec explaining the exception and why it is justified. The constitution is reviewed when a new major feature is added.
+This constitution supersedes all other documentation when there is a conflict.
+Amendments:
+1. Update this file with the change and rationale
+2. Bump the version number (MINOR for new principles, PATCH for clarifications)
+3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-20 | **Last Amended**: 2026-03-20
+**Version**: 1.1.0 | **Ratified**: 2026-03-20 | **Last Amended**: 2026-03-20

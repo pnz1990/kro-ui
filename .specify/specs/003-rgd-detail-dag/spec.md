@@ -3,92 +3,232 @@
 **Feature Branch**: `003-rgd-detail-dag`
 **Created**: 2026-03-20
 **Status**: Draft
+**Depends on**: `002-rgd-list-home` (merged)
+**Constitution ref**: §II (Cluster Adaptability), §V (Simplicity — no D3, no
+force simulation), §VI (Go Standards), §IX (Theme)
+
+---
 
 ## User Scenarios & Testing
 
-### User Story 1 — User views the dependency graph of an RGD (Priority: P1)
+### User Story 1 — Operator views the dependency graph of an RGD (Priority: P1)
 
-A user navigates to `/rgds/dungeon-graph` and sees an SVG graph showing all resource nodes, dependency edges, and kro-specific node types (root CR, managed resources, specPatch state nodes, includeWhen conditional nodes, forEach fan-outs).
+An operator navigates to `/rgds/dungeon-graph` and sees an SVG dependency graph
+showing the complete resource topology: root CR, managed resources, specPatch
+state nodes, includeWhen conditional nodes, and forEach fan-outs — each with a
+distinct visual treatment.
 
-**Why this priority**: The DAG is the core visualization of kro-ui. It is the main reason someone would open this tool.
+**Why this priority**: The DAG is the primary visualization of kro-ui. It is the
+main reason an operator would open this tool rather than using kubectl.
 
-**Independent Test**: Open `/rgds/dungeon-graph` with a cluster. Confirm the root `Dungeon` node and all child resource nodes appear with correct labels. Confirm edges exist between dependent nodes.
+**Independent Test**: Open `/rgds/dungeon-graph` against a live cluster. Confirm
+the `Dungeon` root node appears, all child resource nodes appear with their
+labels, dependency edges are drawn, and node types are visually distinct.
 
 **Acceptance Scenarios**:
 
-1. **Given** an RGD with 8 resources and 2 specPatch nodes, **When** the DAG renders, **Then** all 10 nodes appear with correct labels, kinds, and visual type indicators
-2. **Given** a resource with `includeWhen` expressions, **When** the node renders, **Then** it has a visual indicator (dashed border or badge) distinguishing it as conditional
-3. **Given** a resource with `forEach`, **When** the node renders, **Then** it has a forEach indicator (∀ badge)
-4. **Given** a specPatch state node, **When** the node renders, **Then** it is visually distinct from managed resource nodes (different shape/color)
-5. **Given** the DAG has more nodes than fit in the viewport, **When** the user scrolls horizontally, **Then** all nodes are reachable via scroll (no clipping)
+1. **Given** `dungeon-graph` with 7 resource nodes and 9 specPatch nodes,
+   **When** the page loads, **Then** all 16 nodes are rendered in the SVG with
+   correct labels and type indicators; edges connect all dependent pairs
+2. **Given** a resource with `includeWhen` expressions, **When** rendered,
+   **Then** the node has a dashed border indicating conditionality
+3. **Given** a resource with a `forEach` dimension, **When** rendered, **Then**
+   the node carries an `∀` badge
+4. **Given** a specPatch state node, **When** rendered, **Then** it is visually
+   distinct from managed resource nodes (amber/yellow fill vs default blue)
+5. **Given** the graph is wider than the viewport, **When** rendered, **Then**
+   horizontal scrolling is available and all nodes remain reachable
+6. **Given** the same RGD data is rendered twice, **When** compared, **Then**
+   the node positions are identical (layout is deterministic)
 
 ---
 
-### User Story 2 — User clicks a node to inspect its CEL expressions and concept (Priority: P1)
+### User Story 2 — Operator clicks a node to inspect its CEL expressions (Priority: P1)
 
-Clicking any DAG node opens a right-side detail panel showing the node's kind, type badge, concept explanation (what is this kro concept), CEL expressions (includeWhen, readyWhen, forEach, stateFields), and raw YAML template.
+Clicking any DAG node opens a right-side detail panel with the node's kind, type
+badges, kro concept explanation, and all CEL expressions on that node. The panel
+appears without a page navigation or additional API call.
 
-**Why this priority**: Node inspection is the primary way users understand what an RGD does.
+**Why this priority**: Node inspection is the primary way an operator understands
+what an RGD does. The data is already in the RGD object fetched on page load.
 
-**Independent Test**: Click the `bossCR` node → right panel appears with "Kind: Boss", concept explanation for "managed resource", and any CEL expressions on that node.
+**Independent Test**: Click the `bossCR` node. Confirm the panel slides in
+showing "Kind: Boss", the "managed resource" concept explanation, and any
+`readyWhen` expressions on that node. Close button dismisses the panel.
 
 **Acceptance Scenarios**:
 
-1. **Given** a managed resource node, **When** clicked, **Then** the panel shows kind, the "managed resource" concept explanation, and any CEL expressions
-2. **Given** a specPatch state node, **When** clicked, **Then** the panel shows state fields and the "specPatch" concept explanation
-3. **Given** a node with `includeWhen: ["${foo.status.ready}"]`, **When** clicked, **Then** the panel shows the CEL expression with the kro highlighter
-4. **Given** the panel is open for node A, **When** node B is clicked, **Then** the panel updates to show node B's details
-5. **Given** the panel close button is clicked, **Then** the panel closes and the DAG takes full width
+1. **Given** a managed resource node, **When** clicked, **Then** the detail
+   panel shows: kind badge, "managed resource" concept explanation, any
+   `readyWhen` expressions highlighted with the CEL highlighter
+2. **Given** a specPatch state node, **When** clicked, **Then** the panel shows:
+   "specPatch" concept explanation and all state fields with their CEL values
+3. **Given** a node with `includeWhen: ["${foo.status.ready}"]`, **When** the
+   panel opens, **Then** the `${...}` token appears in `var(--hl-cel-expression)`
+   color (constitution §VI, see spec 006)
+4. **Given** the panel is open for node A, **When** node B is clicked, **Then**
+   the panel updates to node B without animation lag
+5. **Given** the ✕ close button is clicked, **When** the panel closes, **Then**
+   the DAG takes full width again
 
 ---
 
-### User Story 3 — User views the raw RGD YAML with CEL highlighting (Priority: P2)
+### User Story 3 — Operator reads the raw RGD YAML with CEL highlighting (Priority: P2)
 
-On the RGD detail page there is a "YAML" tab that shows the full raw RGD YAML with kro's custom syntax highlighting: gray for YAML keys, blue for CEL expressions (`${...}`), pink for schema types, dark slate for kro keywords.
+A "YAML" tab on the RGD detail page shows the full manifest with kro's custom
+syntax highlighting. An operator can read it to understand the exact CEL
+expressions without using kubectl.
 
-**Why this priority**: Raw YAML inspection is important for debugging and understanding the full RGD definition.
+**Why this priority**: Raw YAML inspection is the fallback for debugging anything
+not surfaced by the DAG view.
 
-**Independent Test**: Navigate to YAML tab on `dungeon-graph`. Confirm CEL expressions (`${...}`) are highlighted in blue and schema types (`string`, `integer`) are highlighted in pink/rose.
+**Independent Test**: Navigate to the YAML tab on `dungeon-graph`. Confirm:
+- `${...}` tokens are blue (`var(--hl-cel-expression)`)
+- `readyWhen:` label is dark slate (`var(--hl-kro-keyword)`)
+- `string` type annotations are pink/amber (`var(--hl-schema-type)`)
 
 **Acceptance Scenarios**:
 
-1. **Given** an RGD YAML with CEL expressions, **When** the YAML tab renders, **Then** `${...}` tokens are highlighted in the kro primary blue
-2. **Given** a schema type like `string | default=warrior`, **When** rendered, **Then** `string` is pink, `|` is muted gray, `default` is muted blue, `warrior` is lavender
-3. **Given** a kro keyword like `readyWhen:` or `forEach:`, **When** rendered, **Then** it is highlighted in dark slate (different from regular YAML keys)
-4. **Given** a very long YAML (500+ lines), **When** the tab renders, **Then** the YAML is scrollable in its container with no layout overflow
+1. **Given** a YAML with `${clusterVPC.status.vpcID}`, **When** rendered,
+   **Then** the full `${...}` span is colored `var(--hl-cel-expression)`
+2. **Given** a kro keyword `readyWhen:`, **When** rendered, **Then** it is
+   colored `var(--hl-kro-keyword)` — visually different from regular YAML keys
+3. **Given** a SimpleSchema type `string | default=warrior`, **When** rendered,
+   **Then** `string` → `var(--hl-schema-type)`, `|` → `var(--hl-schema-pipe)`,
+   `default` → `var(--hl-schema-keyword)`, `warrior` → `var(--hl-schema-value)`
+4. **Given** a 400-line RGD YAML, **When** the tab renders, **Then** the YAML
+   is scrollable in its container with no layout overflow and no visible
+   performance degradation
+
+---
+
+### User Story 4 — Page has tabs for Graph, Instances, and YAML (Priority: P2)
+
+The RGD detail page has a tab bar: "Graph" (default), "Instances", and "YAML".
+The active tab is reflected in the URL query parameter so it can be bookmarked
+and shared.
+
+**Why this priority**: Consistent navigation reduces cognitive load. The
+Instances tab is also required by spec 004.
+
+**Independent Test**: Navigate to `/rgds/dungeon-graph`. Default tab is "Graph".
+Click "Instances" → URL becomes `/rgds/dungeon-graph?tab=instances`. Reload →
+Instances tab is still active.
+
+**Acceptance Scenarios**:
+
+1. **Given** the page loads with no `?tab` parameter, **When** rendered, **Then**
+   the "Graph" tab is active
+2. **Given** `?tab=instances`, **When** the page renders, **Then** the
+   "Instances" tab content is shown
+3. **Given** `?tab=yaml`, **When** the page renders, **Then** the YAML tab
+   content is shown
+4. **Given** `?tab=<invalid>`, **When** the page renders, **Then** it falls back
+   to the "Graph" tab
 
 ---
 
 ### Edge Cases
 
-- What if the RGD has no resources? → Show the root node alone with a message "No managed resources defined."
-- What if the graph has a circular dependency (shouldn't happen in valid kro, but)? → Render best-effort without crashing; show a warning badge.
-- What if an RGD name contains special characters? → URL-encode on navigation; decode on the page.
+- RGD with 0 resources → show root node alone with note "No managed resources
+  defined"
+- RGD name with URL-special characters → URL-encoded in route params; decoded in
+  the page component with `decodeURIComponent`
+- `spec.resources` field absent or null → treat as empty array; do not crash
+- DAG graph with a node referencing a non-existent dependency (malformed RGD) →
+  render best-effort; show a warning badge on the orphaned node
+
+---
 
 ## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: DAG MUST be rendered as inline SVG using a BFS-layered layout (port from open-krode)
-- **FR-002**: Node types MUST be visually distinct: root CR (blue accent), managed resource (default), specPatch (yellow/amber), includeWhen (dashed), forEach (∀ badge), readyWhen (check badge)
-- **FR-003**: Clicking a node MUST open a right-side detail panel without page navigation
-- **FR-004**: The detail panel MUST show: kind, type badge(s), concept explanation, CEL expressions (highlighted), close button
-- **FR-005**: A "YAML" tab MUST show the full raw RGD manifest with the kro CEL/schema highlighter
-- **FR-006**: The DAG MUST be horizontally scrollable when wider than the viewport
-- **FR-007**: The DAG layout algorithm MUST be deterministic (same input → same layout every render)
-- **FR-008**: The page MUST fetch the RGD from `GET /api/v1/rgds/:name` and also list instances via `GET /api/v1/rgds/:name/instances` for the instances tab
-- **FR-009**: No YAML highlighting libraries (no Prism, no highlight.js) — custom tokenizer only
+- **FR-001**: Page MUST fetch `GET /api/v1/rgds/:name` on mount and build the
+  DAG client-side from `spec.resources` and their CEL cross-references
+- **FR-002**: DAG MUST be rendered as inline SVG using a BFS-layered layout
+  algorithm — no D3, no force simulation, no external graph library
+- **FR-003**: Node type visual treatments:
 
-### Key Entities
+  | Node type | Visual indicator |
+  |-----------|-----------------|
+  | Root CR | Blue accent border, "root" badge |
+  | Managed resource | Default card style |
+  | specPatch state node | Amber/yellow fill |
+  | `includeWhen` conditional | Dashed border |
+  | `forEach` fan-out | `∀` badge |
+  | `readyWhen` | Check badge |
 
-- **DAGGraph component**: `{nodes: DAGNode[], edges: DAGEdge[]}` — data-driven, no hardcoded kro concepts in the renderer itself
-- **NodeDetailPanel**: right-side slide-in showing CEL and concept info
-- **KroCodeBlock component**: custom tokenizer for kro YAML
-- **RGDDetail page**: tabs — Graph | Instances | YAML
+- **FR-004**: Clicking a node MUST open the `NodeDetailPanel` without any
+  additional API call — all data is in the already-loaded RGD object
+- **FR-005**: `NodeDetailPanel` MUST show: kind, type badge(s), concept
+  explanation, CEL expressions (via `KroCodeBlock` component from spec 006)
+- **FR-006**: A "YAML" tab MUST render the full RGD manifest via `KroCodeBlock`
+  (spec 006) — no external highlighter
+- **FR-007**: An "Instances" tab MUST render the instance list (spec 004 content)
+  fetched from `GET /api/v1/rgds/:name/instances`
+- **FR-008**: Active tab MUST be reflected in `?tab=graph|instances|yaml` URL
+  query parameter and restored on reload
+- **FR-009**: The DAG layout algorithm MUST be deterministic (same input → same
+  output every call)
+- **FR-010**: The DAG MUST be horizontally scrollable when wider than the
+  viewport; no content clipping
+
+### Non-Functional Requirements
+
+- **NFR-001**: DAG renders all nodes for `dungeon-graph` (16 nodes) in under
+  500ms after the API response arrives
+- **NFR-002**: Node click opens detail panel in under 50ms (no I/O)
+- **NFR-003**: TypeScript strict mode — `tsc --noEmit` reports 0 errors
+- **NFR-004**: `DAGGraph` component MUST be purely data-driven: accepts
+  `{nodes: DAGNode[], edges: DAGEdge[]}` — zero kro-specific logic inside
+  the renderer itself (kro concepts live in the page/hook layer)
+
+### Key Components
+
+- **`RGDDetail`** (`web/src/pages/RGDDetail.tsx`): page component, tab routing,
+  fetches RGD data, builds DAG graph from `spec`
+- **`DAGGraph`** (`web/src/components/DAGGraph.tsx`): pure SVG renderer,
+  data-driven, no kro knowledge
+- **`NodeDetailPanel`** (`web/src/components/NodeDetailPanel.tsx`): slide-in
+  panel with CEL details and concept explanation
+- **`KroCodeBlock`** (`web/src/components/KroCodeBlock.tsx`): from spec 006
+- **`buildDAGGraph`** (`web/src/lib/dag.ts`): pure function converting an RGD
+  `spec` object into `{nodes: DAGNode[], edges: DAGEdge[]}`. Independently
+  testable. This is where kro-specific parsing lives.
+
+---
+
+## Testing Requirements
+
+### Unit Tests (required before merge)
+
+```typescript
+// web/src/lib/dag.test.ts
+describe("buildDAGGraph", () => {
+  it("returns root node for minimal RGD", () => { ... })
+  it("creates edges for direct CEL references between resources", () => { ... })
+  it("marks includeWhen nodes as conditional", () => { ... })
+  it("marks forEach nodes correctly", () => { ... })
+  it("is deterministic — same input produces same node positions", () => { ... })
+})
+
+// web/src/components/NodeDetailPanel.test.tsx
+describe("NodeDetailPanel", () => {
+  it("shows kind badge for managed resource nodes", () => { ... })
+  it("shows specPatch concept explanation for state nodes", () => { ... })
+  it("calls onClose when ✕ is clicked", () => { ... })
+})
+```
+
+---
 
 ## Success Criteria
 
-- **SC-001**: DAG renders all nodes for `dungeon-graph` (16 resources) within 500ms of API response
-- **SC-002**: Clicking a node opens the detail panel within 50ms (no API call needed — data already in memory)
-- **SC-003**: CEL expressions in YAML tab are highlighted in the correct color for 100% of `${...}` tokens
-- **SC-004**: DAG layout is stable across re-renders (same graph = same node positions)
+- **SC-001**: All 16 nodes for `dungeon-graph` render within 500ms of API response
+- **SC-002**: Node click opens detail panel in under 50ms
+- **SC-003**: CEL expressions in YAML tab are highlighted correctly per spec 006
+- **SC-004**: DAG layout is stable — 3 consecutive renders of the same RGD
+  produce identical SVG structure (verified by unit test)
+- **SC-005**: TypeScript strict mode passes with 0 errors
+- **SC-006**: `buildDAGGraph` unit tests cover all node type classifications
