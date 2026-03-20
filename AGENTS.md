@@ -16,6 +16,18 @@ Port 10174 (k=10, r=17, o=14 with A=0).
 
 This project uses **spec-driven development** with spec-kit.
 
+### PR workflow (required)
+
+All changes go through PRs. Direct push to `main` is blocked.
+
+1. Work on a spec branch in its worktree (see Worktrunk below)
+2. Push the branch: `git push -u origin <branch>`
+3. Open a PR: `gh pr create --base main --head <branch>`
+4. CI must pass (see CI pipeline below)
+5. 1 approving review required (CODEOWNERS auto-assigns @pnz1990)
+6. Squash merge only (configured at repo level)
+7. Branch is auto-deleted on merge
+
 ### Spec inventory (delivery order)
 
 | Spec | GH Issue | What | Unblocks |
@@ -140,29 +152,117 @@ Journeys: `test/e2e/journeys/001-*.spec.ts` through `008-*.spec.ts`
 
 ---
 
+## CI pipeline
+
+All workflows live in `.github/workflows/`. They run on push to `main` and on
+PRs targeting `main`.
+
+### CI (`ci.yml`) — 3 parallel jobs
+
+| Job | What | Blocks merge? |
+|-----|------|---------------|
+| `build` | `go vet` → `go test -race` → `go build` → `bun typecheck` | Yes |
+| `govulncheck` | Go vulnerability scanner. Warns on stdlib-only findings; fails on third-party dependency vulns | Yes |
+| `trivy` | Builds Docker image, scans with Trivy for CRITICAL/HIGH CVEs, uploads SARIF to GitHub Security tab | Yes |
+
+**Environment**: All Go steps inherit `GOPROXY=direct GONOSUMDB="*"` set at
+workflow level (proxy.golang.org is blocked).
+
+### CodeQL (`codeql.yml`)
+
+- Languages: Go + JavaScript/TypeScript
+- Triggers: PRs, push to main, weekly schedule (Monday 06:00 UTC)
+- Queries: `security-extended` (broader than default)
+- Required status check: `analyze (go)` and `analyze (javascript-typescript)`
+
+### E2E (`e2e.yml`)
+
+- Full Playwright journey suite against a kind cluster
+- Installs kro via Helm, applies test fixtures, starts kro-ui binary
+- 20-minute timeout
+- Uploads Playwright report + traces as artifacts on failure
+- **Not a required status check** — informational, may be promoted later
+
+### Release (`release.yml`)
+
+- Triggers on `v*` tags
+- Builds + pushes Docker image to `ghcr.io/pnz1990/kro-ui`
+- Runs goreleaser for binary releases
+
+---
+
+## Security controls
+
+### Branch protection on `main`
+
+- PRs required — no direct push
+- 1 approving review required
+- CODEOWNERS review required (auto-assigned)
+- Stale reviews dismissed on new push
+- Required status checks: `build`, `govulncheck`, `analyze (go)`, `analyze (javascript-typescript)`
+- Branch must be up to date before merge (strict mode)
+- Linear history enforced
+- Force push and branch deletion blocked
+- Enforced for admins
+
+### Dependency management
+
+- **Dependabot** (`.github/dependabot.yml`): weekly scans for Go modules, npm
+  (web + e2e), and GitHub Actions. Automated security fix PRs enabled.
+- **Vulnerability alerts**: enabled at repo level
+
+### Scanning
+
+| Scanner | What | Where |
+|---------|------|-------|
+| CodeQL | Static analysis (SAST) for Go + JS/TS | Every PR + weekly |
+| govulncheck | Known Go CVEs in deps and stdlib | Every PR |
+| Trivy | Container image CVEs (CRITICAL/HIGH) | Every PR, SARIF → Security tab |
+| Dependabot | Dependency version + security alerts | Weekly, auto-PR on findings |
+
+### Repo settings
+
+- Squash merge only (no merge commits, no rebase merge)
+- Branches auto-deleted on merge
+- `SECURITY.md` documents responsible disclosure via GitHub Security Advisories
+- `CODEOWNERS` (`.github/CODEOWNERS`) auto-requests review from @pnz1990
+
+---
+
 ## Repo layout
 
 ```
 cmd/kro-ui/               # main.go — calls internal/cmd
 internal/
   cmd/root.go             # cobra: serve, version
-  server/server.go        # HTTP server, go:embed, chi routes, SPA fallback
+  server/server.go        # HTTP server, chi routes, SPA fallback
   api/handlers/           # Route handlers (one file per resource group)
+  api/types/response.go   # Shared API response types
   k8s/                    # Dynamic client, discovery, rgd field extraction
   version/version.go      # ldflags version vars
 web/
+  embed.go                # go:embed all:dist — frontend FS
+  dist/index.html         # Stub (overwritten by bun build)
   src/tokens.css          # ALL color/typography/spacing tokens (single source of truth)
   src/main.tsx            # React entry point
   src/pages/              # Home, RGDDetail, InstanceDetail
   src/components/         # DAGGraph, KroCodeBlock, NodeDetailPanel, ...
   src/lib/                # api.ts, dag.ts, highlighter.ts, features.ts
   src/hooks/              # usePolling.ts, useCapabilities.ts
+.github/
+  workflows/ci.yml        # Build + test + govulncheck + Trivy
+  workflows/codeql.yml    # CodeQL SAST (Go + JS/TS)
+  workflows/e2e.yml       # Playwright E2E against kind cluster
+  workflows/release.yml   # Docker + goreleaser on v* tags
+  dependabot.yml          # Dependency scanning (Go, npm, Actions)
+  CODEOWNERS              # Auto-review assignment
 .specify/
   memory/constitution.md  # NON-NEGOTIABLE rules
   specs/                  # 000-design-system through 008-feature-flags
 test/e2e/                 # Playwright journeys + kind cluster infra
 helm/kro-ui/              # Helm chart
 Dockerfile                # multi-stage bun → go → distroless
+SECURITY.md               # Responsible disclosure policy
 .config/wt.toml           # worktrunk project hooks
 Makefile                  # build, go, web, test-e2e, tidy targets
 ```
