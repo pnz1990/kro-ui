@@ -40,13 +40,26 @@ This project uses **spec-driven development** with spec-kit.
 | `007-context-switcher` | #9 | Runtime kubeconfig context switching | — |
 | `008-feature-flags` | #11 | kro capabilities API, feature gate system | — |
 
-### Worktrunk
+### Worktrunk (required workflow)
 
-Each spec is a worktree branch. Create one with:
+Each spec gets its own **worktree** (not just a branch). Never use
+`git checkout -b` directly — always use worktrunk:
+
 ```bash
-wt switch --create 001-server-core    # creates worktree + runs post-create hooks
+wt switch --create 001-server-core    # creates worktree + branch + runs hooks
+wt list                               # shows all worktrees and their paths
+wt switch 001-server-core             # switch to existing worktree
 wt merge main                         # squash merge when done
 ```
+
+The worktree is created as a sibling directory (e.g., `../kro-ui.001-server-core/`).
+All work for that spec happens inside its worktree directory.
+
+**Spec-kit integration**: The `/speckit.*` commands detect the current branch
+name automatically. They work from any worktree — the branch name maps to the
+spec directory in `.specify/specs/`. The `create-new-feature.sh` script uses
+`wt switch --create --no-cd` when worktrunk is installed, with a fallback to
+`git checkout -b` when it is not.
 
 Hooks (defined in `.config/wt.toml`):
 - `post-create`: installs Go + frontend + e2e deps
@@ -169,6 +182,12 @@ Makefile                  # build, go, web, test-e2e, tidy targets
 
 If no spec is in-progress: implement `001-server-core` first.
 If a spec branch already exists: check `wt list` to see the current state.
+
+To begin work on a spec, always create a worktree first:
+```bash
+wt switch --create 001-server-core   # from the main worktree
+```
+Then operate from the new worktree directory (shown by `wt list`).
 
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.

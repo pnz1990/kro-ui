@@ -236,7 +236,7 @@ Given that feature description, do this:
        ```
    - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
 
-**NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
+**NOTE:** The script creates a worktree via `wt switch --create --no-cd` (or falls back to `git checkout -b` if worktrunk is not installed) and initializes the spec file in `.specify/specs/`.
 
 ## Quick Guidelines
 
