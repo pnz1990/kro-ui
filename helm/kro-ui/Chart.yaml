@@ -1,0 +1,17 @@
+apiVersion: v2
+name: kro-ui
+description: Web dashboard for kro ResourceGraphDefinitions
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - kro
+  - kubernetes
+  - dashboard
+  - rgd
+home: https://github.com/pnz1990/kro-ui
+sources:
+  - https://github.com/pnz1990/kro-ui
+maintainers:
+  - name: pnz1990
+    url: https://github.com/pnz1990

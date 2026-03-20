@@ -1,0 +1,38 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kro-ui.fullname" . }}
+  labels:
+    {{- include "kro-ui.labels" . | nindent 4 }}
+rules:
+  # kro resources — including graphrevisions for when kro adds it
+  - apiGroups: ["kro.run"]
+    resources: ["resourcegraphdefinitions", "graphrevisions"]
+    verbs: ["get", "list", "watch"]
+  # CRD discovery — needed to find the generated CRD for each RGD
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list"]
+  # All resources read-only — kro creates CRs of any kind
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list"]
+  # Events and namespaces
+  - apiGroups: [""]
+    resources: ["events", "namespaces"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kro-ui.fullname" . }}
+  labels:
+    {{- include "kro-ui.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kro-ui.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kro-ui.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}

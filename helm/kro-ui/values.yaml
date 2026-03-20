@@ -1,0 +1,41 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/pnz1990/kro-ui
+  pullPolicy: IfNotPresent
+  tag: ""  # defaults to chart appVersion
+
+serviceAccount:
+  create: true
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 10174
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: kro-ui.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# Run mode: "incluster" (default) or "kubeconfig"
+runMode: incluster
+
+# Only used when runMode=kubeconfig — mount a kubeconfig secret
+kubeconfig:
+  secretName: ""
+  secretKey: config

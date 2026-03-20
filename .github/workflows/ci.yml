@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install frontend deps
+        run: bun install
+        working-directory: web
+
+      - name: Build frontend
+        run: bun run build
+        working-directory: web
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Go build
+        run: go build ./cmd/kro-ui
+
+      - name: Frontend typecheck
+        run: bun run typecheck
+        working-directory: web
