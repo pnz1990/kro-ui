@@ -16,15 +16,6 @@ Port 10174 (k=10, r=17, o=14 with A=0).
 
 This project uses **spec-driven development** with spec-kit.
 
-### Before writing any code
-
-1. Read the spec for the feature being implemented:
-   `.specify/specs/<NNN-feature-name>/spec.md`
-2. Read the constitution (non-negotiable rules):
-   `.specify/memory/constitution.md`
-3. Read the design system (colors, typography, tokens):
-   `.specify/specs/000-design-system/spec.md`
-
 ### Spec inventory (delivery order)
 
 | Spec | GH Issue | What | Unblocks |
@@ -188,6 +179,23 @@ To begin work on a spec, always create a worktree first:
 wt switch --create 001-server-core   # from the main worktree
 ```
 Then operate from the new worktree directory (shown by `wt list`).
+
+### Before writing any code
+
+These files MUST be read at the start of every session:
+
+1. **Spec**: `.specify/specs/<NNN-feature-name>/spec.md` — requirements and
+   acceptance criteria for the current feature
+2. **Tasks**: `.specify/specs/<NNN-feature-name>/tasks.md` — ordered task
+   checklist with phases and dependencies. Execute tasks in order, mark each
+   `[x]` as completed. If no tasks.md exists, run `/speckit.tasks` first.
+3. **Constitution**: `.specify/memory/constitution.md` — non-negotiable rules
+   that override everything else
+4. **Design system**: `.specify/specs/000-design-system/spec.md` — colors,
+   typography, tokens (only needed for frontend work)
+
+The current branch name tells you which spec to read. For example, branch
+`001-server-core` maps to `.specify/specs/001-server-core/`.
 
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
