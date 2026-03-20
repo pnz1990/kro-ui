@@ -38,24 +38,31 @@ test.describe('Journey 003 — RGD detail DAG and node inspection', () => {
   })
 
   test('Step 2: All expected nodes are rendered in the SVG', async ({ page }) => {
-    // test-app fixture has: root CR, appNamespace (Namespace), appConfig
-    // (ConfigMap, conditional), appStatus (ConfigMap), plus specPatch node
+    // test-app fixture has exactly:
+    //   NodeTypeInstance: root WebApp CR
+    //   NodeTypeResource: appNamespace, appStatus
+    //   NodeTypeResource + includeWhen: appConfig (conditional)
+    // Total: 4 nodes
     await expect(page.getByTestId('dag-node-root')).toBeVisible()
     await expect(page.getByTestId('dag-node-appnamespace')).toBeVisible()
     await expect(page.getByTestId('dag-node-appconfig')).toBeVisible()
     await expect(page.getByTestId('dag-node-appstatus')).toBeVisible()
 
-    // At least 4 nodes total
+    // Exactly 4 nodes — no extra specPatch or stateField nodes
     const allNodes = page.locator('[data-testid^="dag-node-"]')
-    expect(await allNodes.count()).toBeGreaterThanOrEqual(4)
+    expect(await allNodes.count()).toBe(4)
   })
 
-  test('Step 3: specPatch and conditional nodes have distinct visual classes', async ({ page }) => {
-    // appConfig has includeWhen — should have conditional class
+  test('Step 3: Conditional node has dashed border; no specPatch class exists', async ({ page }) => {
+    // appConfig has includeWhen — must have the conditional modifier class
     const conditionalNode = page.getByTestId('dag-node-appconfig')
     await expect(conditionalNode).toBeVisible()
     const classes = await conditionalNode.getAttribute('class') ?? ''
     expect(classes).toContain('node-conditional')
+
+    // specPatch is NOT an upstream kro concept — this class must never appear
+    const specpatchNodes = page.locator('.node-specpatch')
+    expect(await specpatchNodes.count()).toBe(0)
   })
 
   test('Step 4: Clicking a resource node opens the detail panel', async ({ page }) => {

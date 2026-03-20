@@ -182,23 +182,40 @@ An implementer must not use a color outside of its defined semantic purpose.
 The DAG is the most important visual element. Each node type has a distinct
 visual treatment using color and shape — not color alone (colorblind safe).
 
-| Node type | Fill | Border | Badge/indicator |
-|-----------|------|--------|-----------------|
-| Root CR | `--color-primary-muted` | `--color-primary` (2px) | "root" pill |
-| Managed resource | `--color-surface-2` | `--color-border` (1px) | kind label |
-| specPatch state | `rgba(245,158,11,0.12)` | `--color-reconciling` (1px dashed) | `{}` icon |
-| includeWhen conditional | `--color-surface-2` | `--color-border` (1px dashed) | `?` icon |
-| forEach fan-out | `--color-surface-2` | `--color-border` (1px) | `∀` icon |
+Node types map **exactly** to upstream kro's `NodeType` constants
+(`pkg/graph/node.go`). There are **five** upstream node types:
 
-**Live state overlay** (instance view — applied on top of above):
+| Upstream `NodeType` | kro-ui label | Fill | Border | Badge/indicator |
+|--------------------|-------------|------|--------|-----------------|
+| `NodeTypeInstance` | Root CR (ID: `schema`) | `--node-root-bg` | `--node-root-border` (2px solid) | "root" pill |
+| `NodeTypeResource` | Managed resource | `--node-default-bg` | `--node-default-border` (1px solid) | kind label |
+| `NodeTypeCollection` | forEach fan-out | `--node-collection-bg` | `--node-collection-border` (1px solid) | `∀` badge |
+| `NodeTypeExternal` | External ref (single) | `--node-external-bg` | `--node-external-border` (1px dashed) | `⬡` icon |
+| `NodeTypeExternalCollection` | External ref (collection) | `--node-external-bg` | `--node-external-border` (1px dashed) | `⬡ ∀` icons |
 
-| State | Node background change | Border change | Animation |
-|-------|----------------------|---------------|-----------|
-| `alive` | `rgba(16,185,129,0.12)` | `--color-alive` (2px) | none |
-| `reconciling` | `rgba(245,158,11,0.10)` | `--color-reconciling` (2px) | pulse 1.5s |
-| `pending` | `rgba(139,92,246,0.10)` | `--color-pending` (1px dashed) | none |
-| `error` | `rgba(244,63,94,0.12)` | `--color-error` (2px) | none |
-| `not-found` | `--color-surface` | `--color-border` (1px dashed) | none |
+**Visual modifiers** (applied on top of base node type styles, not separate types):
+
+| Modifier | Condition | Visual change |
+|----------|-----------|---------------|
+| Conditional | `includeWhen` set on the resource | Dashed border replaces solid border + `?` badge |
+| Schema-status | `spec.schema.status` field references this resource | Subtle annotation (no color change) |
+
+> **Note**: `specPatch` is NOT an upstream kro concept and does not exist in
+> `kubernetes-sigs/kro`. It must not appear anywhere in kro-ui. If you encounter
+> it in a user's RGD, it is from an unofficial fork and should be rendered as
+> a plain `NodeTypeResource` with an unknown-template warning.
+
+**Live state overlay** (instance view — applied on top of base type styles):
+
+| State | Token pair | Animation | Maps to kro `NodeState` |
+|-------|-----------|-----------|------------------------|
+| `SYNCED` | `--node-alive-bg` / `--node-alive-border` (2px) | none | `NodeStateSynced` |
+| `IN_PROGRESS` | `--node-reconciling-bg` / `--node-reconciling-border` (2px) | `reconciling-pulse 1.5s` | `NodeStateInProgress` |
+| `WAITING_FOR_READINESS` | `--node-pending-bg` / `--node-pending-border` (1px dashed) | none | `NodeStateWaitingForReadiness` |
+| `SKIPPED` | `--node-pending-bg` / `--node-pending-border` (1px dashed) | none | `NodeStateSkipped` |
+| `ERROR` | `--node-error-bg` / `--node-error-border` (2px) | none | `NodeStateError` |
+| `DELETING` | `--node-reconciling-bg` / `--node-reconciling-border` (2px) | `reconciling-pulse 1.5s` | `NodeStateDeleting` |
+| not-found / unknown | `--node-notfound-bg` / `--node-notfound-border` (1px dashed) | none | resource absent from cluster |
 
 ---
 

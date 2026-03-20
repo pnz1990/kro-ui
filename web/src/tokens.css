@@ -59,13 +59,15 @@
   --node-notfound-bg:      var(--color-surface);
   --node-notfound-border:  var(--color-border);
 
-  /* DAG node type overlays */
-  --node-root-bg:          var(--color-primary-muted);
-  --node-root-border:      var(--color-primary);
-  --node-specpatch-bg:     rgba(245, 158, 11, 0.10);
-  --node-specpatch-border: var(--color-reconciling);
-  --node-default-bg:       var(--color-surface-2);
-  --node-default-border:   var(--color-border);
+  /* DAG node type base styles — map to upstream kro NodeType constants */
+  --node-root-bg:              var(--color-primary-muted);
+  --node-root-border:          var(--color-primary);
+  --node-default-bg:           var(--color-surface-2);  /* NodeTypeResource */
+  --node-default-border:       var(--color-border);
+  --node-collection-bg:        rgba(91, 142, 240, 0.08); /* NodeTypeCollection (forEach) */
+  --node-collection-border:    var(--color-primary);
+  --node-external-bg:          rgba(139, 92, 246, 0.08); /* NodeTypeExternal / NodeTypeExternalCollection */
+  --node-external-border:      var(--color-pending);
 
   /* CEL / schema highlighter tokens */
   --hl-yaml-key:           #a8a29e;
@@ -141,13 +143,15 @@
   --node-notfound-bg:      var(--color-surface);
   --node-notfound-border:  var(--color-border);
 
-  /* DAG node type overlays */
-  --node-root-bg:          var(--color-primary-muted);
-  --node-root-border:      var(--color-primary);
-  --node-specpatch-bg:     rgba(217, 119, 6, 0.08);
-  --node-specpatch-border: var(--color-reconciling);
-  --node-default-bg:       var(--color-surface-2);
-  --node-default-border:   var(--color-border);
+  /* DAG node type base styles — light mode */
+  --node-root-bg:              var(--color-primary-muted);
+  --node-root-border:          var(--color-primary);
+  --node-default-bg:           var(--color-surface-2);
+  --node-default-border:       var(--color-border);
+  --node-collection-bg:        rgba(59, 111, 212, 0.06);
+  --node-collection-border:    var(--color-primary);
+  --node-external-bg:          rgba(124, 58, 237, 0.06);
+  --node-external-border:      var(--color-pending);
 
   /* CEL highlighter */
   --hl-yaml-key:           #6b7280;

@@ -114,14 +114,23 @@ highlighter must not hardcode hex values.
 
   | Token type | CSS variable | Matches |
   |------------|-------------|---------|
-  | `celExpression` | `--hl-cel-expression` | Full `${...}` span |
-  | `kroKeyword` | `--hl-kro-keyword` | `id:`, `template:`, `readyWhen:`, `includeWhen:`, `forEach:`, `externalRef:` at line start or after whitespace |
+  | `celExpression` | `--hl-cel-expression` | Full `${...}` span including nested content |
+  | `kroKeyword` | `--hl-kro-keyword` | Upstream kro keywords: `id:`, `template:`, `readyWhen:`, `includeWhen:`, `forEach:`, `externalRef:`, `scope:`, `types:` at line start or after whitespace |
   | `yamlKey` | `--hl-yaml-key` | Other `word:` patterns (standard YAML keys) |
   | `schemaType` | `--hl-schema-type` | `string`, `integer`, `boolean`, `number`, `object`, `array` as standalone words in a value position |
   | `schemaPipe` | `--hl-schema-pipe` | ` \| ` separator in SimpleSchema values |
   | `schemaKeyword` | `--hl-schema-keyword` | `default`, `required`, `min`, `max`, `pattern`, `enum` after a `\|` separator |
   | `schemaValue` | `--hl-schema-value` | Value after `=` in a SimpleSchema constraint |
   | `comment` | `--hl-comment` | `#` to end-of-line |
+
+  **Note on upstream kro CEL variables**: the well-known variable names defined
+  by upstream kro are:
+  - `schema` — refers to the generated CR instance (e.g., `${schema.spec.replicas}`)
+  - `each` — per-item iterator variable in `forEach` readyWhen/template expressions
+  - `<resource-id>` — any resource's outputs referenced by ID
+
+  `specPatch` is NOT an upstream kro keyword and MUST NOT appear in the keyword
+  list or be specially highlighted.
 
 - **FR-004**: Token colors MUST be applied via CSS custom properties only — no
   hardcoded hex values in the React component (constitution §IX)

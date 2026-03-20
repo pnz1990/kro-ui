@@ -32,9 +32,14 @@ concepts with zero or minimal code changes.
   naive pluralization is a last-resort fallback only
 - No kro API field paths (e.g., `spec.resources[].id`) may be hardcoded outside
   of a single, isolated `internal/kro/` mapping package
-- When kro adds a new CRD (e.g., `GraphRevision`), the handler and a new tab
-  are the only changes required — no changes to the client factory, no changes
-  to routing infrastructure
+- **Only upstream features** (`kubernetes-sigs/kro`) are enabled by default.
+  Fork-only concepts (`specPatch`, `stateFields`) MUST NOT appear in any spec,
+  component, or UI label.
+- New upstream features (e.g., a future `GraphRevision` CRD) are detected
+  automatically via the capabilities API (`GET /api/v1/kro/capabilities`) and
+  slot into the UI without structural changes. See spec `008-feature-flags`.
+- Alpha feature gates (`CELOmitFunction`, `InstanceConditionEvents`) are detected
+  from the cluster and gate UI features accordingly. They are off by default.
 
 ---
 

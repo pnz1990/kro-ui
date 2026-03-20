@@ -14,14 +14,19 @@
 
 # test-app RGD — deterministic fixture for E2E tests.
 #
-# Represents a realistic web service composed of a Namespace and two
-# ConfigMaps. Deliberately simple so reconciliation completes quickly.
+# Uses only upstream kro v1alpha1 features (kubernetes-sigs/kro):
+#   - NodeTypeInstance: root WebApp CR (variable: schema)
+#   - NodeTypeResource: appNamespace, appStatus (plain template resources)
+#   - NodeTypeResource + includeWhen: appConfig (conditional node)
 #
-# Covers all node types exercised by E2E journeys:
-#   - root CR node (WebApp)
-#   - 2 managed resource nodes (appNamespace, appConfig)
-#   - 1 includeWhen conditional node (appConfig)
-#   - 1 readyWhen expression
+# Deliberately simple: 3 resources covers all common node types exercised
+# by E2E journeys without requiring long reconciliation times.
+#
+# CEL expressions used:
+#   - ${schema.spec.appName}    — instance spec reference
+#   - ${schema.spec.enableConfig} — boolean from schema spec (includeWhen)
+#   - ${appNamespace.metadata.name} — inter-resource reference
+#   - ${appNamespace.status.phase == "Active"} — readyWhen
 #
 # All names are fixed so Playwright assertions can use literals.
 apiVersion: kro.run/v1alpha1
@@ -35,6 +40,8 @@ spec:
     spec:
       appName: string | default=kro-ui-test
       enableConfig: boolean | default=true
+    status:
+      phase: ${appNamespace.status.phase}
   resources:
     - id: appNamespace
       template:
@@ -42,6 +49,8 @@ spec:
         kind: Namespace
         metadata:
           name: ${schema.spec.appName}
+      readyWhen:
+        - ${appNamespace.status.phase == "Active"}
 
     - id: appConfig
       includeWhen:
@@ -65,5 +74,3 @@ spec:
           namespace: ${appNamespace.metadata.name}
         data:
           ready: "true"
-  readyWhen:
-    - ${appNamespace.status.phase == "Active"}
