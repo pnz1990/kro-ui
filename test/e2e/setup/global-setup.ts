@@ -36,8 +36,12 @@
 
 import { execSync, spawn, ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
-import { resolve, join } from 'node:path'
+import { resolve, join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const CLUSTER_NAME = 'kro-ui-e2e'
 const PRIMARY_CONTEXT = 'kind-kro-ui-e2e'
