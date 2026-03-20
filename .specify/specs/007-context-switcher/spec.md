@@ -55,8 +55,8 @@ act on the wrong cluster. This is a safety concern that applies to every page
 in the UI.
 
 **Independent Test**: With context
-`arn:aws:eks:us-west-2:319279230668:cluster/krombat`, confirm the top bar shows
-a truncated form (e.g., `…/krombat`) with the full ARN in a `title` tooltip.
+`arn:aws:eks:us-west-2:123456789012:cluster/staging`, confirm the top bar shows
+a truncated form (e.g., `…/staging`) with the full ARN in a `title` tooltip.
 With context `minikube`, confirm the full name is shown untruncated.
 
 **Acceptance Scenarios**:
@@ -64,7 +64,7 @@ With context `minikube`, confirm the full name is shown untruncated.
 1. **Given** context name `minikube` (≤40 chars), **When** displayed in the top
    bar, **Then** the full name is shown with no truncation
 2. **Given** context name
-   `arn:aws:eks:us-west-2:319279230668:cluster/krombat` (>40 chars), **When**
+   `arn:aws:eks:us-west-2:123456789012:cluster/staging` (>40 chars), **When**
    displayed, **Then** the name is truncated to show the most identifiable
    part (e.g., the cluster name suffix after the last `/`) with the full string
    in a `title` attribute
@@ -75,11 +75,11 @@ With context `minikube`, confirm the full name is shown untruncated.
 
 ### Edge Cases
 
-- `POST /api/v1/contexts/switch` takes > 10s → show loading spinner in the
+- `POST /api/v1/contexts/switch` takes > 10s`database` → show loading spinner in the
   dropdown button; cancel and show error after 10s; the previous context
   remains active
-- kubeconfig has 0 contexts → dropdown shows "No contexts available"
-- New context's cluster is unreachable → server returns error; show toast
+- kubeconfig has 0 contexts`database` → dropdown shows "No contexts available"
+- New context's cluster is unreachable`database` → server returns error; show toast
   "Could not connect to cluster: [error]"; top bar reverts to the previous
   context name
 - Context switch requested while a poll is running on the instance detail page →
@@ -238,7 +238,7 @@ same kind cluster endpoint:
 ### Journey: Operator switches context and RGD list reloads
 
 The two contexts point at the same cluster so both will return the same `test-app`
-RGD. The test validates the UI flow (dropdown → switch → reload) rather than
+RGD. The test validates the UI flow (dropdown`database` → switch`database` → reload) rather than
 cluster isolation, which is covered by the `ClientFactory` unit tests.
 
 ```

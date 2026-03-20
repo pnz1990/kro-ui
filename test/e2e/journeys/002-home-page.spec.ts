@@ -44,7 +44,7 @@ test.describe('Journey 002 — Home page RGD list and navigation', () => {
     await expect(card).toBeVisible()
 
     await expect(card.getByTestId('rgd-name')).toHaveText('test-app')
-    await expect(card.getByTestId('rgd-kind')).toHaveText('TestApp')
+    await expect(card.getByTestId('rgd-kind')).toHaveText('WebApp')
 
     // Status dot must be visible and NOT have the error class
     const dot = card.getByTestId('status-dot')

@@ -20,7 +20,7 @@ A reconciling banner appears when kro is actively reconciling.
 **Why this priority**: Real-time reconciliation observability is the core value
 proposition of this tool. Without live state coloring the DAG is inert.
 
-**Independent Test**: Open `/rgds/dungeon-graph/instances/default/asdasda`.
+**Independent Test**: Open `/rgds/web-service-graph/instances/prod-01/prod-01`.
 Confirm: DAG renders with colored nodes; a "refreshed Xs ago" counter updates
 every 5 seconds; no layout shift occurs between refreshes.
 
@@ -55,19 +55,19 @@ panel stays open through poll refreshes.
 live view. Operators need to see the actual resource state from the cluster, not
 just a color.
 
-**Independent Test**: Click the `bossCR` node. Panel opens with "Kind: Boss".
-YAML section shows "⟳ fetching…" then is replaced by the actual Boss YAML
-matching `kubectl get Boss asdasda-boss -n asdasda -o yaml`. After the next poll
+**Independent Test**: Click the `databaseCR` node. Panel opens with "Kind: Database".
+YAML section shows "⟳ fetching…" then is replaced by the actual Database YAML
+matching `kubectl get Database prod-01-database -n prod-01 -o yaml`. After the next poll
 fires (5s), the panel remains open and the state badge updates.
 
 **Acceptance Scenarios**:
 
-1. **Given** a resource node `bossCR` (kind: Boss), **When** clicked, **Then**
+1. **Given** a resource node `databaseCR` (kind: Database), **When** clicked, **Then**
    the panel opens immediately (no API call needed for metadata) with kind,
    state badge, and "⟳ fetching from cluster…" placeholder in the YAML section
 2. **Given** the YAML fetch completes, **When** the response arrives, **Then**
    the placeholder is replaced by the syntax-highlighted YAML and the kubectl
-   command used (e.g., `kubectl get Boss asdasda-boss -n asdasda -o yaml`)
+    command used (e.g., `kubectl get Database prod-01-database -n prod-01 -o yaml`)
 3. **Given** the resource does not exist in the cluster, **When** the YAML
    fetch completes, **Then** "Resource not found in cluster." is shown with the
    kubectl command — not a crash, not an empty panel
@@ -92,8 +92,8 @@ Kubernetes events for the instance. All three update on every poll cycle.
 picture. They are also what a kro operator checks when an RGD reconciliation
 fails.
 
-**Independent Test**: Below the `asdasda` DAG: spec section shows
-`difficulty: normal`, `heroClass: warrior`. Conditions section shows
+**Independent Test**: Below the `prod-01` DAG: spec section shows
+`replicas: 3`, `region: us-west-2`. Conditions section shows
 `Ready=True` with last transition time. Events section shows "No events" or
 real events with timestamps.
 
@@ -112,8 +112,8 @@ real events with timestamps.
 
 ### User Story 4 — Resource name is correctly inferred from node label (Priority: P1)
 
-The node inspection correctly maps node labels (e.g., `bossCR`) to actual
-cluster resource names (e.g., `asdasda-boss`) using the child resources list
+The node inspection correctly maps node labels (e.g., `databaseCR`) to actual
+cluster resource names (e.g., `prod-01-database`) using the child resources list
 from the API before falling back to label-based inference.
 
 **Why this priority**: Without correct name resolution the YAML fetch always
@@ -122,14 +122,14 @@ returns "Resource not found". This was a concrete bug observed in open-krode.
 **Acceptance Scenarios**:
 
 1. **Given** child resources returned by
-   `GET /api/v1/instances/default/asdasda/children` include
-   `{kind: "Boss", name: "asdasda-boss", namespace: "asdasda"}`, **When** the
-   `bossCR` node is clicked, **Then** the YAML is fetched for
-   `Boss/asdasda/asdasda-boss` — not `Boss/asdasda/asdasda-bossCR`
+   `GET /api/v1/instances/prod-01/prod-01/children` include
+   `{kind: "Database", name: "prod-01-database", namespace: "prod-01"}`, **When** the
+   `databaseCR` node is clicked, **Then** the YAML is fetched for
+   `Database/prod-01/prod-01-database` — not `Database/prod-01/prod-01-databaseCR`
 2. **Given** a resource NOT in the children list (e.g., not yet created),
    **When** the node is clicked, **Then** the name is inferred by stripping the
    `CR`/`CRs` suffix from the node label and prepending the instance name:
-   `asdasda-boss` (label `bossCR` → strip `CR` → `boss` → `asdasda-boss`)
+    `prod-01-database` (label `databaseCR` → strip `CR` → `database` → prepend instance name → `prod-01-database`)
 3. **Given** an inferred name returns "not found" from the API, **When**
    displayed, **Then** the panel shows "Resource not found in cluster." with the
    `kubectl get` command used — the operator can copy-paste to debug
@@ -138,14 +138,14 @@ returns "Resource not found". This was a concrete bug observed in open-krode.
 
 ### Edge Cases
 
-- Poll failure (network error) → show "Refresh paused — retrying in 10s" in the
+- Poll failure (network error)`database` → show "Refresh paused — retrying in 10s" in the
   top bar; retry automatically; do NOT close or reset the panel
-- Instance deleted while page is open → next poll returns 404; show
+- Instance deleted while page is open`database` → next poll returns 404; show
   "Instance not found — it may have been deleted" and stop polling
-- YAML fetch takes > 15s → show "Fetch timed out" with a "Retry" button in the
+- YAML fetch takes > 15s`database` → show "Fetch timed out" with a "Retry" button in the
   YAML section; do NOT block the panel
-- Instance has 50+ child resources → all shown in DAG; DAG scrolls horizontally
-- `Progressing` condition absent from status → treat as `not reconciling` (no
+- Instance has 50+ child resources`database` → all shown in DAG; DAG scrolls horizontally
+- `Progressing` condition absent from status`database` → treat as `not reconciling` (no
   banner); never crash on absent conditions
 
 ---
@@ -233,7 +233,7 @@ describe("usePolling", () => {
 })
 
 // web/src/lib/instanceNodeState.test.ts
-// Tests for the function that maps child resources + conditions → node state map
+// Tests for the function that maps child resources + conditions`database` → node state map
 describe("buildNodeStateMap", () => {
   it("returns alive when Ready=True", () => { ... })
   it("returns reconciling when Progressing=True", () => { ... })
@@ -256,7 +256,7 @@ describe("resolveResourceName", () => {
 - **SC-001**: Live DAG renders with correct node colors on first load within 3s
 - **SC-002**: Node states update every 5s with no visible layout shift or panel
   close — verified manually and by `usePolling` unit tests
-- **SC-003**: `bossCR` node click fetches `asdasda-boss` not `asdasda-bossCR`
+- **SC-003**: `databaseCR` node click fetches `prod-01-database` not `prod-01-databaseCR`
   — verified by `resolveResourceName` unit tests
 - **SC-004**: `usePolling` stops on component unmount — verified by unit test
   with fake timers
@@ -294,7 +294,7 @@ Step 3: Poll fires and refresh indicator updates (5s wait)
   - Assert: text content of [data-testid="live-refresh-indicator"] has changed
     from the recorded value (poll fired at least once)
 
-Step 4: Click a resource node → detail panel opens
+Step 4: Click a resource node`database` → detail panel opens
   - Click [data-testid="dag-node-configmap"]
   - Assert: [data-testid="node-detail-panel"] is visible
   - Assert: [data-testid="node-detail-kind"] has text "ConfigMap"

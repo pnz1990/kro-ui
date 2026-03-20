@@ -55,7 +55,7 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
 
     expect(res.status()).toBe(200)
     const body = await res.json() as { spec: { schema: { kind: string } } }
-    expect(body.spec?.schema?.kind).toBe('TestApp')
+    expect(body.spec?.schema?.kind).toBe('WebApp')
   })
 
   test('Step 4: /api/v1/rgds/test-app/instances returns test-instance', async ({ request }) => {

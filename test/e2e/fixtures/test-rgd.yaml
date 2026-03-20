@@ -14,22 +14,27 @@
 
 # test-app RGD — deterministic fixture for E2E tests.
 #
-# Deliberately simple: 3 resources, 1 specPatch node, 1 includeWhen node.
-# This covers every node type exercised by the E2E journeys without being
-# complex enough to introduce flaky reconciliation timing.
+# Represents a realistic web service composed of a Namespace and two
+# ConfigMaps. Deliberately simple so reconciliation completes quickly.
 #
-# All names and namespaces are fixed so test assertions can use literals.
+# Covers all node types exercised by E2E journeys:
+#   - root CR node (WebApp)
+#   - 2 managed resource nodes (appNamespace, appConfig)
+#   - 1 includeWhen conditional node (appConfig)
+#   - 1 readyWhen expression
+#
+# All names are fixed so Playwright assertions can use literals.
 apiVersion: kro.run/v1alpha1
 kind: ResourceGraphDefinition
 metadata:
   name: test-app
 spec:
   schema:
-    apiVersion: e2e.kro.run/v1alpha1
-    kind: TestApp
+    apiVersion: e2e.kro-ui.dev/v1alpha1
+    kind: WebApp
     spec:
       appName: string | default=kro-ui-test
-      enableConfigMap: boolean | default=true
+      enableConfig: boolean | default=true
   resources:
     - id: appNamespace
       template:
@@ -37,11 +42,10 @@ spec:
         kind: Namespace
         metadata:
           name: ${schema.spec.appName}
-        spec: {}
 
     - id: appConfig
       includeWhen:
-        - ${schema.spec.enableConfigMap}
+        - ${schema.spec.enableConfig}
       template:
         apiVersion: v1
         kind: ConfigMap
@@ -50,6 +54,7 @@ spec:
           namespace: ${appNamespace.metadata.name}
         data:
           app: ${schema.spec.appName}
+          version: "v1"
 
     - id: appStatus
       template:

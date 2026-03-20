@@ -5,7 +5,7 @@
 **Status**: Draft
 **Depends on**: none — this is a pure, standalone utility with no runtime deps
 **Constitution ref**: §V (no external highlighting libraries), §IX (token colors
-must match kro.run exactly), §VII (pure function → fully unit testable)
+must match kro.run exactly), §VII (pure function`database` → fully unit testable)
 
 ---
 
@@ -16,7 +16,7 @@ kro uses a custom YAML dialect that interleaves standard Kubernetes YAML with:
 1. **CEL expressions** wrapped in `${...}` — the "wires" connecting resources
 2. **kro-specific structural keywords** (`id:`, `template:`, `readyWhen:`,
    `includeWhen:`, `forEach:`, `externalRef:`) — the orchestration layer
-3. **SimpleSchema type annotations** (`string | default=warrior | required`) —
+3. **SimpleSchema type annotations** (`string | default=primary | required`) —
    the schema definition language for generated CRDs
 
 Standard YAML highlighters (Prism, highlight.js, shiki) do not understand any
@@ -41,7 +41,7 @@ distinct from standard YAML keys.
 **Why this priority**: This is what makes kro-ui feel like a first-class kro
 tool rather than a generic YAML viewer. It is also required by specs 003 and 005.
 
-**Independent Test**: Render the `dungeon-graph` RGD YAML. Confirm `${...}`
+**Independent Test**: Render the `web-service-graph` RGD YAML. Confirm `${...}`
 expressions appear in blue, `readyWhen:` in dark slate, `string` type
 annotations in pink/amber. The rendering matches kro.run's example page.
 
@@ -56,12 +56,12 @@ annotations in pink/amber. The rendering matches kro.run's example page.
 3. **Given** a kro keyword `readyWhen:`, **When** tokenized, **Then** it is a
    `kroKeyword` token rendered as `var(--hl-kro-keyword)` — dark slate;
    visually distinct from `apiVersion:` even though both end in `:`
-4. **Given** `string | default=warrior`, **When** tokenized, **Then**:
-   - `string` → `schemaType` (`var(--hl-schema-type)`)
-   - ` | ` → `schemaPipe` (`var(--hl-schema-pipe)`)
-   - `default` → `schemaKeyword` (`var(--hl-schema-keyword)`)
-   - `=` → plain text
-   - `warrior` → `schemaValue` (`var(--hl-schema-value)`)
+4. **Given** `string | default=primary`, **When** tokenized, **Then**:
+   - `string``database` → `schemaType` (`var(--hl-schema-type)`)
+   - ` | ``database` → `schemaPipe` (`var(--hl-schema-pipe)`)
+   - `default``database` → `schemaKeyword` (`var(--hl-schema-keyword)`)
+   - `=``database` → plain text
+   - `primary``database` → `schemaValue` (`var(--hl-schema-value)`)
 5. **Given** a YAML comment `# CRD Schema`, **When** tokenized, **Then** it is
    a `comment` token rendered as `var(--hl-comment)`
 
@@ -88,16 +88,16 @@ highlighter must not hardcode hex values.
 
 ### Edge Cases
 
-- `${...}` spanning multiple lines → entire span is one `celExpression` token
-- `${` without a closing `}` → treat everything to end-of-line as plain text;
+- `${...}` spanning multiple lines`database` → entire span is one `celExpression` token
+- `${` without a closing `}``database` → treat everything to end-of-line as plain text;
   do not crash
-- Nested `${...}` (CEL inside CEL, rare but valid) → outer `${` opens the span,
+- Nested `${...}` (CEL inside CEL, rare but valid)`database` → outer `${` opens the span,
   first `}` closes it; inner is not specially handled
-- Empty string input → returns empty token array; `KroCodeBlock` renders an
+- Empty string input`database` → returns empty token array; `KroCodeBlock` renders an
   empty `<pre>`
-- YAML with syntax errors → render best-effort; do not throw; fall back to plain
+- YAML with syntax errors`database` → render best-effort; do not throw; fall back to plain
   text for malformed spans
-- Very long line (2000+ chars) → tokenize without truncation; `<pre>` is
+- Very long line (2000+ chars)`database` → tokenize without truncation; `<pre>` is
   scrollable horizontally via CSS
 
 ---
@@ -205,7 +205,7 @@ describe("tokenize", () => {
   })
 
   describe("SimpleSchema constraint", () => {
-    it("tokenizes 'string | default=warrior' with all 4 token types", () => { ... })
+    it("tokenizes 'string | default=primary' with all 4 token types", () => { ... })
     it("tokenizes 'integer | min=1 | max=10'", () => { ... })
   })
 
@@ -229,7 +229,7 @@ describe("tokenize", () => {
 
 ## Success Criteria
 
-- **SC-001**: All `${...}` CEL expressions in a `dungeon-graph` YAML render in
+- **SC-001**: All `${...}` CEL expressions in a `web-service-graph` YAML render in
   `var(--hl-cel-expression)` with the correct dark-mode hex `#93c5fd`
 - **SC-002**: `readyWhen:`, `forEach:`, `includeWhen:`, `template:`, `id:` all
   tokenize as `kroKeyword` — verified by unit tests

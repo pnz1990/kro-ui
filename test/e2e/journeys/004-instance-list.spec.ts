@@ -60,7 +60,7 @@ test.describe('Journey 004 — Instance list and namespace filter', () => {
   })
 
   test('Step 4: Namespace filter with no instances shows empty state', async ({ page }) => {
-    // kro-system has kro controllers but no TestApp instances
+    // kro-system has kro controllers but no WebApp instances
     await page.getByTestId('namespace-filter').selectOption('kro-system')
     await page.waitForURL(/namespace=kro-system/)
 

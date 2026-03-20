@@ -24,10 +24,10 @@ browser and confirm RGD cards are visible with correct name, kind, and status.
 
 **Acceptance Scenarios**:
 
-1. **Given** a cluster with 3 RGDs (`dungeon-graph`, `hero-graph`, `boss-graph`),
+1. **Given** a cluster with 3 RGDs (`web-service-graph`, `data-pipeline-graph`, `worker-pool-graph`),
    **When** the home page loads, **Then** 3 cards are rendered, each showing:
-   - RGD name (`dungeon-graph`)
-   - Generated kind (`Dungeon`)
+   - RGD name (`web-service-graph`)
+   - Generated kind (`WebService`)
    - Resource count (number of entries in `spec.resources`)
    - Age (derived from `metadata.creationTimestamp`)
    - Status indicator (green/orange/red dot based on `Ready` condition)
@@ -57,9 +57,9 @@ to the view they need.
 **Why this priority**: Card navigation is the primary UX flow. Without it the
 home page is a dead end.
 
-**Independent Test**: Click "Graph" on the `dungeon-graph` card → URL becomes
-`/rgds/dungeon-graph`. Click "Instances" → URL becomes
-`/rgds/dungeon-graph?tab=instances`. Press browser Back → home page at same
+**Independent Test**: Click "Graph" on the `web-service-graph` card`database` → URL becomes
+`/rgds/web-service-graph`. Click "Instances"`database` → URL becomes
+`/rgds/web-service-graph?tab=instances`. Press browser Back`database` → home page at same
 scroll position.
 
 **Acceptance Scenarios**:
@@ -98,13 +98,13 @@ production data believing they are on staging. This is a safety concern.
 
 ### Edge Cases
 
-- `GET /api/v1/rgds` network error (DNS failure, connection refused) → show
+- `GET /api/v1/rgds` network error (DNS failure, connection refused)`database` → show
   error state with the underlying message and a "Retry" button
-- RGD card with missing `spec.schema.kind` → show RGD name only, omit kind
+- RGD card with missing `spec.schema.kind``database` → show RGD name only, omit kind
   badge; do not crash
-- 50+ RGDs → responsive CSS grid, all cards rendered; no pagination required
+- 50+ RGDs`database` → responsive CSS grid, all cards rendered; no pagination required
   for v0.1.0
-- RGD name contains special URL characters → URL-encode on `<Link to>`;
+- RGD name contains special URL characters`database` → URL-encode on `<Link to>`;
   decode in the route component
 
 ---
@@ -118,7 +118,7 @@ production data believing they are on staging. This is a safety concern.
 - **FR-002**: Each `RGDCard` MUST display: name, kind (from
   `spec.schema.kind`), resource count (`spec.resources.length`), age, status dot
 - **FR-003**: Status dot MUST be derived from `status.conditions`:
-  `Ready=True` → green, `Ready=False` → red, absent/unknown → gray
+  `Ready=True``database` → green, `Ready=False``database` → red, absent/unknown`database` → gray
 - **FR-004**: Each card MUST render a "Graph" `<Link>` to `/rgds/:name` and an
   "Instances" `<Link>` to `/rgds/:name?tab=instances`
 - **FR-005**: A skeleton loading state (CSS-only, no library) MUST be shown
@@ -189,7 +189,7 @@ No snapshot tests.
 - **SC-004**: Skeleton, empty, and error states are all reachable via unit tests
   and visually distinct when observed manually
 - **SC-005**: TypeScript strict mode passes — `tsc --noEmit` reports 0 errors
-- **SC-006**: Keyboard navigation: Tab → card buttons reachable; Enter → navigates
+- **SC-006**: Keyboard navigation: Tab`database` → card buttons reachable; Enter`database` → navigates
 
 ---
 

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# test-instance — a live TestApp CR for E2E tests.
-# Applied after test-rgd.yaml is accepted by kro (Ready condition set).
-apiVersion: e2e.kro.run/v1alpha1
-kind: TestApp
+# test-instance — a live WebApp CR for E2E tests.
+# Applied to the kro-ui-e2e namespace after test-rgd.yaml is accepted by kro.
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
 metadata:
   name: test-instance
   namespace: kro-ui-e2e
 spec:
   appName: kro-ui-test
-  enableConfigMap: true
+  enableConfig: true

@@ -13,7 +13,7 @@ force simulation), §VI (Go Standards), §IX (Theme)
 
 ### User Story 1 — Operator views the dependency graph of an RGD (Priority: P1)
 
-An operator navigates to `/rgds/dungeon-graph` and sees an SVG dependency graph
+An operator navigates to `/rgds/web-service-graph` and sees an SVG dependency graph
 showing the complete resource topology: root CR, managed resources, specPatch
 state nodes, includeWhen conditional nodes, and forEach fan-outs — each with a
 distinct visual treatment.
@@ -21,13 +21,13 @@ distinct visual treatment.
 **Why this priority**: The DAG is the primary visualization of kro-ui. It is the
 main reason an operator would open this tool rather than using kubectl.
 
-**Independent Test**: Open `/rgds/dungeon-graph` against a live cluster. Confirm
-the `Dungeon` root node appears, all child resource nodes appear with their
+**Independent Test**: Open `/rgds/web-service-graph` against a live cluster. Confirm
+the `WebService` root node appears, all child resource nodes appear with their
 labels, dependency edges are drawn, and node types are visually distinct.
 
 **Acceptance Scenarios**:
 
-1. **Given** `dungeon-graph` with 7 resource nodes and 9 specPatch nodes,
+1. **Given** `web-service-graph` with 7 resource nodes and 9 specPatch nodes,
    **When** the page loads, **Then** all 16 nodes are rendered in the SVG with
    correct labels and type indicators; edges connect all dependent pairs
 2. **Given** a resource with `includeWhen` expressions, **When** rendered,
@@ -52,8 +52,8 @@ appears without a page navigation or additional API call.
 **Why this priority**: Node inspection is the primary way an operator understands
 what an RGD does. The data is already in the RGD object fetched on page load.
 
-**Independent Test**: Click the `bossCR` node. Confirm the panel slides in
-showing "Kind: Boss", the "managed resource" concept explanation, and any
+**Independent Test**: Click the `databaseCR` node. Confirm the panel slides in
+showing "Kind: Database", the "managed resource" concept explanation, and any
 `readyWhen` expressions on that node. Close button dismisses the panel.
 
 **Acceptance Scenarios**:
@@ -82,7 +82,7 @@ expressions without using kubectl.
 **Why this priority**: Raw YAML inspection is the fallback for debugging anything
 not surfaced by the DAG view.
 
-**Independent Test**: Navigate to the YAML tab on `dungeon-graph`. Confirm:
+**Independent Test**: Navigate to the YAML tab on `web-service-graph`. Confirm:
 - `${...}` tokens are blue (`var(--hl-cel-expression)`)
 - `readyWhen:` label is dark slate (`var(--hl-kro-keyword)`)
 - `string` type annotations are pink/amber (`var(--hl-schema-type)`)
@@ -93,9 +93,9 @@ not surfaced by the DAG view.
    **Then** the full `${...}` span is colored `var(--hl-cel-expression)`
 2. **Given** a kro keyword `readyWhen:`, **When** rendered, **Then** it is
    colored `var(--hl-kro-keyword)` — visually different from regular YAML keys
-3. **Given** a SimpleSchema type `string | default=warrior`, **When** rendered,
-   **Then** `string` → `var(--hl-schema-type)`, `|` → `var(--hl-schema-pipe)`,
-   `default` → `var(--hl-schema-keyword)`, `warrior` → `var(--hl-schema-value)`
+3. **Given** a SimpleSchema type `string | default=primary`, **When** rendered,
+   **Then** `string``database` → `var(--hl-schema-type)`, `|``database` → `var(--hl-schema-pipe)`,
+   `default``database` → `var(--hl-schema-keyword)`, `primary``database` → `var(--hl-schema-value)`
 4. **Given** a 400-line RGD YAML, **When** the tab renders, **Then** the YAML
    is scrollable in its container with no layout overflow and no visible
    performance degradation
@@ -111,8 +111,8 @@ and shared.
 **Why this priority**: Consistent navigation reduces cognitive load. The
 Instances tab is also required by spec 004.
 
-**Independent Test**: Navigate to `/rgds/dungeon-graph`. Default tab is "Graph".
-Click "Instances" → URL becomes `/rgds/dungeon-graph?tab=instances`. Reload →
+**Independent Test**: Navigate to `/rgds/web-service-graph`. Default tab is "Graph".
+Click "Instances"`database` → URL becomes `/rgds/web-service-graph?tab=instances`. Reload →
 Instances tab is still active.
 
 **Acceptance Scenarios**:
@@ -130,11 +130,11 @@ Instances tab is still active.
 
 ### Edge Cases
 
-- RGD with 0 resources → show root node alone with note "No managed resources
+- RGD with 0 resources`database` → show root node alone with note "No managed resources
   defined"
-- RGD name with URL-special characters → URL-encoded in route params; decoded in
+- RGD name with URL-special characters`database` → URL-encoded in route params; decoded in
   the page component with `decodeURIComponent`
-- `spec.resources` field absent or null → treat as empty array; do not crash
+- `spec.resources` field absent or null`database` → treat as empty array; do not crash
 - DAG graph with a node referencing a non-existent dependency (malformed RGD) →
   render best-effort; show a warning badge on the orphaned node
 
@@ -169,14 +169,14 @@ Instances tab is still active.
   fetched from `GET /api/v1/rgds/:name/instances`
 - **FR-008**: Active tab MUST be reflected in `?tab=graph|instances|yaml` URL
   query parameter and restored on reload
-- **FR-009**: The DAG layout algorithm MUST be deterministic (same input → same
+- **FR-009**: The DAG layout algorithm MUST be deterministic (same input`database` → same
   output every call)
 - **FR-010**: The DAG MUST be horizontally scrollable when wider than the
   viewport; no content clipping
 
 ### Non-Functional Requirements
 
-- **NFR-001**: DAG renders all nodes for `dungeon-graph` (16 nodes) in under
+- **NFR-001**: DAG renders all nodes for `web-service-graph` (16 nodes) in under
   500ms after the API response arrives
 - **NFR-002**: Node click opens detail panel in under 50ms (no I/O)
 - **NFR-003**: TypeScript strict mode — `tsc --noEmit` reports 0 errors
@@ -225,7 +225,7 @@ describe("NodeDetailPanel", () => {
 
 ## Success Criteria
 
-- **SC-001**: All 16 nodes for `dungeon-graph` render within 500ms of API response
+- **SC-001**: All 16 nodes for `web-service-graph` render within 500ms of API response
 - **SC-002**: Node click opens detail panel in under 50ms
 - **SC-003**: CEL expressions in YAML tab are highlighted correctly per spec 006
 - **SC-004**: DAG layout is stable — 3 consecutive renders of the same RGD
@@ -263,7 +263,7 @@ Step 3: Node type visual distinction
   - Assert: [data-testid="dag-node-conditional-1"] has CSS class
     "node-conditional" (dashed border)
 
-Step 4: Click a resource node → detail panel opens
+Step 4: Click a resource node`database` → detail panel opens
   - Click [data-testid="dag-node-configmap"]
   - Assert: [data-testid="node-detail-panel"] is visible
   - Assert: [data-testid="node-detail-kind"] has text "ConfigMap"

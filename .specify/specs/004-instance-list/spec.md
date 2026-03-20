@@ -19,13 +19,13 @@ information to identify which instance to inspect.
 **Why this priority**: Without instance listing there is no path to the live
 observability view (spec 005).
 
-**Independent Test**: Navigate to `/rgds/dungeon-graph?tab=instances` with a
-live cluster. Confirm the `asdasda` instance (namespace: `default`) appears with
+**Independent Test**: Navigate to `/rgds/web-service-graph?tab=instances` with a
+live cluster. Confirm the `prod-01` instance (namespace: `default`) appears with
 its age and readiness badge.
 
 **Acceptance Scenarios**:
 
-1. **Given** 2 live instances of `dungeon-graph` across 2 namespaces, **When**
+1. **Given** 2 live instances of `web-service-graph` across 2 namespaces, **When**
    the Instances tab loads with no namespace filter, **Then** both rows are
    shown with correct name, namespace, age, and readiness badge
 2. **Given** an instance with `status.conditions` `Ready=True`, **When**
@@ -53,7 +53,7 @@ namespace or view all namespaces.
 filtering, a table with 100+ rows across namespaces is unusable.
 
 **Independent Test**: Select `default` from the namespace dropdown. Confirm only
-instances in `default` appear. Select "All Namespaces" → all instances return.
+instances in `default` appear. Select "All Namespaces"`database` → all instances return.
 
 **Acceptance Scenarios**:
 
@@ -71,13 +71,13 @@ instances in `default` appear. Select "All Namespaces" → all instances return.
 
 ### Edge Cases
 
-- Instance name longer than 63 characters → truncate with `…` and show full
+- Instance name longer than 63 characters`database` → truncate with `…` and show full
   name in a `title` tooltip
-- `spec.schema.kind` absent from the RGD → the API cannot resolve instances;
+- `spec.schema.kind` absent from the RGD`database` → the API cannot resolve instances;
   show a clear error: "Cannot list instances: RGD has no spec.schema.kind"
 - namespace filter options populated from the instance list returned by "all
   namespaces" call — not a separate API call
-- Discovery failure on irregular plural → API falls back per spec 001 FR-005;
+- Discovery failure on irregular plural`database` → API falls back per spec 001 FR-005;
   UI shows results normally
 
 ---

@@ -17,7 +17,7 @@ web:
 
 ## Build the Go binary (requires web/dist to exist)
 go:
-	go build \
+	GOPROXY=direct GONOSUMDB="*" go build \
 	  -ldflags "-w -s \
 	    -X github.com/pnz1990/kro-ui/internal/version.Version=$(VERSION) \
 	    -X github.com/pnz1990/kro-ui/internal/version.Commit=$(COMMIT) \
@@ -47,8 +47,10 @@ typecheck:
 	cd web && bun run typecheck
 
 ## Tidy Go modules
+## Note: proxy.golang.org is blocked in some environments; GOPROXY=direct
+## fetches modules directly from their VCS (requires github.com access).
 tidy:
-	go mod tidy
+	GOPROXY=direct GONOSUMDB="*" go mod tidy
 
 ## Clean build artifacts
 clean:
