@@ -1,11 +1,26 @@
+// Copyright 2026 The Kubernetes Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package server sets up the HTTP server, embeds the frontend, and wires routes.
 package server
 
 import (
-	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,10 +30,10 @@ import (
 
 	"github.com/pnz1990/kro-ui/internal/api/handlers"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
+	"github.com/pnz1990/kro-ui/web"
 )
 
-//go:embed all:../../web/dist
-var webFS embed.FS
+var zeroTime time.Time
 
 // Config holds server startup options.
 type Config struct {
@@ -82,7 +97,7 @@ func Run(cfg Config) error {
 	})
 
 	// Serve embedded frontend — all non-API routes go to index.html (SPA).
-	distFS, err := fs.Sub(webFS, "web/dist")
+	distFS, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {
 		return fmt.Errorf("failed to sub web/dist: %w", err)
 	}
