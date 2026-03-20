@@ -26,11 +26,15 @@ import (
 // Handler holds shared dependencies for all route handlers.
 type Handler struct {
 	factory *k8sclient.ClientFactory
+	ctxMgr  contextManager
 }
 
 // New creates a Handler with the given ClientFactory.
 func New(factory *k8sclient.ClientFactory) *Handler {
-	return &Handler{factory: factory}
+	return &Handler{
+		factory: factory,
+		ctxMgr:  factory,
+	}
 }
 
 // respond encodes v as JSON and writes it to w with the given status.
