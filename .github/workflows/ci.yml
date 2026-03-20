@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  GOPROXY: direct
+  GONOSUMDB: "*"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,8 +36,11 @@ jobs:
       - name: Go vet
         run: go vet ./...
 
+      - name: Go test
+        run: go test -race -v ./...
+
       - name: Go build
-        run: go build ./cmd/kro-ui
+        run: go build -o bin/kro-ui ./cmd/kro-ui
 
       - name: Frontend typecheck
         run: bun run typecheck
