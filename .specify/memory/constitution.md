@@ -262,13 +262,28 @@ kro's KREP structure:
 
 ## IX. Theme and UI Standards
 
-- **Color palette**: kro.run (`#5b7fc9` primary, `#1b1b1d` dark background)
-- **Dark mode**: default; light mode toggled via `data-theme="light"` on `<html>`
-- **Fonts**: Inter (UI) + JetBrains Mono (code) loaded from Google Fonts in
-  `index.html` only — the binary works without internet, fonts fall back to
-  system stack
-- **CEL highlighter**: 8 token types, colors MUST match kro.run's documentation
-  page exactly. No external highlighting library.
+The design system is fully specified in `.specify/specs/000-design-system/spec.md`.
+That spec is the authoritative source — this section is a summary only.
+
+**Key rules:**
+
+- **Color tokens**: all colors are defined in `web/src/tokens.css` as CSS custom
+  properties. No hardcoded hex values anywhere in component code.
+- **Primary**: `#5b8ef0` (dark) / `#3b6fd4` (light) — refined from kro.run for
+  higher contrast in interactive UI contexts
+- **Semantic colors**: `--color-alive` (emerald), `--color-reconciling` (amber),
+  `--color-pending` (violet), `--color-error` (rose), `--color-not-found` (gray).
+  Each must only be used for its defined semantic purpose per the design spec
+  usage guide.
+- **Dark mode**: default. Light mode via `data-theme="light"` on `<html>`.
+- **Fonts**: Inter + JetBrains Mono via Google Fonts in `index.html`. Falls back
+  to system stack; binary works fully offline.
+- **CEL highlighter**: 8 token types. Token hex values are defined in spec 006
+  and `tokens.css`. No external highlighting library.
+- **Accessibility**: WCAG AA minimum for all text and interactive elements.
+  Semantic state colors MUST be paired with shape/icon/text — never color alone.
+- **No CSS frameworks**: Tailwind, Bootstrap, MUI are prohibited. Plain CSS
+  using `tokens.css` custom properties only.
 
 ---
 

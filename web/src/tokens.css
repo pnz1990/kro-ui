@@ -1,73 +1,166 @@
-/* ── CSS custom properties — aligned with kro.run palette ──────────── */
-:root {
-  /* Primary */
-  --color-primary: #5b7fc9;
-  --color-primary-hover: #4a6db8;
-  --color-primary-muted: rgba(91, 127, 201, 0.15);
+/**
+ * kro-ui design tokens
+ *
+ * Single source of truth for all visual values.
+ * Spec: .specify/specs/000-design-system/spec.md
+ *
+ * Rules:
+ *   - Never use a hardcoded hex value in a component — always var(--token)
+ *   - Never duplicate a token value in another file
+ *   - Changes require updating the design spec AND this file together
+ */
 
-  /* Backgrounds (dark default) */
-  --color-bg: #1b1b1d;
-  --color-surface: #242526;
-  --color-surface-2: #2c2c2e;
+/* ── Dark mode (default) ─────────────────────────────────────────────── */
+:root {
+  /* Brand */
+  --color-primary:         #5b8ef0;
+  --color-primary-hover:   #4a7de0;
+  --color-primary-muted:   rgba(91, 142, 240, 0.12);
+  --color-primary-text:    #93b4f8;   /* primary hue for text on dark bg */
+
+  /* Backgrounds — 3-level depth hierarchy */
+  --color-bg:              #1b1b1d;   /* page */
+  --color-surface:         #242526;   /* cards, panels */
+  --color-surface-2:       #2c2d2f;   /* dropdowns, tooltips, elevated */
+  --color-surface-3:       #323335;   /* code blocks */
 
   /* Borders */
-  --color-border: #3f3f46;
-  --color-border-subtle: #2d2d30;
+  --color-border:          #3f3f46;
+  --color-border-subtle:   #2d2d32;
+  --color-border-focus:    #5b8ef0;   /* focus ring — same as primary */
 
   /* Text */
-  --color-text: #e4e4e7;
-  --color-text-muted: #a1a1aa;
-  --color-text-faint: #71717a;
+  --color-text:            #e4e4e7;   /* primary — 14.3:1 on bg */
+  --color-text-muted:      #a1a1aa;   /* secondary — 5.6:1 on bg */
+  --color-text-faint:      #71717a;   /* disabled/placeholder */
 
-  /* Semantic */
-  --color-alive: #22c55e;
-  --color-reconciling: #f59e0b;
-  --color-error: #ef4444;
-  --color-pending: #6366f1;
-  --color-unknown: #6b7280;
+  /* Semantic: node states (DAG) */
+  --color-alive:           #10b981;   /* Ready=True — emerald */
+  --color-reconciling:     #f59e0b;   /* kro reconciling — amber */
+  --color-pending:         #8b5cf6;   /* waiting on dependency — violet */
+  --color-error:           #f43f5e;   /* Ready=False — rose */
+  --color-not-found:       #6b7280;   /* absent / unknown — gray */
 
-  /* CEL highlighter tokens */
-  --hl-yaml-key: #a8a29e;
-  --hl-kro-keyword: #d6d3d1;
-  --hl-cel-expression: #93c5fd;
-  --hl-schema-type: #e0c080;
-  --hl-schema-pipe: #78716c;
-  --hl-schema-keyword: #94a3b8;
-  --hl-schema-value: #c4b5dc;
-  --hl-comment: #6b6b6b;
+  /* Semantic: UI status badges (same hue, separate tokens for semantics) */
+  --color-status-ready:    #10b981;
+  --color-status-error:    #f43f5e;
+  --color-status-unknown:  #6b7280;
+  --color-status-warning:  #f59e0b;
+
+  /* DAG node live state overlays (background + border per state) */
+  --node-alive-bg:         rgba(16, 185, 129, 0.12);
+  --node-alive-border:     #10b981;
+  --node-reconciling-bg:   rgba(245, 158, 11, 0.10);
+  --node-reconciling-border: #f59e0b;
+  --node-pending-bg:       rgba(139, 92, 246, 0.10);
+  --node-pending-border:   #8b5cf6;
+  --node-error-bg:         rgba(244, 63, 94, 0.12);
+  --node-error-border:     #f43f5e;
+  --node-notfound-bg:      var(--color-surface);
+  --node-notfound-border:  var(--color-border);
+
+  /* DAG node type overlays */
+  --node-root-bg:          var(--color-primary-muted);
+  --node-root-border:      var(--color-primary);
+  --node-specpatch-bg:     rgba(245, 158, 11, 0.10);
+  --node-specpatch-border: var(--color-reconciling);
+  --node-default-bg:       var(--color-surface-2);
+  --node-default-border:   var(--color-border);
+
+  /* CEL / schema highlighter tokens */
+  --hl-yaml-key:           #a8a29e;
+  --hl-kro-keyword:        #d6d3d1;
+  --hl-cel-expression:     #93c5fd;   /* primary attention in YAML */
+  --hl-schema-type:        #e0c080;
+  --hl-schema-pipe:        #78716c;
+  --hl-schema-keyword:     #94a3b8;
+  --hl-schema-value:       #c4b5dc;
+  --hl-comment:            #6b6b6b;
 
   /* Typography */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
-  /* Spacing */
-  --radius: 8px;
+  /* Geometry */
   --radius-sm: 4px;
+  --radius:    8px;
   --radius-lg: 12px;
+
+  /* Motion */
+  --transition-fast:  80ms ease;
+  --transition:      150ms ease;
+  --transition-slow: 250ms ease;
 }
 
+/* ── Light mode ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --color-bg: #f6f8fa;
-  --color-surface: #ffffff;
-  --color-surface-2: #f1f3f5;
-  --color-border: #e5e7eb;
-  --color-border-subtle: #f0f0f0;
-  --color-text: #111827;
-  --color-text-muted: #6b7280;
-  --color-text-faint: #9ca3af;
-  --color-primary-dark: #5b7fc9;
+  /* Brand */
+  --color-primary:         #3b6fd4;   /* darker for light bg contrast */
+  --color-primary-hover:   #2c5fc4;
+  --color-primary-muted:   rgba(59, 111, 212, 0.08);
+  --color-primary-text:    #3b6fd4;
 
-  --hl-yaml-key: #6b7280;
-  --hl-kro-keyword: #475569;
-  --hl-cel-expression: #5b7fc9;
-  --hl-schema-type: #be7b8a;
-  --hl-schema-pipe: #9ca3af;
-  --hl-schema-keyword: #6b8cae;
-  --hl-schema-value: #5b7fc9;
-  --hl-comment: #9ca3af;
+  /* Backgrounds */
+  --color-bg:              #f6f8fa;
+  --color-surface:         #ffffff;
+  --color-surface-2:       #f1f3f5;
+  --color-surface-3:       #e8eaed;
+
+  /* Borders */
+  --color-border:          #d1d5db;
+  --color-border-subtle:   #e5e7eb;
+  --color-border-focus:    #3b6fd4;
+
+  /* Text */
+  --color-text:            #111827;
+  --color-text-muted:      #4b5563;
+  --color-text-faint:      #9ca3af;
+
+  /* Semantic: node states */
+  --color-alive:           #059669;   /* darker emerald */
+  --color-reconciling:     #d97706;   /* darker amber */
+  --color-pending:         #7c3aed;   /* darker violet */
+  --color-error:           #e11d48;   /* darker rose */
+  --color-not-found:       #6b7280;
+
+  /* Semantic: UI status */
+  --color-status-ready:    #059669;
+  --color-status-error:    #e11d48;
+  --color-status-unknown:  #6b7280;
+  --color-status-warning:  #d97706;
+
+  /* DAG node live state overlays */
+  --node-alive-bg:         rgba(5, 150, 105, 0.10);
+  --node-alive-border:     #059669;
+  --node-reconciling-bg:   rgba(217, 119, 6, 0.10);
+  --node-reconciling-border: #d97706;
+  --node-pending-bg:       rgba(124, 58, 237, 0.08);
+  --node-pending-border:   #7c3aed;
+  --node-error-bg:         rgba(225, 29, 72, 0.10);
+  --node-error-border:     #e11d48;
+  --node-notfound-bg:      var(--color-surface);
+  --node-notfound-border:  var(--color-border);
+
+  /* DAG node type overlays */
+  --node-root-bg:          var(--color-primary-muted);
+  --node-root-border:      var(--color-primary);
+  --node-specpatch-bg:     rgba(217, 119, 6, 0.08);
+  --node-specpatch-border: var(--color-reconciling);
+  --node-default-bg:       var(--color-surface-2);
+  --node-default-border:   var(--color-border);
+
+  /* CEL highlighter */
+  --hl-yaml-key:           #6b7280;
+  --hl-kro-keyword:        #475569;
+  --hl-cel-expression:     #3b6fd4;
+  --hl-schema-type:        #be7b8a;
+  --hl-schema-pipe:        #9ca3af;
+  --hl-schema-keyword:     #6b8cae;
+  --hl-schema-value:       #7c5caa;
+  --hl-comment:            #9ca3af;
 }
 
-/* ── Reset ──────────────────────────────────────────────────────────── */
+/* ── Reset ──────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { font-size: 14px; }
@@ -78,14 +171,17 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-code, pre, .mono {
-  font-family: var(--font-mono);
-}
+code, pre, .mono { font-family: var(--font-mono); }
 
-a { color: var(--color-primary); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+a:hover { color: var(--color-primary-hover); }
 
 button {
   cursor: pointer;
@@ -93,8 +189,25 @@ button {
   font-size: inherit;
 }
 
-/* ── Scrollbar ──────────────────────────────────────────────────────── */
+/* Focus ring — applied to all interactive elements */
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Reconciling animation ─────────────────────────────────────────────── */
+@keyframes reconciling-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+  transition: background var(--transition-fast);
+}
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-faint); }
+

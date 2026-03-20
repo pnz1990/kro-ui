@@ -35,7 +35,7 @@ labels, dependency edges are drawn, and node types are visually distinct.
 3. **Given** a resource with a `forEach` dimension, **When** rendered, **Then**
    the node carries an `∀` badge
 4. **Given** a specPatch state node, **When** rendered, **Then** it is visually
-   distinct from managed resource nodes (amber/yellow fill vs default blue)
+   visually distinct from managed resource nodes (`--node-specpatch-bg` fill + dashed border vs default style)
 5. **Given** the graph is wider than the viewport, **When** rendered, **Then**
    horizontal scrolling is available and all nodes remain reachable
 6. **Given** the same RGD data is rendered twice, **When** compared, **Then**
@@ -150,14 +150,16 @@ Instances tab is still active.
   algorithm — no D3, no force simulation, no external graph library
 - **FR-003**: Node type visual treatments:
 
-  | Node type | Visual indicator |
-  |-----------|-----------------|
-  | Root CR | Blue accent border, "root" badge |
-  | Managed resource | Default card style |
-  | specPatch state node | Amber/yellow fill |
-  | `includeWhen` conditional | Dashed border |
-  | `forEach` fan-out | `∀` badge |
-  | `readyWhen` | Check badge |
+  See design spec `000-design-system` for full token definitions. Summary:
+
+  | Node type | Background | Border | Extra |
+  |-----------|-----------|--------|-------|
+  | Root CR | `--node-root-bg` | `--node-root-border` (2px solid) | "root" pill badge |
+  | Managed resource | `--node-default-bg` | `--node-default-border` (1px solid) | kind label |
+  | specPatch state | `--node-specpatch-bg` | `--node-specpatch-border` (1px dashed) | `{}` icon |
+  | `includeWhen` conditional | `--node-default-bg` | `--node-default-border` (1px dashed) | `?` icon |
+  | `forEach` fan-out | `--node-default-bg` | `--node-default-border` (1px solid) | `∀` badge |
+  | `readyWhen` | `--node-default-bg` | `--node-default-border` (1px solid) | `✓` badge |
 
 - **FR-004**: Clicking a node MUST open the `NodeDetailPanel` without any
   additional API call — all data is in the already-loaded RGD object

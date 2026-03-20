@@ -32,11 +32,11 @@ browser and confirm RGD cards are visible with correct name, kind, and status.
    - Age (derived from `metadata.creationTimestamp`)
    - Status indicator (green/orange/red dot based on `Ready` condition)
 2. **Given** an RGD whose `status.conditions` has `Ready=True`, **When** the
-   card renders, **Then** the status dot is green (`--color-alive`)
+   card renders, **Then** the status dot is green (`--color-status-ready`)
 3. **Given** an RGD whose `status.conditions` has `Ready=False`, **When** the
-   card renders, **Then** the status dot is red (`--color-error`)
+   card renders, **Then** the status dot is red (`--color-status-error`)
 4. **Given** an RGD with no conditions, **When** the card renders, **Then** the
-   status dot is gray (`--color-unknown`) — never blank, never broken
+   status dot is gray (`--color-status-unknown`) — never blank, never broken
 5. **Given** the `GET /api/v1/rgds` call is in-flight, **When** the page
    renders, **Then** skeleton loading cards are shown (not a spinner over
    empty content)

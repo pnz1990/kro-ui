@@ -27,15 +27,15 @@ every 5 seconds; no layout shift occurs between refreshes.
 **Acceptance Scenarios**:
 
 1. **Given** a live instance where all resources are ready, **When** the page
-   loads, **Then** all resource nodes appear green (`--color-alive`); the root
+   loads, **Then** all resource nodes appear green (`--node-alive-border`); the root
    CR node is also green
 2. **Given** kro is actively reconciling the instance
    (`status.conditions Progressing=True`), **When** the page is open, **Then**
    a banner "kro is reconciling this instance" appears; reconciling nodes pulse
-   with an amber animation (`--color-reconciling`)
+   with an amber pulsing animation (`--node-reconciling-border`)
 3. **Given** a resource that has not been created yet (`includeWhen=false`),
    **When** rendered, **Then** the node is shown with a dashed border and
-   `--color-unknown` fill (`not-found` state)
+   `--node-notfound-border` dashed border (`not-found` state)
 4. **Given** 5 seconds have elapsed, **When** the poll fires and new data
    arrives, **Then** node state colors update without any change to node
    positions (no re-layout)
@@ -164,15 +164,16 @@ returns "Resource not found". This was a concrete bug observed in open-krode.
   static between deployments)
 - **FR-003**: Reconciling banner MUST appear when the instance has a condition
   with `type=Progressing` and `status=True`
-- **FR-004**: Node state mapping:
+- **FR-004**: Node state mapping (see design spec `000-design-system` for full
+  overlay token definitions):
 
-  | Cluster state | Node color |
-  |---------------|-----------|
-  | Resource exists and `Ready=True` | `--color-alive` (green) |
-  | kro is actively reconciling | `--color-reconciling` (amber, pulsing) |
-  | Resource not yet created / `includeWhen=false` | dashed, `--color-unknown` |
-  | `Ready=False` | `--color-error` (red) |
-  | Not in children list, status unknown | `--color-unknown` (gray) |
+  | Cluster state | Background token | Border token | Animation |
+  |---------------|-----------------|--------------|-----------|
+  | Resource exists and `Ready=True` | `--node-alive-bg` | `--node-alive-border` | none |
+  | kro is actively reconciling | `--node-reconciling-bg` | `--node-reconciling-border` | `reconciling-pulse 1.5s` |
+  | Waiting on dependency (`includeWhen=false`) | `--node-pending-bg` | `--node-pending-border` dashed | none |
+  | `Ready=False` | `--node-error-bg` | `--node-error-border` | none |
+  | Not in children list / status unknown | `--node-notfound-bg` | `--node-notfound-border` dashed | none |
 
 - **FR-005**: Node color updates MUST NOT cause a DAG re-layout — positions
   are computed once from the RGD spec and are stable
