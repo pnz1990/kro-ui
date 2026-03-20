@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
@@ -46,5 +47,5 @@ func respond(w http.ResponseWriter, status int, v any) {
 
 // respondError writes a JSON error response.
 func respondError(w http.ResponseWriter, status int, msg string) {
-	respond(w, status, map[string]string{"error": msg})
+	respond(w, status, types.ErrorResponse{Error: msg})
 }

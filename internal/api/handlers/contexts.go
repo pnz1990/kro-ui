@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
@@ -36,17 +37,15 @@ func (h *Handler) ListContexts(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respond(w, http.StatusOK, map[string]any{
-		"contexts": contexts,
-		"active":   h.ctxMgr.ActiveContext(),
+	respond(w, http.StatusOK, types.ContextsResponse{
+		Contexts: contexts,
+		Active:   h.ctxMgr.ActiveContext(),
 	})
 }
 
 // SwitchContext switches the active kubeconfig context.
 func (h *Handler) SwitchContext(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Context string `json:"context"`
-	}
+	var body types.SwitchContextRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid JSON body")
 		return
@@ -59,5 +58,5 @@ func (h *Handler) SwitchContext(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	respond(w, http.StatusOK, map[string]string{"active": body.Context})
+	respond(w, http.StatusOK, types.SwitchContextResponse{Active: body.Context})
 }

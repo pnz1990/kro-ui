@@ -22,6 +22,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/pnz1990/kro-ui/internal/api/types"
 )
 
 // GetInstance returns a single CR instance detail.
@@ -74,7 +76,7 @@ func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	respond(w, http.StatusOK, map[string]any{"items": children})
+	respond(w, http.StatusOK, types.ChildrenResponse{Items: children})
 }
 
 // GetResource returns the raw unstructured YAML/JSON for any resource.
