@@ -42,6 +42,15 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `006-cel-highlighter` | #8 | Pure TS kro CEL/schema tokenizer | #5, #7 |
 | `007-context-switcher` | #9 | Runtime kubeconfig context switching | — |
 | `008-feature-flags` | #11 | kro capabilities API, feature gate system | — |
+| `009-rgd-graph-diff` | #13 | RGD graph revision diff (BLOCKED: needs kro KREP-013) | — |
+| `011-collection-explorer` | #14 | forEach collection drill-down and health badges | — |
+| `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | — |
+| `014-multi-cluster-overview` | #16 | Fleet view across kubeconfig contexts | — |
+| `015-rgd-catalog` | #17 | Searchable RGD registry with filtering and chaining detection | — |
+| `017-rgd-validation-linting` | #18 | Surface RGD validation conditions in the UI | — |
+| `018-rbac-visualizer` | #19 | Permission gap detection for RGD managed resources | — |
+| `019-smart-event-stream` | #20 | Filtered, grouped, anomaly-detecting event view | — |
+| `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | — |
 
 ### Worktrunk (required workflow)
 
