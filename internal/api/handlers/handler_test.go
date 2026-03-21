@@ -192,15 +192,23 @@ func (s *stubNamespaceableResource) ApplyStatus(context.Context, string, *unstru
 // --- stubResourceClient implements dynamic.ResourceInterface (namespaced) ---
 
 type stubResourceClient struct {
-	items    []unstructured.Unstructured
-	getItems map[string]*unstructured.Unstructured
-	listErr  error
-	getErr   error
+	items      []unstructured.Unstructured
+	getItems   map[string]*unstructured.Unstructured
+	labelItems map[string][]unstructured.Unstructured // label selector → items
+	listErr    error
+	getErr     error
 }
 
-func (s *stubResourceClient) List(_ context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+func (s *stubResourceClient) List(_ context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	if s.listErr != nil {
 		return nil, s.listErr
+	}
+	// If a label selector is present and labelItems is populated, return filtered results.
+	if opts.LabelSelector != "" && s.labelItems != nil {
+		if items, ok := s.labelItems[opts.LabelSelector]; ok {
+			return &unstructured.UnstructuredList{Items: items}, nil
+		}
+		return &unstructured.UnstructuredList{Items: nil}, nil
 	}
 	return &unstructured.UnstructuredList{Items: s.items}, nil
 }
@@ -273,7 +281,14 @@ func (s *stubDiscovery) ServerGroups() (*metav1.APIGroupList, error) {
 	return &metav1.APIGroupList{}, nil
 }
 func (s *stubDiscovery) ServerGroupsAndResources() ([]*metav1.APIGroup, []*metav1.APIResourceList, error) {
-	return nil, nil, nil
+	if s.err != nil {
+		return nil, nil, s.err
+	}
+	var lists []*metav1.APIResourceList
+	for _, rl := range s.resources {
+		lists = append(lists, rl)
+	}
+	return nil, lists, nil
 }
 func (s *stubDiscovery) ServerPreferredResources() ([]*metav1.APIResourceList, error) {
 	return nil, nil
