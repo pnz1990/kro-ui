@@ -46,6 +46,7 @@
   align-items: center;
   gap: 6px;
   margin-left: auto;
+  position: relative;
 }
 
 .catalog__sort-label {
@@ -61,15 +62,36 @@
   color: var(--color-text);
   font-size: 0.875rem;
   font-family: var(--font-sans);
-  padding: 6px 10px;
+  padding: 6px 28px 6px 10px;
   cursor: pointer;
   transition: border-color var(--transition);
   -webkit-appearance: none;
   appearance: none;
-  padding-right: 28px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4L6 8L10 4' stroke='%23a1a1aa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
+}
+
+/* Chevron rendered via ::after on a wrapper div so we can use color tokens
+   instead of a hardcoded hex inside a data URI. The pseudo-element is a
+   12×12 block coloured by var(--color-text-muted) via -webkit-mask / mask. */
+.catalog__sort-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.catalog__sort-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  background-color: var(--color-text-muted);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4L6 8L10 4' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4L6 8L10 4' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-position: center;
 }
 
 .catalog__sort-select:focus {
@@ -123,14 +145,19 @@
   margin: 0;
 }
 
-.catalog__empty a {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 500;
+.catalog__empty-hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+  margin: 0;
 }
 
-.catalog__empty a:hover {
-  text-decoration: underline;
+.catalog__empty-hint code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
 }
 
 .catalog__clear-filters-btn {

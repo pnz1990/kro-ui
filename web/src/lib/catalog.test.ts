@@ -237,6 +237,24 @@ describe('sortCatalog', () => {
     return { rgd, instanceCount }
   }
 
+  /** Extract name without casting — reuses the library helper under test. */
+  function nameOf(entry: { rgd: K8sObject }): string {
+    const meta = entry.rgd.metadata
+    if (typeof meta !== 'object' || meta === null) return ''
+    const n = (meta as Record<string, unknown>).name
+    return typeof n === 'string' ? n : ''
+  }
+
+  /** Extract schema kind without casting. */
+  function kindOf(entry: { rgd: K8sObject }): string {
+    const spec = entry.rgd.spec
+    if (typeof spec !== 'object' || spec === null) return ''
+    const schema = (spec as Record<string, unknown>).schema
+    if (typeof schema !== 'object' || schema === null) return ''
+    const k = (schema as Record<string, unknown>).kind
+    return typeof k === 'string' ? k : ''
+  }
+
   it('sorts by name A-Z', () => {
     const entries = [makeEntry('z-service', 'Z', 0), makeEntry('a-service', 'A', 0)]
     const result = sortCatalog(entries, 'name')
@@ -247,8 +265,8 @@ describe('sortCatalog', () => {
   it('sorts by kind A-Z', () => {
     const entries = [makeEntry('x', 'Zebra', 0), makeEntry('y', 'Apple', 0)]
     const result = sortCatalog(entries, 'kind')
-    expect((result[0].rgd.spec as any).schema.kind).toBe('Apple')
-    expect((result[1].rgd.spec as any).schema.kind).toBe('Zebra')
+    expect(kindOf(result[0])).toBe('Apple')
+    expect(kindOf(result[1])).toBe('Zebra')
   })
 
   it('sorts by instance count descending (most first)', () => {
@@ -280,8 +298,7 @@ describe('sortCatalog', () => {
       makeEntry('c', 'C', 0, 3),
     ]
     const result = sortCatalog(entries, 'resources')
-    const names = result.map((e) => (e.rgd.metadata as any).name)
-    expect(names).toEqual(['b', 'c', 'a'])
+    expect(result.map(nameOf)).toEqual(['b', 'c', 'a'])
   })
 
   it('sorts by newest first', () => {
@@ -290,8 +307,8 @@ describe('sortCatalog', () => {
       makeEntry('new', 'New', 0, 0, '2026-03-01T00:00:00Z'),
     ]
     const result = sortCatalog(entries, 'newest')
-    expect((result[0].rgd.metadata as any).name).toBe('new')
-    expect((result[1].rgd.metadata as any).name).toBe('old')
+    expect(nameOf(result[0])).toBe('new')
+    expect(nameOf(result[1])).toBe('old')
   })
 
   it('does not mutate the original array', () => {

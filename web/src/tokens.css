@@ -92,6 +92,9 @@
   --transition-fast:  80ms ease;
   --transition:      150ms ease;
   --transition-slow: 250ms ease;
+
+  /* Shadows */
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Light mode ────────────────────────────────────────────────────────── */
@@ -162,6 +165,9 @@
   --hl-schema-keyword:     #6b8cae;
   --hl-schema-value:       #7c5caa;
   --hl-comment:            #9ca3af;
+
+  /* Shadows */
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────── */

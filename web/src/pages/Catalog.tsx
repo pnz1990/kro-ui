@@ -133,18 +133,20 @@ export default function Catalog() {
             <label htmlFor="catalog-sort" className="catalog__sort-label">
               Sort:
             </label>
-            <select
-              id="catalog-sort"
-              className="catalog__sort-select"
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as SortOption)}
-            >
-              {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <div className="catalog__sort-wrapper">
+              <select
+                id="catalog-sort"
+                className="catalog__sort-select"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -171,9 +173,10 @@ export default function Catalog() {
           {items.length === 0 ? (
             <>
               <p>No ResourceGraphDefinitions found in this cluster.</p>
-              <a href="https://kro.run/docs" target="_blank" rel="noopener noreferrer">
-                Learn about kro
-              </a>
+              <p className="catalog__empty-hint">
+                Create one with{' '}
+                <code>kubectl apply -f your-rgd.yaml</code>
+              </p>
             </>
           ) : (
             <>
