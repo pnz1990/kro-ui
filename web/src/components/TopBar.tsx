@@ -1,30 +1,25 @@
+import ContextSwitcher from './ContextSwitcher'
+import type { KubeContext } from '@/lib/api'
 import './TopBar.css'
 
-const MAX_CONTEXT_LENGTH = 40
-
 interface TopBarProps {
-  contextName: string
+  contexts: KubeContext[]
+  activeContext: string
+  onSwitch: (name: string) => void
 }
 
-export default function TopBar({ contextName }: TopBarProps) {
-  const truncated =
-    contextName.length > MAX_CONTEXT_LENGTH
-      ? contextName.slice(0, MAX_CONTEXT_LENGTH) + '\u2026'
-      : contextName
-
+export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="top-bar__brand">
         <img src="/logo.png" alt="kro-ui" width="24" height="24" />
         <span className="top-bar__title">kro-ui</span>
       </div>
-      <div
-        className="top-bar__context"
-        data-testid="context-name"
-        title={contextName}
-      >
-        {truncated}
-      </div>
+      <ContextSwitcher
+        contexts={contexts}
+        active={activeContext}
+        onSwitch={onSwitch}
+      />
     </header>
   )
 }

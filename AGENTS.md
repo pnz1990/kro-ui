@@ -308,3 +308,10 @@ The current branch name tells you which spec to read. For example, branch
 
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
+
+## Active Technologies
+- Go 1.25.1 (backend, fully implemented) + TypeScript 5.7 / React 19 (frontend, remaining work) + chi v5, zerolog, client-go v0.35.3 (backend); React 19, React Router v7, Vite 8, Vitest 4 (frontend) (007-context-switcher)
+- N/A (reads kubeconfig file only) (007-context-switcher)
+
+## Recent Changes
+- 007-context-switcher: Added Go 1.25.1 (backend, fully implemented) + TypeScript 5.7 / React 19 (frontend, remaining work) + chi v5, zerolog, client-go v0.35.3 (backend); React 19, React Router v7, Vite 8, Vitest 4 (frontend)

@@ -1,28 +1,45 @@
-// Layout — top bar (context display) + outlet for pages.
+// Layout — top bar (context switcher) + outlet for pages.
+// Keying <Outlet> on activeContext forces child routes to remount and refetch
+// their data after a context switch.
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { listContexts } from '@/lib/api'
+import type { KubeContext } from '@/lib/api'
 import TopBar from './TopBar'
 import './Layout.css'
 
 export default function Layout() {
-  const [contextName, setContextName] = useState('')
+  const [contexts, setContexts] = useState<KubeContext[]>([])
+  const [activeContext, setActiveContext] = useState('')
 
   useEffect(() => {
     listContexts()
-      .then((res) => setContextName(res.active))
+      .then((res) => {
+        setContexts(res.contexts)
+        setActiveContext(res.active)
+      })
       .catch(() => {
         // Graceful degradation: context display is informational, not blocking
-        setContextName('')
+        setContexts([])
+        setActiveContext('')
       })
+  }, [])
+
+  const handleSwitch = useCallback((name: string) => {
+    setActiveContext(name)
   }, [])
 
   return (
     <div className="layout">
-      <TopBar contextName={contextName} />
+      <TopBar
+        contexts={contexts}
+        activeContext={activeContext}
+        onSwitch={handleSwitch}
+      />
       <main className="layout__content">
-        <Outlet />
+        {/* Key on activeContext forces child routes to remount and refetch data */}
+        <Outlet key={activeContext} />
       </main>
     </div>
   )
