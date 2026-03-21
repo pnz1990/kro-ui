@@ -113,11 +113,10 @@
   background: var(--color-primary-muted);
 }
 
-/* Active (selected) option — not clickable */
+/* Active (selected) option — shows current selection, click is a no-op */
 .context-switcher__option--active {
   color: var(--color-primary-text);
   cursor: default;
-  pointer-events: none;
 }
 
 .context-switcher__option--active:hover {
