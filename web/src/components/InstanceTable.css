@@ -1,0 +1,66 @@
+/* InstanceTable — live CR instance rows. */
+
+.instance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.instance-table__th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.instance-table__th--action {
+  width: 64px;
+}
+
+.instance-table__row {
+  transition: background var(--transition-fast);
+}
+
+.instance-table__row:hover {
+  background: var(--color-surface-2);
+}
+
+.instance-table__td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.instance-table__td--name {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instance-table__td--action {
+  text-align: right;
+}
+
+.instance-table__open-link {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: var(--color-primary-text);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.instance-table__open-link:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+  color: var(--color-primary-text);
+}

@@ -4,10 +4,12 @@ import RGDDetail from './RGDDetail'
 
 vi.mock('@/lib/api', () => ({
   getRGD: vi.fn(),
+  listInstances: vi.fn(),
 }))
 
-import { getRGD } from '@/lib/api'
+import { getRGD, listInstances } from '@/lib/api'
 const mockedGetRGD = vi.mocked(getRGD)
+const mockedListInstances = vi.mocked(listInstances)
 
 /** Minimal RGD object with one NodeTypeResource. */
 function makeRGD(name = 'test-app') {
@@ -32,6 +34,21 @@ function makeRGD(name = 'test-app') {
   }
 }
 
+/** Minimal K8sList with instance items. */
+function makeInstanceList(items: Array<{ name: string; namespace: string; ready?: boolean }>) {
+  return {
+    metadata: {},
+    items: items.map(({ name, namespace, ready }) => ({
+      metadata: { name, namespace, creationTimestamp: '2026-01-01T00:00:00Z' },
+      status: {
+        conditions: ready !== undefined
+          ? [{ type: 'Ready', status: ready ? 'True' : 'False', reason: 'TestReason', message: 'test msg' }]
+          : [],
+      },
+    })),
+  }
+}
+
 /**
  * Render RGDDetail with an optional initial URL search string.
  * Uses MemoryRouter with a route that provides the :name param.
@@ -50,6 +67,8 @@ describe('RGDDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedGetRGD.mockResolvedValue(makeRGD())
+    // Default: empty list (overridden in specific tests)
+    mockedListInstances.mockResolvedValue(makeInstanceList([]))
   })
 
   // ── T034a: Default tab is Graph ───────────────────────────────────────
@@ -75,21 +94,6 @@ describe('RGDDetail', () => {
     )
     expect(screen.getByTestId('kro-code-block')).toBeInTheDocument()
     expect(screen.queryByTestId('dag-svg')).not.toBeInTheDocument()
-  })
-
-  // ── T034c: ?tab=instances shows instances placeholder ────────────────
-
-  it('T034c: ?tab=instances shows instances placeholder content', async () => {
-    renderDetail('?tab=instances')
-    await waitFor(() =>
-      expect(screen.getByTestId('tab-instances')).toHaveAttribute(
-        'aria-selected',
-        'true',
-      ),
-    )
-    expect(screen.queryByTestId('dag-svg')).not.toBeInTheDocument()
-    // Placeholder text is shown
-    expect(screen.getByText(/Instance list coming in spec 004/i)).toBeInTheDocument()
   })
 
   // ── T034d: Invalid tab falls back to Graph ────────────────────────────
@@ -131,5 +135,58 @@ describe('RGDDetail', () => {
     // Close it
     fireEvent.click(screen.getByTestId('node-detail-close'))
     expect(screen.queryByTestId('node-detail-panel')).not.toBeInTheDocument()
+  })
+
+  // ── Instances tab tests ───────────────────────────────────────────────
+
+  it('T040a: ?tab=instances renders instance table with one row per item', async () => {
+    mockedListInstances.mockResolvedValue(
+      makeInstanceList([
+        { name: 'prod-01', namespace: 'default', ready: true },
+        { name: 'staging-01', namespace: 'staging', ready: false },
+      ]),
+    )
+    renderDetail('?tab=instances')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-table')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('instance-row-prod-01')).toBeInTheDocument()
+    expect(screen.getByTestId('instance-row-staging-01')).toBeInTheDocument()
+  })
+
+  it('T040b: shows empty state when items list is empty', async () => {
+    mockedListInstances.mockResolvedValue(makeInstanceList([]))
+    renderDetail('?tab=instances')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-empty-state')).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('instance-table')).not.toBeInTheDocument()
+  })
+
+  it('T040c: shows error state on fetch failure with retry button', async () => {
+    mockedListInstances.mockRejectedValue(new Error('cluster unreachable'))
+    renderDetail('?tab=instances')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-error-state')).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/cluster unreachable/i)).toBeInTheDocument()
+    expect(screen.getByTestId('btn-retry')).toBeInTheDocument()
+  })
+
+  it('T040d: namespace filter pre-selected when ?namespace= is in URL', async () => {
+    mockedListInstances.mockResolvedValue(
+      makeInstanceList([{ name: 'prod-01', namespace: 'default', ready: true }]),
+    )
+    renderDetail('?tab=instances&namespace=default')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('namespace-filter')).toBeInTheDocument(),
+    )
+    expect(
+      (screen.getByTestId('namespace-filter') as HTMLSelectElement).value,
+    ).toBe('default')
   })
 })

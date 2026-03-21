@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
-import { getRGD } from "@/lib/api"
-import type { K8sObject } from "@/lib/api"
+import { getRGD, listInstances } from "@/lib/api"
+import type { K8sObject, K8sList } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
 import { buildDAGGraph } from "@/lib/dag"
 import KroCodeBlock from "@/components/KroCodeBlock"
 import DAGGraph from "@/components/DAGGraph"
 import NodeDetailPanel from "@/components/NodeDetailPanel"
+import InstanceTable from "@/components/InstanceTable"
+import NamespaceFilter from "@/components/NamespaceFilter"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
@@ -22,7 +24,7 @@ function isValidTab(t: string | null): t is TabId {
  * Active tab is reflected in and restored from `?tab=` URL query parameter.
  * Default tab is "graph".
  *
- * Spec: .specify/specs/003-rgd-detail-dag/
+ * Spec: .specify/specs/003-rgd-detail-dag/ and .specify/specs/004-instance-list/
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
@@ -31,6 +33,7 @@ export default function RGDDetail() {
   const rawTab = searchParams.get("tab")
   const activeTab: TabId = isValidTab(rawTab) ? rawTab : "graph"
 
+  // ── RGD data ──────────────────────────────────────────────────────────────
   const [rgd, setRgd] = useState<K8sObject | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,7 +54,74 @@ export default function RGDDetail() {
       .finally(() => setLoading(false))
   }, [name])
 
-  // Build DAG graph once when RGD data loads (memoised — pure function, stable)
+  // ── Instances tab state ───────────────────────────────────────────────────
+
+  // namespace param from URL — empty string means "all namespaces"
+  const namespaceParam = searchParams.get("namespace") ?? ""
+
+  const [instanceList, setInstanceList] = useState<K8sList | null>(null)
+  const [instancesLoading, setInstancesLoading] = useState(false)
+  const [instancesError, setInstancesError] = useState<string | null>(null)
+
+  // Fetch all instances (no namespace filter) when the Instances tab is active.
+  // This provides the full list from which namespace options are derived (FR-003).
+  const [allInstances, setAllInstances] = useState<K8sList | null>(null)
+
+  useEffect(() => {
+    if (activeTab !== "instances" || !name) return
+    setInstancesLoading(true)
+    setInstancesError(null)
+
+    const ns = namespaceParam || undefined
+    const fetchFiltered = listInstances(name, ns)
+    const fetchAll = namespaceParam
+      ? listInstances(name)
+      : fetchFiltered
+
+    fetchFiltered
+      .then((data) => {
+        setInstanceList(data)
+        setInstancesError(null)
+      })
+      .catch((err: Error) => {
+        setInstancesError(err.message)
+        setInstanceList(null)
+      })
+      .finally(() => setInstancesLoading(false))
+
+    // Fetch unfiltered list to populate namespace dropdown (only when filtered)
+    if (namespaceParam) {
+      fetchAll
+        .then((data) => setAllInstances(data))
+        .catch(() => {
+          // Non-critical: namespace options fall back to current filtered list
+        })
+    } else {
+      fetchFiltered.then((data) => setAllInstances(data)).catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, name, namespaceParam])
+
+  // Derive unique namespace options from the unfiltered instance list (FR-003)
+  const namespaceOptions = useMemo(() => {
+    const source = allInstances ?? instanceList
+    if (!source) return []
+    const seen = new Set<string>()
+    for (const item of source.items) {
+      const meta = item.metadata as Record<string, unknown> | undefined
+      const ns = typeof meta?.namespace === 'string' ? meta.namespace : ''
+      if (ns) seen.add(ns)
+    }
+    return Array.from(seen).sort()
+  }, [allInstances, instanceList])
+
+  function handleNamespaceChange(ns: string) {
+    const next: Record<string, string> = { tab: "instances" }
+    if (ns) next.namespace = ns
+    setSearchParams(next)
+  }
+
+  // ── Memoised DAG ─────────────────────────────────────────────────────────
   const dagGraph = useMemo(() => {
     if (!rgd?.spec) return null
     return buildDAGGraph(rgd.spec as Record<string, unknown>)
@@ -154,9 +224,62 @@ export default function RGDDetail() {
 
         {activeTab === "instances" && (
           <div className="rgd-tab-panel">
-            <div className="rgd-instances-placeholder">
-              Instance list coming in spec 004.
+            <div className="rgd-instances-toolbar">
+              <NamespaceFilter
+                namespaces={namespaceOptions}
+                selected={namespaceParam}
+                onChange={handleNamespaceChange}
+              />
             </div>
+
+            {instancesLoading && (
+              <div className="rgd-instances-loading">Loading instances…</div>
+            )}
+
+            {!instancesLoading && instancesError && (
+              <div className="rgd-instances-error" data-testid="instance-error-state">
+                <span className="rgd-instances-error__msg">
+                  Error: {instancesError}
+                </span>
+                <button
+                  type="button"
+                  className="rgd-instances-retry-btn"
+                  data-testid="btn-retry"
+                  onClick={() => {
+                    // Re-trigger by toggling a dummy counter via namespace param
+                    // Actually: re-trigger by clearing error — effect re-runs on tab/name/ns
+                    setInstancesError(null)
+                    setInstancesLoading(true)
+                    listInstances(name ?? "", namespaceParam || undefined)
+                      .then((data) => {
+                        setInstanceList(data)
+                        if (!namespaceParam) setAllInstances(data)
+                      })
+                      .catch((err: Error) => setInstancesError(err.message))
+                      .finally(() => setInstancesLoading(false))
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {!instancesLoading && !instancesError && instanceList && (
+              instanceList.items.length === 0 ? (
+                <div
+                  className="rgd-instances-empty"
+                  data-testid="instance-empty-state"
+                >
+                  No instances found. Create one with{" "}
+                  <code>kubectl apply</code>.
+                </div>
+              ) : (
+                <InstanceTable
+                  items={instanceList.items}
+                  rgdName={String(rgdName)}
+                />
+              )
+            )}
           </div>
         )}
 
