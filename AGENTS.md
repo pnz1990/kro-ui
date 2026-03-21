@@ -309,8 +309,3 @@ The current branch name tells you which spec to read. For example, branch
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
 
-## Active Technologies
-- TypeScript ~5.7 (strict mode enabled), React 19 + None beyond React 19 (tokenizer is stdlib-only); Vitest for testing (006-cel-highlighter)
-
-## Recent Changes
-- 006-cel-highlighter: Added TypeScript ~5.7 (strict mode enabled), React 19 + None beyond React 19 (tokenizer is stdlib-only); Vitest for testing

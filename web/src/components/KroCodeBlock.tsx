@@ -5,6 +5,7 @@ import "./KroCodeBlock.css"
 
 interface KroCodeBlockProps {
   code: string
+  /** Reserved for future multi-language support. Currently only "yaml". */
   language?: "yaml"
   title?: string
 }
