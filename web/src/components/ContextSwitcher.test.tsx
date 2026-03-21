@@ -130,7 +130,8 @@ describe('ContextSwitcher', () => {
       (el) => el.getAttribute('aria-selected') === 'true',
     )
     expect(activeOption).not.toBeNull()
-    await user.click(activeOption!)
+    if (!activeOption) throw new Error('active option not found')
+    await user.click(activeOption)
 
     expect(mockedSwitchContext).not.toHaveBeenCalled()
     expect(onSwitch).not.toHaveBeenCalled()

@@ -12,7 +12,7 @@ const SWITCH_TIMEOUT_MS = 10_000
  *  For names >40 chars that contain '/', extract the last segment and
  *  prepend '…/'. Otherwise truncate at 40 chars with '…'.
  */
-export function truncateContextName(name: string): string {
+function truncateContextName(name: string): string {
   if (name.length <= MAX_DISPLAY_LENGTH) return name
   const slashIdx = name.lastIndexOf('/')
   if (slashIdx !== -1) {
