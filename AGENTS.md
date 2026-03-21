@@ -308,3 +308,10 @@ The current branch name tells you which spec to read. For example, branch
 
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
+
+## Active Technologies
+- Go 1.25.1 (backend) + TypeScript / React 19 (frontend) + chi v5, zerolog, client-go dynamic+discovery (backend); React 19, Vite (frontend) (008-feature-flags)
+- N/A (read-only cluster access, in-memory 30s cache only) (008-feature-flags)
+
+## Recent Changes
+- 008-feature-flags: Added Go 1.25.1 (backend) + TypeScript / React 19 (frontend) + chi v5, zerolog, client-go dynamic+discovery (backend); React 19, Vite (frontend)
