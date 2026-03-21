@@ -58,7 +58,7 @@
 
 **Goal**: `./kro-ui serve` starts, connects to kubeconfig, and `/api/v1/healthz` returns 200.
 
-**Independent Test**: `./bin/kro-ui serve &`, then `curl http://localhost:10174/api/v1/healthz` returns `200 ok`.
+**Independent Test**: `./bin/kro-ui serve &`, then `curl http://localhost:40107/api/v1/healthz` returns `200 ok`.
 
 ### Tests for User Story 1
 
@@ -69,7 +69,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T022 [US1] Review and harden `internal/cmd/root.go`: verify `--port` defaults to 10174, `--kubeconfig` defaults to `""` (uses default resolution), `--context` defaults to `""`, error messages use `fmt.Errorf("context: %w", err)` pattern. Ensure non-zero exit on kubeconfig errors before binding any port.
+- [ ] T022 [US1] Review and harden `internal/cmd/root.go`: verify `--port` defaults to 40107, `--kubeconfig` defaults to `""` (uses default resolution), `--context` defaults to `""`, error messages use `fmt.Errorf("context: %w", err)` pattern. Ensure non-zero exit on kubeconfig errors before binding any port.
 - [ ] T023 [US1] Review and harden `internal/server/server.go`: verify healthz handler returns `200` with body `ok` and no cluster I/O. Ensure zerolog logger is injected into context with structured fields (`"port"`, `"context"`). Verify graceful shutdown is wired.
 - [ ] T024 [US1] Review and harden `internal/version/version.go`: verify `String()` outputs version, commit, and build date. Ensure ldflags variables are `var` (not `const`) so `-ldflags -X` works.
 - [ ] T025 [US1] Run tests: `go test -race ./internal/server/... ./internal/cmd/...` — all must pass
@@ -82,7 +82,7 @@
 
 **Goal**: `GET /` serves `index.html` from embedded `web/dist`. SPA fallback returns `index.html` for all unknown non-API routes.
 
-**Independent Test**: Start server, `curl http://localhost:10174/` returns HTML with `<div id="root">`, `curl http://localhost:10174/rgds/any-path` also returns HTML (not 404).
+**Independent Test**: Start server, `curl http://localhost:40107/` returns HTML with `<div id="root">`, `curl http://localhost:40107/rgds/any-path` also returns HTML (not 404).
 
 ### Tests for User Story 2
 
@@ -101,7 +101,7 @@
 
 **Goal**: `GET /api/v1/contexts` returns all contexts + active. `POST /api/v1/contexts/switch` switches context atomically.
 
-**Independent Test**: `curl http://localhost:10174/api/v1/contexts` returns JSON with `contexts` array and `active` string. `POST` with valid context returns 200.
+**Independent Test**: `curl http://localhost:40107/api/v1/contexts` returns JSON with `contexts` array and `active` string. `POST` with valid context returns 200.
 
 ### Tests for User Story 3
 

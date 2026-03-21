@@ -32,16 +32,16 @@ must set these env vars.
 ### User Story 1 — Developer starts the server (Priority: P1)
 
 `./kro-ui serve` starts, connects to the current kubeconfig context, and serves
-the embedded frontend at `http://localhost:10174`.
+the embedded frontend at `http://localhost:40107`.
 
 **Why this priority**: Nothing else runs without this.
 
-**Independent Test**: `./bin/kro-ui serve`, then `curl http://localhost:10174/api/v1/healthz` → `200 ok`.
+**Independent Test**: `./bin/kro-ui serve`, then `curl http://localhost:40107/api/v1/healthz` → `200 ok`.
 
 **Acceptance Scenarios**:
 
 1. **Given** a valid kubeconfig, **When** `kro-ui serve` is run, **Then** the
-   server binds to `:10174`, logs the active context name as a structured zerolog
+   server binds to `:40107`, logs the active context name as a structured zerolog
    field, and `/healthz` returns `200`
 2. **Given** `--port 9000`, **When** the server starts, **Then** it binds to `:9000`
 3. **Given** `--context staging`, **When** the server starts, **Then** it uses
@@ -109,7 +109,7 @@ the embedded frontend at `http://localhost:10174`.
 ### Functional Requirements
 
 - **FR-001**: Binary MUST be invoked as `kro-ui serve`; `kro-ui --help` shows usage
-- **FR-002**: `serve` MUST accept `--port int` (default 10174), `--kubeconfig string`,
+- **FR-002**: `serve` MUST accept `--port int` (default 40107), `--kubeconfig string`,
   `--context string`
 - **FR-003**: `GET /api/v1/healthz` MUST return `200 ok` within 10ms (no cluster I/O)
 - **FR-004**: Server MUST embed `web/dist` via `//go:embed all:../../web/dist` and

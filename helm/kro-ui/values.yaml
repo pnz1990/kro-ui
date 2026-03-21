@@ -11,7 +11,7 @@ serviceAccount:
 
 service:
   type: ClusterIP
-  port: 10174
+  port: 40107
 
 ingress:
   enabled: false

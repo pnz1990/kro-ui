@@ -278,7 +278,7 @@ reconciled (kro has created child resources: a Namespace and a ConfigMap)
 ```
 Step 1: Navigate to instance detail
   - Navigate to
-    http://localhost:10174/rgds/test-app/instances/kro-ui-e2e/test-instance
+    http://localhost:40107/rgds/test-app/instances/kro-ui-e2e/test-instance
   - Assert: [data-testid="instance-detail-page"] is visible
   - Assert: [data-testid="dag-svg"] is visible within the page
 

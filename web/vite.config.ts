@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     // In dev, proxy API calls to the Go server
     proxy: {
-      '/api': 'http://localhost:10174',
+      '/api': 'http://localhost:40107',
     },
   },
 })

@@ -23,5 +23,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # ── Stage 3: minimal runtime image ──────────────────────────────────
 FROM gcr.io/distroless/static:nonroot
 COPY --from=go-builder /kro-ui /kro-ui
-EXPOSE 10174
+EXPOSE 40107
 ENTRYPOINT ["/kro-ui", "serve"]

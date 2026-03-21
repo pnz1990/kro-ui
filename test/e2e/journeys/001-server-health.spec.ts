@@ -23,7 +23,7 @@
 
 import { test, expect } from '@playwright/test'
 
-const PORT = parseInt(process.env.KRO_UI_PORT ?? '10174', 10)
+const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
 
 test.describe('Journey 001 — Server health and API connectivity', () => {

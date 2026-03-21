@@ -60,7 +60,7 @@ func TestCobraCommands(t *testing.T) {
 			},
 		},
 		{
-			name: "serve has --port flag with default 10174",
+			name: "serve has --port flag with default 40107",
 			build: func(t *testing.T) string {
 				t.Helper()
 				f := serveCmd.Flags().Lookup("port")
@@ -71,7 +71,7 @@ func TestCobraCommands(t *testing.T) {
 			},
 			check: func(t *testing.T, defVal string) {
 				t.Helper()
-				assert.Equal(t, "10174", defVal)
+				assert.Equal(t, "40107", defVal)
 			},
 		},
 		{

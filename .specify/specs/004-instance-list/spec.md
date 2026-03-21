@@ -165,7 +165,7 @@ applied, `test-instance` CR applied in namespace `kro-ui-e2e`
 
 ```
 Step 1: Navigate to Instances tab
-  - Navigate to http://localhost:10174/rgds/test-app?tab=instances
+  - Navigate to http://localhost:40107/rgds/test-app?tab=instances
   - Assert: [data-testid="tab-instances"] has aria-selected="true"
   - Assert: [data-testid="instance-table"] is visible
 

@@ -266,7 +266,7 @@ applied. The `test-app` fixture has:
 
 ```
 Step 1: Navigate to RGD detail (Graph tab)
-  - Navigate to http://localhost:10174/rgds/test-app
+  - Navigate to http://localhost:40107/rgds/test-app
   - Assert: [data-testid="dag-svg"] is visible
   - Assert: [data-testid="tab-graph"] has aria-selected="true"
 

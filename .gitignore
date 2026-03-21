@@ -45,3 +45,4 @@ Thumbs.db
 # ── Temporary kubeconfigs created by e2e setup ────────────────────────
 /tmp/kro-ui-e2e-kubeconfig.yaml
 
+kro-ui

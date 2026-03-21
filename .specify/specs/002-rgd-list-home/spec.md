@@ -12,7 +12,7 @@
 
 ### User Story 1 — Operator opens the dashboard and sees all RGDs (Priority: P1)
 
-A kro operator opens `http://localhost:10174` and immediately sees all
+A kro operator opens `http://localhost:40107` and immediately sees all
 ResourceGraphDefinitions in their cluster as cards. Each card shows enough
 information to understand the RGD's purpose and status without kubectl.
 
@@ -203,7 +203,7 @@ applied and `Ready=True`, `test-instance` CR applied
 
 ```
 Step 1: Open the dashboard
-  - Navigate to http://localhost:10174
+  - Navigate to http://localhost:40107
   - Assert: page title contains "kro-ui"
   - Assert: top bar is visible and contains the kind cluster context name
     (data-testid="context-name")

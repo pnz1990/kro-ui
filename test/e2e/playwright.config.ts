@@ -14,7 +14,7 @@
 
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = parseInt(process.env.KRO_UI_PORT ?? '10174', 10)
+const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE_URL = `http://localhost:${PORT}`
 
 export default defineConfig({

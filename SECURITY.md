@@ -32,7 +32,7 @@ kro-ui is a **read-only** observability tool. It never issues mutating
 Kubernetes API calls (create, update, patch, delete). The primary attack
 surface is:
 
-- The HTTP server (port 10174) — served content, API responses
+- The HTTP server (port 40107) — served content, API responses
 - Kubeconfig handling — file paths, context switching
 - Embedded frontend — XSS via cluster data rendered in the UI
 - Container image — base image vulnerabilities, supply chain

@@ -34,7 +34,7 @@ The `internal/k8s/rgd.go` file is the **only** place that knows kro field paths 
 **Independent Test**: With a running server connected to a kind cluster with the
 `test-app` RGD applied:
 ```bash
-curl http://localhost:10174/api/v1/rgds | jq '.items[].metadata.name'
+curl http://localhost:40107/api/v1/rgds | jq '.items[].metadata.name'
 # → "test-app"
 ```
 
@@ -61,9 +61,9 @@ discovery and returns all live CR instances.
 
 **Independent Test**:
 ```bash
-curl 'http://localhost:10174/api/v1/rgds/test-app/instances'
+curl 'http://localhost:40107/api/v1/rgds/test-app/instances'
 # → items array containing the test-instance CR
-curl 'http://localhost:10174/api/v1/rgds/test-app/instances?namespace=kro-ui-e2e'
+curl 'http://localhost:40107/api/v1/rgds/test-app/instances?namespace=kro-ui-e2e'
 # → same, filtered
 ```
 

@@ -32,10 +32,10 @@ make build
 ### Local (Docker)
 
 ```bash
-docker run -p 10174:10174 \
+docker run -p 40107:40107 \
   -v ~/.kube/config:/root/.kube/config:ro \
   ghcr.io/pnz1990/kro-ui:latest
-# open http://localhost:10174
+# open http://localhost:40107
 ```
 
 ### In-cluster (Helm)
@@ -44,8 +44,8 @@ docker run -p 10174:10174 \
 helm install kro-ui oci://ghcr.io/pnz1990/helm-charts/kro-ui \
   --namespace kro-system --create-namespace
 
-kubectl port-forward svc/kro-ui 10174:10174 -n kro-system
-# open http://localhost:10174
+kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
+# open http://localhost:40107
 ```
 
 ## API
@@ -77,7 +77,7 @@ make run
 make dev-web
 ```
 
-The Go server runs on `:10174`. The Vite dev server proxies `/api/*` to it.
+The Go server runs on `:40107`. The Vite dev server proxies `/api/*` to it.
 
 **Note:** `proxy.golang.org` is blocked in this environment. The Makefile
 handles this automatically. If running `go` commands directly, use:
@@ -143,7 +143,7 @@ Dockerfile          # Multi-stage: bun → go → distroless (~15MB)
 
 ## Port
 
-`10174` — letters k(10), r(17), o(14) with A=0.
+`40107` — letters D(4), A(01), G(07) → DAG.
 
 ## License
 

@@ -34,7 +34,7 @@ future-proof when kro introduces new resource kinds.
 
 **Independent Test**:
 ```bash
-curl 'http://localhost:10174/api/v1/instances/kro-ui-e2e/test-instance?rgd=test-app'
+curl 'http://localhost:40107/api/v1/instances/kro-ui-e2e/test-instance?rgd=test-app'
 # → full TestApp CR JSON
 ```
 

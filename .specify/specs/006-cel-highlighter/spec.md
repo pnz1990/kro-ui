@@ -268,7 +268,7 @@ presence of CSS class names.
 
 ```
 Step 1: Navigate to the YAML tab
-  - Navigate to http://localhost:10174/rgds/test-app?tab=yaml
+  - Navigate to http://localhost:40107/rgds/test-app?tab=yaml
   - Assert: [data-testid="kro-code-block"] is visible
 
 Step 2: CEL expression token is the correct blue

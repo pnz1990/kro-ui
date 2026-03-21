@@ -8,7 +8,7 @@ Out-of-tree, out for donation to kro org when stable.
 
 **Stack**: Go 1.25 backend (chi, zerolog, client-go dynamic client) +
 React 19 / Vite / TypeScript frontend, embedded via `go:embed`. Single binary.
-Port 10174 (k=10, r=17, o=14 with A=0).
+Port 40107 (D=4, A=01, G=07 → DAG).
 
 ---
 

@@ -243,7 +243,7 @@ cluster isolation, which is covered by the `ClientFactory` unit tests.
 
 ```
 Step 1: Verify initial context is shown
-  - Navigate to http://localhost:10174
+  - Navigate to http://localhost:40107
   - Assert: [data-testid="context-name"] is visible
   - Assert: [data-testid="context-name"] text contains "kro-ui-e2e"
 

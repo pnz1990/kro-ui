@@ -30,7 +30,7 @@
  * Environment variables:
  *   KRO_CHART_VERSION  — kro Helm chart version to install (default: latest)
  *   KRO_UI_BINARY      — path to the kro-ui binary (default: ../../bin/kro-ui)
- *   KRO_UI_PORT        — port for kro-ui server (default: 10174)
+ *   KRO_UI_PORT        — port for kro-ui server (default: 40107)
  *   SKIP_KIND_CREATE   — if set, skip cluster creation (use existing context)
  */
 
@@ -48,7 +48,7 @@ const PRIMARY_CONTEXT = 'kind-kro-ui-e2e'
 const ALT_CONTEXT = 'kro-ui-e2e-alt'
 const LONG_CONTEXT = 'arn:aws:eks:us-west-2:000000000000:cluster/kro-ui-e2e-long-name'
 const NAMESPACE = 'kro-ui-e2e'
-const PORT = parseInt(process.env.KRO_UI_PORT ?? '10174', 10)
+const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const FIXTURES_DIR = resolve(__dirname, '../fixtures')
 const ROOT_DIR = resolve(__dirname, '../../..')
 
