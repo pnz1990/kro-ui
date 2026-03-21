@@ -103,7 +103,7 @@ func (h *Handler) listChildResources(namespace, instanceName, rgdName string) ([
 }
 
 // discoverPlural uses the discovery API to find the correct plural resource name for a kind.
-func discoverPlural(factory *k8sclient.ClientFactory, group, version, kind string) (string, error) {
+func discoverPlural(factory k8sClients, group, version, kind string) (string, error) {
 	gv := group + "/" + version
 	if group == "" {
 		gv = version

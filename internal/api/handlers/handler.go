@@ -20,13 +20,23 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
+
 	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
+// k8sClients provides access to the Kubernetes dynamic and discovery clients.
+// Defined at the consumption site per constitution §VI.
+type k8sClients interface {
+	Dynamic() dynamic.Interface
+	Discovery() discovery.DiscoveryInterface
+}
+
 // Handler holds shared dependencies for all route handlers.
 type Handler struct {
-	factory *k8sclient.ClientFactory
+	factory k8sClients
 	ctxMgr  contextManager
 }
 
