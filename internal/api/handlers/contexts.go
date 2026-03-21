@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/rs/zerolog"
+
 	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
@@ -32,8 +34,11 @@ type contextManager interface {
 
 // ListContexts returns all kubeconfig contexts and the active one.
 func (h *Handler) ListContexts(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
+
 	contexts, _, err := h.ctxMgr.ListContexts()
 	if err != nil {
+		log.Error().Err(err).Msg("failed to list contexts")
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -45,6 +50,8 @@ func (h *Handler) ListContexts(w http.ResponseWriter, r *http.Request) {
 
 // SwitchContext switches the active kubeconfig context.
 func (h *Handler) SwitchContext(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
+
 	var body types.SwitchContextRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		respondError(w, http.StatusBadRequest, "invalid JSON body")
@@ -55,8 +62,10 @@ func (h *Handler) SwitchContext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.ctxMgr.SwitchContext(body.Context); err != nil {
+		log.Error().Err(err).Str("context", body.Context).Msg("failed to switch context")
 		respondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	log.Info().Str("context", body.Context).Msg("switched context")
 	respond(w, http.StatusOK, types.SwitchContextResponse{Active: body.Context})
 }

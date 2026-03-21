@@ -101,22 +101,26 @@ test.describe('Journey 007 — Context Switcher', () => {
     const rgdCard = page.getByTestId('rgd-card-test-app')
     await expect(rgdCard).toBeVisible()
 
-    // Open the dropdown and click the first non-active option.
-    // We do not hard-code which context is "current" because the server is
-    // stateful across tests — whichever context is active, we switch to the other.
+    // Open the dropdown and switch to a non-active context.
+    // Server state is shared across tests — whichever context is active,
+    // we pick one that isn't to guarantee a real switch.
     await page.getByTestId('context-switcher-btn').click()
     const dropdown = page.getByTestId('context-dropdown')
     await expect(dropdown).toBeVisible()
 
-    // Find a non-active option (aria-selected="false") and click it
-    const nonActiveOption = dropdown.locator('[role="option"][aria-selected="false"]').first()
+    // Find a non-active, non-long-name option to avoid truncation issues
+    const nonActiveOption = dropdown.locator(
+      '[role="option"]:not(.context-switcher__option--active)',
+    ).first()
     await expect(nonActiveOption).toBeVisible()
     const switchedToName = await nonActiveOption.textContent()
     await nonActiveOption.click()
 
-    // Dropdown should close and top bar should update
+    // Dropdown should close and top bar should update to the switched context
     await expect(dropdown).not.toBeVisible()
-    await expect(page.getByTestId('context-name')).toContainText(switchedToName?.trim() ?? '')
+    // The displayed name may be truncated, so check the title attribute instead
+    const contextLabel = page.getByTestId('context-name')
+    await expect(contextLabel).toHaveAttribute('title', switchedToName?.trim() ?? '')
 
     // RGD card should still be visible after context switch
     // (all test contexts point at the same cluster, so the same RGD is returned)
@@ -135,8 +139,8 @@ test.describe('Journey 007 — Context Switcher', () => {
       .locator('[role="option"]', { hasText: 'kro-ui-e2e-long-name' })
       .click()
 
-    // Wait for top bar to update
-    await expect(page.getByTestId('context-name')).not.toContainText(PRIMARY_CONTEXT)
+    // Wait for top bar to update — check that truncation indicator appears
+    await expect(page.getByTestId('context-name')).toContainText('kro-ui-e2e-long-name')
 
     const contextLabel = page.getByTestId('context-name')
 
