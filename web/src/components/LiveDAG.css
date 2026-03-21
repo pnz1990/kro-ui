@@ -1,0 +1,162 @@
+/* LiveDAG.css — Live state overlay styles for the live DAG view.
+ *
+ * All colors from tokens.css custom properties.
+ * Extends DAGGraph.css base styles with live state variants.
+ * Spec: .specify/specs/005-instance-detail-live/
+ */
+
+/* ── Import base DAG styles ─────────────────────────────────────────────── */
+/* We re-use the same dag-graph-container, dag-node, dag-edge etc. from DAGGraph.css */
+
+/* ── Container ───────────────────────────────────────────────────────────── */
+
+.live-dag-container {
+  overflow: auto;
+  width: 100%;
+  flex: 1;
+  min-height: 200px;
+}
+
+/* ── Base node styles (duplicate of DAGGraph.css for the LiveDAG SVG) ────── */
+
+.live-dag-container .dag-node {
+  cursor: pointer;
+}
+
+.live-dag-container .dag-node:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.live-dag-container .dag-node rect.dag-node-rect {
+  fill: var(--node-default-bg);
+  stroke: var(--node-default-border);
+  stroke-width: 1;
+  transition: stroke var(--transition-fast), fill var(--transition-fast),
+    stroke-width var(--transition-fast);
+}
+
+.live-dag-container .dag-node:hover rect.dag-node-rect {
+  stroke: var(--color-primary);
+  fill: var(--color-primary-muted);
+}
+
+.live-dag-container .dag-node--selected rect.dag-node-rect {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  fill: var(--color-primary-muted);
+}
+
+/* Root CR */
+.live-dag-container .dag-node--instance rect.dag-node-rect {
+  fill: var(--node-root-bg);
+  stroke: var(--node-root-border);
+  stroke-width: 2;
+}
+
+/* forEach collection */
+.live-dag-container .dag-node--collection rect.dag-node-rect {
+  fill: var(--node-collection-bg);
+  stroke: var(--node-collection-border);
+}
+
+/* External refs — dashed */
+.live-dag-container .dag-node--external rect.dag-node-rect,
+.live-dag-container .dag-node--externalCollection rect.dag-node-rect {
+  fill: var(--node-external-bg);
+  stroke: var(--node-external-border);
+  stroke-dasharray: 5 3;
+}
+
+/* Conditional — dashed border */
+.live-dag-container .node-conditional rect.dag-node-rect {
+  stroke-dasharray: 5 3;
+}
+
+/* ── Live state overlays — take precedence over base type styles ─────────── */
+
+/* alive (Ready=True) */
+.live-dag-container .dag-node-live--alive rect.dag-node-rect {
+  fill: var(--node-alive-bg);
+  stroke: var(--node-alive-border);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+/* reconciling (Progressing=True) — pulsing amber */
+.live-dag-container .dag-node-live--reconciling rect.dag-node-rect {
+  fill: var(--node-reconciling-bg);
+  stroke: var(--node-reconciling-border);
+  stroke-width: 2;
+  stroke-dasharray: none;
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+}
+
+/* error (Ready=False) */
+.live-dag-container .dag-node-live--error rect.dag-node-rect {
+  fill: var(--node-error-bg);
+  stroke: var(--node-error-border);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+/* not-found / pending — dashed gray */
+.live-dag-container .dag-node-live--notfound rect.dag-node-rect {
+  fill: var(--node-notfound-bg);
+  stroke: var(--node-notfound-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+/* Selected live nodes — highlight still visible over live state */
+.live-dag-container .dag-node--selected rect.dag-node-rect {
+  stroke: var(--color-primary) !important;
+  stroke-width: 2 !important;
+  fill: var(--color-primary-muted) !important;
+  stroke-dasharray: none !important;
+}
+
+/* ── Text ────────────────────────────────────────────────────────────────── */
+
+.live-dag-container .dag-node-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--color-text);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.live-dag-container .dag-node-kind {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+
+.live-dag-container .dag-node-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.live-dag-container .dag-node-badge--collection { fill: var(--node-collection-border); }
+.live-dag-container .dag-node-badge--conditional { fill: var(--color-text-muted); }
+.live-dag-container .dag-node-badge--external    { fill: var(--node-external-border); }
+
+/* ── Edges ────────────────────────────────────────────────────────────────── */
+
+.live-dag-container .dag-edge {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}

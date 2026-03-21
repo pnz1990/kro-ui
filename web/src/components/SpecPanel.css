@@ -1,0 +1,64 @@
+/* SpecPanel.css — Spec key-value table panel.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/005-instance-detail-live/
+ */
+
+.spec-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.panel-heading {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.panel-empty {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+/* ── Spec table ─────────────────────────────────────────────────────────── */
+
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.spec-row {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.spec-row:last-child {
+  border-bottom: none;
+}
+
+.spec-key {
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  vertical-align: top;
+  width: 35%;
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spec-value {
+  padding: 8px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  word-break: break-all;
+}

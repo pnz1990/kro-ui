@@ -1,0 +1,147 @@
+/* LiveNodeDetailPanel.css — Live-mode node detail panel styles.
+ *
+ * Extends NodeDetailPanel.css with live state badge and YAML section.
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/005-instance-detail-live/
+ */
+
+/* Import base panel styles */
+@import './NodeDetailPanel.css';
+
+/* ── Kind row with state badge ────────────────────────────────────────────── */
+
+.node-detail-kind-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ── Live state badge ─────────────────────────────────────────────────────── */
+
+.live-state-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid;
+  flex-shrink: 0;
+}
+
+.live-state-badge--alive {
+  background: var(--node-alive-bg);
+  border-color: var(--node-alive-border);
+  color: var(--color-alive);
+}
+
+.live-state-badge--reconciling {
+  background: var(--node-reconciling-bg);
+  border-color: var(--node-reconciling-border);
+  color: var(--color-reconciling);
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+}
+
+.live-state-badge--error {
+  background: var(--node-error-bg);
+  border-color: var(--node-error-border);
+  color: var(--color-error);
+}
+
+.live-state-badge--not-found {
+  background: var(--node-notfound-bg);
+  border-color: var(--node-notfound-border);
+  color: var(--color-not-found);
+}
+
+/* ── YAML section ─────────────────────────────────────────────────────────── */
+
+.node-yaml-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.node-yaml-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+
+.node-yaml-spinner {
+  font-size: 14px;
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+}
+
+.node-yaml-kubectl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-3);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.node-yaml-kubectl code {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text-muted);
+}
+
+.node-yaml-not-found {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.node-yaml-not-found-msg {
+  font-size: 13px;
+  color: var(--color-not-found);
+}
+
+.node-yaml-timeout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.node-yaml-timeout-msg {
+  font-size: 13px;
+  color: var(--color-status-warning);
+}
+
+.node-yaml-retry-btn {
+  align-self: flex-start;
+  padding: 4px 12px;
+  font-size: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.node-yaml-retry-btn:hover {
+  background: var(--color-surface-3);
+}
+
+.node-yaml-error {
+  font-size: 13px;
+  color: var(--color-error);
+  padding: 4px 0;
+}
+
+/* ── forEach guidance note ────────────────────────────────────────────────── */
+
+.node-detail-foreach-note {
+  font-style: italic;
+  color: var(--color-text-muted);
+}
