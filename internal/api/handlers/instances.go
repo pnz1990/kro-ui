@@ -81,12 +81,19 @@ func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 
 // GetResource returns the raw unstructured YAML/JSON for any resource.
 // This is used by the frontend for node YAML inspection — works for any k8s kind.
+// The {group} path segment uses "_" to represent the core (empty) API group,
+// since chi cannot route an empty path segment.
 func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	namespace := chi.URLParam(r, "namespace")
 	group := chi.URLParam(r, "group")
 	version := chi.URLParam(r, "version")
 	kind := chi.URLParam(r, "kind")
 	name := chi.URLParam(r, "name")
+
+	// Treat "_" as the core (empty) API group — chi cannot route empty segments.
+	if group == "_" {
+		group = ""
+	}
 
 	plural, err := discoverPlural(h.factory, group, version, kind)
 	if err != nil {
@@ -104,5 +111,5 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 
 // GetMetrics is a stub — returns 501 until phase 2 implements Prometheus integration.
 func (h *Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusNotImplemented, "metrics integration coming in phase 2")
+	respondError(w, http.StatusNotImplemented, "metrics integration not yet implemented (phase 2)")
 }
