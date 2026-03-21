@@ -1,0 +1,156 @@
+/* ── ContextSwitcher ────────────────────────────────────────────────── */
+
+.context-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Trigger button */
+.context-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast);
+  max-width: 280px;
+  white-space: nowrap;
+}
+
+.context-switcher__btn:hover {
+  background: var(--color-primary-muted);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.context-switcher__btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Chevron icon inside the button */
+.context-switcher__chevron {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-faint);
+  transition: transform var(--transition-fast);
+}
+
+.context-switcher__btn[aria-expanded='true'] .context-switcher__chevron {
+  transform: rotate(180deg);
+}
+
+/* Spinner shown when aria-busy */
+.context-switcher__spinner {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: ctx-spin 0.6s linear infinite;
+}
+
+@keyframes ctx-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Truncated context name text */
+.context-switcher__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dropdown panel */
+.context-switcher__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 100;
+  min-width: 200px;
+  max-width: 360px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+}
+
+/* Option */
+.context-switcher__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.context-switcher__option:hover {
+  background: var(--color-primary-muted);
+}
+
+/* Active (selected) option — not clickable */
+.context-switcher__option--active {
+  color: var(--color-primary-text);
+  cursor: default;
+  pointer-events: none;
+}
+
+.context-switcher__option--active:hover {
+  background: transparent;
+}
+
+/* Checkmark for active option */
+.context-switcher__check {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
+}
+
+/* Placeholder for alignment on non-active options */
+.context-switcher__check-placeholder {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+/* Error message below the trigger */
+.context-switcher__error {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 101;
+  padding: 6px 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  color: var(--color-error);
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 320px;
+}

@@ -1,10 +1,30 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { vi } from 'vitest'
 import Layout from './Layout'
 
 // Mock the API module
 vi.mock('@/lib/api', () => ({
   listContexts: vi.fn(),
+}))
+
+// Mock ContextSwitcher so Layout tests stay focused on wiring logic
+vi.mock('./ContextSwitcher', () => ({
+  default: ({
+    active,
+    onSwitch,
+  }: {
+    active: string
+    onSwitch: (name: string) => void
+  }) => (
+    <div>
+      <span data-testid="context-name">{active}</span>
+      <button data-testid="context-switcher-btn" onClick={() => onSwitch('other-ctx')}>
+        switch
+      </button>
+    </div>
+  ),
 }))
 
 import { listContexts } from '@/lib/api'
@@ -70,5 +90,28 @@ describe('Layout', () => {
 
     // TopBar should render with empty context name
     expect(screen.getByTestId('context-name')).toHaveTextContent('')
+  })
+
+  it('updates displayed context name after switch', async () => {
+    const user = userEvent.setup()
+    mockedListContexts.mockResolvedValue({
+      contexts: [
+        { name: 'dev', cluster: 'dev', user: 'dev-user' },
+        { name: 'other-ctx', cluster: 'other', user: 'other-user' },
+      ],
+      active: 'dev',
+    })
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('context-name')).toHaveTextContent('dev')
+    })
+
+    await user.click(screen.getByTestId('context-switcher-btn'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('context-name')).toHaveTextContent('other-ctx')
+    })
   })
 })
