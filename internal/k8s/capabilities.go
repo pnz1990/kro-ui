@@ -176,29 +176,41 @@ func detectSchemaCapabilities(ctx context.Context, dyn dynamic.Interface) Schema
 	// Navigate: spec.versions[0].schema.openAPIV3Schema.properties.spec.properties
 	versions, ok := nestedSlice(crd.Object, "spec", "versions")
 	if !ok || len(versions) == 0 {
+		log.Debug().Msg("CRD has no spec.versions, using baseline schema")
 		return baseline
 	}
 
 	firstVersion, ok := versions[0].(map[string]any)
 	if !ok {
+		log.Debug().Msg("CRD spec.versions[0] is not a map, using baseline schema")
 		return baseline
 	}
 
 	rootSchema, ok := nestedMap(firstVersion, "schema", "openAPIV3Schema")
 	if !ok {
+		log.Debug().Msg("CRD has no schema.openAPIV3Schema, using baseline schema")
 		return baseline
 	}
 
 	specProps, ok := nestedMap(rootSchema, "properties", "spec", "properties")
 	if !ok {
+		log.Debug().Msg("CRD has no properties.spec.properties, using baseline schema")
 		return baseline
 	}
 
 	// Resource-level fields: spec.resources.items.properties.<field>
-	resourceItemProps := getResourceItemProperties(specProps)
+	resourceItemProps := getResourceItemProperties(ctx, specProps)
 
 	// Schema-level fields: spec.schema.properties.<field>
 	schemaProps, _ := nestedMap(specProps, "schema", "properties")
+
+	// If we couldn't navigate to resource item properties, return baseline
+	// rather than reporting all capabilities as false (which would be a
+	// downgrade from what kro v1alpha1 universally supports).
+	if resourceItemProps == nil {
+		log.Debug().Msg("CRD schema: could not introspect resource items, using baseline schema")
+		return baseline
+	}
 
 	return SchemaCapabilities{
 		HasForEach:             hasKey(resourceItemProps, "forEach"),
@@ -210,18 +222,34 @@ func detectSchemaCapabilities(ctx context.Context, dyn dynamic.Interface) Schema
 }
 
 // getResourceItemProperties navigates spec.resources → items → properties.
-func getResourceItemProperties(specProps map[string]any) map[string]any {
+// Handles both direct array items and wrapped structures.
+func getResourceItemProperties(ctx context.Context, specProps map[string]any) map[string]any {
+	log := zerolog.Ctx(ctx)
+
 	resources, ok := nestedMap(specProps, "resources")
 	if !ok {
+		// Log available keys for debugging.
+		keys := make([]string, 0, len(specProps))
+		for k := range specProps {
+			keys = append(keys, k)
+		}
+		log.Debug().Strs("available_keys", keys).Msg("CRD schema: no 'resources' key under spec.properties")
 		return nil
 	}
 
 	// resources is an array type; items.properties holds the per-resource fields.
 	items, ok := nestedMap(resources, "items", "properties")
-	if !ok {
-		return nil
+	if ok {
+		return items
 	}
-	return items
+
+	// Log available keys under resources for debugging.
+	rKeys := make([]string, 0, len(resources))
+	for k := range resources {
+		rKeys = append(rKeys, k)
+	}
+	log.Debug().Strs("resources_keys", rKeys).Msg("CRD schema: could not navigate resources.items.properties")
+	return nil
 }
 
 // hasExternalRefSelector checks for externalRef.properties.metadata.properties.selector.
