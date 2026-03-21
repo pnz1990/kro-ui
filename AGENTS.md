@@ -199,7 +199,7 @@ workflow level (proxy.golang.org is blocked).
 - 1 approving review required
 - CODEOWNERS review required (auto-assigned)
 - Stale reviews dismissed on new push
-- Required status checks: `build`, `govulncheck`, `analyze (go)`, `analyze (javascript-typescript)`
+- Required status checks: `build`, `govulncheck`, `Analyze (go)`, `Analyze (javascript-typescript)`
 - Branch must be up to date before merge (strict mode)
 - Linear history enforced
 - Force push and branch deletion blocked
