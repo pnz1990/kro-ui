@@ -216,18 +216,20 @@ export default function InstanceDetail() {
   }, [selectedNode, instanceName, children])
 
   // ── Live state for the selected node ────────────────────────────────────
+  // Fall back to 'not-found' when children haven't loaded yet — ensures the
+  // state badge is always rendered (never returns undefined once fastData exists).
   const selectedNodeLiveState: NodeLiveState | undefined = useMemo(() => {
-    if (!selectedNode) return undefined
+    if (!selectedNode || !fastData) return undefined
     if (selectedNode.nodeType === 'instance') {
       const states = Object.values(nodeStateMap).map((e) => e.state)
       if (states.includes('reconciling')) return 'reconciling'
       if (states.includes('error')) return 'error'
       if (states.length > 0) return 'alive'
-      return undefined
+      return 'not-found'
     }
     const kindKey = (selectedNode.kind || selectedNode.label).toLowerCase()
-    return nodeStateMap[kindKey]?.state
-  }, [selectedNode, nodeStateMap])
+    return nodeStateMap[kindKey]?.state ?? 'not-found'
+  }, [selectedNode, fastData, nodeStateMap])
 
   // ── Instance name for breadcrumbs ────────────────────────────────────────
   const displayName = instanceName ?? '…'
