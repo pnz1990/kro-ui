@@ -28,14 +28,14 @@
  *   9. Wait for /healthz to respond
  *
  * Environment variables:
- *   KRO_CHART_VERSION  — kro Helm chart version to install (default: latest)
+ *   KRO_CHART_VERSION  — kro Helm chart version to install (default: auto-detect latest from GitHub)
  *   KRO_UI_BINARY      — path to the kro-ui binary (default: ../../bin/kro-ui)
  *   KRO_UI_PORT        — port for kro-ui server (default: 40107)
  *   SKIP_KIND_CREATE   — if set, skip cluster creation (use existing context)
  */
 
-import { execSync, spawn, ChildProcess } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { execFileSync, execSync, spawn, ChildProcess } from 'node:child_process'
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { resolve, join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
@@ -53,7 +53,11 @@ const FIXTURES_DIR = resolve(__dirname, '../fixtures')
 const ROOT_DIR = resolve(__dirname, '../../..')
 
 // Shared kubeconfig path written by setup, read by teardown and all tests.
-const KUBECONFIG_PATH = join(tmpdir(), 'kro-ui-e2e-kubeconfig.yaml')
+// Uses a randomly-named temp directory to avoid predictable-path (TOCTOU) attacks.
+const KUBECONFIG_PATH = join(mkdtempSync(join(tmpdir(), 'kro-ui-e2e-')), 'kubeconfig.yaml')
+
+/** Semver pattern — only digits and dots. Used to validate KRO_CHART_VERSION. */
+const SEMVER_RE = /^\d+\.\d+\.\d+$/
 
 let serverProcess: ChildProcess | null = null
 
@@ -63,25 +67,26 @@ export default async function globalSetup() {
   // ── 1. Create kind cluster ───────────────────────────────────────────────
   if (!process.env.SKIP_KIND_CREATE) {
     console.log(`[setup] Creating kind cluster "${CLUSTER_NAME}"…`)
-    exec(`kind create cluster --name ${CLUSTER_NAME} --kubeconfig ${KUBECONFIG_PATH} --wait 120s`)
+    execFile('kind', ['create', 'cluster', '--name', CLUSTER_NAME, '--kubeconfig', KUBECONFIG_PATH, '--wait', '120s'])
     console.log('[setup] Kind cluster ready')
   } else {
     console.log('[setup] SKIP_KIND_CREATE set — reusing existing cluster')
-    exec(`kind get kubeconfig --name ${CLUSTER_NAME} > ${KUBECONFIG_PATH}`)
+    // Write kubeconfig to the shared path using execFileSync output capture
+    const kubeconfig = execFileSync('kind', ['get', 'kubeconfig', '--name', CLUSTER_NAME], { encoding: 'utf8' })
+    writeFileSync(KUBECONFIG_PATH, kubeconfig)
   }
-
-  const kubectl = `kubectl --kubeconfig ${KUBECONFIG_PATH}`
 
   // ── 2. Install kro via Helm ──────────────────────────────────────────────
   console.log('[setup] Installing kro via Helm…')
-  const kroVersion = process.env.KRO_CHART_VERSION ?? ''
-  const versionFlag = kroVersion ? `--version ${kroVersion}` : ''
-  exec(
-    `helm install kro oci://ghcr.io/kro-run/kro/kro ${versionFlag} ` +
-    `--namespace kro-system --create-namespace ` +
-    `--kubeconfig ${KUBECONFIG_PATH} ` +
-    `--wait --timeout 120s`
-  )
+  const kroVersion = sanitizeVersion(process.env.KRO_CHART_VERSION ?? detectLatestKroVersion())
+  console.log(`[setup] Using kro version: ${kroVersion}`)
+  execFile('helm', [
+    'install', 'kro', 'oci://registry.k8s.io/kro/charts/kro',
+    '--version', kroVersion,
+    '--namespace', 'kro-system', '--create-namespace',
+    '--kubeconfig', KUBECONFIG_PATH,
+    '--wait', '--timeout', '120s',
+  ])
   console.log('[setup] kro installed')
 
   // ── 3. Register additional kubeconfig contexts ───────────────────────────
@@ -93,37 +98,47 @@ export default async function globalSetup() {
 
   // ── 4. Create test namespace ──────────────────────────────────────────────
   console.log(`[setup] Creating namespace "${NAMESPACE}"…`)
-  exec(`${kubectl} create namespace ${NAMESPACE} --dry-run=client -o yaml | ${kubectl} apply -f -`)
+  // Use --dry-run=client | apply pattern via two steps to avoid shell pipe injection
+  const nsManifest = execFileSync(
+    'kubectl',
+    ['--kubeconfig', KUBECONFIG_PATH, 'create', 'namespace', NAMESPACE, '--dry-run=client', '-o', 'yaml'],
+    { encoding: 'utf8' }
+  )
+  execFileSync('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', '-'], {
+    input: nsManifest,
+    stdio: ['pipe', 'inherit', 'inherit'],
+    encoding: 'utf8',
+  })
 
   // ── 5. Apply test fixtures ────────────────────────────────────────────────
   console.log('[setup] Applying test fixtures…')
-  exec(`${kubectl} apply -f ${FIXTURES_DIR}/test-rgd.yaml`)
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-rgd.yaml')])
 
   // Wait for the RGD to be accepted by kro before applying the instance.
   console.log('[setup] Waiting for test-app RGD to be accepted…')
-  exec(
-    `${kubectl} wait rgd/test-app ` +
-    `--for=condition=Ready --timeout=120s`,
-    { retries: 3 }
-  )
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'rgd/test-app',
+    '--for=condition=Ready', '--timeout=120s',
+  ], { retries: 3 })
 
-  exec(`${kubectl} apply -f ${FIXTURES_DIR}/test-instance.yaml`)
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-instance.yaml')])
 
   // Wait for the instance's child Namespace to exist — indicates reconciliation
   // has at least started. We do not wait for full readiness to avoid flakiness.
   console.log('[setup] Waiting for test-instance to reconcile…')
-  exec(
-    `${kubectl} wait namespace/kro-ui-test ` +
-    `--for=jsonpath='{.status.phase}'=Active --timeout=120s`,
-    { retries: 5 }
-  )
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'namespace/kro-ui-test',
+    '--for=jsonpath={.status.phase}=Active', '--timeout=120s',
+  ], { retries: 5 })
   console.log('[setup] test-instance reconciled')
 
   // ── 6. Build kro-ui binary if needed ─────────────────────────────────────
   const binaryPath = process.env.KRO_UI_BINARY ?? join(ROOT_DIR, 'bin', 'kro-ui')
   if (!existsSync(binaryPath)) {
     console.log('[setup] Building kro-ui binary…')
-    exec('make build', { cwd: ROOT_DIR })
+    execSync('make build', { cwd: ROOT_DIR, stdio: 'inherit' })
     console.log('[setup] Binary built')
   }
 
@@ -155,11 +170,19 @@ export default async function globalSetup() {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function exec(cmd: string, opts: { cwd?: string; retries?: number } = {}) {
+/**
+ * execFile wraps execFileSync with retry support. Uses an argument array (no
+ * shell) so env-derived values cannot be interpreted as shell metacharacters.
+ */
+function execFile(
+  binary: string,
+  args: string[],
+  opts: { cwd?: string; retries?: number } = {},
+) {
   const { cwd = ROOT_DIR, retries = 0 } = opts
   for (let i = 0; i <= retries; i++) {
     try {
-      execSync(cmd, { cwd, stdio: 'inherit', encoding: 'utf8' })
+      execFileSync(binary, args, { cwd, stdio: 'inherit', encoding: 'utf8' })
       return
     } catch (err) {
       if (i === retries) throw err
@@ -169,26 +192,70 @@ function exec(cmd: string, opts: { cwd?: string; retries?: number } = {}) {
 }
 
 /**
+ * Validate that a version string is a plain semver (digits and dots only).
+ * Throws if the value contains unexpected characters that could be used for
+ * shell injection.
+ */
+function sanitizeVersion(version: string): string {
+  if (!SEMVER_RE.test(version)) {
+    throw new Error(`Invalid version string "${version}" — expected semver like "0.8.5"`)
+  }
+  return version
+}
+
+/**
  * registerAltContext copies an existing kubeconfig context under a new name.
  * Both contexts share the same cluster and credentials — used by journey 007
  * to test the context-switcher UI without needing a second real cluster.
  */
 function registerAltContext(kubeconfigPath: string, sourceContext: string, newContextName: string) {
-  const kubectl = `kubectl --kubeconfig ${kubeconfigPath}`
   // Get the cluster and user from the source context
-  const cluster = execSync(
-    `${kubectl} config view -o jsonpath='{.contexts[?(@.name=="${sourceContext}")].context.cluster}'`,
+  const cluster = execFileSync(
+    'kubectl',
+    ['--kubeconfig', kubeconfigPath, 'config', 'view',
+     '-o', `jsonpath={.contexts[?(@.name=="${sourceContext}")].context.cluster}`],
     { encoding: 'utf8' }
   ).trim()
-  const user = execSync(
-    `${kubectl} config view -o jsonpath='{.contexts[?(@.name=="${sourceContext}")].context.user}'`,
+  const user = execFileSync(
+    'kubectl',
+    ['--kubeconfig', kubeconfigPath, 'config', 'view',
+     '-o', `jsonpath={.contexts[?(@.name=="${sourceContext}")].context.user}`],
     { encoding: 'utf8' }
   ).trim()
   // Set new context pointing at the same cluster+user
-  execSync(
-    `${kubectl} config set-context "${newContextName}" --cluster="${cluster}" --user="${user}"`,
+  execFileSync(
+    'kubectl',
+    ['--kubeconfig', kubeconfigPath, 'config', 'set-context', newContextName,
+     `--cluster=${cluster}`, `--user=${user}`],
     { stdio: 'inherit', encoding: 'utf8' }
   )
+}
+
+/**
+ * detectLatestKroVersion fetches the latest release tag from the kro GitHub repo.
+ * Returns the version without the leading "v" (e.g., "0.8.5").
+ * Falls back to a known-good version if the API call fails.
+ */
+function detectLatestKroVersion(): string {
+  const FALLBACK_VERSION = '0.8.5'
+  try {
+    const output = execFileSync(
+      'curl',
+      ['-sL', 'https://api.github.com/repos/kubernetes-sigs/kro/releases/latest'],
+      { encoding: 'utf8', timeout: 10_000 }
+    )
+    const release = JSON.parse(output)
+    const tag = release?.tag_name ?? ''
+    const version = tag.replace(/^v/, '')
+    if (!version) {
+      console.warn(`[setup] Could not parse kro version from tag "${tag}", using fallback ${FALLBACK_VERSION}`)
+      return FALLBACK_VERSION
+    }
+    return version
+  } catch (err) {
+    console.warn(`[setup] Failed to detect latest kro version, using fallback ${FALLBACK_VERSION}`)
+    return FALLBACK_VERSION
+  }
 }
 
 async function waitForHealthz(url: string, timeoutMs: number): Promise<void> {
