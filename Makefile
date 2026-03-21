@@ -3,7 +3,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 
 .PHONY: all build web go run docker dev-web typecheck tidy clean \
-        test-e2e test-e2e-install test-e2e-report
+        test-web test-web-watch test-e2e test-e2e-install test-e2e-report
 
 ## Build everything (frontend + Go binary)
 all: build
@@ -55,6 +55,14 @@ tidy:
 ## Clean build artifacts
 clean:
 	rm -rf bin/ web/dist
+
+## Run frontend unit tests (single run)
+test-web:
+	cd web && bun run test
+
+## Run frontend unit tests in watch mode
+test-web-watch:
+	cd web && bun run test:watch
 
 ## Install Playwright and its Chromium browser (run once before test-e2e)
 test-e2e-install:
