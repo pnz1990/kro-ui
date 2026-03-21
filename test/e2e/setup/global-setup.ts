@@ -35,7 +35,7 @@
  */
 
 import { execFileSync, execSync, spawn, ChildProcess } from 'node:child_process'
-import { existsSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { resolve, join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
@@ -53,7 +53,8 @@ const FIXTURES_DIR = resolve(__dirname, '../fixtures')
 const ROOT_DIR = resolve(__dirname, '../../..')
 
 // Shared kubeconfig path written by setup, read by teardown and all tests.
-const KUBECONFIG_PATH = join(tmpdir(), 'kro-ui-e2e-kubeconfig.yaml')
+// Uses a randomly-named temp directory to avoid predictable-path (TOCTOU) attacks.
+const KUBECONFIG_PATH = join(mkdtempSync(join(tmpdir(), 'kro-ui-e2e-')), 'kubeconfig.yaml')
 
 /** Semver pattern — only digits and dots. Used to validate KRO_CHART_VERSION. */
 const SEMVER_RE = /^\d+\.\d+\.\d+$/
