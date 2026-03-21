@@ -15,11 +15,9 @@
 package handlers
 
 import (
+	"net/http"
 	"sync"
 	"time"
-
-	"encoding/json"
-	"net/http"
 
 	"github.com/rs/zerolog"
 
@@ -92,10 +90,7 @@ func (h *Handler) GetCapabilities(w http.ResponseWriter, r *http.Request) {
 	}
 
 	capCache.set(caps)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(caps)
+	respond(w, http.StatusOK, caps)
 }
 
 // InvalidateCapabilitiesCache clears the capabilities cache.

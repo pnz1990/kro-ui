@@ -64,8 +64,8 @@ async function fetchCapabilities(): Promise<void> {
     const data = await getCapabilities()
     cache.data = data
     cache.fetchedAt = Date.now()
-  } catch {
-    // On error, keep stale data (or baseline if first fetch).
+  } catch (_) {
+    // SWR: keep stale data on failure — baseline is used if no prior fetch succeeded.
     if (cache.fetchedAt === 0) {
       cache.data = BASELINE
       cache.fetchedAt = Date.now()

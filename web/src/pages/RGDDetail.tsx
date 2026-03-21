@@ -14,18 +14,18 @@ export default function RGDDetail() {
       {showRevisions && (
         <div
           style={{
-            padding: 'var(--space-sm)',
-            marginTop: 'var(--space-md)',
+            padding: '8px',
+            marginTop: '16px',
             border: '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
+            borderRadius: 'var(--radius)',
           }}
         >
           {experimental && (
             <span
               style={{
-                fontSize: 'var(--font-size-sm)',
-                color: 'var(--color-warning)',
-                marginRight: 'var(--space-xs)',
+                fontSize: '12px',
+                color: 'var(--color-status-warning)',
+                marginRight: '8px',
               }}
             >
               Experimental
