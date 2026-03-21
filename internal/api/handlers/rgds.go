@@ -15,7 +15,6 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -34,9 +33,9 @@ var rgdGVR = schema.GroupVersionResource{
 
 // ListRGDs returns all ResourceGraphDefinitions in the cluster.
 func (h *Handler) ListRGDs(w http.ResponseWriter, r *http.Request) {
-	list, err := h.factory.Dynamic().Resource(rgdGVR).List(context.Background(), metav1.ListOptions{})
+	list, err := h.factory.Dynamic().Resource(rgdGVR).List(r.Context(), metav1.ListOptions{})
 	if err != nil {
-		respondError(w, http.StatusInternalServerError, err.Error())
+		respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())
 		return
 	}
 	respond(w, http.StatusOK, list)
@@ -45,9 +44,9 @@ func (h *Handler) ListRGDs(w http.ResponseWriter, r *http.Request) {
 // GetRGD returns a single RGD by name.
 func (h *Handler) GetRGD(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	obj, err := h.factory.Dynamic().Resource(rgdGVR).Get(context.Background(), name, metav1.GetOptions{})
+	obj, err := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
-		respondError(w, http.StatusNotFound, err.Error())
+		respondError(w, http.StatusNotFound, "resourcegraphdefinition \""+name+"\" not found")
 		return
 	}
 	respond(w, http.StatusOK, obj)
@@ -61,7 +60,7 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 	namespace := r.URL.Query().Get("namespace")
 
 	// Fetch the RGD to resolve the generated CRD's kind and group.
-	rgd, err := h.factory.Dynamic().Resource(rgdGVR).Get(context.Background(), name, metav1.GetOptions{})
+	rgd, err := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		respondError(w, http.StatusNotFound, err.Error())
 		return
@@ -93,9 +92,9 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 
 	var list interface{}
 	if namespace != "" {
-		list, err = h.factory.Dynamic().Resource(gvr).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+		list, err = h.factory.Dynamic().Resource(gvr).Namespace(namespace).List(r.Context(), metav1.ListOptions{})
 	} else {
-		list, err = h.factory.Dynamic().Resource(gvr).List(context.Background(), metav1.ListOptions{})
+		list, err = h.factory.Dynamic().Resource(gvr).List(r.Context(), metav1.ListOptions{})
 	}
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())

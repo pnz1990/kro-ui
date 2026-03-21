@@ -1,0 +1,55 @@
+# ── Git and VCS ───────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Build artifacts ───────────────────────────────────────────────────
+bin/
+*.exe
+*.test
+*.out
+
+# ── Frontend node_modules (rebuilt in Docker) ─────────────────────────
+web/node_modules/
+test/e2e/node_modules/
+
+# ── E2E test artifacts ────────────────────────────────────────────────
+test/e2e/playwright-report/
+test/e2e/test-results/
+
+# ── IDE and editor ────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Environment and secrets ──────────────────────────────────────────
+.env
+.env.*
+
+# ── Docker (avoid recursive copy) ────────────────────────────────────
+Dockerfile
+.dockerignore
+
+# ── CI and docs ──────────────────────────────────────────────────────
+.github/
+*.md
+LICENSE
+SECURITY.md
+
+# ── Spec-driven development ─────────────────────────────────────────
+.specify/
+
+# ── Logs and coverage ────────────────────────────────────────────────
+*.log
+*.coverprofile
+cover.out
+unit-cover.out
+integration-cover.out
+
+# ── Helm chart (not needed in app image) ─────────────────────────────
+helm/
+
+# ── OpenCode ─────────────────────────────────────────────────────────
+.opencode/
