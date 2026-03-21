@@ -64,18 +64,29 @@ describe('buildNodeStateMap', () => {
     expect(configmapEntry![1].state).toBe('reconciling')
   })
 
-  // ── T012: not-found when resource absent from children ─────────────────
+  // ── T012: map is empty when children list is empty ────────────────────
 
-  it('T012: returns not-found for nodes absent from children list', () => {
+  it('T012: map is empty (no entries) when children list is empty', () => {
     const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-    const children: K8sObject[] = [] // empty — no child resources
+
+    const stateMap = buildNodeStateMap(instance, [])
+
+    // With no children, the map has no entries — the caller treats absent entries as not-found
+    expect(Object.keys(stateMap)).toHaveLength(0)
+  })
+
+  it('T012b: child present in list maps to alive; child absent from list is not in map', () => {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
 
     const stateMap = buildNodeStateMap(instance, children)
 
-    // All entries should be not-found since children list is empty
-    for (const entry of Object.values(stateMap)) {
-      expect(entry.state).toBe('not-found')
-    }
+    // ConfigMap is in the children list → appears in map as alive
+    expect(stateMap['configmap']).toBeDefined()
+    expect(stateMap['configmap'].state).toBe('alive')
+
+    // Namespace was NOT in children → not in map at all
+    expect(stateMap['namespace']).toBeUndefined()
   })
 
   // ── T013: error when Ready=False ──────────────────────────────────────

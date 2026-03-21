@@ -11,8 +11,8 @@
 import { useState, useEffect, useRef } from 'react'
 import type { DAGNode } from '@/lib/dag'
 import type { NodeLiveState } from '@/lib/instanceNodeState'
-import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
+import { toYaml } from '@/lib/yaml'
 import KroCodeBlock from './KroCodeBlock'
 import './LiveNodeDetailPanel.css'
 
@@ -97,67 +97,6 @@ function buildKubectlCmd(
   return `kubectl get ${kind} ${name} -o yaml`
 }
 
-function toYamlString(obj: K8sObject): string {
-  // Use our minimal YAML serializer
-  // Dynamic import would create circular dep; inline a minimal approach
-  const lines: string[] = []
-  function walk(v: unknown, indent: number): void {
-    const pad = '  '.repeat(indent)
-    if (v === null || v === undefined) { lines.push('null'); return }
-    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-      lines.push(String(v))
-      return
-    }
-    if (Array.isArray(v)) {
-      for (const item of v) {
-        if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
-          const entries = Object.entries(item as Record<string, unknown>)
-          if (entries.length > 0) {
-            const [fk, fv] = entries[0]
-            lines.push(`${pad}- ${fk}: `)
-            walk(fv, indent + 1)
-            for (const [k, val] of entries.slice(1)) {
-              lines.push(`${pad}  ${k}: `)
-              walk(val, indent + 2)
-            }
-          } else {
-            lines.push(`${pad}- {}`)
-          }
-        } else {
-          lines.push(`${pad}- ${String(item)}`)
-        }
-      }
-      return
-    }
-    if (typeof v === 'object') {
-      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-        if (val === null || val === undefined) {
-          lines.push(`${pad}${k}: null`)
-        } else if (typeof val === 'object' && !Array.isArray(val)) {
-          const nested = val as Record<string, unknown>
-          if (Object.keys(nested).length === 0) {
-            lines.push(`${pad}${k}: {}`)
-          } else {
-            lines.push(`${pad}${k}:`)
-            walk(val, indent + 1)
-          }
-        } else if (Array.isArray(val)) {
-          if ((val as unknown[]).length === 0) {
-            lines.push(`${pad}${k}: []`)
-          } else {
-            lines.push(`${pad}${k}:`)
-            walk(val, indent + 1)
-          }
-        } else {
-          lines.push(`${pad}${k}: ${String(val)}`)
-        }
-      }
-    }
-  }
-  walk(obj, 0)
-  return lines.join('\n')
-}
-
 function YamlSection({ nodeId, resourceInfo }: YamlSectionProps) {
   const [yamlState, setYamlState] = useState<YamlState>({ status: 'idle' })
   // Track the nodeId for which we have fetched — don't re-fetch on re-render
@@ -179,7 +118,7 @@ function YamlSection({ nodeId, resourceInfo }: YamlSectionProps) {
     getResource(namespace, group, version, kind, name)
       .then((obj) => {
         clearTimeout(timeoutId)
-        const yamlText = toYamlString(obj)
+        const yamlText = toYaml(obj)
         setYamlState({ status: 'loaded', yaml: yamlText, kubectl })
       })
       .catch((err: Error) => {

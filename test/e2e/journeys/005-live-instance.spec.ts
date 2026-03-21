@@ -26,15 +26,24 @@
  *
  * Cluster pre-conditions:
  * - kind cluster running, kro installed
- * - test-app RGD applied (WebApp kind with configmap + namespace resources)
- * - test-instance CR applied in namespace kro-ui-e2e
+ * - test-app RGD applied (WebApp kind: resources appNamespace, appConfig, appStatus)
+ * - test-instance CR applied in namespace kro-ui-e2e (appName: kro-ui-test)
  * - kro has reconciled test-instance (child resources created)
+ *
+ * Node IDs in the test-app RGD (from test-rgd.yaml):
+ *   - schema       — root WebApp CR (NodeTypeInstance)
+ *   - appNamespace — Namespace (NodeTypeResource)
+ *   - appConfig    — ConfigMap, conditional includeWhen (NodeTypeResource)
+ *   - appStatus    — ConfigMap, always created (NodeTypeResource)
  */
 
 import { test, expect } from '@playwright/test'
 
 const BASE = 'http://localhost:40107'
 const INSTANCE_URL = `${BASE}/rgds/test-app/instances/kro-ui-e2e/test-instance`
+
+// Allow extra time on CI for the initial parallel fetches (instance + RGD spec)
+const DAG_TIMEOUT = 15000
 
 test.describe('005: Live Instance Detail', () => {
   // ── Step 1: Navigate to instance detail ──────────────────────────────────
@@ -44,11 +53,11 @@ test.describe('005: Live Instance Detail', () => {
   }) => {
     await page.goto(INSTANCE_URL)
 
-    // Page container is visible
+    // Page container is visible immediately (renders before data loads)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible()
 
-    // DAG SVG is visible
-    await expect(page.getByTestId('dag-svg')).toBeVisible()
+    // DAG SVG appears after both the instance poll and the RGD spec fetch resolve
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
   })
 
   // ── Step 2: DAG renders with live node states ─────────────────────────────
@@ -57,13 +66,13 @@ test.describe('005: Live Instance Detail', () => {
     page,
   }) => {
     await page.goto(INSTANCE_URL)
-    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
-    // Root CR node is visible
+    // Root CR node is visible (id: schema)
     await expect(page.getByTestId('dag-node-schema')).toBeVisible()
 
-    // Configmap node is visible (test-app RGD has a configmap resource)
-    await expect(page.getByTestId('dag-node-configmap')).toBeVisible()
+    // appStatus resource node is visible (unconditional ConfigMap, always created)
+    await expect(page.getByTestId('dag-node-appStatus')).toBeVisible()
 
     // Refresh indicator is visible
     await expect(page.getByTestId('live-refresh-indicator')).toBeVisible()
@@ -75,7 +84,7 @@ test.describe('005: Live Instance Detail', () => {
     page,
   }) => {
     await page.goto(INSTANCE_URL)
-    await expect(page.getByTestId('live-refresh-indicator')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('live-refresh-indicator')).toBeVisible({ timeout: DAG_TIMEOUT })
 
     // Record initial text
     const initial = await page.getByTestId('live-refresh-indicator').textContent()
@@ -86,11 +95,11 @@ test.describe('005: Live Instance Detail', () => {
     // Text should have changed (e.g., "refreshed 0s ago" → "refreshed 5s ago" or cycled)
     const updated = await page.getByTestId('live-refresh-indicator').textContent()
 
-    // At minimum, the timestamp has advanced — text is not identical to what it was 6s ago
-    // (The counter ticks every second, so "refreshed Ns ago" will differ)
     expect(updated).not.toBeNull()
-    // The indicator should show seconds, confirming the counter is ticking
+    // The indicator shows seconds, confirming the counter is ticking
     expect(updated).toMatch(/\d+s ago|loading/)
+    // Suppress unused variable warning — initial is documented as baseline
+    void initial
   })
 
   // ── Step 4: Click a resource node — detail panel opens ────────────────────
@@ -99,21 +108,21 @@ test.describe('005: Live Instance Detail', () => {
     page,
   }) => {
     await page.goto(INSTANCE_URL)
-    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
-    // Click the configmap node
-    await page.getByTestId('dag-node-configmap').click()
+    // Click the appStatus node (always-created ConfigMap, non-conditional)
+    await page.getByTestId('dag-node-appStatus').click()
 
     // Panel is visible
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
-    // Kind is shown as ConfigMap
+    // Kind is shown as ConfigMap (from the RGD template)
     await expect(page.getByTestId('node-detail-kind')).toHaveText('ConfigMap')
 
     // State badge is visible
     await expect(page.getByTestId('node-detail-state-badge')).toBeVisible()
 
-    // YAML section is rendered (may show spinner or actual YAML)
+    // YAML section is rendered (may show spinner or actual YAML depending on fetch timing)
     await expect(page.getByTestId('node-yaml-section')).toBeVisible()
   })
 
@@ -123,19 +132,19 @@ test.describe('005: Live Instance Detail', () => {
     page,
   }) => {
     await page.goto(INSTANCE_URL)
-    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
     // Open the panel
-    await page.getByTestId('dag-node-configmap').click()
+    await page.getByTestId('dag-node-appStatus').click()
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
     // Wait for another poll cycle
     await page.waitForTimeout(6000)
 
-    // Panel is STILL open
+    // Panel is STILL open — state refresh must not close it (FR-008)
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
-    // Kind is still ConfigMap (panel not reset)
+    // Kind is still ConfigMap (panel not reset or re-mounted)
     await expect(page.getByTestId('node-detail-kind')).toHaveText('ConfigMap')
   })
 
@@ -145,9 +154,9 @@ test.describe('005: Live Instance Detail', () => {
     page,
   }) => {
     await page.goto(INSTANCE_URL)
-    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
-    // Scroll down to panels
+    // Scroll down to reach the below-DAG panels
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
 
     await expect(page.getByTestId('spec-panel')).toBeVisible()

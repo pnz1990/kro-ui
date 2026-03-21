@@ -169,9 +169,11 @@ export default function InstanceDetail() {
       pollError.includes('not found') ||
       pollError.includes('HTTP 404'))
 
-  if (instanceGone && !instanceGoneRef.current) {
-    instanceGoneRef.current = true
-  }
+  // Latch instanceGoneRef in an effect — safe to mutate refs inside effects.
+  // Never mutate a ref during render (Strict Mode double-invokes renders).
+  useEffect(() => {
+    if (instanceGone) instanceGoneRef.current = true
+  }, [instanceGone])
 
   // ── Node click handler ───────────────────────────────────────────────────
   function handleNodeClick(node: DAGNode) {
@@ -284,7 +286,9 @@ export default function InstanceDetail() {
         <div className={`instance-detail-content${selectedNode ? ' instance-detail-content--with-panel' : ''}`}>
           {/* DAG */}
           <div className="instance-detail-dag-area">
-            {dagGraph && dagGraph.nodes.length > 0 ? (
+            {rgdLoading ? (
+              <div className="instance-detail-dag-empty">Loading graph…</div>
+            ) : dagGraph && dagGraph.nodes.length > 0 ? (
               <LiveDAG
                 graph={dagGraph}
                 nodeStateMap={nodeStateMap}
