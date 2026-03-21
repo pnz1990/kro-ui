@@ -1,0 +1,120 @@
+/**
+ * KroCodeBlock component styles.
+ *
+ * All colors use CSS custom properties from tokens.css.
+ * No hardcoded hex values — theme switching is automatic.
+ *
+ * Spec: .specify/specs/006-cel-highlighter/contracts/component.md
+ */
+
+/* ── Container ──────────────────────────────────────────────────────── */
+
+.kro-code-block {
+  position: relative;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border-subtle);
+  overflow: hidden;
+}
+
+/* ── Header (title bar) ─────────────────────────────────────────────── */
+
+.kro-code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.kro-code-block-title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  user-select: none;
+}
+
+/* ── Pre / Code ─────────────────────────────────────────────────────── */
+
+.kro-code-block-pre {
+  position: relative;
+  margin: 0;
+  padding: 16px;
+  background: var(--color-surface-3);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.kro-code-block-pre:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.kro-code-block-pre code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ── Copy button ────────────────────────────────────────────────────── */
+
+.kro-code-block-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast),
+              background var(--transition-fast),
+              border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.kro-code-block-copy:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+
+.kro-code-block-copy svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Float the copy button inside pre when no header */
+.kro-code-block-pre > .kro-code-block-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity var(--transition-fast),
+              color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.kro-code-block-pre:hover > .kro-code-block-copy,
+.kro-code-block-pre:focus-within > .kro-code-block-copy {
+  opacity: 1;
+}
+
+/* ── Token colors ───────────────────────────────────────────────────── */
+
+.token-cel-expression { color: var(--hl-cel-expression); }
+.token-kro-keyword    { color: var(--hl-kro-keyword); }
+.token-yaml-key       { color: var(--hl-yaml-key); }
+.token-schema-type    { color: var(--hl-schema-type); }
+.token-schema-pipe    { color: var(--hl-schema-pipe); }
+.token-schema-keyword { color: var(--hl-schema-keyword); }
+.token-schema-value   { color: var(--hl-schema-value); }
+.token-comment        { color: var(--hl-comment); font-style: italic; }
+.token-plain          { color: inherit; }
