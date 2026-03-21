@@ -323,6 +323,50 @@ via `var(--token-name)`. Never duplicate a token value in another file.
 
 ---
 
+## Logo
+
+### Design rationale
+
+kro-ui needs a logomark that works at three scales: favicon (16×16), header
+nav (24×24), and a potential splash/loading state (~64×64). It must be a
+**single SVG** that renders crisply at all three sizes, works on both dark
+(`#1b1b1d`) and light (`#f6f8fa`) backgrounds without swapping assets, and
+is self-contained (no external fonts or images).
+
+The mark should feel like a sibling to the kro.run wordmark — same product
+family, but distinct enough to signal "this is the dashboard, not the docs."
+
+### Generation prompt
+
+Flat geometric logomark for a technical software project, featuring a central "K" shape constructed from a directed acyclic graph (DAG). The design is contained within a thick, hexagonal border divided into segments with directional arrows. The "K" consists of solid circular nodes connected by straight, uniform lines with small arrowheads indicating a downward and outward flow. Aesthetic is strictly minimalist, modernist, and precision-engineered, resembling a network topology or circuit schematic. Color palette is entirely flat and monochromatic using brand blue #5b8ef0 on a clean white background. No gradients, no glows, no shadows, no 3D effects, and no organic shapes. 1:1 aspect ratio, high contrast, vector style.
+
+```
+
+### Variants needed
+
+| Variant | Size | Usage | File |
+|---------|------|-------|------|
+| Favicon | 16×16 rendered | Browser tab, bookmarks | `web/public/favicon.png` |
+| Nav mark | 24×24 rendered | Header navigation bar, next to "kro-ui" wordmark | `<img>` in `Layout.tsx` referencing `/logo.png` |
+| Social / OG | 64×64 min | `og:image` fallback, README badge | `web/public/logo.png` |
+| Source | original | Archival, regeneration reference | `logo.png` (repo root) |
+
+All three use the same source PNG (`logo.png`) scaled via CSS `width`/`height`.
+If an SVG version is created later, it should replace the PNG variants and the
+favicon `<link>` in `index.html` should revert to `type="image/svg+xml"`.
+
+### Implementation notes
+
+- The favicon is referenced in `web/index.html` as `/favicon.png`
+  (`type="image/png"`)
+- The nav mark is rendered via `<img src="/logo.png">` in `Layout.tsx` with
+  CSS sizing — use `width: 24px; height: 24px` and `object-fit: contain`
+- The source PNG lives at the repo root for easy regeneration reference
+- If converting to SVG in the future: avoid `<text>` elements, external fonts,
+  or `<image>` refs; keep path count under 10
+
+---
+
 ## Change process
 
 Color changes require:

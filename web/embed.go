@@ -12,19 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package version holds build-time version information.
-package version
+// Package web holds the embedded frontend assets.
+package web
 
-import "fmt"
+import "embed"
 
-// These are set at build time via -ldflags.
-var (
-	Version   = "dev"
-	Commit    = "none"
-	BuildDate = "unknown"
-)
-
-// String returns a human-readable version string.
-func String() string {
-	return fmt.Sprintf("kro-ui %s (commit: %s, built: %s)", Version, Commit, BuildDate)
-}
+// DistFS embeds the compiled frontend from web/dist.
+// At build time this contains the full Vite output; during development
+// it contains a minimal stub index.html so the Go binary always compiles.
+//
+//go:embed all:dist
+var DistFS embed.FS

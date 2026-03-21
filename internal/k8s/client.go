@@ -1,3 +1,17 @@
+// Copyright 2026 The Kubernetes Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package k8s provides a ClientFactory that can switch kubeconfig contexts at runtime.
 // All resource access uses the dynamic client so kro API changes require no code updates.
 package k8s
@@ -12,7 +26,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // ClientFactory holds the kubeconfig loader and provides clients for the active context.
@@ -39,7 +52,7 @@ func NewClientFactory(kubeconfigPath, context string) (*ClientFactory, error) {
 		}
 	}
 
-	f := &ClientFactory{kubeconfigPath: kubeconfigPath, activeContext: context}
+	f := &ClientFactory{kubeconfigPath: kubeconfigPath}
 	if err := f.load(context); err != nil {
 		return nil, err
 	}
@@ -53,6 +66,17 @@ func (f *ClientFactory) load(context string) error {
 		overrides.CurrentContext = context
 	}
 	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+
+	// Validate that the requested context exists before building clients.
+	rawCfg, err := cfg.RawConfig()
+	if err != nil {
+		return fmt.Errorf("load raw kubeconfig: %w", err)
+	}
+	if context != "" {
+		if _, ok := rawCfg.Contexts[context]; !ok {
+			return fmt.Errorf("context %q not found in kubeconfig", context)
+		}
+	}
 
 	restCfg, err := cfg.ClientConfig()
 	if err != nil {
@@ -69,10 +93,6 @@ func (f *ClientFactory) load(context string) error {
 		return fmt.Errorf("build discovery client: %w", err)
 	}
 
-	rawCfg, err := cfg.RawConfig()
-	if err != nil {
-		return fmt.Errorf("load raw kubeconfig: %w", err)
-	}
 	active := rawCfg.CurrentContext
 	if context != "" {
 		active = context
@@ -88,7 +108,11 @@ func (f *ClientFactory) load(context string) error {
 }
 
 // SwitchContext reloads all clients for the given context.
+// Returns an error if the context name is empty or not found in the kubeconfig.
 func (f *ClientFactory) SwitchContext(ctx string) error {
+	if ctx == "" {
+		return fmt.Errorf("context name must not be empty")
+	}
 	return f.load(ctx)
 }
 
@@ -113,17 +137,17 @@ func (f *ClientFactory) ActiveContext() string {
 	return f.activeContext
 }
 
-// ListContexts returns all available contexts from the kubeconfig.
+// ListContexts returns all available contexts from the kubeconfig and the active context.
 func (f *ClientFactory) ListContexts() ([]Context, string, error) {
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: f.kubeconfigPath}
 	rawCfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		loadingRules, &clientcmd.ConfigOverrides{},
 	).RawConfig()
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("load kubeconfig: %w", err)
 	}
 
-	var contexts []Context
+	contexts := make([]Context, 0, len(rawCfg.Contexts))
 	for name, ctx := range rawCfg.Contexts {
 		contexts = append(contexts, Context{
 			Name:    name,
@@ -131,7 +155,12 @@ func (f *ClientFactory) ListContexts() ([]Context, string, error) {
 			User:    ctx.AuthInfo,
 		})
 	}
-	return contexts, rawCfg.CurrentContext, nil
+
+	f.mu.RLock()
+	active := f.activeContext
+	f.mu.RUnlock()
+
+	return contexts, active, nil
 }
 
 // Context is a simplified kubeconfig context entry.
@@ -150,6 +179,3 @@ const RGDResource = "resourcegraphdefinitions"
 // Placeholder for future GraphRevision resource name — discovered dynamically.
 // When kro adds GraphRevision the discovery client will find it automatically.
 const GraphRevisionResource = "graphrevisions"
-
-// ignoring unused import warning
-var _ = clientcmdapi.Config{}

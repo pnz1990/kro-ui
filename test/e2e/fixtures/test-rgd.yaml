@@ -35,8 +35,9 @@ metadata:
   name: test-app
 spec:
   schema:
-    apiVersion: e2e.kro-ui.dev/v1alpha1
+    apiVersion: v1alpha1
     kind: WebApp
+    group: e2e.kro-ui.dev
     spec:
       appName: string | default=kro-ui-test
       enableConfig: boolean | default=true

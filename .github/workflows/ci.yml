@@ -6,9 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  GOPROXY: direct
+  GONOSUMDB: "*"
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -32,9 +38,69 @@ jobs:
       - name: Go vet
         run: go vet ./...
 
+      - name: Go test
+        run: go test -race -v ./...
+
       - name: Go build
-        run: go build ./cmd/kro-ui
+        run: go build -o bin/kro-ui ./cmd/kro-ui
 
       - name: Frontend typecheck
         run: bun run typecheck
         working-directory: web
+
+  govulncheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        run: |
+          set +e
+          govulncheck -show verbose ./... 2>&1 | tee govulncheck.out
+          rc=$?
+          set -e
+          if [ $rc -ne 0 ]; then
+            # Check if ALL findings are stdlib (pattern: "Found in: <pkg>@go<ver>")
+            # If any non-stdlib vulns exist, fail the build.
+            if grep "Found in:" govulncheck.out | grep -qv "@go"; then
+              echo "::error::govulncheck found vulnerabilities in third-party dependencies"
+              exit 1
+            fi
+            echo "::warning::govulncheck found stdlib-only vulnerabilities (fix by upgrading Go toolchain)"
+          fi
+
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t kro-ui:ci .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: kro-ui:ci
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif

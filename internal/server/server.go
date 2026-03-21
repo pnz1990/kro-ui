@@ -1,11 +1,30 @@
+// Copyright 2026 The Kubernetes Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package server sets up the HTTP server, embeds the frontend, and wires routes.
 package server
 
 import (
-	"embed"
+	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -15,10 +34,10 @@ import (
 
 	"github.com/pnz1990/kro-ui/internal/api/handlers"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
+	"github.com/pnz1990/kro-ui/web"
 )
 
-//go:embed all:../../web/dist
-var webFS embed.FS
+var zeroTime time.Time
 
 // Config holds server startup options.
 type Config struct {
@@ -27,24 +46,12 @@ type Config struct {
 	Context    string
 }
 
-// Run starts the HTTP server and blocks until it exits.
-func Run(cfg Config) error {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log.Info().
-		Int("port", cfg.Port).
-		Str("context", cfg.Context).
-		Msg("starting kro-ui")
-
-	// Build k8s client factory — supports runtime context switching.
-	factory, err := k8sclient.NewClientFactory(cfg.Kubeconfig, cfg.Context)
-	if err != nil {
-		return fmt.Errorf("failed to build k8s client: %w", err)
-	}
-
+// NewRouter creates a chi.Router with all API routes, middleware, and SPA fallback.
+// If factory is nil, only healthz and static file serving are functional (for testing).
+func NewRouter(factory *k8sclient.ClientFactory) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
@@ -52,56 +59,113 @@ func Run(cfg Config) error {
 		AllowedHeaders: []string{"*"},
 	}).Handler)
 
-	// API routes
-	h := handlers.New(factory)
+	// API routes — handler may be nil-safe for healthz-only testing.
 	r.Route("/api/v1", func(r chi.Router) {
-		// Cluster contexts
-		r.Get("/contexts", h.ListContexts)
-		r.Post("/contexts/switch", h.SwitchContext)
-
-		// ResourceGraphDefinitions
-		r.Get("/rgds", h.ListRGDs)
-		r.Get("/rgds/{name}", h.GetRGD)
-		r.Get("/rgds/{name}/instances", h.ListInstances) // ?namespace=
-
-		// Instances
-		r.Get("/instances/{namespace}/{name}", h.GetInstance)
-		r.Get("/instances/{namespace}/{name}/events", h.GetInstanceEvents)
-		r.Get("/instances/{namespace}/{name}/children", h.GetInstanceChildren)
-
-		// Raw resource YAML (any kind — for node inspection)
-		r.Get("/resources/{namespace}/{group}/{version}/{kind}/{name}", h.GetResource)
-
-		// Metrics — stub, returns 501 until phase 2
-		r.Get("/metrics", h.GetMetrics)
-
 		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("ok"))
 		})
+
+		// Only wire handler routes when a factory is available.
+		if factory != nil {
+			h := handlers.New(factory)
+
+			// Cluster contexts
+			r.Get("/contexts", h.ListContexts)
+			r.Post("/contexts/switch", h.SwitchContext)
+
+			// ResourceGraphDefinitions
+			r.Get("/rgds", h.ListRGDs)
+			r.Get("/rgds/{name}", h.GetRGD)
+			r.Get("/rgds/{name}/instances", h.ListInstances)
+
+			// Instances
+			r.Get("/instances/{namespace}/{name}", h.GetInstance)
+			r.Get("/instances/{namespace}/{name}/events", h.GetInstanceEvents)
+			r.Get("/instances/{namespace}/{name}/children", h.GetInstanceChildren)
+
+			// Raw resource YAML (any kind — for node inspection)
+			r.Get("/resources/{namespace}/{group}/{version}/{kind}/{name}", h.GetResource)
+
+			// Metrics — stub, returns 501 until phase 2
+			r.Get("/metrics", h.GetMetrics)
+		}
 	})
 
 	// Serve embedded frontend — all non-API routes go to index.html (SPA).
-	distFS, err := fs.Sub(webFS, "web/dist")
+	distFS, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {
-		return fmt.Errorf("failed to sub web/dist: %w", err)
+		// This should never happen with a properly built binary.
+		panic(fmt.Sprintf("failed to sub web/dist: %v", err))
 	}
 	fileServer := http.FileServer(http.FS(distFS))
 	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		// If the file exists, serve it. Otherwise serve index.html for SPA routing.
-		if _, err := fs.Stat(distFS, req.URL.Path[1:]); err == nil {
+		// Strip the leading slash for fs.Stat — embedded FS paths have no prefix.
+		path := req.URL.Path[1:]
+		if path == "" {
+			path = "index.html"
+		}
+
+		// If the file exists in web/dist, serve it directly with correct MIME type.
+		if _, err := fs.Stat(distFS, path); err == nil {
 			fileServer.ServeHTTP(w, req)
 			return
 		}
-		// Serve index.html for SPA client-side routing.
-		index, _ := distFS.Open("index.html")
+
+		// SPA fallback: serve index.html for client-side routing.
+		index, err := distFS.Open("index.html")
+		if err != nil {
+			http.NotFound(w, req)
+			return
+		}
 		defer index.Close()
-		http.ServeContent(w, req, "index.html", zeroTime, index.(interface {
-			io.ReadSeeker
-		}))
+		http.ServeContent(w, req, "index.html", zeroTime, index.(io.ReadSeeker))
 	}))
 
+	return r
+}
+
+// Run starts the HTTP server and blocks until it exits or receives SIGINT/SIGTERM.
+func Run(cfg Config) error {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	logger := log.With().
+		Int("port", cfg.Port).
+		Str("context", cfg.Context).
+		Logger()
+
+	logger.Info().Msg("starting kro-ui")
+
+	// Build k8s client factory — supports runtime context switching.
+	factory, err := k8sclient.NewClientFactory(cfg.Kubeconfig, cfg.Context)
+	if err != nil {
+		return fmt.Errorf("failed to build k8s client: %w", err)
+	}
+
+	logger.Info().Str("active_context", factory.ActiveContext()).Msg("connected to cluster")
+
+	r := NewRouter(factory)
+
 	addr := fmt.Sprintf(":%d", cfg.Port)
-	log.Info().Str("addr", addr).Msg("kro-ui ready")
-	return http.ListenAndServe(addr, r)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: r,
+	}
+
+	// Graceful shutdown on SIGINT/SIGTERM.
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-done
+		logger.Info().Msg("shutting down")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(ctx)
+	}()
+
+	logger.Info().Str("addr", addr).Msg("kro-ui ready")
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("server error: %w", err)
+	}
+	return nil
 }

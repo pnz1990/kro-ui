@@ -182,7 +182,7 @@ fi
 
 cd "$REPO_ROOT"
 
-SPECS_DIR="$REPO_ROOT/specs"
+SPECS_DIR="$REPO_ROOT/.specify/specs"
 mkdir -p "$SPECS_DIR"
 
 # Function to generate branch name with stop word filtering and length filtering
@@ -280,14 +280,22 @@ if [ ${#BRANCH_NAME} -gt $MAX_BRANCH_LENGTH ]; then
 fi
 
 if [ "$HAS_GIT" = true ]; then
-    if ! git checkout -b "$BRANCH_NAME" 2>/dev/null; then
-        # Check if branch already exists
-        if git branch --list "$BRANCH_NAME" | grep -q .; then
-            >&2 echo "Error: Branch '$BRANCH_NAME' already exists. Please use a different feature name or specify a different number with --number."
+    if command -v wt >/dev/null 2>&1; then
+        # Use worktrunk: create worktree + branch without changing directory
+        if ! wt switch --create "$BRANCH_NAME" --no-cd -y 2>&1; then
+            >&2 echo "Error: Failed to create worktree for '$BRANCH_NAME'. Check wt configuration."
             exit 1
-        else
-            >&2 echo "Error: Failed to create git branch '$BRANCH_NAME'. Please check your git configuration and try again."
-            exit 1
+        fi
+    else
+        # Fallback: plain git branch if wt is not installed
+        if ! git checkout -b "$BRANCH_NAME" 2>/dev/null; then
+            if git branch --list "$BRANCH_NAME" | grep -q .; then
+                >&2 echo "Error: Branch '$BRANCH_NAME' already exists. Please use a different feature name or specify a different number with --number."
+                exit 1
+            else
+                >&2 echo "Error: Failed to create git branch '$BRANCH_NAME'. Please check your git configuration and try again."
+                exit 1
+            fi
         fi
     fi
 else

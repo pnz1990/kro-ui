@@ -1,0 +1,18 @@
+# Default owners for everything — gets auto-requested on all PRs
+* @pnz1990
+
+# Go backend
+/cmd/         @pnz1990
+/internal/    @pnz1990
+
+# Frontend
+/web/         @pnz1990
+
+# Infrastructure / CI
+/.github/     @pnz1990
+/helm/        @pnz1990
+/Dockerfile   @pnz1990
+/Makefile     @pnz1990
+
+# Specs and constitution — require explicit review
+/.specify/    @pnz1990
