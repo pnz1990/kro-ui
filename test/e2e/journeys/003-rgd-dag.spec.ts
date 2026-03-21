@@ -62,12 +62,12 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
     // Root instance node
-    await expect(page.getByTestId('dag-node-root')).toBeVisible()
+    await expect(page.getByTestId('dag-node-schema')).toBeVisible()
 
     // Resource nodes
-    await expect(page.getByTestId('dag-node-appnamespace')).toBeVisible()
-    await expect(page.getByTestId('dag-node-appconfig')).toBeVisible()
-    await expect(page.getByTestId('dag-node-appstatus')).toBeVisible()
+    await expect(page.getByTestId('dag-node-appNamespace')).toBeVisible()
+    await expect(page.getByTestId('dag-node-appConfig')).toBeVisible()
+    await expect(page.getByTestId('dag-node-appStatus')).toBeVisible()
 
     // Exactly 4 nodes total
     const nodes = page.locator('[data-testid^="dag-node-"]')
@@ -82,7 +82,7 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    const conditionalNode = page.getByTestId('dag-node-appconfig')
+    const conditionalNode = page.getByTestId('dag-node-appConfig')
     await expect(conditionalNode).toHaveClass(/node-conditional/)
 
     // Ensure node-specpatch class does NOT exist anywhere — it is not a kro concept
@@ -98,8 +98,8 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    // Click the appstatus node (a ConfigMap NodeTypeResource)
-    await page.getByTestId('dag-node-appstatus').click()
+    // Click the appStatus node (a ConfigMap NodeTypeResource)
+    await page.getByTestId('dag-node-appStatus').click()
 
     // Detail panel appears
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
@@ -121,7 +121,7 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
     // Open panel
-    await page.getByTestId('dag-node-appstatus').click()
+    await page.getByTestId('dag-node-appStatus').click()
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
     // Close panel

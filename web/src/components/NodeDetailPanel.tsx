@@ -134,7 +134,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
       <div className="node-detail-body">
         {/* Node type badge */}
         <Section label="Type">
-          <div className="node-type-badge-row" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="node-type-badge-row">
             <span
               className={`node-type-badge node-type-badge--${node.nodeType}`}
             >
@@ -171,14 +171,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
         {(node.nodeType === 'external' || node.nodeType === 'externalCollection') &&
           extRef && (
           <Section label="External Reference">
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12,
-                color: 'var(--color-text-muted)',
-                lineHeight: 1.7,
-              }}
-            >
+            <div className="node-detail-extref">
               {extRef.apiVersion != null && <div>apiVersion: {String(extRef.apiVersion)}</div>}
               {extRef.kind != null && <div>kind: {String(extRef.kind)}</div>}
               {extMeta?.name != null && <div>name: {String(extMeta.name)}</div>}

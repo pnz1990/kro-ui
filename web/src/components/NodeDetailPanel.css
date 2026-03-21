@@ -163,3 +163,18 @@
   border: 1px dashed var(--color-border);
   background: transparent;
 }
+
+/* Node type badge row */
+.node-type-badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* External reference details (mono metadata block) */
+.node-detail-extref {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
