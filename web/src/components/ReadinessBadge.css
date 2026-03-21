@@ -17,20 +17,20 @@
 /* Ready=True — emerald */
 .readiness-badge--ready {
   color: var(--color-status-ready);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: var(--node-alive-bg);
+  border: 1px solid var(--color-alive);
 }
 
 /* Ready=False — rose */
 .readiness-badge--error {
   color: var(--color-status-error);
-  background: rgba(244, 63, 94, 0.12);
-  border: 1px solid rgba(244, 63, 94, 0.25);
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
 }
 
 /* No conditions / Unknown — gray */
 .readiness-badge--unknown {
   color: var(--color-status-unknown);
-  background: rgba(107, 114, 128, 0.12);
-  border: 1px solid rgba(107, 114, 128, 0.25);
+  background: var(--node-notfound-bg);
+  border: 1px solid var(--color-not-found);
 }

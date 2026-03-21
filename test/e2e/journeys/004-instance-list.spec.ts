@@ -88,10 +88,15 @@ test.describe('004: Instance List', () => {
     await expect(page).toHaveURL(/namespace=kro-ui-e2e/)
     await expect(page.getByTestId('instance-row-test-instance')).toBeVisible()
 
-    // Select a namespace with no TestApp instances → empty state
-    // kro-system has kro controller pods but no WebApp CRs
-    await page.getByTestId('namespace-filter').selectOption('kro-system')
-    await expect(page).toHaveURL(/namespace=kro-system/)
+    // Select "All Namespaces" (value "") — test-instance should still appear
+    await page.getByTestId('namespace-filter').selectOption('')
+    // namespace param is removed from URL
+    await expect(page).not.toHaveURL(/namespace=/)
+    await expect(page.getByTestId('instance-row-test-instance')).toBeVisible()
+
+    // Navigate directly to a namespace that has no test-app instances → empty state
+    // Using a namespace value that exists in the cluster but has no WebApp CRs.
+    await page.goto(`${BASE}/rgds/test-app?tab=instances&namespace=kro-system`)
     await expect(page.getByTestId('instance-empty-state')).toBeVisible()
     await expect(
       page.getByTestId('instance-row-test-instance'),
