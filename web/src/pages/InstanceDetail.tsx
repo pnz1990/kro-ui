@@ -3,8 +3,10 @@
 // Implements spec 005-instance-detail-live.
 //
 // Data flow:
-//   - mount: parallel fetch of instance, events, children, RGD spec (FR-001)
-//   - poll:  re-fetch instance + events + children every 5s (FR-002)
+//   - mount: parallel fetch of instance + events (fast), children (slow, non-blocking),
+//     and RGD spec (fast, once only) — FR-001
+//   - poll:  re-fetch instance + events every 5s via usePolling (FR-002)
+//   - children: fetched separately on mount and each poll, does NOT block DAG rendering
 //   - RGD spec: fetched once only (static between deployments)
 //   - NodeStateMap: derived from instance + children on every poll cycle
 //   - NodeDetailPanel: stays open through poll refreshes (FR-008)
@@ -33,10 +35,10 @@ import './InstanceDetail.css'
 
 // ── Poll result type ───────────────────────────────────────────────────────
 
-interface LiveData {
+/** Fast data that updates every 5s — instance detail + events. */
+interface FastData {
   instance: K8sObject
   events: K8sList
-  children: K8sObject[]
 }
 
 // ── Refresh indicator ──────────────────────────────────────────────────────
@@ -121,31 +123,44 @@ export default function InstanceDetail() {
       .finally(() => setRgdLoading(false))
   }, [rgdName])
 
-  // ── Poll: instance + events + children every 5s ─────────────────────────
-  const fetcher = useCallback(async (): Promise<LiveData> => {
+  // ── Children — fetched separately; does NOT block DAG rendering ──────────
+  // ListChildResources does full-cluster discovery and can be slow (O(N) GVRs).
+  // We store the latest resolved children independently of the fast poll.
+  const [children, setChildren] = useState<K8sObject[]>([])
+
+  const fetchChildren = useCallback(() => {
+    if (!namespace || !instanceName || !rgdName) return
+    getInstanceChildren(namespace, instanceName, rgdName)
+      .then((resp) => setChildren(resp.items ?? []))
+      .catch(() => { /* non-fatal: keep previous children */ })
+  }, [namespace, instanceName, rgdName])
+
+  // Fetch children on mount and every 5s via a separate interval
+  useEffect(() => {
+    fetchChildren()
+    const id = setInterval(fetchChildren, 5000)
+    return () => clearInterval(id)
+  }, [fetchChildren])
+
+  // ── Poll: instance + events every 5s (fast path) ────────────────────────
+  const fetcher = useCallback(async (): Promise<FastData> => {
     if (!namespace || !instanceName || !rgdName) {
       throw new Error('Missing route params')
     }
-    const [instance, events, childrenResp] = await Promise.all([
+    const [instance, events] = await Promise.all([
       getInstance(namespace, instanceName, rgdName),
       getInstanceEvents(namespace, instanceName),
-      getInstanceChildren(namespace, instanceName, rgdName),
     ])
-    return {
-      instance,
-      events,
-      children: childrenResp.items ?? [],
-    }
+    return { instance, events }
   }, [namespace, instanceName, rgdName])
 
-  const { data: liveData, error: pollError, loading: pollLoading, lastRefresh } = usePolling(
+  const { data: fastData, error: pollError, loading: pollLoading, lastRefresh } = usePolling(
     fetcher,
     [namespace, instanceName, rgdName],
     { intervalMs: 5000 },
   )
 
   // ── Selected node panel (survives poll refreshes — FR-008) ───────────────
-  // We track by nodeId only. The panel is not closed on re-render.
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<DAGNode | null>(null)
 
@@ -155,11 +170,11 @@ export default function InstanceDetail() {
     return buildDAGGraph(rgd.spec as Record<string, unknown>)
   }, [rgd])
 
-  // ── Node state map — derived on every poll ───────────────────────────────
+  // ── Node state map — derived on every poll + children update ─────────────
   const nodeStateMap = useMemo(() => {
-    if (!liveData) return {}
-    return buildNodeStateMap(liveData.instance, liveData.children)
-  }, [liveData])
+    if (!fastData) return {}
+    return buildNodeStateMap(fastData.instance, children)
+  }, [fastData, children])
 
   // ── Detect instance deletion (next poll returns 404) ────────────────────
   const instanceGoneRef = useRef(false)
@@ -188,7 +203,7 @@ export default function InstanceDetail() {
 
   // ── Resolve resource info for the open panel ────────────────────────────
   const resolvedResourceInfo = useMemo(() => {
-    if (!selectedNode || !instanceName || !liveData) return null
+    if (!selectedNode || !instanceName) return null
     // forEach nodes: no YAML fetch (FR-010)
     if (selectedNode.nodeType === 'collection') return null
     // Root instance node: no YAML
@@ -196,9 +211,9 @@ export default function InstanceDetail() {
     return resolveChildResourceInfo(
       selectedNode.label,
       instanceName,
-      liveData.children,
+      children,
     )
-  }, [selectedNode, instanceName, liveData])
+  }, [selectedNode, instanceName, children])
 
   // ── Live state for the selected node ────────────────────────────────────
   const selectedNodeLiveState: NodeLiveState | undefined = useMemo(() => {
@@ -217,9 +232,11 @@ export default function InstanceDetail() {
   // ── Instance name for breadcrumbs ────────────────────────────────────────
   const displayName = instanceName ?? '…'
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Loading: gate only on the fast poll (instance + events) ─────────────
+  // Children load separately and do not block DAG rendering.
+  const isLoading = pollLoading && !fastData
 
-  const isLoading = (rgdLoading || pollLoading) && !liveData
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div data-testid="instance-detail-page" className="instance-detail">
@@ -246,7 +263,7 @@ export default function InstanceDetail() {
       </div>
 
       {/* Reconciling banner (FR-003) */}
-      {liveData && isReconciling(liveData.instance) && (
+      {fastData && isReconciling(fastData.instance) && (
         <div className="reconciling-banner" role="status" aria-live="polite">
           <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
           kro is reconciling this instance
@@ -274,15 +291,15 @@ export default function InstanceDetail() {
         </div>
       )}
 
-      {/* Loading state */}
+      {/* Loading state — only until the fast poll (instance + events) resolves */}
       {isLoading && (
         <div className="instance-detail-loading" aria-live="polite">
           Loading…
         </div>
       )}
 
-      {/* Main content */}
-      {!isLoading && liveData && (
+      {/* Main content — renders as soon as instance + events are available */}
+      {!isLoading && fastData && (
         <div className={`instance-detail-content${selectedNode ? ' instance-detail-content--with-panel' : ''}`}>
           {/* DAG */}
           <div className="instance-detail-dag-area">
@@ -304,9 +321,9 @@ export default function InstanceDetail() {
 
           {/* Below-DAG panels */}
           <div className="instance-detail-panels">
-            <SpecPanel instance={liveData.instance} />
-            <ConditionsPanel instance={liveData.instance} />
-            <EventsPanel events={liveData.events} />
+            <SpecPanel instance={fastData.instance} />
+            <ConditionsPanel instance={fastData.instance} />
+            <EventsPanel events={fastData.events} />
           </div>
         </div>
       )}
