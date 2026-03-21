@@ -1,0 +1,117 @@
+/* RGDDetail.css — RGD detail page layout with tabs and split-pane DAG view.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/003-rgd-detail-dag/
+ */
+
+/* ── Page layout ──────────────────────────────────────────────────────────── */
+
+.rgd-detail {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 48px); /* full height minus TopBar */
+  overflow: hidden;
+}
+
+/* ── Page header ──────────────────────────────────────────────────────────── */
+
+.rgd-detail-header {
+  padding: 24px 32px 0;
+  flex-shrink: 0;
+}
+
+.rgd-detail-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 16px;
+}
+
+/* ── Tab bar ──────────────────────────────────────────────────────────────── */
+
+.rgd-tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 32px;
+  flex-shrink: 0;
+}
+
+.rgd-tab-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  margin-bottom: -1px; /* overlap the border-bottom of the tab bar */
+}
+
+.rgd-tab-btn:hover {
+  color: var(--color-text);
+}
+
+.rgd-tab-btn[aria-selected="true"] {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+/* ── Tab content area ─────────────────────────────────────────────────────── */
+
+.rgd-tab-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  position: relative;
+}
+
+/* ── Graph tab ────────────────────────────────────────────────────────────── */
+
+.rgd-graph-area {
+  flex: 1;
+  overflow: auto;
+  transition: margin-right var(--transition);
+}
+
+/* When panel is open, graph area makes room on the right */
+.rgd-graph-area--with-panel {
+  margin-right: 400px;
+}
+
+/* ── YAML / Instances tab content ─────────────────────────────────────────── */
+
+.rgd-tab-panel {
+  flex: 1;
+  overflow: auto;
+  padding: 24px 32px;
+}
+
+/* Empty state for Graph tab when no resources */
+.rgd-graph-empty {
+  padding: 48px 32px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* Instances placeholder */
+.rgd-instances-placeholder {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+/* ── Loading / error states ───────────────────────────────────────────────── */
+
+.rgd-detail-loading {
+  padding: 32px;
+  color: var(--color-text-muted);
+}
+
+.rgd-detail-error {
+  padding: 32px;
+  color: var(--color-error);
+}

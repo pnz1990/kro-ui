@@ -308,3 +308,10 @@ The current branch name tells you which spec to read. For example, branch
 
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
+
+## Active Technologies
+- TypeScript 5.x (strict mode) with React 19 + Vite 6.x; Go 1.25 backend (no changes needed for this spec) + React 19, React Router v7, Vite 6, Vitest 4.1 (all already installed); no new dependencies added (003-rgd-detail-dag)
+- N/A — all data fetched from `GET /api/v1/rgds/:name` and `GET /api/v1/rgds/:name/instances`; no local storage (003-rgd-detail-dag)
+
+## Recent Changes
+- 003-rgd-detail-dag: Added TypeScript 5.x (strict mode) with React 19 + Vite 6.x; Go 1.25 backend (no changes needed for this spec) + React 19, React Router v7, Vite 6, Vitest 4.1 (all already installed); no new dependencies added

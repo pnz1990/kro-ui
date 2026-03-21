@@ -1,0 +1,149 @@
+/* DAGGraph.css — Styles for the SVG DAG renderer.
+ *
+ * All colors from tokens.css custom properties.
+ * No hardcoded hex values.
+ * Spec: .specify/specs/003-rgd-detail-dag/
+ */
+
+/* ── Scroll container ────────────────────────────────────────────────────── */
+
+.dag-graph-container {
+  overflow: auto;
+  width: 100%;
+  flex: 1;
+}
+
+/* ── Node groups ────────────────────────────────────────────────────────── */
+
+.dag-node {
+  cursor: pointer;
+}
+
+.dag-node:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Base node rect */
+.dag-node rect.dag-node-rect {
+  fill: var(--node-default-bg);
+  stroke: var(--node-default-border);
+  stroke-width: 1;
+  rx: 8;
+  transition: stroke var(--transition-fast), fill var(--transition-fast);
+}
+
+/* Hover */
+.dag-node:hover rect.dag-node-rect {
+  stroke: var(--color-primary);
+  fill: var(--color-primary-muted);
+}
+
+/* Selected */
+.dag-node--selected rect.dag-node-rect {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  fill: var(--color-primary-muted);
+}
+
+/* ── Node type variants ───────────────────────────────────────────────────── */
+
+/* Root CR (NodeTypeInstance) */
+.dag-node--instance rect.dag-node-rect {
+  fill: var(--node-root-bg);
+  stroke: var(--node-root-border);
+  stroke-width: 2;
+}
+
+.dag-node--instance:hover rect.dag-node-rect,
+.dag-node--instance.dag-node--selected rect.dag-node-rect {
+  fill: var(--color-primary-muted);
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+/* Managed resource (NodeTypeResource) — uses base styles */
+
+/* forEach Collection (NodeTypeCollection) */
+.dag-node--collection rect.dag-node-rect {
+  fill: var(--node-collection-bg);
+  stroke: var(--node-collection-border);
+  stroke-width: 1;
+}
+
+/* External reference (NodeTypeExternal + NodeTypeExternalCollection) */
+.dag-node--external rect.dag-node-rect,
+.dag-node--externalCollection rect.dag-node-rect {
+  fill: var(--node-external-bg);
+  stroke: var(--node-external-border);
+  stroke-width: 1;
+  stroke-dasharray: 5 3;
+}
+
+/* ── Conditional modifier (includeWhen) ──────────────────────────────────── */
+
+.node-conditional rect.dag-node-rect {
+  stroke-dasharray: 5 3;
+}
+
+/* ── Node text ────────────────────────────────────────────────────────────── */
+
+.dag-node-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--color-text);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.dag-node-kind {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+/* ── Type badges ──────────────────────────────────────────────────────────── */
+
+.dag-node-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.dag-node-badge--collection {
+  fill: var(--node-collection-border);
+}
+
+.dag-node-badge--conditional {
+  fill: var(--color-text-muted);
+}
+
+.dag-node-badge--external {
+  fill: var(--node-external-border);
+}
+
+/* ── Edges ────────────────────────────────────────────────────────────────── */
+
+.dag-edge {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}
+
+.dag-edge:hover {
+  stroke: var(--color-text-muted);
+  opacity: 1;
+}
+
+/* ── Arrowhead marker ────────────────────────────────────────────────────── */
+
+/* The marker fill is set inline via currentColor / var() on the marker element */

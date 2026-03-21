@@ -1,24 +1,40 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams } from "react-router-dom"
 import { getRGD } from "@/lib/api"
 import type { K8sObject } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
+import { buildDAGGraph } from "@/lib/dag"
 import KroCodeBlock from "@/components/KroCodeBlock"
+import DAGGraph from "@/components/DAGGraph"
+import NodeDetailPanel from "@/components/NodeDetailPanel"
+import "./RGDDetail.css"
+
+/** Valid tab values. Anything else falls back to 'graph'. */
+type TabId = "graph" | "instances" | "yaml"
+
+function isValidTab(t: string | null): t is TabId {
+  return t === "graph" || t === "instances" || t === "yaml"
+}
 
 /**
- * RGDDetail — Shows an RGD with a YAML tab for highlighted source.
+ * RGDDetail — RGD detail page with three tabs: Graph, Instances, YAML.
  *
- * Minimal implementation to support the CEL highlighter (spec 006).
- * Full DAG view, instances tab, and node inspection are in specs 003/005.
+ * Active tab is reflected in and restored from `?tab=` URL query parameter.
+ * Default tab is "graph".
+ *
+ * Spec: .specify/specs/003-rgd-detail-dag/
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get("tab") ?? "overview"
+
+  const rawTab = searchParams.get("tab")
+  const activeTab: TabId = isValidTab(rawTab) ? rawTab : "graph"
 
   const [rgd, setRgd] = useState<K8sObject | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!name) return
@@ -35,105 +51,121 @@ export default function RGDDetail() {
       .finally(() => setLoading(false))
   }, [name])
 
+  // Build DAG graph once when RGD data loads (memoised — pure function, stable)
+  const dagGraph = useMemo(() => {
+    if (!rgd?.spec) return null
+    return buildDAGGraph(rgd.spec as Record<string, unknown>)
+  }, [rgd])
+
+  const selectedNode = useMemo(() => {
+    if (!selectedNodeId || !dagGraph) return null
+    return dagGraph.nodes.find((n) => n.id === selectedNodeId) ?? null
+  }, [selectedNodeId, dagGraph])
+
+  function setTab(t: TabId) {
+    if (t === "graph") {
+      setSearchParams({})
+    } else {
+      setSearchParams({ tab: t })
+    }
+  }
+
+  const rgdName =
+    (rgd?.metadata as Record<string, unknown> | undefined)?.name ?? name ?? ""
+
   if (loading) {
-    return (
-      <div style={{ padding: 32, color: "var(--color-text-muted)" }}>
-        Loading...
-      </div>
-    )
+    return <div className="rgd-detail-loading">Loading…</div>
   }
 
   if (error) {
-    return (
-      <div style={{ padding: 32, color: "var(--color-error)" }}>
-        Error: {error}
-      </div>
-    )
+    return <div className="rgd-detail-error">Error: {error}</div>
   }
 
   if (!rgd) return null
 
-  const rgdName =
-    (rgd.metadata as Record<string, unknown> | undefined)?.name ?? name ?? ""
-
   return (
-    <div style={{ padding: 32 }}>
-      <h1
-        style={{
-          fontSize: 20,
-          fontWeight: 600,
-          color: "var(--color-text)",
-          marginBottom: 16,
-        }}
-      >
-        {String(rgdName)}
-      </h1>
+    <div className="rgd-detail">
+      {/* Header */}
+      <div className="rgd-detail-header">
+        <h1 className="rgd-detail-name">{String(rgdName)}</h1>
+      </div>
 
       {/* Tab bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 4,
-          borderBottom: "1px solid var(--color-border)",
-          marginBottom: 24,
-        }}
-      >
-        <TabButton
-          label="Overview"
-          active={tab === "overview"}
-          onClick={() => setSearchParams({})}
-        />
-        <TabButton
-          label="YAML"
-          active={tab === "yaml"}
-          onClick={() => setSearchParams({ tab: "yaml" })}
-        />
+      <div className="rgd-tab-bar" role="tablist">
+        <button
+          data-testid="tab-graph"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "graph"}
+          onClick={() => setTab("graph")}
+          type="button"
+        >
+          Graph
+        </button>
+        <button
+          data-testid="tab-instances"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "instances"}
+          onClick={() => setTab("instances")}
+          type="button"
+        >
+          Instances
+        </button>
+        <button
+          data-testid="tab-yaml"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "yaml"}
+          onClick={() => setTab("yaml")}
+          type="button"
+        >
+          YAML
+        </button>
       </div>
 
       {/* Tab content */}
-      {tab === "yaml" && (
-        <KroCodeBlock
-          code={toYaml(rgd)}
-          title="ResourceGraphDefinition"
-        />
-      )}
+      <div className="rgd-tab-content">
+        {activeTab === "graph" && (
+          <>
+            <div
+              className={`rgd-graph-area${selectedNode ? " rgd-graph-area--with-panel" : ""}`}
+            >
+              {dagGraph && dagGraph.nodes.length > 0 ? (
+                <DAGGraph
+                  graph={dagGraph}
+                  onNodeClick={(id) => setSelectedNodeId(id)}
+                  selectedNodeId={selectedNodeId ?? undefined}
+                />
+              ) : (
+                <div className="rgd-graph-empty">
+                  No managed resources defined
+                </div>
+              )}
+            </div>
+            {selectedNode && (
+              <NodeDetailPanel
+                node={selectedNode}
+                onClose={() => setSelectedNodeId(null)}
+              />
+            )}
+          </>
+        )}
 
-      {tab === "overview" && (
-        <div style={{ color: "var(--color-text-muted)" }}>
-          TODO: DAG view and resource overview (specs 003/005)
-        </div>
-      )}
+        {activeTab === "instances" && (
+          <div className="rgd-tab-panel">
+            <div className="rgd-instances-placeholder">
+              Instance list coming in spec 004.
+            </div>
+          </div>
+        )}
+
+        {activeTab === "yaml" && (
+          <div className="rgd-tab-panel">
+            <KroCodeBlock code={toYaml(rgd)} title="ResourceGraphDefinition" />
+          </div>
+        )}
+      </div>
     </div>
-  )
-}
-
-function TabButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      type="button"
-      style={{
-        padding: "8px 16px",
-        background: "transparent",
-        border: "none",
-        borderBottom: active
-          ? "2px solid var(--color-primary)"
-          : "2px solid transparent",
-        color: active ? "var(--color-text)" : "var(--color-text-muted)",
-        fontWeight: active ? 500 : 400,
-        cursor: "pointer",
-        transition: "color 80ms ease, border-color 80ms ease",
-      }}
-    >
-      {label}
-    </button>
   )
 }
