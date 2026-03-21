@@ -46,6 +46,9 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
       }
     }
 
+    // Log full response for debugging CI failures.
+    console.log('capabilities response:', JSON.stringify(body, null, 2))
+
     // kro is installed in the E2E kind cluster.
     expect(body.apiVersion).toBe('kro.run/v1alpha1')
     expect(body.knownResources).toContain('resourcegraphdefinitions')
