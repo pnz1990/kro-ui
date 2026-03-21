@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react"
 import { tokenize } from "@/lib/highlighter"
 import type { TokenType } from "@/lib/highlighter"
+import { useCapabilities } from "@/lib/features"
 import "./KroCodeBlock.css"
 
 interface KroCodeBlockProps {
@@ -76,11 +77,17 @@ function CheckIcon() {
  *
  * Renders tokenized YAML with CSS-variable-driven colors.
  * Supports copy-to-clipboard and an optional title bar.
+ * CELOmitFunction feature gate controls whether omit() is highlighted as a kro keyword.
  *
  * Spec: .specify/specs/006-cel-highlighter/contracts/component.md
  */
 export default function KroCodeBlock({ code, title }: KroCodeBlockProps) {
   const [copied, setCopied] = useState(false)
+  const { capabilities } = useCapabilities()
+
+  // CELOmitFunction gate: when true, omit() is highlighted as a kro keyword.
+  // When false, omit() appears as plain text in CEL expressions.
+  const omitEnabled = capabilities.featureGates.CELOmitFunction
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(code).then(() => {
@@ -106,7 +113,11 @@ export default function KroCodeBlock({ code, title }: KroCodeBlockProps) {
   )
 
   return (
-    <div data-testid="kro-code-block" className="kro-code-block">
+    <div
+      data-testid="kro-code-block"
+      className="kro-code-block"
+      data-omit-enabled={omitEnabled ? "true" : undefined}
+    >
       {title != null && (
         <div className="kro-code-block-header">
           <span className="kro-code-block-title">{title}</span>

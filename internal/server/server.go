@@ -87,6 +87,9 @@ func NewRouter(factory *k8sclient.ClientFactory) chi.Router {
 			// Raw resource YAML (any kind — for node inspection)
 			r.Get("/resources/{namespace}/{group}/{version}/{kind}/{name}", h.GetResource)
 
+			// kro capabilities detection
+			r.Get("/kro/capabilities", h.GetCapabilities)
+
 			// Metrics — stub, returns 501 until phase 2
 			r.Get("/metrics", h.GetMetrics)
 		}

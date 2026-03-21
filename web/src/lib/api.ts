@@ -66,6 +66,24 @@ export const getInstanceEvents = (namespace: string, name: string) =>
 export const getInstanceChildren = (namespace: string, name: string, rgd: string) =>
   get<{ items: K8sObject[] }>(`/instances/${namespace}/${name}/children?rgd=${encodeURIComponent(rgd)}`)
 
+// ── Capabilities ─────────────────────────────────────────────────────
+
+export interface KroCapabilities {
+  version: string
+  apiVersion: string
+  featureGates: Record<string, boolean>
+  knownResources: string[]
+  schema: {
+    hasForEach: boolean
+    hasExternalRef: boolean
+    hasExternalRefSelector: boolean
+    hasScope: boolean
+    hasTypes: boolean
+  }
+}
+
+export const getCapabilities = () => get<KroCapabilities>('/kro/capabilities')
+
 // ── Raw resource ─────────────────────────────────────────────────────
 
 export const getResource = (namespace: string, group: string, version: string, kind: string, name: string) =>

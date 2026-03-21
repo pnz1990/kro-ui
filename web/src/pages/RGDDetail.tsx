@@ -4,17 +4,22 @@ import { getRGD } from "@/lib/api"
 import type { K8sObject } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
 import KroCodeBlock from "@/components/KroCodeBlock"
+import { useCapabilities, isExperimental } from "@/lib/features"
 
 /**
  * RGDDetail — Shows an RGD with a YAML tab for highlighted source.
  *
  * Minimal implementation to support the CEL highlighter (spec 006).
  * Full DAG view, instances tab, and node inspection are in specs 003/005.
+ * Revisions tab is capabilities-gated on knownResources (spec 008).
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = searchParams.get("tab") ?? "overview"
+  const { capabilities } = useCapabilities()
+  const showRevisions = capabilities.knownResources.includes("graphrevisions")
+  const experimental = isExperimental()
 
   const [rgd, setRgd] = useState<K8sObject | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -101,6 +106,31 @@ export default function RGDDetail() {
       {tab === "overview" && (
         <div style={{ color: "var(--color-text-muted)" }}>
           TODO: DAG view and resource overview (specs 003/005)
+        </div>
+      )}
+
+      {/* Revisions tab — capabilities-gated on knownResources (spec 008/009) */}
+      {showRevisions && (
+        <div
+          style={{
+            padding: '8px',
+            marginTop: '16px',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius)',
+          }}
+        >
+          {experimental && (
+            <span
+              style={{
+                fontSize: '12px',
+                color: 'var(--color-status-warning)',
+                marginRight: '8px',
+              }}
+            >
+              Experimental
+            </span>
+          )}
+          Revisions (placeholder — delivered by spec 009-rgd-graph-diff)
         </div>
       )}
     </div>
