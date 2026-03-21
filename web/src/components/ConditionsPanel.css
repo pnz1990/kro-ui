@@ -1,0 +1,85 @@
+/* ConditionsPanel.css — Conditions list panel.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/005-instance-detail-live/
+ */
+
+.conditions-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.conditions-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.condition-row {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.condition-row:last-child {
+  border-bottom: none;
+}
+
+.condition-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.condition-type {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.condition-status {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.condition-status--true {
+  background: var(--node-alive-bg);
+  border-color: var(--node-alive-border);
+  color: var(--color-alive);
+}
+
+.condition-status--false {
+  background: var(--node-error-bg);
+  border-color: var(--node-error-border);
+  color: var(--color-error);
+}
+
+.condition-status--unknown {
+  background: var(--node-notfound-bg);
+  border-color: var(--node-notfound-border);
+  color: var(--color-not-found);
+}
+
+.condition-reason {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.condition-message {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.condition-time {
+  font-size: 11px;
+  color: var(--color-text-faint);
+}

@@ -1,0 +1,197 @@
+/* InstanceDetail.css — Live instance detail page layout.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/005-instance-detail-live/
+ */
+
+/* ── Page container ────────────────────────────────────────────────────────── */
+
+.instance-detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  padding: 24px 32px;
+  gap: 16px;
+}
+
+/* ── Breadcrumbs ─────────────────────────────────────────────────────────── */
+
+.instance-detail-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.breadcrumb-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.breadcrumb-link:hover {
+  color: var(--color-primary-hover);
+}
+
+.breadcrumb-sep {
+  color: var(--color-text-faint);
+}
+
+.breadcrumb-current {
+  color: var(--color-text-muted);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.instance-detail-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.instance-detail-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.instance-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.instance-detail-ns {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+}
+
+/* ── Refresh indicator ────────────────────────────────────────────────────── */
+
+.refresh-indicator {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+}
+
+.refresh-indicator--error {
+  color: var(--color-status-warning);
+}
+
+/* ── Banners ─────────────────────────────────────────────────────────────── */
+
+.reconciling-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--node-reconciling-bg);
+  border: 1px solid var(--node-reconciling-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-reconciling);
+}
+
+.reconciling-banner-pulse {
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+  font-size: 10px;
+}
+
+.instance-gone-banner {
+  padding: 10px 16px;
+  background: var(--node-notfound-bg);
+  border: 1px solid var(--node-notfound-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-not-found);
+}
+
+.poll-error-banner {
+  padding: 8px 16px;
+  background: var(--node-reconciling-bg);
+  border: 1px solid var(--node-reconciling-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-reconciling);
+}
+
+.instance-detail-error {
+  padding: 10px 16px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--node-error-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+.instance-detail-loading {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 16px 0;
+}
+
+/* ── Main content ─────────────────────────────────────────────────────────── */
+
+.instance-detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* Narrow main area when panel is open */
+.instance-detail-content--with-panel {
+  margin-right: 416px; /* panel width (400) + 16 gap */
+}
+
+/* ── DAG area ────────────────────────────────────────────────────────────── */
+
+.instance-detail-dag-area {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.instance-detail-dag-empty {
+  padding: 32px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+  text-align: center;
+}
+
+/* ── Panels (below DAG) ───────────────────────────────────────────────────── */
+
+.instance-detail-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Shared panel heading (used by SpecPanel, ConditionsPanel, EventsPanel) */
+.panel-heading {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.panel-empty {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}

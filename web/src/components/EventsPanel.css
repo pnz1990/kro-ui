@@ -1,0 +1,81 @@
+/* EventsPanel.css — Kubernetes events list panel.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/005-instance-detail-live/
+ */
+
+.events-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.event-row {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-row:last-child {
+  border-bottom: none;
+}
+
+.event-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-type {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.event-type--normal {
+  background: var(--node-alive-bg);
+  border-color: var(--node-alive-border);
+  color: var(--color-alive);
+}
+
+.event-type--warning {
+  background: var(--node-reconciling-bg);
+  border-color: var(--node-reconciling-border);
+  color: var(--color-reconciling);
+}
+
+.event-type--unknown {
+  background: var(--node-notfound-bg);
+  border-color: var(--node-notfound-border);
+  color: var(--color-not-found);
+}
+
+.event-reason {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.event-time {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+
+.event-message {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
