@@ -48,7 +48,7 @@ type Config struct {
 
 // NewRouter creates a chi.Router with all API routes, middleware, and SPA fallback.
 // If factory is nil, only healthz and static file serving are functional (for testing).
-func NewRouter(factory *k8sclient.ClientFactory) chi.Router {
+func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -98,8 +98,7 @@ func NewRouter(factory *k8sclient.ClientFactory) chi.Router {
 	// Serve embedded frontend — all non-API routes go to index.html (SPA).
 	distFS, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {
-		// This should never happen with a properly built binary.
-		panic(fmt.Sprintf("failed to sub web/dist: %v", err))
+		return nil, fmt.Errorf("embedded frontend corrupted: %w", err)
 	}
 	fileServer := http.FileServer(http.FS(distFS))
 	r.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -125,7 +124,7 @@ func NewRouter(factory *k8sclient.ClientFactory) chi.Router {
 		http.ServeContent(w, req, "index.html", zeroTime, index.(io.ReadSeeker))
 	}))
 
-	return r
+	return r, nil
 }
 
 // Run starts the HTTP server and blocks until it exits or receives SIGINT/SIGTERM.
@@ -146,7 +145,10 @@ func Run(cfg Config) error {
 
 	logger.Info().Str("active_context", factory.ActiveContext()).Msg("connected to cluster")
 
-	r := NewRouter(factory)
+	r, err := NewRouter(factory)
+	if err != nil {
+		return fmt.Errorf("create router: %w", err)
+	}
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	srv := &http.Server{
@@ -163,7 +165,9 @@ func Run(cfg Config) error {
 		logger.Info().Msg("shutting down")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_ = srv.Shutdown(ctx)
+		if err := srv.Shutdown(ctx); err != nil {
+			logger.Warn().Err(err).Msg("unclean shutdown")
+		}
 	}()
 
 	logger.Info().Str("addr", addr).Msg("kro-ui ready")

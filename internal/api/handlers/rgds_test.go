@@ -294,7 +294,7 @@ func TestListInstances(t *testing.T) {
 				require.Equal(t, http.StatusUnprocessableEntity, rr.Code)
 				body := rr.Body.String()
 				assert.Contains(t, body, `"error"`)
-				assert.Contains(t, body, "RGD has no spec.schema.kind")
+				assert.Contains(t, body, "RGD has no schema kind defined")
 			},
 		},
 		{

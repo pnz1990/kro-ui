@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -33,22 +34,30 @@ var rgdGVR = schema.GroupVersionResource{
 
 // ListRGDs returns all ResourceGraphDefinitions in the cluster.
 func (h *Handler) ListRGDs(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
+
 	list, err := h.factory.Dynamic().Resource(rgdGVR).List(r.Context(), metav1.ListOptions{})
 	if err != nil {
+		log.Error().Err(err).Msg("failed to list RGDs")
 		respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())
 		return
 	}
+	log.Debug().Int("count", len(list.Items)).Msg("listed RGDs")
 	respond(w, http.StatusOK, list)
 }
 
 // GetRGD returns a single RGD by name.
 func (h *Handler) GetRGD(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
 	name := chi.URLParam(r, "name")
+
 	obj, err := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
+		log.Error().Err(err).Str("rgd", name).Msg("failed to get RGD")
 		respondError(w, http.StatusNotFound, "resourcegraphdefinition \""+name+"\" not found")
 		return
 	}
+	log.Debug().Str("rgd", name).Msg("fetched RGD")
 	respond(w, http.StatusOK, obj)
 }
 
@@ -56,22 +65,25 @@ func (h *Handler) GetRGD(w http.ResponseWriter, r *http.Request) {
 // Resolves the generated CRD kind + group via the RGD spec, then queries dynamically.
 // Optional ?namespace= query param to filter; omit for cluster-wide.
 func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
 	name := chi.URLParam(r, "name")
 	namespace := r.URL.Query().Get("namespace")
 
 	// Fetch the RGD to resolve the generated CRD's kind and group.
 	rgd, err := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
+		log.Error().Err(err).Str("rgd", name).Msg("failed to get RGD for instance listing")
 		respondError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
 	// Extract kind and group from spec.schema — flexible, works with any kro version.
-	kind, _, _ := unstructuredString(rgd.Object, "spec", "schema", "kind")
-	group, _, _ := unstructuredString(rgd.Object, "spec", "schema", "group")
-	version, _, _ := unstructuredString(rgd.Object, "spec", "schema", "apiVersion")
+	kind, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "kind")
+	group, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "group")
+	version, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "apiVersion")
 	if kind == "" {
-		respondError(w, http.StatusUnprocessableEntity, "RGD has no spec.schema.kind")
+		log.Error().Str("rgd", name).Msg("RGD has no schema kind defined")
+		respondError(w, http.StatusUnprocessableEntity, "RGD has no schema kind defined")
 		return
 	}
 	if group == "" {
@@ -82,7 +94,7 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Discover the plural resource name for this kind.
-	plural, err := discoverPlural(h.factory, group, version, kind)
+	plural, err := k8sclient.DiscoverPlural(h.factory, group, version, kind)
 	if err != nil {
 		// Fall back to naive lowercase+s pluralisation — good enough for most cases.
 		plural = strings.ToLower(kind) + "s"
@@ -97,8 +109,10 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 		list, err = h.factory.Dynamic().Resource(gvr).List(r.Context(), metav1.ListOptions{})
 	}
 	if err != nil {
+		log.Error().Err(err).Str("rgd", name).Str("kind", kind).Msg("failed to list instances")
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	log.Debug().Str("rgd", name).Str("kind", kind).Msg("listed instances")
 	respond(w, http.StatusOK, list)
 }
