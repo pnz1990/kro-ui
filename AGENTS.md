@@ -308,3 +308,10 @@ The current branch name tells you which spec to read. For example, branch
 
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
+
+## Active Technologies
+- TypeScript ~5.7 (frontend), Go 1.25 (backend — no changes this spec) + React 19, React Router v7.4, Vite 8, plain CSS with `tokens.css` custom properties (002-rgd-list-home)
+- N/A (read-only Kubernetes API via Go backend proxy) (002-rgd-list-home)
+
+## Recent Changes
+- 002-rgd-list-home: Added TypeScript ~5.7 (frontend), Go 1.25 (backend — no changes this spec) + React 19, React Router v7.4, Vite 8, plain CSS with `tokens.css` custom properties
