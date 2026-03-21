@@ -84,7 +84,7 @@ test.describe('Journey 002 — Home page RGD cards and navigation', () => {
     await expect(page).toHaveURL(`${BASE}/rgds/test-app`)
 
     // DAG SVG should be visible (stub from RGDDetail page)
-    await expect(page.locator('#dag-graph')).toBeVisible()
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
   })
 
   test('Step 4: Navigate back and use Instances button', async ({ page }) => {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs } from '@/lib/api'
+import { extractRGDName } from '@/lib/format'
 import RGDCard from '@/components/RGDCard'
 import SkeletonCard from '@/components/SkeletonCard'
 import './Home.css'
@@ -67,11 +68,9 @@ export default function Home() {
 
       {!isLoading && error === null && items.length > 0 && (
         <div className="home__grid">
-          {items.map((rgd) => {
-            const meta = rgd.metadata as Record<string, unknown> | undefined
-            const name = (meta?.name as string) ?? ''
-            return <RGDCard key={name} rgd={rgd} />
-          })}
+          {items.map((rgd) => (
+            <RGDCard key={extractRGDName(rgd)} rgd={rgd} />
+          ))}
         </div>
       )}
     </div>
