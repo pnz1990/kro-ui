@@ -1,0 +1,38 @@
+/* NamespaceFilter — namespace scope selector for the instance table. */
+
+.namespace-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.namespace-filter__label {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.namespace-filter__select {
+  padding: 4px 28px 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  appearance: none;
+  /* chevron icon via CSS gradient */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a1a1aa' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.namespace-filter__select:hover {
+  border-color: var(--color-border-focus);
+}
+
+.namespace-filter__select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}

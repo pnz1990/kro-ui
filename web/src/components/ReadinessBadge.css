@@ -1,0 +1,36 @@
+/* ReadinessBadge — colored pill badge for instance readiness state.
+ * Only CSS custom properties from tokens.css are used; no hardcoded hex. */
+
+.readiness-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+/* Ready=True — emerald */
+.readiness-badge--ready {
+  color: var(--color-status-ready);
+  background: var(--node-alive-bg);
+  border: 1px solid var(--color-alive);
+}
+
+/* Ready=False — rose */
+.readiness-badge--error {
+  color: var(--color-status-error);
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+}
+
+/* No conditions / Unknown — gray */
+.readiness-badge--unknown {
+  color: var(--color-status-unknown);
+  background: var(--node-notfound-bg);
+  border: 1px solid var(--color-not-found);
+}
