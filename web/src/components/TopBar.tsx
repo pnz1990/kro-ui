@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import ContextSwitcher from './ContextSwitcher'
 import type { KubeContext } from '@/lib/api'
 import './TopBar.css'
@@ -15,6 +16,25 @@ export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProp
         <img src="/logo.png" alt="kro-ui" width="24" height="24" />
         <span className="top-bar__title">kro-ui</span>
       </div>
+      <nav className="top-bar__nav" aria-label="Main navigation">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `top-bar__nav-link${isActive ? ' top-bar__nav-link--active' : ''}`
+          }
+        >
+          Home
+        </NavLink>
+        <NavLink
+          to="/catalog"
+          className={({ isActive }) =>
+            `top-bar__nav-link${isActive ? ' top-bar__nav-link--active' : ''}`
+          }
+        >
+          Catalog
+        </NavLink>
+      </nav>
       <ContextSwitcher
         contexts={contexts}
         active={activeContext}

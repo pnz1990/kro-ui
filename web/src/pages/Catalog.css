@@ -1,0 +1,185 @@
+.catalog {
+  padding: 24px 32px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+
+.catalog__header {
+  margin-bottom: 24px;
+}
+
+.catalog__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.catalog__heading {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.catalog__count {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────── */
+
+.catalog__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Sort ────────────────────────────────────────────────────────── */
+
+.catalog__sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.catalog__sort-label {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.catalog__sort-select {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: border-color var(--transition);
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2 4L6 8L10 4' stroke='%23a1a1aa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.catalog__sort-select:focus {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+  border-color: var(--color-border-focus);
+}
+
+.catalog__sort-select option {
+  background: var(--color-surface-2);
+}
+
+/* ── Grid ────────────────────────────────────────────────────────── */
+
+.catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ── Skeleton loading ────────────────────────────────────────────── */
+
+.catalog__skeleton {
+  height: 160px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+
+.catalog__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px 32px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+}
+
+.catalog__empty p {
+  margin: 0;
+}
+
+.catalog__empty a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.catalog__empty a:hover {
+  text-decoration: underline;
+}
+
+.catalog__clear-filters-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.catalog__clear-filters-btn:hover {
+  background: var(--color-primary-muted);
+  border-color: var(--color-primary);
+}
+
+/* ── Error state ─────────────────────────────────────────────────── */
+
+.catalog__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.catalog__error-message {
+  font-size: 0.9375rem;
+  color: var(--color-error);
+  margin: 0;
+}
+
+.catalog__retry-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.catalog__retry-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
