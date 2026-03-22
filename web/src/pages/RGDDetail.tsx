@@ -9,13 +9,14 @@ import DAGGraph from "@/components/DAGGraph"
 import NodeDetailPanel from "@/components/NodeDetailPanel"
 import InstanceTable from "@/components/InstanceTable"
 import NamespaceFilter from "@/components/NamespaceFilter"
+import AccessTab from "@/components/AccessTab"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
-type TabId = "graph" | "instances" | "yaml"
+type TabId = "graph" | "instances" | "yaml" | "access"
 
 function isValidTab(t: string | null): t is TabId {
-  return t === "graph" || t === "instances" || t === "yaml"
+  return t === "graph" || t === "instances" || t === "yaml" || t === "access"
 }
 
 /**
@@ -192,6 +193,16 @@ export default function RGDDetail() {
         >
           YAML
         </button>
+        <button
+          data-testid="tab-access"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "access"}
+          onClick={() => setTab("access")}
+          type="button"
+        >
+          Access
+        </button>
       </div>
 
       {/* Tab content */}
@@ -286,6 +297,12 @@ export default function RGDDetail() {
         {activeTab === "yaml" && (
           <div className="rgd-tab-panel">
             <KroCodeBlock code={toYaml(rgd)} title="ResourceGraphDefinition" />
+          </div>
+        )}
+
+        {activeTab === "access" && (
+          <div className="rgd-tab-panel">
+            <AccessTab rgdName={String(rgdName)} />
           </div>
         )}
       </div>
