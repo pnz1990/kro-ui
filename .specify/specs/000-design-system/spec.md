@@ -375,3 +375,87 @@ Color changes require:
 3. Verify contrast ratios in the table above still pass WCAG AA
 4. If a semantic meaning changes, update the usage guide table
 5. Commit message: `design(tokens): <what changed and why>`
+
+---
+
+## Component interaction patterns
+
+These are **binding patterns** — all components must follow them unless a spec
+explicitly overrides with documented rationale.
+
+### Cards (RGD cards, cluster cards, catalog cards)
+
+- The **entire card** is a clickable target navigating to the primary resource view
+- Wrap card content in a `<Link>` or make the card a `<button>` with `role`
+- Secondary actions (e.g., "Instances" link, "Graph" link) live inside the card
+  as separate interactive elements, not the primary navigation target
+- Cards must have `cursor: pointer` on the whole surface
+- Cards that link elsewhere must have appropriate `aria-label` describing the destination
+- **Never** make a card where the only clickable elements are small text links at the bottom
+
+### Data tables
+
+- **Column headers** on sortable columns must be `<button>` elements with visible sort icon
+  (`↑`, `↓`, `↕`); default state shows `↕` (unsorted)
+- **Default sort**: specified per component; for instance tables default to Name A→Z;
+  for health-related tables default to worst-first (errors before healthy)
+- **Empty state**: a `<div>` with a readable message and muted text color — never an
+  empty `<tbody>`; empty state should be distinct from a loading state
+- **Loading state**: skeleton rows or a spinner — never leave the table blank during fetch
+- Tables with > 100 rows should use pagination or virtual scrolling (spec requirement for
+  any table expected to have unbounded rows)
+
+### Page titles
+
+All pages MUST set `document.title` via a `usePageTitle(title)` hook or equivalent.
+Titles follow the format `<content> — kro-ui`. Specific rules:
+
+| Page | Title format |
+|------|-------------|
+| Home | `kro-ui` |
+| Catalog | `Catalog — kro-ui` |
+| Fleet | `Fleet — kro-ui` |
+| Events | `Events — kro-ui` |
+| RGD detail | `<rgd-name> — kro-ui` |
+| Instance detail | `<instance-name> / <rgd-name> — kro-ui` |
+| 404 | `Not Found — kro-ui` |
+
+### Breadcrumb navigation
+
+Pages at depth ≥ 3 (instance detail, any sub-resource page) MUST render a breadcrumb
+above the page heading:
+
+```
+Home  /  <RGD name>  /  Instances  /  <instance name>
+```
+
+- Each non-terminal segment is a `<Link>`
+- The terminal segment (current page) is plain text, `aria-current="page"`
+- Breadcrumb container: `<nav aria-label="Breadcrumb"><ol>...</ol></nav>`
+- Separator: `/` as a non-interactive `<span aria-hidden="true">`
+
+### Tooltips
+
+- Any text that is truncated (e.g., long ARNs, context names, node IDs) MUST expose
+  the full value in a `title` attribute at minimum
+- DAG nodes MUST show a hover tooltip with: node ID, kind, node type badge,
+  and `includeWhen` expression (if present)
+- Tooltip component uses `--color-surface-2` background, `--color-border` border,
+  positioned via CSS `position: absolute` in a portal — never clips behind SVG
+
+### Not-found / 404 page
+
+A `NotFound` component MUST be registered as the catch-all route (`path="*"`).
+It must render:
+- "Page not found" heading
+- The attempted URL
+- A link back to `/` (Home)
+- Standard `kro-ui` layout (TopBar, etc.) — not a blank page
+
+### Refresh indicators
+
+Any page or component that polls for data MUST show:
+- A "refreshed Xs ago" indicator that counts up from the last successful poll
+- The indicator should switch to minutes when ≥ 60s: "refreshed 2m ago"
+- On poll failure: "Refresh paused — retrying" (not a silent spinner)
+- Manual refresh pages (Fleet, any one-shot fetch) MUST have an explicit refresh button

@@ -166,6 +166,33 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
+   **kro-ui specific self-QA checklist** — verify before marking complete:
+
+   **Backend (if Go files were changed)**:
+   - [ ] No handler makes sequential API calls in a loop over resource types
+   - [ ] All discovery calls use cached results (≥30s TTL) — no `ServerGroupsAndResources()` per-request
+   - [ ] Fan-out operations use `errgroup` with per-resource timeout
+   - [ ] No service account names, ClusterRole names, or namespace names are hardcoded
+   - [ ] `go vet ./...` passes
+   - [ ] `GOPROXY=direct GONOSUMDB="*" go test -race ./internal/...` passes
+
+   **Frontend (if TypeScript/CSS files were changed)**:
+   - [ ] `document.title` is set on every new page (`usePageTitle` or `useEffect`)
+   - [ ] Every resource card is fully clickable (entire card body is a `<Link>`)
+   - [ ] Absent/null data renders as "Not reported" or the raw value — never `?`, `null`, `undefined`
+   - [ ] DAG node kind falls back to raw `kind` string, then `nodeId` — never `?`
+   - [ ] No hardcoded hex or `rgba()` values in component CSS (only `var(--token)`)
+   - [ ] If a page with depth ≥ 3 was added: breadcrumb navigation is present
+   - [ ] If a new route was added: `path="*"` catch-all `NotFound` still exists in router
+   - [ ] `bun run --cwd web tsc --noEmit` passes
+   - [ ] `bun run --cwd web vitest run` passes
+
+   **UX completeness**:
+   - [ ] Loading state is handled (not just success path)
+   - [ ] Error state is handled (API failure, network error)
+   - [ ] Empty state is handled with a readable message
+   - [ ] If the feature polls data: "refreshed Xs ago" indicator is present
+
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
 
 10. **Check for extension hooks**: After completion validation, check if `.specify/extensions.yml` exists in the project root.

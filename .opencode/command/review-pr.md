@@ -40,6 +40,12 @@ $ARGUMENTS
    - [ ] Tests are table-driven with `build`/`check` pattern, use `testify/assert` + `require`
    - [ ] Commits follow Conventional Commits: `type(scope): message`
 
+   **Performance (NON-NEGOTIABLE)**:
+   - [ ] No `ServerGroupsAndResources()` called per-request without a discovery cache
+   - [ ] No sequential loop over all API resource types (causes 75s+ hangs on real clusters)
+   - [ ] Fan-out list operations use `errgroup` with a per-resource timeout
+   - [ ] New API handlers have a bounded response time (≤5s on a healthy cluster)
+
    **kro-Specific Rules (NON-NEGOTIABLE)**:
    - [ ] All cluster access uses `k8s.io/client-go/dynamic` — no typed clients for kro resources
    - [ ] Resource kind resolution uses discovery, not naive pluralization
@@ -47,6 +53,7 @@ $ARGUMENTS
    - [ ] No fork-only concepts: `specPatch`, `stateFields` must not appear anywhere
    - [ ] Read-only: no mutating K8s API calls (`create`, `update`, `patch`, `delete`, `apply`)
    - [ ] Only upstream `kubernetes-sigs/kro` features enabled by default
+   - [ ] No hardcoded SA names, ClusterRole names, namespace names, or label keys
 
    **Frontend Rules**:
    - [ ] No CSS frameworks (Tailwind, Bootstrap, MUI) — plain CSS with `tokens.css`
@@ -57,6 +64,12 @@ $ARGUMENTS
    - [ ] `color-mix()` is acceptable but the combination should be added as a named token in `tokens.css` first (not inlined in component CSS)
    - [ ] TypeScript strict mode — no `any` in production files; `as any` in test files is acceptable
    - [ ] No `@ts-ignore` anywhere
+   - [ ] Every new page sets `document.title` (format: `<content> — kro-ui`)
+   - [ ] `path="*"` catch-all `NotFound` route still exists if router was touched
+   - [ ] Every resource card is fully clickable (entire card body is a `<Link>`) — not just small text links
+   - [ ] Absent/null data renders as "Not reported" or raw value — never `?`, `null`, `undefined`
+   - [ ] A `?` kind label on any DAG node is always a bug — must use raw kind string or nodeId as fallback
+   - [ ] Pages at depth ≥ 3 have breadcrumb navigation
 
    **Security**:
    - [ ] No secrets, credentials, or `.env` files in the diff
@@ -64,13 +77,17 @@ $ARGUMENTS
    - [ ] No new dependencies that are unnecessary (constitution §V)
    - [ ] RBAC changes still enforce read-only (if Helm chart touched)
    - [ ] No XSS vectors in frontend (raw HTML injection, dangerouslySetInnerHTML without sanitization)
+   - [ ] `web/dist/` is not tracked by git (build artifact — must not be committed)
 
    **Product & UX**:
    - [ ] User-facing text and labels match kro terminology (not fork terminology)
-   - [ ] Loading states, error states, and empty states are handled (not just happy path)
+   - [ ] Loading state, error state, AND empty state are all handled (not just happy path)
    - [ ] Keyboard navigation works for interactive elements
    - [ ] Dark and light mode both work (if UI changed)
    - [ ] Semantic state colors used correctly per design system
+   - [ ] If the feature polls data: a "refreshed Xs ago" indicator is present
+   - [ ] New tables have column sort indicators on sortable columns
+   - [ ] Manual-fetch pages (Fleet, one-shot fetches) have a refresh button
 
 ---
 

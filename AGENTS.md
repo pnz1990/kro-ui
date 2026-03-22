@@ -111,6 +111,14 @@ The Makefile `go` and `tidy` targets already set this. Use `make go` and
   `spec.schema.kind`, `spec.resources[].id`, etc.
 - **Upstream kro only**: `specPatch`/`stateFields` are fork-only concepts that
   do NOT exist in `kubernetes-sigs/kro`. Never add them.
+- **Performance budget**: every handler must respond in ≤5s. Discovery results
+  must be cached (≥30s). Fan-out list operations use `errgroup` with 2s per-resource
+  timeout. **Never** call `ServerGroupsAndResources()` per-request without caching.
+  **Never** loop sequentially over all API resource types — this will hang on
+  large clusters (EKS with many controllers routinely has 200+ resource types).
+- **No hardcoded config**: never hardcode service account names, ClusterRole names,
+  namespace names, or label key values. Derive them from the cluster or expose
+  them as configurable with documented defaults.
 
 ### Frontend (TypeScript/React)
 
@@ -121,6 +129,30 @@ The Makefile `go` and `tidy` targets already set this. Use `make go` and
   TS tokenizer in `web/src/lib/highlighter.ts`.
 - **Feature flags via `useCapabilities()`**: spec `008-feature-flags` defines
   how features are gated on what the connected kro cluster actually supports.
+- **Page titles**: every page MUST update `document.title`. Format: `<content> — kro-ui`.
+- **404 route**: `path="*"` catch-all rendering `NotFound` is REQUIRED in the router.
+- **Cards are fully clickable**: every resource card's entire body navigates to
+  the primary view. Small text links inside cards as the only navigation target
+  is a UX violation.
+- **Graceful degradation**: absent data (conditions, kinds, fields) renders as
+  "not reported" / raw value — never as `?`, `undefined`, `null`, or an error state.
+  A `?` kind label on a DAG node is always a bug.
+
+### Known anti-patterns (DO NOT repeat)
+
+These were discovered in production QA. Every one produced a GitHub issue.
+
+| Anti-pattern | Issue | Correct approach |
+|---|---|---|
+| `ServerGroupsAndResources()` per-request to find child resources | #57 (75s response) | Cache discovery; use label-selector on known GVRs only |
+| Rendering absent `status.conditions` entries as "Pending" | #59 | Show "Not reported" for absent expected conditions |
+| Mixing schema constraints into the `default` field of `ParsedType` | #60 | Parse `enum=`, `min=`, `max=` as separate named fields |
+| Checking `default !== undefined` where `default=0`/`false`/`""` are falsy | #61 | Use `'default' in parsedType` (key existence), not `!== undefined` |
+| DAG nodes returning `?` for unresolvable kind | #58 | Fall back to raw `kind` string, then `nodeId` — never `?` |
+| Fully ARN context names truncated to ambiguous suffix | #63 | Show account ID fragment + cluster name |
+| SVG viewBox not fitted to content after layout | #64 | Measure bounding box after Dagre runs; set height accordingly |
+| Resource cards with only small text links as navigation | #65 | Wrap entire card in `<Link>` |
+| Filter UI that only works via URL params (no input fields) | #66 | Provide actual input controls; URL params are a bonus |
 
 ### Upstream kro node types (5 real types, from `pkg/graph/node.go`)
 

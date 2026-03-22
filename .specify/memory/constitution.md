@@ -300,6 +300,107 @@ That spec is the authoritative source — this section is a summary only.
 - `CONTRIBUTING.md` MUST reference `kubernetes-sigs` contribution guidelines
   as a model
 
+## XI. API Performance Budget (NON-NEGOTIABLE)
+
+Every HTTP handler MUST respond within a bounded time on a healthy cluster.
+Unbounded discovery loops are prohibited.
+
+- **All API handlers: 5-second response budget** (enforced via context deadline)
+- **Discovery operations** (`ServerGroupsAndResources`, `ServerResourcesForGroupVersion`)
+  MUST be cached for ≥30 seconds. Never call discovery on every request.
+- **Fan-out list operations** (listing across multiple resource types or namespaces)
+  MUST use `errgroup` with a per-resource timeout of **2 seconds**. Any resource
+  that exceeds the timeout is silently skipped — a partial result is better than
+  a hung request.
+- **No sequential API calls in a loop** — if N resources must be listed, list them
+  concurrently, not one after another.
+- Performance anti-patterns that are **prohibited**:
+  - Calling `ServerGroupsAndResources()` per-request without a cache
+  - Iterating over all API resources in the cluster to find child resources
+    (`listChildResourcesByLabel` pattern with no parallelism and no timeout)
+  - Any blocking call in a hot path with no deadline
+
+---
+
+## XII. Graceful Degradation for Unknown Data
+
+The cluster is the source of truth, but it is not always complete. kro-ui must
+**never crash or show an error state** when expected data is merely absent.
+
+- **Unknown or absent `kind`**: render the raw `kind` string as-is; if `kind` is
+  empty, render the `nodeId` instead. Never render `?`.
+- **Absent `status.conditions`**: treat as an empty array. Do not fabricate
+  condition entries for types the cluster did not emit. Show "Not reported" for
+  expected-but-absent conditions — never "Pending" (which implies stuckness).
+- **Absent condition fields** (`reason`, `message`, `lastTransitionTime`):
+  omit the field entirely from the UI rather than rendering `undefined`, `null`,
+  "N/A", or an empty cell.
+- **Schema fields with unknown types or unparseable values**: render the raw
+  string value rather than silently dropping the field.
+- **API errors on secondary data** (events, children, fleet summaries): show
+  a degraded state for that specific piece, not a full-page error. Other data
+  on the page must continue to function.
+
+---
+
+## XIII. Frontend UX Standards
+
+These rules apply to every frontend component and page.
+
+### Page titles
+Every page MUST update `document.title` to reflect the current content.
+Format: `<specific content> — kro-ui`. The home page title is just `kro-ui`.
+This is required for browser tab identification, history, and bookmarking.
+
+### Route completeness
+Every route must have a corresponding rendered component. A catch-all `path="*"`
+route rendering a `NotFound` component is REQUIRED in the router. A blank page
+on unknown routes is never acceptable.
+
+### Interactive card elements
+Any card or list item that represents a navigable resource (RGD, instance, etc.)
+MUST be fully clickable — the entire card body navigates to the primary action
+(the Graph tab for RGDs, the instance detail for instances). Secondary actions
+(e.g., "Instances" link) may remain as explicit buttons within the card. Users
+must never need to hunt for a small link inside a card to navigate.
+
+### Data table standards
+- Every sortable table MUST have visible sort indicators on column headers
+- Default sort order MUST be documented in the spec (e.g., name A→Z, newest first)
+- Tables with status/health data MUST default to "worst first" (errors before healthy)
+- Empty state MUST be a distinct, readable message — not an empty container
+
+### Navigation and wayfinding
+- Pages deeper than 2 levels in the hierarchy (e.g., instance detail) MUST have
+  a breadcrumb: `Home / <RGD name> / Instances / <instance name>`
+- Each breadcrumb segment must be a link to that level
+- Active page segment is not a link
+
+### Tooltips on complex elements
+- DAG nodes MUST show a tooltip on hover with: node ID, kind, node type, and
+  any `includeWhen` CEL expression
+- Truncated text (context names, ARNs, long labels) MUST show the full value
+  in a `title` attribute or tooltip
+
+### Context/cluster disambiguation
+When displaying cluster or context names that may be ambiguous (full AWS ARNs,
+multiple clusters with the same short name):
+- The displayed label MUST include enough information to distinguish the context
+  from others in the same kubeconfig (e.g., account ID + cluster name for EKS)
+- The full context name MUST be accessible on hover
+
+### Scale requirements
+UI components must be designed for real-world scale:
+- Home page and Catalog: must function correctly at 100+ RGDs (search/filter required)
+- Fleet matrix: must function at 10+ clusters × 50+ RGD kinds (sticky headers, scroll)
+- Instances table: must function at 500+ instances (virtual scroll or pagination)
+- Events stream: already capped at 200 (maintained)
+
+### No hardcoded configuration values
+Do not hardcode Kubernetes resource names, service account names, ClusterRole names,
+namespaces, or label keys that may vary between installations. Use data returned
+from the API, or make the value configurable with a documented fallback.
+
 ---
 
 ## Governance
@@ -310,4 +411,4 @@ Amendments:
 2. Bump the version number (MINOR for new principles, PATCH for clarifications)
 3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.1.0 | **Ratified**: 2026-03-20 | **Last Amended**: 2026-03-20
+**Version**: 1.2.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
