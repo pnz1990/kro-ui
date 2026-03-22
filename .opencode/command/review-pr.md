@@ -53,8 +53,10 @@ $ARGUMENTS
    - [ ] No state management libraries (Redux, Zustand, etc.)
    - [ ] No external highlighting libraries (highlight.js, Prism, shiki)
    - [ ] No component libraries (shadcn, Radix, etc.)
-   - [ ] All colors use CSS custom properties from `tokens.css` — no hardcoded hex in components
-   - [ ] TypeScript strict mode — no `any`, no `@ts-ignore`
+   - [ ] All colors use CSS custom properties from `tokens.css` — no hardcoded hex or `rgba()` in components
+   - [ ] `color-mix()` is acceptable but the combination should be added as a named token in `tokens.css` first (not inlined in component CSS)
+   - [ ] TypeScript strict mode — no `any` in production files; `as any` in test files is acceptable
+   - [ ] No `@ts-ignore` anywhere
 
    **Security**:
    - [ ] No secrets, credentials, or `.env` files in the diff
@@ -101,7 +103,12 @@ For each PR number in `$PRS`:
    ```bash
    gh pr checks $PR_NUM
    ```
-   Note any failing checks — these are blockers.
+   Note any failing checks — these are blockers. **Exception**: if `trivy` fails, check the
+   job log before treating it as a blocker:
+   - If the failure is `go mod download: exec: "git": executable file not found` → infrastructure
+     issue with the Docker build stage (missing `git` in `golang:alpine`), NOT a CVE. Flag as
+     a known infra issue, not a code problem.
+   - If the failure shows `CRITICAL` or `HIGH` CVE names → genuine blocker, request changes.
 
 9. **Perform the review** against the checklist from step 4. For each category,
    evaluate every changed file in the diff:
@@ -115,10 +122,13 @@ For each PR number in `$PRS`:
 
    c. **Frontend Rules**: grep for CSS framework imports, state library imports,
       highlighting library imports, component library imports, hardcoded hex values
-      in component files (not `tokens.css`).
+      and `rgba()` literals in component files (not `tokens.css`). Also grep for
+      `color-mix(` in component CSS — acceptable if the combination is also added
+      as a named token in `tokens.css`; flag as nit if not.
 
    d. **Security**: check for secrets, panics in non-test files, unnecessary new deps
-      in `go.mod` or `package.json`, RBAC changes, XSS vectors.
+      in `go.mod` or `package.json`, RBAC changes, XSS vectors. Also check that
+      `web/dist/` is not tracked by git (it is a build artifact and must not be committed).
 
    e. **Product & UX**: check that the PR handles error/loading/empty states if it adds
       UI. Check that labels use upstream kro terminology. Check keyboard accessibility
@@ -139,6 +149,10 @@ For each PR number in `$PRS`:
     - **Request changes**: Constitution violations, security issues, missing error
       handling, broken UX, or spec requirements not met. Leave detailed comments
       explaining what needs to change and why.
+
+   **Note on self-review**: GitHub prevents approving or requesting changes on your own PRs.
+   In that case, post the review as `--comment` instead. The verdict and findings stand
+   regardless of the review mechanism.
 
 11. **Post the review**:
 
@@ -209,3 +223,6 @@ For each PR number in `$PRS`:
 - **Acknowledge good work**: when code is well-written, say so specifically
 - **Be specific**: "error handling is missing in `handlers/rgds.go:45`" not "needs better error handling"
 - **Suggest fixes**: don't just point out problems, show the solution
+- **Distinguish infra from code failures**: a Trivy failure due to missing `git` in the Docker image is not a CVE — check the log before escalating
+- **`as any` in test files is acceptable**: strict mode applies to production code only; test helpers commonly need it for mock fixture construction
+- **`color-mix()` in CSS is a nit, not a blocker**: it's valid CSS with wide browser support, but ideally the combination should live as a named token in `tokens.css`

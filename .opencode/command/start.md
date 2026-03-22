@@ -1,5 +1,5 @@
 ---
-description: "Create a worktree for a spec and set up everything needed to start implementing. Usage: /start 001b-rgd-api"
+description: "Create worktrees for one or more specs and generate tasks.md for each. Usage: /start 005  or  /start 011 017 019"
 ---
 
 ## User Input
@@ -8,93 +8,100 @@ description: "Create a worktree for a spec and set up everything needed to start
 $ARGUMENTS
 ```
 
-## Spec Identification
+## Parse Arguments
 
-1. **Parse the argument**: The user provides a spec identifier (e.g., `001b-rgd-api`, `002`, `002-rgd-list-home`). This can be:
-   - A full spec directory name: `001b-rgd-api`
-   - A numeric prefix only: `001b` or `002`
-   - A partial match: `rgd-api`
+1. **Split `$ARGUMENTS` on whitespace** to get a list of spec identifiers. Each can be:
+   - A full spec directory name: `011-collection-explorer`
+   - A numeric prefix only: `011` or `001b`
+   - A partial match: `collection`
 
-2. **Resolve the spec directory**: Find the matching directory in `.specify/specs/`:
+2. **Resolve each identifier** against `.specify/specs/`:
    ```bash
-   ls .specify/specs/ | grep "$ARGUMENTS"
+   ls .specify/specs/ | grep "$ARG"
    ```
-   - If exactly one match: use it
-   - If zero matches: show available specs and ask the user to pick one
-   - If multiple matches: show matches and ask the user to pick one
+   - Exactly one match → use it
+   - Zero matches → report and skip
+   - Multiple matches → show options and ask user to pick
 
-3. **Store the resolved spec name** as `$SPEC_NAME` (e.g., `001b-rgd-api`)
+3. **Store resolved list** as `$SPECS` (e.g., `[011-collection-explorer, 017-rgd-validation-linting]`). Remove duplicates.
 
-## Pre-Flight Checks
+---
 
-4. **Check current branch**: Run `git branch --show-current`
-   - If already on `$SPEC_NAME` branch: skip worktree creation, go to step 8
-   - If on `main`: proceed to step 5
-   - If on another spec branch: warn the user and ask if they want to proceed
+## Pre-Flight Checks (run once, not per spec)
 
-5. **Check if worktree already exists**: Run `wt list`
-   - If a worktree for `$SPEC_NAME` already exists: inform the user and tell them to `cd` into it. Show the path. Stop.
-   - If no worktree exists: proceed to step 6
+4. **Check current branch**:
+   ```bash
+   git branch --show-current
+   ```
+   - If not on `main`: warn and ask the user if they want to proceed
+
+5. **Check for existing worktrees**:
+   ```bash
+   wt list
+   ```
+   For any spec that already has a worktree: report the path and skip that spec (don't recreate).
 
 6. **Ensure main is up to date**:
    ```bash
    git fetch origin
-   git rebase origin/main
    ```
-   - If rebase fails: stop and report the conflict
+   If `git status` shows uncommitted tracked file changes: `git stash --include-untracked` before creating worktrees, then `git stash pop` after.
 
-## Worktree Creation
+---
 
-7. **Create the worktree**:
+## Worktree Creation (parallel for all specs)
+
+7. For each spec in `$SPECS` (that doesn't already have a worktree):
    ```bash
    wt switch --create $SPEC_NAME --no-cd -y
    ```
    - If `wt` is not installed: fall back to `git checkout -b $SPEC_NAME`
-   - If creation fails: report the error and stop
+   - If creation fails: report the error and skip that spec
 
-## Context Loading
+---
 
-8. **Read the spec and required context files** (in parallel):
-   - `.specify/specs/$SPEC_NAME/spec.md` — **REQUIRED** (stop if missing)
-   - `.specify/specs/$SPEC_NAME/tasks.md` — optional (generate if missing)
-   - `.specify/memory/constitution.md` — **REQUIRED**
+## Context Loading (parallel for all specs)
 
-9. **If tasks.md is missing**:
-   - Inform the user: "No tasks.md found for $SPEC_NAME. Generating one now..."
-   - Execute the `/speckit.tasks` command flow to generate it
-   - Read the generated tasks.md
+8. For each spec, **in parallel**, read:
+   - `.specify/specs/$SPEC_NAME/spec.md` — **REQUIRED** (stop that spec if missing)
+   - `.specify/specs/$SPEC_NAME/tasks.md` — optional
 
-10. **If tasks.md exists**: Display a summary:
-    - Total task count
-    - Phase breakdown (number of tasks per phase)
-    - Which phases are already completed (count `[x]` vs `[ ]`)
+9. **If tasks.md is missing** for any spec:
+   - Generate it now using the spec.md content and knowledge of existing codebase assets
+   - Write to `.specify/specs/$SPEC_NAME/tasks.md`
+   - Tasks should be organized into phases, each with actionable checklist items
+   - Reference pre-existing assets (hooks, API functions, components) to avoid duplication
+
+10. **If tasks.md exists**: display a summary (total tasks, phase count, completed count).
+
+---
 
 ## Handoff
 
-11. **Display the setup summary**:
-    ```
-    ## Ready to implement: $SPEC_NAME
+11. **Display the setup summary** for all specs:
 
-    **Worktree**: ../kro-ui.$SPEC_NAME/
-    **Branch**: $SPEC_NAME
-    **Spec**: .specify/specs/$SPEC_NAME/spec.md
-    **Tasks**: .specify/specs/$SPEC_NAME/tasks.md (N tasks, M completed)
+    ```
+    ## Ready to implement — N specs
+
+    | Spec | Worktree | Tasks | Complexity | Go backend? |
+    |------|----------|-------|------------|-------------|
+    | 011-collection-explorer | ../kro-ui.011-... | X tasks | Medium | Yes |
+    ...
 
     ### To start working:
-    cd ../kro-ui.$SPEC_NAME
-
-    Open a new OpenCode session from that directory, then run:
-    /speckit.implement
+    cd ../kro-ui.<spec-name>
+    # Open a new OpenCode session, then run /speckit.implement
     ```
 
-12. **If the user is ALREADY in the worktree** (detected in step 4):
-    - Skip the "cd" instruction
-    - Instead, ask: "You're already in the worktree. Want me to start implementing now? (Run `/speckit.implement` to begin)"
+12. Note any specs with conflicting file surface (e.g., both touch `RGDDetail.tsx` or `LiveDAG.tsx`) — recommend sequential ordering for those.
+
+---
 
 ## Error Handling
 
-- If the spec directory doesn't exist: list all available specs and stop
-- If the worktree already exists: show the path and stop (don't create a duplicate)
-- If `wt` is not installed: fall back to `git checkout -b`, warn about missing hooks
-- If `git fetch` or `rebase` fails: stop and report, suggest `git stash` if dirty
-- If spec.md is missing: stop with "Spec file not found. Create the spec first."
+- Spec directory not found → list available specs and skip
+- Worktree already exists → show path, skip creation
+- `wt` not installed → fall back to `git checkout -b`, warn about missing hooks
+- `git fetch` fails → stop and report
+- `spec.md` missing → skip that spec with message "Spec file not found — create the spec first"
+- Dirty working tree → stash automatically, restore after worktree creation
