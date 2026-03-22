@@ -4,6 +4,8 @@
 // (spec.resources[].id, spec.resources[].template, etc.).
 // The DAGGraph component is purely data-driven and has zero kro knowledge.
 
+import type { K8sObject } from '@/lib/api'
+
 // ── Types ─────────────────────────────────────────────────────────────────
 
 /**
@@ -344,7 +346,7 @@ function layoutDAG(
  * @param kind - The Kubernetes kind string from a DAGNode (e.g. "Database")
  * @param rgds - The full list of RGD objects from the cluster
  */
-export function detectKroInstance(kind: string, rgds: Array<Record<string, unknown>>): boolean {
+export function detectKroInstance(kind: string, rgds: K8sObject[]): boolean {
   if (!kind) return false
   for (const rgd of rgds) {
     const spec = rgd.spec
