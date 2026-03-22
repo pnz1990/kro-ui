@@ -78,6 +78,7 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			r.Get("/rgds", h.ListRGDs)
 			r.Get("/rgds/{name}", h.GetRGD)
 			r.Get("/rgds/{name}/instances", h.ListInstances)
+			r.Get("/rgds/{name}/access", h.GetRGDAccess)
 
 			// Instances
 			r.Get("/instances/{namespace}/{name}", h.GetInstance)
