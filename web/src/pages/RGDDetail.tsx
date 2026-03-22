@@ -11,23 +11,25 @@ import InstanceTable from "@/components/InstanceTable"
 import NamespaceFilter from "@/components/NamespaceFilter"
 import ValidationTab from "@/components/ValidationTab"
 import AccessTab from "@/components/AccessTab"
+import DocsTab from "@/components/DocsTab"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
-type TabId = "graph" | "instances" | "yaml" | "validation" | "access"
+type TabId = "graph" | "instances" | "yaml" | "validation" | "access" | "docs"
 
 function isValidTab(t: string | null): t is TabId {
-  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "access"
+  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "access" || t === "docs"
 }
 
 /**
- * RGDDetail — RGD detail page with five tabs: Graph, Instances, YAML, Validation, Access.
+ * RGDDetail — RGD detail page with six tabs: Graph, Instances, YAML, Validation, Access, Docs.
  *
  * Active tab is reflected in and restored from `?tab=` URL query parameter.
  * Default tab is "graph".
  *
  * Spec: .specify/specs/003-rgd-detail-dag/, .specify/specs/004-instance-list/,
- *       .specify/specs/017-rgd-validation-linting/, .specify/specs/018-rbac-visualizer/
+ *       .specify/specs/017-rgd-validation-linting/, .specify/specs/018-rbac-visualizer/,
+ *       .specify/specs/020-schema-doc-generator/
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
@@ -215,6 +217,16 @@ export default function RGDDetail() {
         >
           Access
         </button>
+        <button
+          data-testid="tab-docs"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "docs"}
+          onClick={() => setTab("docs")}
+          type="button"
+        >
+          Docs
+        </button>
       </div>
 
       {/* Tab content */}
@@ -321,6 +333,12 @@ export default function RGDDetail() {
         {activeTab === "access" && (
           <div className="rgd-tab-panel">
             <AccessTab rgdName={String(rgdName)} />
+          </div>
+        )}
+
+        {activeTab === "docs" && (
+          <div className="rgd-tab-panel">
+            <DocsTab rgd={rgd} />
           </div>
         )}
       </div>

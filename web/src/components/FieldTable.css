@@ -1,0 +1,143 @@
+/* FieldTable.css — Styles for the spec/status field documentation table.
+ *
+ * All colors use CSS custom properties from tokens.css.
+ * Spec: .specify/specs/020-schema-doc-generator/
+ */
+
+.field-table {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.field-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.field-table__th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.field-table__th--center {
+  text-align: center;
+}
+
+.field-table__th--source {
+  width: 50%;
+}
+
+/* ── Rows ────────────────────────────────────────────────────────────── */
+
+.field-table__row:nth-child(even) {
+  background: var(--color-surface-2);
+}
+
+.field-table__row:hover {
+  background: var(--color-primary-subtle);
+}
+
+.field-table__td {
+  padding: 8px 12px;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text);
+}
+
+.field-table__row:last-child .field-table__td {
+  border-bottom: none;
+}
+
+.field-table__td--center {
+  text-align: center;
+}
+
+.field-table__td--source {
+  /* Give the CEL code block room without forcing the table wider */
+  max-width: 0;
+  overflow: hidden;
+}
+
+/* ── Field name ──────────────────────────────────────────────────────── */
+
+.field-table__field-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  background: none;
+  padding: 0;
+  user-select: text;
+}
+
+/* ── Type badge ──────────────────────────────────────────────────────── */
+
+.field-table__type-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-primary-text);
+  background: var(--color-surface-3);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* ── Required / optional dot ─────────────────────────────────────────── */
+
+.field-table__required-dot {
+  font-size: 10px;
+  display: inline-block;
+}
+
+.field-table__required-dot--required {
+  color: var(--color-error);
+}
+
+.field-table__required-dot--optional {
+  color: var(--color-text-faint);
+}
+
+/* ── Default value ───────────────────────────────────────────────────── */
+
+.field-table__default {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: none;
+  padding: 0;
+}
+
+.field-table__no-default {
+  color: var(--color-text-faint);
+  font-size: 13px;
+}
+
+/* ── Status variant: source CEL cell ─────────────────────────────────── */
+
+/* Compact KroCodeBlock inside a table cell */
+.field-table__td--source .kro-code-block {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.field-table__td--source .kro-code-block-pre {
+  padding: 0;
+  background: transparent;
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

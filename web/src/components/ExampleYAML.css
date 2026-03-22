@@ -1,0 +1,9 @@
+/* ExampleYAML.css — Minimal wrapper styles for the example manifest component.
+ *
+ * The actual code block styling is inherited from KroCodeBlock.css.
+ * Spec: .specify/specs/020-schema-doc-generator/
+ */
+
+.example-yaml {
+  /* Wrapper: no extra margin or padding — KroCodeBlock handles its own spacing */
+}
