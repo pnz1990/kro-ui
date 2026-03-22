@@ -1,0 +1,72 @@
+# .goreleaser.yaml — goreleaser configuration for kro-ui binary releases.
+# Triggered by the release.yml GitHub Actions workflow on v* tags.
+
+version: 2
+
+project_name: kro-ui
+
+before:
+  hooks:
+    - make web   # build frontend into web/dist before Go build
+
+builds:
+  - id: kro-ui
+    main: ./cmd/kro-ui
+    binary: kro-ui
+    env:
+      - CGO_ENABLED=0
+      - GOPROXY=direct
+      - GONOSUMDB=*
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X github.com/pnz1990/kro-ui/internal/version.Version={{.Version}}
+      - -X github.com/pnz1990/kro-ui/internal/version.Commit={{.Commit}}
+      - -X github.com/pnz1990/kro-ui/internal/version.BuildDate={{.Date}}
+
+archives:
+  - id: kro-ui
+    name_template: "kro-ui_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^chore\\(deps\\)"
+      - "^chore: update AGENTS"
+      - "^chore\\(opencode\\)"
+      - "^chore\\(ci\\)"
+      - "Merge pull request"
+
+release:
+  github:
+    owner: pnz1990
+    name: kro-ui
+  name_template: "kro-ui {{.Version}}"
+  draft: false
+  prerelease: auto
+
+dockers:
+  # Docker image is built and pushed by release.yml (docker/build-push-action).
+  # goreleaser handles binary archives only.
+  []

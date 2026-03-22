@@ -2,28 +2,32 @@
 
 [![CI](https://github.com/pnz1990/kro-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/pnz1990/kro-ui/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/pnz1990/kro-ui/actions/workflows/codeql.yml/badge.svg)](https://github.com/pnz1990/kro-ui/actions/workflows/codeql.yml)
+[![Release](https://img.shields.io/github/v/release/pnz1990/kro-ui)](https://github.com/pnz1990/kro-ui/releases)
 
-A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraphDefinitions, inspect live instances, and understand your resource graphs directly from the cluster.
+A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraphDefinitions, inspect live instances, explore your resource graphs, and understand RBAC gaps directly from the cluster.
 
 > Unofficial. Out-of-tree. Built for velocity. Path to kro org adoption when stable.
 
 ## Features
 
-**Implemented:**
-- **Home page** — RGD card grid with status dots, kind badges, resource count, age
+- **Home page** — RGD card grid with status dots, kind badges, resource count, age, and chaining indicators
+- **RGD catalog** — searchable, filterable registry of all RGDs with chaining detection and per-RGD instance counts
+- **RGD detail** — six tabs: Graph · Instances · YAML · Validation · Access · Docs
+  - **Graph tab** — interactive DAG showing all managed resources, forEach collections, external refs, and `includeWhen` conditions with live state colors
+  - **Instances tab** — table of all CR instances with namespace filter, readiness badges, and links to live detail
+  - **YAML tab** — syntax-highlighted RGD manifest with CEL expression highlighting and copy-to-clipboard
+  - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
+  - **Access tab** — RBAC permission matrix for kro's service account against all managed resources, with kubectl fix suggestions
+  - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, and a copyable example manifest
+- **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error), node YAML inspection, spec/conditions/events panels
+  - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, status table, and individual resource YAML
+  - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
+- **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), grouping by instance, and URL-param pre-filtering
+- **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix
+- **Context switcher** — switch kubeconfig contexts at runtime without restart
 - **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types)
-- **RGD detail** — YAML tab with syntax-highlighted RGD manifest, copy-to-clipboard
 - **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly
 - **Dark/light theme** — dark default, full design token system
-
-**In progress:**
-- **DAG visualization** — dependency graph for RGDs with node inspection (spec 003)
-- **Context switcher** — switch kubeconfig contexts at runtime (spec 007)
-
-**Planned:**
-- **Instance list** — instance table with namespace filter
-- **Live instance view** — 5s auto-refresh, node YAML inspection
-- **Collection explorer** — forEach drill-down and health badges
 
 ## Quickstart
 
@@ -38,7 +42,9 @@ make build
 ./bin/kro-ui serve --port 9000 --kubeconfig ~/.kube/config --context staging
 ```
 
-### Local (Docker)
+Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/releases).
+
+### Docker
 
 ```bash
 docker run -p 40107:40107 \
@@ -59,6 +65,8 @@ kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
 
 ## API
 
+All endpoints are read-only. No mutating k8s API calls are ever issued.
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/healthz` | GET | Health check (no cluster I/O) |
@@ -67,11 +75,14 @@ kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
 | `/api/v1/rgds` | GET | List all RGDs |
 | `/api/v1/rgds/{name}` | GET | Get single RGD |
 | `/api/v1/rgds/{name}/instances` | GET | List instances of an RGD |
+| `/api/v1/rgds/{name}/access` | GET | RBAC permission check for kro's service account |
 | `/api/v1/instances/{ns}/{name}` | GET | Get instance detail |
 | `/api/v1/instances/{ns}/{name}/events` | GET | Instance events |
 | `/api/v1/instances/{ns}/{name}/children` | GET | Instance child resources |
 | `/api/v1/resources/{ns}/{group}/{ver}/{kind}/{name}` | GET | Raw resource YAML |
 | `/api/v1/kro/capabilities` | GET | Detected kro capabilities and feature gates |
+| `/api/v1/events` | GET | kro-filtered Kubernetes events (`?namespace=`, `?rgd=`) |
+| `/api/v1/fleet/summary` | GET | Multi-cluster summary across all kubeconfig contexts |
 
 ## Development
 
@@ -142,15 +153,15 @@ internal/
   server/           # HTTP server, chi router, SPA fallback
   api/handlers/     # Route handlers — thin layer over k8s package
   api/types/        # Shared API response types
-  k8s/              # Dynamic client, discovery, capabilities detection
-  version/          # Build-time version info
+  k8s/              # Dynamic client, discovery, RBAC, fleet helpers
+  version/          # Build-time version info (set via ldflags)
 web/
   embed.go          # go:embed frontend FS
   src/
-    components/     # KroCodeBlock, RGDCard, StatusDot, TopBar, Layout, ...
-    pages/          # Home, RGDDetail, InstanceDetail
-    lib/            # api.ts, highlighter.ts, yaml.ts, features.ts, format.ts
-    hooks/          # usePolling (5s refresh)
+    components/     # 40+ components: DAGGraph, LiveDAG, DeepDAG, KroCodeBlock, ...
+    pages/          # Home, Catalog, Fleet, RGDDetail, InstanceDetail, Events
+    lib/            # api.ts, dag.ts, highlighter.ts, schema.ts, events.ts, ...
+    hooks/          # usePolling (5s refresh), useCapabilities
 helm/kro-ui/        # Helm chart for in-cluster deployment
 test/e2e/           # Playwright E2E journeys + kind cluster infra
 Dockerfile          # Multi-stage: bun → go → distroless (~15MB)
@@ -158,9 +169,10 @@ Dockerfile          # Multi-stage: bun → go → distroless (~15MB)
 
 **Key design decisions:**
 - All k8s access via the **dynamic client** — no hardcoded type assumptions, survives kro API changes
-- **Discovery-based** resource resolution — new kro CRDs (e.g. GraphRevision) are picked up automatically
+- **Discovery-based** resource resolution — new kro CRDs are picked up automatically
 - Frontend is **embedded** in the Go binary via `go:embed` — single binary, no file server config
 - **Read-only** — never issues mutating k8s API calls; Helm RBAC enforces `get`/`list`/`watch` only
+- **No CSS frameworks, no component libraries, no state management libraries** — plain CSS with design tokens, plain React state
 
 ## Port
 
