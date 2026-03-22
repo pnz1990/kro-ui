@@ -91,6 +91,9 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			// kro capabilities detection
 			r.Get("/kro/capabilities", h.GetCapabilities)
 
+			// Smart event stream — kro-filtered Kubernetes Events
+			r.Get("/events", h.ListEvents)
+
 			// Metrics — stub, returns 501 until phase 2
 			r.Get("/metrics", h.GetMetrics)
 		}

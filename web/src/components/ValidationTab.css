@@ -1,0 +1,279 @@
+/* ValidationTab.css — Validation tab layout and condition item styles.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/017-rgd-validation-linting/
+ */
+
+/* ── Tab container ────────────────────────────────────────────────────────── */
+
+.validation-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Section ──────────────────────────────────────────────────────────────── */
+
+.validation-tab__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.validation-tab__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* ── Checklist ────────────────────────────────────────────────────────────── */
+
+.validation-tab__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Condition item ───────────────────────────────────────────────────────── */
+
+.condition-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-left-width: 3px;
+}
+
+.condition-item--true {
+  border-left-color: var(--color-alive);
+}
+
+.condition-item--false {
+  border-left-color: var(--color-error);
+}
+
+.condition-item--pending {
+  border-left-color: var(--color-not-found);
+}
+
+/* ── Condition header ─────────────────────────────────────────────────────── */
+
+.condition-item__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.condition-item__icon {
+  font-size: 14px;
+  line-height: 1;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.condition-item--true  .condition-item__icon { color: var(--color-alive); }
+.condition-item--false .condition-item__icon { color: var(--color-error); }
+.condition-item--pending .condition-item__icon { color: var(--color-not-found); }
+
+.condition-item__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.condition-item__status-label {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.condition-item--true .condition-item__status-label {
+  background: var(--node-alive-bg);
+  border-color: var(--node-alive-border);
+  color: var(--color-alive);
+}
+
+.condition-item--false .condition-item__status-label {
+  background: var(--node-error-bg);
+  border-color: var(--node-error-border);
+  color: var(--color-error);
+}
+
+.condition-item--pending .condition-item__status-label {
+  background: var(--node-notfound-bg);
+  border-color: var(--node-notfound-border);
+  color: var(--color-not-found);
+}
+
+.condition-item__reason {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  background: var(--color-surface-2);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Condition message ────────────────────────────────────────────────────── */
+
+.condition-item__message {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.condition-item__message-pre {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.condition-item__pending-hint {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+.condition-item__toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.condition-item__toggle:hover {
+  color: var(--color-primary-hover);
+}
+
+/* ── Timestamp ────────────────────────────────────────────────────────────── */
+
+.condition-item__time {
+  font-size: 11px;
+  color: var(--color-text-faint);
+}
+
+/* ── Resource summary ─────────────────────────────────────────────────────── */
+
+.resource-summary {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resource-summary__heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.resource-summary__counts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.resource-summary__total {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.resource-summary__breakdown {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.resource-summary__type {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+}
+
+.resource-summary__type--managed {
+  background: var(--node-default-bg);
+  border-color: var(--node-default-border);
+  color: var(--color-text-muted);
+}
+
+.resource-summary__type--collection {
+  background: var(--node-collection-bg);
+  border-color: var(--node-collection-border);
+  color: var(--color-pending);
+}
+
+.resource-summary__type--external {
+  background: var(--node-external-bg);
+  border-color: var(--node-external-border);
+  color: var(--color-text-muted);
+}
+
+.resource-summary__type--empty {
+  color: var(--color-text-faint);
+  border-color: var(--color-border);
+  background: transparent;
+}
+
+/* ── CEL cross-references ─────────────────────────────────────────────────── */
+
+.resource-summary__refs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resource-summary__refs-heading {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.resource-summary__refs-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resource-summary__ref-item {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.resource-summary__ref-from,
+.resource-summary__ref-to {
+  color: var(--color-text);
+}
+
+.resource-summary__ref-arrow {
+  color: var(--color-text-faint);
+}

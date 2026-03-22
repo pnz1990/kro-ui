@@ -84,6 +84,16 @@ export interface KroCapabilities {
 
 export const getCapabilities = () => get<KroCapabilities>('/kro/capabilities')
 
+// ── Events ───────────────────────────────────────────────────────────
+
+export const listEvents = (namespace?: string, rgd?: string) => {
+  const params = new URLSearchParams()
+  if (namespace) params.set('namespace', namespace)
+  if (rgd) params.set('rgd', rgd)
+  const qs = params.toString() ? '?' + params.toString() : ''
+  return get<K8sList>(`/events${qs}`)
+}
+
 // ── Raw resource ─────────────────────────────────────────────────────
 
 export const getResource = (namespace: string, group: string, version: string, kind: string, name: string) =>
