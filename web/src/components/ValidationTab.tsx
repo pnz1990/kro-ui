@@ -36,33 +36,39 @@ function extractConditions(rgd: K8sObject): RGDCondition[] {
 
 /**
  * Build the display list:
- *   - Known condition types are shown in fixed order; missing ones show as "Pending".
+ *   - Known condition types are shown in fixed order.
+ *     - If present in actual conditions: show with real status.
+ *     - If absent: show as "Not reported" (neutral) — not "Pending".
+ *       Absent means this kro version simply doesn't emit the condition;
+ *       it does NOT mean the controller is stuck. See: #59
  *   - Unknown condition types (future kro versions) are appended at the end.
  */
 function buildDisplayConditions(
   conditions: RGDCondition[],
-): Array<{ condition: RGDCondition; label: string }> {
+): Array<{ condition: RGDCondition; label: string; isAbsent: boolean }> {
   const byType = new Map<string, RGDCondition>()
   for (const c of conditions) {
     if (c.type) byType.set(c.type, c)
   }
 
-  const result: Array<{ condition: RGDCondition; label: string }> = []
+  const result: Array<{ condition: RGDCondition; label: string; isAbsent: boolean }> = []
 
   // Known types first, in order
   for (const { type, label } of KNOWN_CONDITION_TYPES) {
-    const c = byType.get(type) ?? {
-      type,
-      status: 'Unknown',
+    const c = byType.get(type)
+    if (c) {
+      result.push({ condition: c, label, isAbsent: false })
+    } else {
+      // Condition absent from status.conditions — show as "Not reported"
+      result.push({ condition: { type, status: 'Unknown' }, label, isAbsent: true })
     }
-    result.push({ condition: c, label })
   }
 
   // Append any unknown types that are present in the actual conditions
   for (const c of conditions) {
     const isKnown = KNOWN_CONDITION_TYPES.some((k) => k.type === c.type)
     if (!isKnown) {
-      result.push({ condition: c, label: conditionLabel(c.type) })
+      result.push({ condition: c, label: conditionLabel(c.type), isAbsent: false })
     }
   }
 
@@ -90,11 +96,12 @@ export default function ValidationTab({ rgd }: ValidationTabProps) {
       <section className="validation-tab__section">
         <h2 className="validation-tab__section-title">Validation Conditions</h2>
         <div className="validation-tab__checklist">
-          {displayConditions.map(({ condition, label }) => (
+          {displayConditions.map(({ condition, label, isAbsent }) => (
             <ConditionItem
               key={condition.type}
               condition={condition}
               label={label}
+              isAbsent={isAbsent}
             />
           ))}
         </div>

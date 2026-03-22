@@ -111,6 +111,13 @@
 
 /* ── Default value ───────────────────────────────────────────────────── */
 
+.field-table__default-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
 .field-table__default {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -122,6 +129,27 @@
 .field-table__no-default {
   color: var(--color-text-faint);
   font-size: 13px;
+}
+
+/* ── Constraint badges (enum, min, max) ──────────────────────────────── */
+/* Rendered below the default value in a muted style — never mixed into it. */
+/* See: https://github.com/pnz1990/kro-ui/issues/60 */
+
+.field-table__constraints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.field-table__constraint-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-faint);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  white-space: nowrap;
 }
 
 /* ── Status variant: source CEL cell ─────────────────────────────────── */

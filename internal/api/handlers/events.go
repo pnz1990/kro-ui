@@ -86,6 +86,12 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 
 // buildRelevantUIDs constructs a set of UIDs for all kro-relevant resources.
 // It fetches RGDs (cluster-scoped) and all kro instance CRs in the namespace.
+//
+// Child resource UID discovery (via ServerGroupsAndResources + per-type List) is
+// intentionally omitted: it requires O(n) serial API calls across all namespaced
+// resource types, causing 75+ second response times on large clusters (e.g. EKS
+// with 200+ controllers). RGD + instance CR UIDs capture the most operationally
+// relevant events. See: https://github.com/pnz1990/kro-ui/issues/57
 func (h *Handler) buildRelevantUIDs(r *http.Request, namespace, rgdFilter string) (map[string]bool, error) {
 	relevant := make(map[string]bool)
 
@@ -148,112 +154,10 @@ func (h *Handler) buildRelevantUIDs(r *http.Request, namespace, rgdFilter string
 			if uid != "" {
 				relevant[uid] = true
 			}
-			// Also include by instance name: label kro.run/instance-name covers
-			// child resources whose events reference the child's UID, not the instance.
-			// We additionally accept events where involvedObject.name has the
-			// kro.run/instance-name label value. This is handled client-side in the
-			// frontend by the instance attribution logic. Here we only do UID-based
-			// filtering for direct matches.
 		}
-	}
-
-	// 4. Include child resource UIDs via the kro.run/instance-name label.
-	//    List all child resources in the namespace using label selector.
-	if err := h.addChildUIDs(r, namespace, relevant); err != nil {
-		// Non-fatal: log and continue.
-		zerolog.Ctx(r.Context()).Debug().Err(err).Msg("could not add child UIDs; filtering may be incomplete")
 	}
 
 	return relevant, nil
-}
-
-// addChildUIDs adds the UIDs of all kro-managed child resources (labelled with
-// kro.run/instance-name) to the relevant set. This ensures events on child
-// resources appear in the stream, not just events directly on kro instances.
-func (h *Handler) addChildUIDs(r *http.Request, namespace string, relevant map[string]bool) error {
-	// "kro.run/instance-name" is the label kro applies to all child resources.
-	// We use "!=" to match any resource that has this label set to any value.
-	labelSelector := "kro.run/instance-name!="
-	children, err := h.listChildResourcesByLabel(r, namespace, labelSelector)
-	if err != nil {
-		return err
-	}
-	for _, child := range children {
-		uid := string(child.GetUID())
-		if uid != "" {
-			relevant[uid] = true
-		}
-	}
-	return nil
-}
-
-// listChildResourcesByLabel lists resources across discoverable namespaced kinds
-// that carry the given label selector. This is a best-effort discovery: it
-// queries all API groups and skips resources that fail to list.
-func (h *Handler) listChildResourcesByLabel(r *http.Request, namespace, labelSelector string) ([]unstructured.Unstructured, error) {
-	var results []unstructured.Unstructured
-
-	_, resourceLists, err := h.factory.Discovery().ServerGroupsAndResources()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, rl := range resourceLists {
-		gv, err := schema.ParseGroupVersion(rl.GroupVersion)
-		if err != nil {
-			continue
-		}
-		for _, res := range rl.APIResources {
-			// Only list namespaced resources — cluster-scoped ones are handled via RGD UIDs.
-			if !res.Namespaced {
-				continue
-			}
-			// Skip sub-resources (contain "/").
-			hasSlash := false
-			for _, c := range res.Name {
-				if c == '/' {
-					hasSlash = true
-					break
-				}
-			}
-			if hasSlash {
-				continue
-			}
-			// Skip well-known noisy resources to keep discovery fast.
-			if isSkippedResource(res.Name) {
-				continue
-			}
-
-			gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: res.Name}
-			var list *unstructured.UnstructuredList
-			if namespace != "" {
-				list, err = h.factory.Dynamic().Resource(gvr).Namespace(namespace).List(
-					r.Context(), metav1.ListOptions{LabelSelector: labelSelector},
-				)
-			} else {
-				list, err = h.factory.Dynamic().Resource(gvr).List(
-					r.Context(), metav1.ListOptions{LabelSelector: labelSelector},
-				)
-			}
-			if err != nil {
-				// Many resources won't support listing with this label; skip silently.
-				continue
-			}
-			results = append(results, list.Items...)
-		}
-	}
-	return results, nil
-}
-
-// isSkippedResource returns true for resource kinds that are too noisy or
-// system-level to usefully scan for kro child label presence.
-func isSkippedResource(name string) bool {
-	switch name {
-	case "events", "pods", "nodes", "endpoints", "endpointslices",
-		"leases", "bindings", "componentstatuses":
-		return true
-	}
-	return false
 }
 
 // filterByUID returns only the events whose involvedObject.uid is in the relevant set.

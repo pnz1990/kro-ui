@@ -86,18 +86,35 @@ describe('ValidationTab', () => {
     expect(item).toHaveTextContent('cycle detected: A → B → A')
   })
 
-  // ── FR-002: Gray pending indicator for absent conditions ────────────────
+  // ── FR-002: "Not reported" for absent conditions (kro version doesn't emit them) ──
 
-  it('shows gray pending (○) for absent conditions', () => {
-    // RGD with NO conditions — all four known types should show as Pending
+  it('shows "Not reported" (–) with condition-item--absent for absent conditions', () => {
+    // RGD with NO conditions — all four known types should show as "Not reported",
+    // not "Pending". This kro version simply doesn't emit those condition types.
+    // See: https://github.com/pnz1990/kro-ui/issues/59
     renderValidationTab(makeRGD([]))
 
     for (const type of ['GraphVerified', 'TopologyReady', 'CustomResourceDefinitionSynced', 'Ready']) {
       const item = screen.getByTestId(`condition-item-${type}`)
-      expect(item).toHaveClass('condition-item--pending')
-      expect(item).toHaveTextContent('○')
-      expect(item).toHaveTextContent('Pending')
+      expect(item).toHaveClass('condition-item--absent')
+      expect(item).toHaveTextContent('–')
+      expect(item).toHaveTextContent('Not reported')
+      // Should NOT look like the controller is stuck
+      expect(item).not.toHaveTextContent('Pending')
+      expect(item).not.toHaveClass('condition-item--pending')
     }
+  })
+
+  it('shows "Pending" (○) for conditions that ARE present but have status Unknown', () => {
+    // kro emits the condition but it hasn't been processed yet — this IS pending
+    renderValidationTab(makeRGD([
+      { type: 'Ready', status: 'Unknown' },
+    ]))
+
+    const item = screen.getByTestId('condition-item-Ready')
+    expect(item).toHaveClass('condition-item--pending')
+    expect(item).toHaveTextContent('○')
+    expect(item).toHaveTextContent('Pending')
   })
 
   // ── FR-003: Unknown condition types rendered generically ────────────────

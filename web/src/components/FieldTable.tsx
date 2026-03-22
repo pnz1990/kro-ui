@@ -98,9 +98,18 @@ export default function FieldTable({ fields, variant }: FieldTableProps) {
         </thead>
         <tbody>
           {fields.map((field) => {
-            const hasDefault = field.parsedType?.default !== undefined
-            // A field is considered "required" when there's no default
-            const required = !hasDefault
+            // Use key existence (not `!== undefined`) so that falsy defaults like
+            // default=0, default=false, default="" are correctly detected as present.
+            // See: https://github.com/pnz1990/kro-ui/issues/61
+            const hasDefault = field.parsedType != null && 'default' in field.parsedType
+            // A field is considered "required" when there's no default and no | required modifier
+            const required = !hasDefault && !field.parsedType?.required
+
+            const pt = field.parsedType
+            const constraints: string[] = []
+            if (pt?.enum != null)    constraints.push(`enum: ${pt.enum}`)
+            if (pt?.minimum != null) constraints.push(`min: ${pt.minimum}`)
+            if (pt?.maximum != null) constraints.push(`max: ${pt.maximum}`)
 
             return (
               <tr
@@ -137,11 +146,31 @@ export default function FieldTable({ fields, variant }: FieldTableProps) {
                 </td>
                 <td className="field-table__td">
                   {hasDefault ? (
-                    <code className="field-table__default">
-                      {field.parsedType?.default === ''
-                        ? '""'
-                        : field.parsedType?.default}
-                    </code>
+                    <div className="field-table__default-cell">
+                      <code className="field-table__default">
+                        {pt?.default === '' ? '""' : pt?.default}
+                      </code>
+                      {constraints.length > 0 && (
+                        <div className="field-table__constraints">
+                          {constraints.map((c) => (
+                            <span key={c} className="field-table__constraint-badge">
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : constraints.length > 0 ? (
+                    <div className="field-table__default-cell">
+                      <span className="field-table__no-default">—</span>
+                      <div className="field-table__constraints">
+                        {constraints.map((c) => (
+                          <span key={c} className="field-table__constraint-badge">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <span className="field-table__no-default">—</span>
                   )}

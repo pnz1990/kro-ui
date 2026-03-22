@@ -439,11 +439,18 @@ export function buildDAGGraph(spec: Record<string, unknown>): DAGGraph {
     }
 
     // ── Extract kind ─────────────────────────────────────────────────────
+    // Fallback chain: template.kind → externalRef.kind → nodeId.
+    // Never leave kind empty — a '?' kind label on a DAG node is always a bug.
+    // A CEL expression like "${schema.spec.kind}" is accepted as-is (raw string).
     let kind = ''
     if (template) {
       kind = asString(template.kind)
     } else if (externalRef) {
       kind = asString(externalRef.kind)
+    }
+    // If kind is still empty (absent or non-string), fall back to the node ID.
+    if (!kind) {
+      kind = id
     }
 
     // ── Collect CEL expressions for display ──────────────────────────────
