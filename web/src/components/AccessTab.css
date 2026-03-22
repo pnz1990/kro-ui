@@ -156,11 +156,12 @@
 }
 
 .access-tab-row--gap {
-  background: rgba(244, 63, 94, 0.04);
+  background: var(--node-error-bg);
 }
 
 .access-tab-row--gap:hover {
-  background: rgba(244, 63, 94, 0.08);
+  background: var(--node-error-bg);
+  filter: brightness(0.95);
 }
 
 .access-tab-row:not(:last-child) td {

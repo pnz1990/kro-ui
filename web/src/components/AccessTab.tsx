@@ -23,6 +23,16 @@ function resourceLabel(p: GVRPermission): string {
 }
 
 /**
+ * Infer a best-guess ClusterRole name from the service account display string.
+ * e.g. "kro-system/kro" → "kro-manager-role"
+ * The generated command includes a disclaimer to replace if different.
+ */
+function inferClusterRoleName(serviceAccount: string): string {
+  const saName = serviceAccount.split("/")[1] ?? serviceAccount
+  return `${saName}-manager-role`
+}
+
+/**
  * AccessTab — permission matrix for the "Access" tab on the RGD detail page.
  *
  * Fetches GET /api/v1/rgds/{name}/access and renders:
@@ -188,7 +198,11 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
           {data.permissions
             .filter(hasGap)
             .map((p) => (
-              <RBACFixSuggestion key={resourceLabel(p)} permission={p} />
+              <RBACFixSuggestion
+                key={resourceLabel(p)}
+                permission={p}
+                clusterRoleName={inferClusterRoleName(data.serviceAccount)}
+              />
             ))}
         </div>
       )}

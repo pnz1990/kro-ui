@@ -5,6 +5,8 @@ import "./RBACFixSuggestion.css"
 
 interface RBACFixSuggestionProps {
   permission: GVRPermission
+  /** The name of kro's ClusterRole (best-guess derived from the service account name). */
+  clusterRoleName: string
 }
 
 /** Build the ClusterRole rule YAML for the missing permissions. */
@@ -43,6 +45,7 @@ function buildKubectlCommand(p: GVRPermission, clusterRoleName: string): string 
  */
 export default function RBACFixSuggestion({
   permission,
+  clusterRoleName,
 }: RBACFixSuggestionProps) {
   const [open, setOpen] = useState(false)
 
@@ -52,7 +55,7 @@ export default function RBACFixSuggestion({
   if (missingVerbs.length === 0) return null
 
   const ruleYAML = buildRuleYAML(permission)
-  const kubectlCmd = buildKubectlCommand(permission, "kro-manager-role")
+  const kubectlCmd = buildKubectlCommand(permission, clusterRoleName)
 
   const resourceLabel =
     permission.group ? `${permission.group}/${permission.resource}` : permission.resource
@@ -78,7 +81,10 @@ export default function RBACFixSuggestion({
       {open && (
         <div className="rbac-fix__body">
           <p className="rbac-fix__note">
-            Add this rule to kro&apos;s ClusterRole, then apply with:
+            Add this rule to kro&apos;s ClusterRole, then apply with the command
+            below. Replace{" "}
+            <code className="rbac-fix__resource">{clusterRoleName}</code> with
+            your actual kro ClusterRole name if different.
           </p>
           <KroCodeBlock code={ruleYAML} title="ClusterRole rule (YAML)" />
           <KroCodeBlock code={kubectlCmd} title="kubectl patch command" />
