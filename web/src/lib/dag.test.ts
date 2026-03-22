@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildDAGGraph } from './dag'
+import { buildDAGGraph, detectKroInstance } from './dag'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -230,5 +230,45 @@ describe('buildDAGGraph', () => {
     expect(root?.nodeType).toBe('instance')
     expect(root?.id).toBe('schema')
     expect(root?.kind).toBe('MyApp')
+  })
+})
+
+// ── detectKroInstance ─────────────────────────────────────────────────────
+
+function makeRGD(schemaKind: string, name = 'test-rgd') {
+  return {
+    metadata: { name },
+    spec: { schema: { kind: schemaKind, apiVersion: 'v1alpha1' }, resources: [] },
+  }
+}
+
+describe('detectKroInstance', () => {
+  // T012: returns true for matching RGD schema kind
+  it('T012: returns true when kind matches an existing RGD schema kind', () => {
+    const rgds = [makeRGD('Database'), makeRGD('WebApplication')]
+    expect(detectKroInstance('Database', rgds)).toBe(true)
+    expect(detectKroInstance('WebApplication', rgds)).toBe(true)
+  })
+
+  // T013: returns false for native k8s kinds
+  it('T013: returns false for native Kubernetes kinds not in RGD list', () => {
+    const rgds = [makeRGD('Database')]
+    expect(detectKroInstance('Deployment', rgds)).toBe(false)
+    expect(detectKroInstance('Service', rgds)).toBe(false)
+    expect(detectKroInstance('ConfigMap', rgds)).toBe(false)
+  })
+
+  // T014: returns false when rgds is empty
+  it('T014: returns false when rgds list is empty', () => {
+    expect(detectKroInstance('Database', [])).toBe(false)
+    expect(detectKroInstance('', [])).toBe(false)
+  })
+
+  // T015: is case-sensitive
+  it('T015: is case-sensitive — does not match lowercase or mismatched case', () => {
+    const rgds = [makeRGD('Database')]
+    expect(detectKroInstance('database', rgds)).toBe(false)
+    expect(detectKroInstance('DATABASE', rgds)).toBe(false)
+    expect(detectKroInstance('Database', rgds)).toBe(true)
   })
 })
