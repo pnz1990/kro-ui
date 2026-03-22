@@ -1,0 +1,207 @@
+// Copyright 2026 The Kubernetes Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package handlers
+
+import (
+	"context"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/rs/zerolog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/pnz1990/kro-ui/internal/api/types"
+	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
+)
+
+// fleetClientBuilder builds ephemeral clients for a single kubeconfig context.
+// Defined at the consumption site per constitution §VI.
+type fleetClientBuilder interface {
+	BuildClient(kubeconfigPath, context string) (k8sclient.K8sClients, error)
+}
+
+// realFleetClientBuilder delegates to k8sclient.BuildContextClient.
+type realFleetClientBuilder struct {
+	kubeconfigPath string
+}
+
+func (b *realFleetClientBuilder) BuildClient(kubeconfigPath, ctx string) (k8sclient.K8sClients, error) {
+	return k8sclient.BuildContextClient(kubeconfigPath, ctx)
+}
+
+// FleetSummary returns per-context summaries for all kubeconfig contexts.
+// It fans out in parallel with a 10s timeout per cluster (NFR-003).
+// One unreachable cluster never blocks others (FR-003).
+func (h *Handler) FleetSummary(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
+
+	contexts, _, err := h.ctxMgr.ListContexts()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to list contexts for fleet summary")
+		respondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	summaries := make([]types.ClusterSummary, len(contexts))
+	var wg sync.WaitGroup
+	for i, c := range contexts {
+		wg.Add(1)
+		go func(idx int, ctx k8sclient.Context) {
+			defer wg.Done()
+			summaries[idx] = h.summariseContext(r.Context(), ctx)
+		}(i, c)
+	}
+	wg.Wait()
+
+	respond(w, http.StatusOK, types.FleetSummaryResponse{Clusters: summaries})
+}
+
+// summariseContext builds a ClusterSummary for a single context.
+// All errors are captured in the summary — never propagated up.
+func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context) types.ClusterSummary {
+	summary := types.ClusterSummary{
+		Context: ctx.Name,
+		Cluster: ctx.Cluster,
+	}
+
+	// Use a 10s deadline per cluster (NFR-003).
+	tctx, cancel := context.WithTimeout(parent, 10*time.Second)
+	defer cancel()
+
+	// Build ephemeral clients — does NOT affect the shared ClientFactory.
+	var kubeconfigPath string
+	if kpf, ok := h.ctxMgr.(interface{ KubeconfigPath() string }); ok {
+		kubeconfigPath = kpf.KubeconfigPath()
+	}
+
+	clients, err := h.fleetBuilder.BuildClient(kubeconfigPath, ctx.Name)
+	if err != nil {
+		summary.Health = types.ClusterUnreachable
+		summary.Error = err.Error()
+		return summary
+	}
+
+	// List RGDs to determine kro presence and count.
+	list, err := clients.Dynamic().Resource(rgdGVR).List(tctx, metav1.ListOptions{})
+	if err != nil {
+		// Distinguish kro-not-installed from generic unreachability.
+		errStr := err.Error()
+		if isKroNotInstalled(errStr) {
+			summary.Health = types.ClusterKroNotInstalled
+		} else if isAuthError(errStr) {
+			summary.Health = types.ClusterAuthFailed
+		} else {
+			summary.Health = types.ClusterKroNotInstalled // CRD absent or API unreachable
+		}
+		summary.Error = errStr
+		return summary
+	}
+
+	summary.RGDCount = len(list.Items)
+
+	// For each RGD, collect kinds, count instances and detect degraded ones.
+	degraded := 0
+	totalInstances := 0
+	kinds := make([]string, 0, len(list.Items))
+	for _, rgd := range list.Items {
+		kind, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "kind")
+		group, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "group")
+		apiVersion, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "apiVersion")
+		if kind == "" {
+			continue
+		}
+		kinds = append(kinds, kind)
+		if group == "" {
+			group = k8sclient.KroGroup
+		}
+		if apiVersion == "" {
+			apiVersion = "v1alpha1"
+		}
+
+		plural, err := k8sclient.DiscoverPlural(clients, group, apiVersion, kind)
+		if err != nil {
+			plural = strings.ToLower(kind) + "s"
+		}
+
+		instanceGVR := rgdGVR
+		instanceGVR.Group = group
+		instanceGVR.Version = apiVersion
+		instanceGVR.Resource = plural
+
+		instances, err := clients.Dynamic().Resource(instanceGVR).List(tctx, metav1.ListOptions{})
+		if err != nil || instances == nil {
+			continue
+		}
+
+		totalInstances += len(instances.Items)
+		for _, inst := range instances.Items {
+			if isInstanceDegraded(inst.Object) {
+				degraded++
+			}
+		}
+	}
+
+	summary.InstanceCount = totalInstances
+	summary.DegradedInstances = degraded
+	summary.RGDKinds = kinds
+	if degraded > 0 {
+		summary.Health = types.ClusterDegraded
+	} else {
+		summary.Health = types.ClusterHealthy
+	}
+	return summary
+}
+
+// isInstanceDegraded returns true if the instance has a Ready=False condition.
+func isInstanceDegraded(obj map[string]any) bool {
+	status, ok := obj["status"].(map[string]any)
+	if !ok {
+		return false
+	}
+	conditions, ok := status["conditions"].([]any)
+	if !ok {
+		return false
+	}
+	for _, c := range conditions {
+		cond, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		condType, _ := cond["type"].(string)
+		condStatus, _ := cond["status"].(string)
+		if condType == "Ready" && condStatus == "False" {
+			return true
+		}
+	}
+	return false
+}
+
+// isKroNotInstalled returns true when the error indicates the RGD CRD is absent.
+func isKroNotInstalled(errStr string) bool {
+	return strings.Contains(errStr, "no matches for kind") ||
+		strings.Contains(errStr, "resource not found") ||
+		strings.Contains(errStr, "not found in") ||
+		strings.Contains(errStr, "the server could not find the requested resource")
+}
+
+// isAuthError returns true for 401/403 errors.
+func isAuthError(errStr string) bool {
+	return strings.Contains(errStr, "Unauthorized") ||
+		strings.Contains(errStr, "Forbidden") ||
+		strings.Contains(errStr, "401") ||
+		strings.Contains(errStr, "403")
+}

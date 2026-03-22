@@ -36,8 +36,9 @@ type k8sClients interface {
 
 // Handler holds shared dependencies for all route handlers.
 type Handler struct {
-	factory k8sClients
-	ctxMgr  contextManager
+	factory      k8sClients
+	ctxMgr       contextManager
+	fleetBuilder fleetClientBuilder
 }
 
 // New creates a Handler with the given ClientFactory.
@@ -45,6 +46,9 @@ func New(factory *k8sclient.ClientFactory) *Handler {
 	return &Handler{
 		factory: factory,
 		ctxMgr:  factory,
+		fleetBuilder: &realFleetClientBuilder{
+			kubeconfigPath: factory.KubeconfigPath(),
+		},
 	}
 }
 

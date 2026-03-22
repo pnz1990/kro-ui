@@ -119,3 +119,25 @@ export interface AccessResponse {
 
 export const getRGDAccess = (rgdName: string) =>
   get<AccessResponse>(`/rgds/${encodeURIComponent(rgdName)}/access`)
+
+// ── Fleet ─────────────────────────────────────────────────────────────
+
+export type ClusterHealth = 'healthy' | 'degraded' | 'unreachable' | 'kro-not-installed' | 'auth-failed'
+
+export interface ClusterSummary {
+  context: string
+  cluster: string
+  health: ClusterHealth
+  rgdCount: number
+  instanceCount: number
+  degradedInstances: number
+  kroVersion: string
+  rgdKinds: string[]
+  error?: string
+}
+
+export interface FleetSummaryResponse {
+  clusters: ClusterSummary[]
+}
+
+export const getFleetSummary = () => get<FleetSummaryResponse>('/fleet/summary')
