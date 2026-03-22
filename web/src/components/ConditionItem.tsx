@@ -23,6 +23,13 @@ interface ConditionItemProps {
   condition: RGDCondition
   /** Human-friendly label for the condition type, e.g. "Graph Verified". */
   label: string
+  /**
+   * True when the condition type is absent from status.conditions entirely
+   * (i.e., this kro version does not emit it). Rendered as "Not reported"
+   * with a neutral indicator rather than the orange "Pending" state.
+   * See: https://github.com/pnz1990/kro-ui/issues/59
+   */
+  isAbsent?: boolean
 }
 
 function formatTime(ts: string | undefined): string {
@@ -48,8 +55,31 @@ function formatTime(ts: string | undefined): string {
  *
  * Spec: .specify/specs/017-rgd-validation-linting/ FR-002, FR-003
  */
-export default function ConditionItem({ condition, label }: ConditionItemProps) {
+export default function ConditionItem({ condition, label, isAbsent }: ConditionItemProps) {
   const [expanded, setExpanded] = useState(false)
+
+  // Absent conditions (not emitted by this kro version) render as "Not reported"
+  // with a neutral indicator — distinct from Unknown/Pending which means the
+  // controller hasn't processed it yet.
+  if (isAbsent) {
+    return (
+      <div
+        className="condition-item condition-item--absent"
+        data-testid={`condition-item-${condition.type}`}
+      >
+        <div className="condition-item__header">
+          <span className="condition-item__icon" aria-hidden="true">–</span>
+          <span className="condition-item__label">{label}</span>
+          <span className="condition-item__status-label">Not reported</span>
+        </div>
+        <div className="condition-item__message">
+          <span className="condition-item__pending-hint">
+            Not emitted by the connected kro version
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   const status = condition.status
   const message = condition.message ?? ''

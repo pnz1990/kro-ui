@@ -25,6 +25,22 @@ export interface ParsedType {
   default?: string
   /** True if `| required` modifier is present. */
   required?: boolean
+  /**
+   * Allowed values if `| enum=a,b,c` modifier is present.
+   * Stored as a comma-separated string (preserves original order).
+   * See: https://github.com/pnz1990/kro-ui/issues/60
+   */
+  enum?: string
+  /**
+   * Minimum value if `| minimum=N` modifier is present (integer/number fields).
+   * See: https://github.com/pnz1990/kro-ui/issues/60
+   */
+  minimum?: string
+  /**
+   * Maximum value if `| maximum=N` modifier is present (integer/number fields).
+   * See: https://github.com/pnz1990/kro-ui/issues/60
+   */
+  maximum?: string
 }
 
 /** A single spec or status field extracted from spec.schema. */
@@ -76,6 +92,12 @@ export interface SchemaDoc {
  *   - Maps:       "map[string]string", "map[string]integer", etc.
  *   - Modifiers:  "integer | default=2", "string | required"
  *   - Combined:   "string | required | default=foo"
+ *   - Constraints:"integer | default=3 | minimum=1 | maximum=10"
+ *                 "string | default=normal | enum=easy,normal,hard"
+ *
+ * Constraint modifiers (enum, minimum, maximum) are stored as separate fields
+ * on ParsedType and NEVER merged into the `default` field.
+ * See: https://github.com/pnz1990/kro-ui/issues/60
  *
  * Unknown/custom base types are passed through verbatim.
  */
@@ -93,6 +115,12 @@ export function parseSimpleSchema(typeStr: string): ParsedType {
     } else if (trimmed.startsWith('default=')) {
       // Everything after 'default=' is the default value (may be empty string)
       parsed.default = trimmed.slice('default='.length)
+    } else if (trimmed.startsWith('enum=')) {
+      parsed.enum = trimmed.slice('enum='.length)
+    } else if (trimmed.startsWith('minimum=')) {
+      parsed.minimum = trimmed.slice('minimum='.length)
+    } else if (trimmed.startsWith('maximum=')) {
+      parsed.maximum = trimmed.slice('maximum='.length)
     }
     // Unrecognized modifiers are silently ignored (forward-compatible)
   }

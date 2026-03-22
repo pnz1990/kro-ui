@@ -166,6 +166,65 @@ describe('parseSimpleSchema', () => {
       default: 'x',
     })
   })
+
+  // ── #60: Constraint modifiers (enum, minimum, maximum) ──────────────────
+
+  it("parses 'string | default=normal | enum=easy,normal,hard' — constraints stored separately", () => {
+    expect(parseSimpleSchema('string | default=normal | enum=easy,normal,hard')).toEqual({
+      type: 'string',
+      default: 'normal',
+      enum: 'easy,normal,hard',
+    })
+  })
+
+  it("parses 'integer | default=3 | minimum=1 | maximum=10'", () => {
+    expect(parseSimpleSchema('integer | default=3 | minimum=1 | maximum=10')).toEqual({
+      type: 'integer',
+      default: '3',
+      minimum: '1',
+      maximum: '10',
+    })
+  })
+
+  it("parses 'integer | minimum=0 | maximum=100' (no default)", () => {
+    expect(parseSimpleSchema('integer | minimum=0 | maximum=100')).toEqual({
+      type: 'integer',
+      minimum: '0',
+      maximum: '100',
+    })
+  })
+
+  it("parses 'string | enum=a,b,c' (no default)", () => {
+    expect(parseSimpleSchema('string | enum=a,b,c')).toEqual({
+      type: 'string',
+      enum: 'a,b,c',
+    })
+  })
+
+  // ── #61: Falsy defaults must be preserved (use key existence, not !== undefined) ──
+
+  it("parses 'integer | default=0' — zero default key is present", () => {
+    const pt = parseSimpleSchema('integer | default=0')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('0')
+  })
+
+  it("parses 'boolean | default=false' — false default key is present", () => {
+    const pt = parseSimpleSchema('boolean | default=false')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('false')
+  })
+
+  it("parses 'string | default=' — empty string default key is present", () => {
+    const pt = parseSimpleSchema('string | default=')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('')
+  })
+
+  it("type without default has no 'default' key", () => {
+    const pt = parseSimpleSchema('integer')
+    expect('default' in pt).toBe(false)
+  })
 })
 
 // ── inferStatusType ────────────────────────────────────────────────────────

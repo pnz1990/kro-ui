@@ -272,3 +272,75 @@ describe('detectKroInstance', () => {
     expect(detectKroInstance('Database', rgds)).toBe(true)
   })
 })
+
+// ── #58: kind fallback — never render '?' ─────────────────────────────────
+
+describe('buildDAGGraph — kind fallback (issue #58)', () => {
+  it('uses id as kind when template.kind is absent', () => {
+    const spec = minimalSpec([
+      {
+        id: 'dungeonInit',
+        template: {
+          apiVersion: 'dungeon.run/v1alpha1',
+          // kind is absent — should fall back to node id
+          metadata: { name: '${schema.spec.name}' },
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'dungeonInit')
+    expect(node?.kind).toBe('dungeonInit')
+    expect(node?.kind).not.toBe('')
+    expect(node?.kind).not.toBe('?')
+  })
+
+  it('uses id as kind when template.kind is a CEL expression (non-string literal)', () => {
+    const spec = minimalSpec([
+      {
+        id: 'combatResolve',
+        template: {
+          apiVersion: 'dungeon.run/v1alpha1',
+          kind: '${schema.spec.actionKind}', // CEL expression — still a string, accepted as-is
+          metadata: { name: '${schema.spec.name}' },
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'combatResolve')
+    // CEL string is returned as-is (not empty), not replaced with nodeId
+    expect(node?.kind).toBe('${schema.spec.actionKind}')
+  })
+
+  it('uses externalRef.kind when template is absent and externalRef is present', () => {
+    const spec = minimalSpec([
+      {
+        id: 'existingSecret',
+        externalRef: {
+          apiVersion: 'v1',
+          kind: 'Secret',
+          metadata: { name: 'my-secret' },
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'existingSecret')
+    expect(node?.kind).toBe('Secret')
+  })
+
+  it('uses id as kind when externalRef.kind is absent', () => {
+    const spec = minimalSpec([
+      {
+        id: 'orphanRef',
+        externalRef: {
+          apiVersion: 'v1',
+          // kind absent
+          metadata: { name: 'my-resource' },
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'orphanRef')
+    expect(node?.kind).toBe('orphanRef')
+    expect(node?.kind).not.toBe('')
+  })
+})

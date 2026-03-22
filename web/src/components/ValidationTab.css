@@ -62,6 +62,19 @@
   border-left-color: var(--color-not-found);
 }
 
+/* Absent: condition type not emitted by this kro version — neutral grey */
+.condition-item--absent {
+  border-left-color: var(--color-border);
+  opacity: 0.65;
+}
+
+.condition-item--absent .condition-item__icon { color: var(--color-text-muted); }
+.condition-item--absent .condition-item__status-label {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
 /* ── Condition header ─────────────────────────────────────────────────────── */
 
 .condition-item__header {
