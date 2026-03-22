@@ -1,0 +1,26 @@
+/* CollectionBadge.css — SVG text badge for collection node health.
+ *
+ * Uses CSS fill property (SVG text styling) with CSS custom properties.
+ * All colors from tokens.css only — no hardcoded hex values.
+ *
+ * Spec: .specify/specs/011-collection-explorer/
+ */
+
+.collection-badge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.collection-badge--all-ready {
+  fill: var(--color-alive);
+}
+
+.collection-badge--partial {
+  fill: var(--color-reconciling);
+}
+
+.collection-badge--none-ready {
+  fill: var(--color-error);
+}

@@ -1,6 +1,8 @@
 // InstanceDetail.tsx — Live instance detail page with 5s polling DAG.
 //
 // Implements spec 005-instance-detail-live.
+// Extended by spec 011-collection-explorer: collection node clicks open
+// CollectionPanel instead of LiveNodeDetailPanel.
 //
 // Data flow:
 //   - mount: parallel fetch of instance + events (fast), children (slow, non-blocking),
@@ -28,6 +30,7 @@ import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
 import { usePolling } from '@/hooks/usePolling'
 import LiveDAG from '@/components/LiveDAG'
 import LiveNodeDetailPanel from '@/components/LiveNodeDetailPanel'
+import CollectionPanel from '@/components/CollectionPanel'
 import SpecPanel from '@/components/SpecPanel'
 import ConditionsPanel from '@/components/ConditionsPanel'
 import EventsPanel from '@/components/EventsPanel'
@@ -163,6 +166,12 @@ export default function InstanceDetail() {
   // ── Selected node panel (survives poll refreshes — FR-008) ───────────────
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<DAGNode | null>(null)
+  /**
+   * panelMode: controls which panel is shown when a node is selected.
+   *   'node'       → LiveNodeDetailPanel (resource / external / instance nodes)
+   *   'collection' → CollectionPanel (forEach collection nodes — spec 011)
+   */
+  const [panelMode, setPanelMode] = useState<'node' | 'collection'>('node')
 
   // ── DAG graph — built once from RGD spec ────────────────────────────────
   const dagGraph = useMemo(() => {
@@ -194,11 +203,14 @@ export default function InstanceDetail() {
   function handleNodeClick(node: DAGNode) {
     setSelectedNodeId(node.id)
     setSelectedNode(node)
+    // Spec 011: forEach collection nodes open CollectionPanel
+    setPanelMode(node.nodeType === 'collection' ? 'collection' : 'node')
   }
 
   function handlePanelClose() {
     setSelectedNodeId(null)
     setSelectedNode(null)
+    setPanelMode('node')
   }
 
   // ── Resolve resource info for the open panel ────────────────────────────
@@ -313,6 +325,7 @@ export default function InstanceDetail() {
                 nodeStateMap={nodeStateMap}
                 onNodeClick={handleNodeClick}
                 selectedNodeId={selectedNodeId ?? undefined}
+                children={children}
               />
             ) : (
               <div className="instance-detail-dag-empty">
@@ -330,15 +343,22 @@ export default function InstanceDetail() {
         </div>
       )}
 
-      {/* Node detail side panel (FR-006, FR-008) */}
-      {selectedNode && (
+      {/* Node detail / collection side panel (FR-006, FR-008, spec 011) */}
+      {selectedNode && panelMode === 'collection' ? (
+        <CollectionPanel
+          node={selectedNode}
+          children={children}
+          namespace={namespace ?? ''}
+          onClose={handlePanelClose}
+        />
+      ) : selectedNode && panelMode === 'node' ? (
         <LiveNodeDetailPanel
           node={selectedNode}
           liveState={selectedNodeLiveState}
           resourceInfo={resolvedResourceInfo}
           onClose={handlePanelClose}
         />
-      )}
+      ) : null}
     </div>
   )
 }

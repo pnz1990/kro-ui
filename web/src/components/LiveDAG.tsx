@@ -2,9 +2,13 @@
 //
 // Applies per-node CSS classes based on NodeStateMap, preserving the base
 // DAGGraph layout (no re-layout on state change — FR-005).
+//
+// Spec 011 extension: collection nodes receive a CollectionBadge health overlay.
 
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
+import type { K8sObject } from '@/lib/api'
+import CollectionBadge from './CollectionBadge'
 import './LiveDAG.css'
 
 interface LiveDAGProps {
@@ -12,6 +16,8 @@ interface LiveDAGProps {
   nodeStateMap: NodeStateMap
   onNodeClick?: (node: DAGNode) => void
   selectedNodeId?: string
+  /** Collection children — used to render health badges on forEach nodes. */
+  children?: K8sObject[]
 }
 
 // ── CSS class helper ───────────────────────────────────────────────────────
@@ -95,9 +101,11 @@ interface NodeGroupProps {
   state: NodeLiveState | undefined
   isSelected: boolean
   onNodeClick?: (node: DAGNode) => void
+  /** Pre-filtered children for collection badge (only passed for collection nodes). */
+  children?: K8sObject[]
 }
 
-function NodeGroup({ node, state, isSelected, onNodeClick }: NodeGroupProps) {
+function NodeGroup({ node, state, isSelected, onNodeClick, children }: NodeGroupProps) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
   const labelY = node.y + node.height / 2 - (node.kind ? 7 : 0)
@@ -152,6 +160,16 @@ function NodeGroup({ node, state, isSelected, onNodeClick }: NodeGroupProps) {
           {badge}
         </text>
       )}
+      {node.nodeType === 'collection' && children && children.length > 0 && (
+        <CollectionBadge
+          nodeId={node.id}
+          children={children}
+          nodeX={node.x}
+          nodeY={node.y}
+          nodeWidth={node.width}
+          nodeHeight={node.height}
+        />
+      )}
     </g>
   )
 }
@@ -171,6 +189,7 @@ export default function LiveDAG({
   nodeStateMap,
   onNodeClick,
   selectedNodeId,
+  children,
 }: LiveDAGProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
 
@@ -228,6 +247,7 @@ export default function LiveDAG({
               state={nodeState(node, nodeStateMap)}
               isSelected={node.id === selectedNodeId}
               onNodeClick={onNodeClick}
+              children={node.nodeType === 'collection' ? children : undefined}
             />
           ))}
         </g>

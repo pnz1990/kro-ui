@@ -1,0 +1,338 @@
+/* CollectionPanel.css — Styles for the forEach collection explorer panel.
+ *
+ * Inherits .node-detail-panel layout from NodeDetailPanel.css (imported via
+ * LiveNodeDetailPanel.css). This file adds collection-specific styles only.
+ * All colors from tokens.css custom properties — no hardcoded hex values.
+ *
+ * Spec: .specify/specs/011-collection-explorer/
+ */
+
+@import './NodeDetailPanel.css';
+
+/* ── Summary row (forEach expr + count) ──────────────────────────────────── */
+
+.collection-panel-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+}
+
+.collection-panel-foreach-row,
+.collection-panel-count-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.collection-panel-foreach-label,
+.collection-panel-count-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  min-width: 48px;
+}
+
+.collection-panel-foreach-expr {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-primary-text);
+  word-break: break-all;
+}
+
+.collection-panel-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ── Table wrapper (scrollable) ───────────────────────────────────────────── */
+
+.collection-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+}
+
+/* ── Collection table ─────────────────────────────────────────────────────── */
+
+.collection-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.collection-table th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface-2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.collection-item-row {
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.collection-item-row:last-child {
+  border-bottom: none;
+}
+
+.collection-item-row:hover {
+  background: var(--color-surface-2);
+}
+
+.collection-item-row:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.collection-table td {
+  padding: 8px 10px;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.collection-col-idx {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  width: 32px;
+  text-align: center;
+}
+
+.collection-col-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.collection-col-kind {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.collection-col-age {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Status cell ──────────────────────────────────────────────────────────── */
+
+.collection-item-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.collection-item-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.collection-item-status--running {
+  color: var(--color-alive);
+}
+.collection-item-status--running .collection-item-status-dot {
+  background: var(--color-alive);
+}
+
+.collection-item-status--pending {
+  color: var(--color-pending);
+}
+.collection-item-status--pending .collection-item-status-dot {
+  background: var(--color-pending);
+}
+
+.collection-item-status--failed {
+  color: var(--color-error);
+}
+.collection-item-status--failed .collection-item-status-dot {
+  background: var(--color-error);
+}
+
+.collection-item-status--unknown {
+  color: var(--color-not-found);
+}
+.collection-item-status--unknown .collection-item-status-dot {
+  background: var(--color-not-found);
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+
+.collection-empty-state {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Legacy fallback ──────────────────────────────────────────────────────── */
+
+.collection-legacy-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--color-surface-2);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.collection-legacy-icon {
+  font-size: 14px;
+  color: var(--color-status-warning);
+}
+
+/* ── YAML view ────────────────────────────────────────────────────────────── */
+
+.collection-yaml-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.collection-yaml-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.collection-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.collection-back-btn:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-border-focus);
+}
+
+.collection-yaml-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.collection-yaml-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+
+.collection-yaml-spinner {
+  font-size: 14px;
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+}
+
+.collection-yaml-kubectl {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-3);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.collection-yaml-kubectl code {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text-muted);
+}
+
+.collection-yaml-not-found {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.collection-yaml-not-found-msg {
+  font-size: 13px;
+  color: var(--color-not-found);
+}
+
+.collection-yaml-timeout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.collection-yaml-timeout-msg {
+  font-size: 13px;
+  color: var(--color-status-warning);
+}
+
+.collection-yaml-retry-btn {
+  align-self: flex-start;
+  padding: 4px 12px;
+  font-size: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.collection-yaml-retry-btn:hover {
+  background: var(--color-surface-3);
+}
+
+.collection-yaml-error {
+  font-size: 13px;
+  color: var(--color-error);
+  padding: 4px 0;
+}
