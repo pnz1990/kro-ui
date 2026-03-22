@@ -16,6 +16,8 @@
   --color-primary:         #5b8ef0;
   --color-primary-hover:   #4a7de0;
   --color-primary-muted:   rgba(91, 142, 240, 0.12);
+  --color-primary-subtle:  rgba(91, 142, 240, 0.06);  /* lighter tint for hover states */
+  --color-primary-border:  rgba(91, 142, 240, 0.30);  /* tinted border for badges */
   --color-primary-text:    #93b4f8;   /* primary hue for text on dark bg */
 
   /* Backgrounds — 3-level depth hierarchy */
@@ -103,6 +105,8 @@
   --color-primary:         #3b6fd4;   /* darker for light bg contrast */
   --color-primary-hover:   #2c5fc4;
   --color-primary-muted:   rgba(59, 111, 212, 0.08);
+  --color-primary-subtle:  rgba(59, 111, 212, 0.04);  /* lighter tint for hover states */
+  --color-primary-border:  rgba(59, 111, 212, 0.25);  /* tinted border for badges */
   --color-primary-text:    #3b6fd4;
 
   /* Backgrounds */

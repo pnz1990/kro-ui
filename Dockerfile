@@ -10,6 +10,8 @@ RUN bun run build
 FROM golang:1.25-alpine AS go-builder
 RUN apk add --no-cache git
 WORKDIR /app
+# git is required by go mod download when GOPROXY=direct fetches from VCS
+RUN apk add --no-cache git
 COPY go.mod go.sum ./
 ENV GOPROXY=direct GONOSUMDB="*"
 RUN go mod download

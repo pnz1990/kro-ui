@@ -47,7 +47,7 @@
 }
 
 .field-table__row:hover {
-  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  background: var(--color-primary-subtle);
 }
 
 .field-table__td {
