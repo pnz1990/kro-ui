@@ -1,0 +1,89 @@
+/* DocsTab.css — Styles for the RGD Schema Documentation tab.
+ *
+ * All colors use CSS custom properties from tokens.css.
+ * Layout follows the same section pattern as ValidationTab.css.
+ * Spec: .specify/specs/020-schema-doc-generator/
+ */
+
+/* ── Root ────────────────────────────────────────────────────────────── */
+
+.docs-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* ── Section ─────────────────────────────────────────────────────────── */
+
+.docs-tab__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.docs-tab__section-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── API Reference header ────────────────────────────────────────────── */
+
+.docs-tab__header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.docs-tab__kind {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.docs-tab__badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.docs-tab__badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.docs-tab__badge--group {
+  background: var(--color-surface-3);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.docs-tab__badge--version {
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary-text);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.docs-tab__empty-message {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 16px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+}
