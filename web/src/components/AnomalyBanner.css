@@ -1,0 +1,62 @@
+/* AnomalyBanner.css — Alert banner for detected kro event anomalies.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/019-smart-event-stream/
+ */
+
+.anomaly-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Stuck: amber — reconciling is "in progress" color */
+.anomaly-banner--stuck {
+  background: var(--node-reconciling-bg);
+  border-color: var(--node-reconciling-border);
+  color: var(--color-reconciling);
+}
+
+/* Burst: rose — error color */
+.anomaly-banner--burst {
+  background: var(--node-error-bg);
+  border-color: var(--node-error-border);
+  color: var(--color-error);
+}
+
+.anomaly-banner__icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.anomaly-banner__message {
+  flex: 1;
+}
+
+.anomaly-banner__dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.anomaly-banner__dismiss:hover {
+  opacity: 1;
+}
+
+.anomaly-banner__dismiss:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}

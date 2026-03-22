@@ -34,6 +34,14 @@ export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProp
         >
           Catalog
         </NavLink>
+        <NavLink
+          to="/events"
+          className={({ isActive }) =>
+            `top-bar__nav-link${isActive ? ' top-bar__nav-link--active' : ''}`
+          }
+        >
+          Events
+        </NavLink>
       </nav>
       <ContextSwitcher
         contexts={contexts}

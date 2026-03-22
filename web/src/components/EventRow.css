@@ -1,0 +1,101 @@
+/* EventRow.css — Single event row for the Events stream page.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/019-smart-event-stream/
+ */
+
+.event-stream-row {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-left: 3px solid transparent;
+  transition: background var(--transition-fast);
+}
+
+.event-stream-row:last-child {
+  border-bottom: none;
+}
+
+.event-stream-row:hover {
+  background: var(--color-surface-2);
+}
+
+/* Warning events: amber left border */
+.event-stream-row--warning {
+  border-left-color: var(--color-status-warning);
+}
+
+/* Normal events: subtle border (no color pop) */
+.event-stream-row--normal {
+  border-left-color: var(--color-border);
+}
+
+.event-stream-row__body {
+  flex: 1;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-stream-row__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Type badge: small pill */
+.event-stream-row__type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.event-stream-row__type-badge--warning {
+  background: var(--node-reconciling-bg);
+  border-color: var(--node-reconciling-border);
+  color: var(--color-reconciling);
+}
+
+.event-stream-row__type-badge--normal {
+  background: transparent;
+  border-color: var(--color-border-subtle);
+  color: var(--color-text-faint);
+}
+
+.event-stream-row__reason {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.event-stream-row__object {
+  font-size: 11px;
+  color: var(--color-primary-text);
+  font-family: var(--font-mono);
+}
+
+.event-stream-row__time {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+
+.event-stream-row__message {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.event-stream-row__source {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+}
