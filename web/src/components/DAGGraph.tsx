@@ -2,6 +2,7 @@
 //
 // Data-driven: accepts {nodes, edges} — zero kro-specific logic.
 // All kro knowledge lives in web/src/lib/dag.ts.
+// Fix #64: SVG height is fitted to actual node bounding box, not layout estimate.
 
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import './DAGGraph.css'
@@ -10,6 +11,18 @@ interface DAGGraphProps {
   graph: DAGGraph
   onNodeClick?: (nodeId: string) => void
   selectedNodeId?: string
+}
+
+const PADDING = 32
+
+/**
+ * Compute the actual content height from node bounding boxes.
+ * Prevents empty space below the last row of nodes (issue #64).
+ */
+function fittedHeight(graph: DAGGraph): number {
+  if (graph.nodes.length === 0) return graph.height
+  const maxBottom = Math.max(...graph.nodes.map((n) => n.y + n.height))
+  return maxBottom + PADDING
 }
 
 /** Cubic bezier edge path from parent bottom-center to child top-center. */
@@ -124,14 +137,15 @@ export default function DAGGraph({
   selectedNodeId,
 }: DAGGraphProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
+  const svgHeight = fittedHeight(graph)
 
   return (
     <div className="dag-graph-container">
       <svg
         data-testid="dag-svg"
         width={graph.width}
-        height={graph.height}
-        viewBox={`0 0 ${graph.width} ${graph.height}`}
+        height={svgHeight}
+        viewBox={`0 0 ${graph.width} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Resource dependency graph"
         role="img"

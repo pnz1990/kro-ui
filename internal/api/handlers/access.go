@@ -78,6 +78,7 @@ func (h *Handler) GetRGDAccess(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, types.AccessResponse{
 		ServiceAccount:      result.ServiceAccount,
 		ServiceAccountFound: result.ServiceAccountFound,
+		ClusterRole:         result.ClusterRole,
 		HasGaps:             result.HasGaps,
 		Permissions:         perms,
 	})

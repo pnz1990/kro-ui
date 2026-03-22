@@ -1,0 +1,55 @@
+/* NotFound.css — 404 page styles. */
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  gap: 12px;
+  text-align: center;
+}
+
+.not-found__heading {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.not-found__url {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.not-found__url code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: var(--color-surface-2);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.not-found__message {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.not-found__home-link {
+  margin-top: 8px;
+  padding: 7px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.not-found__home-link:hover {
+  background: var(--color-primary-hover);
+}

@@ -4,6 +4,7 @@ import { getRGD, listInstances } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
 import { buildDAGGraph } from "@/lib/dag"
+import { usePageTitle } from "@/hooks/usePageTitle"
 import KroCodeBlock from "@/components/KroCodeBlock"
 import DAGGraph from "@/components/DAGGraph"
 import NodeDetailPanel from "@/components/NodeDetailPanel"
@@ -147,6 +148,9 @@ export default function RGDDetail() {
 
   const rgdName =
     (rgd?.metadata as Record<string, unknown> | undefined)?.name ?? name ?? ""
+
+  // Page title: "<rgdName> — kro-ui"
+  usePageTitle(String(rgdName))
 
   if (loading) {
     return <div className="rgd-detail-loading">Loading…</div>

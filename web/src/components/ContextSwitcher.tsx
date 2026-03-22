@@ -1,5 +1,6 @@
 // ContextSwitcher — dropdown to switch kubeconfig contexts at runtime.
 // Implements an accessible ARIA listbox pattern per spec 007-context-switcher.
+// Fix #63: ARN truncation now shows account-ID fragment + cluster name for disambiguation.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { switchContext } from '@/lib/api'
 import type { KubeContext } from '@/lib/api'
@@ -8,16 +9,40 @@ import './ContextSwitcher.css'
 const MAX_DISPLAY_LENGTH = 40
 const SWITCH_TIMEOUT_MS = 10_000
 
-/** Return a display-friendly truncation of a context name.
- *  For names >40 chars that contain '/', extract the last segment and
- *  prepend '…/'. Otherwise truncate at 40 chars with '…'.
+/**
+ * Return a display-friendly label for a context name that may be ambiguous.
+ *
+ * Rules (in order):
+ *  1. If ≤40 chars: return as-is.
+ *  2. If it looks like an AWS EKS ARN
+ *     (`arn:aws:eks:<region>:<accountId>:cluster/<clusterName>`):
+ *     return `<accountPrefix>…/<clusterName>` where accountPrefix is the
+ *     first 6 digits of the account ID — enough to disambiguate.
+ *  3. If it contains '/' (other long paths): `<account_or_prefix>…/<lastName>`.
+ *  4. Fallback: truncate at 40 with '…'.
+ *
+ * The full name is always exposed via `title` attribute.
  */
-function truncateContextName(name: string): string {
+export function truncateContextName(name: string): string {
   if (name.length <= MAX_DISPLAY_LENGTH) return name
+
+  // AWS EKS ARN: arn:aws:eks:region:accountId:cluster/clusterName
+  const eksMatch = /^arn:aws:eks:[^:]+:(\d+):cluster\/(.+)$/.exec(name)
+  if (eksMatch) {
+    const accountPrefix = eksMatch[1].slice(0, 6)
+    const clusterName = eksMatch[2]
+    return `${accountPrefix}\u2026/${clusterName}`
+  }
+
+  // Generic long path with slashes: keep last segment + prefix hint
   const slashIdx = name.lastIndexOf('/')
   if (slashIdx !== -1) {
-    return '\u2026/' + name.slice(slashIdx + 1)
+    const lastName = name.slice(slashIdx + 1)
+    // Include a short prefix hint so two paths with same basename differ
+    const prefix = name.slice(0, Math.min(6, slashIdx))
+    return `${prefix}\u2026/${lastName}`
   }
+
   return name.slice(0, MAX_DISPLAY_LENGTH) + '\u2026'
 }
 
@@ -232,7 +257,12 @@ export default function ContextSwitcher({
                   ) : (
                     <span className="context-switcher__check-placeholder" aria-hidden="true" />
                   )}
-                  <span className="context-switcher__label">{ctx.name}</span>
+                  <span className="context-switcher__option-text">
+                    <span className="context-switcher__label">{truncateContextName(ctx.name)}</span>
+                    {ctx.name.length > MAX_DISPLAY_LENGTH && (
+                      <span className="context-switcher__option-subtitle">{ctx.name}</span>
+                    )}
+                  </span>
                 </div>
               )
             })

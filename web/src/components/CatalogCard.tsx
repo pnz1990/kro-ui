@@ -40,27 +40,35 @@ export default function CatalogCard({
 
   return (
     <article className="catalog-card" data-testid={`catalog-card-${name}`}>
-      <div className="catalog-card__header">
-        <StatusDot state={state} reason={reason} message={message} />
-        <h2 className="catalog-card__name" data-testid="catalog-card-name">
-          {name}
-        </h2>
-      </div>
+      {/* Primary link — wraps header + meta (issue #65) */}
+      <Link
+        to={`/rgds/${encodedName}`}
+        className="catalog-card__body-link"
+        data-testid="btn-graph"
+        aria-label={`View ${name} graph`}
+      >
+        <div className="catalog-card__header">
+          <StatusDot state={state} reason={reason} message={message} />
+          <h2 className="catalog-card__name" data-testid="catalog-card-name">
+            {name}
+          </h2>
+        </div>
 
-      <div className="catalog-card__meta">
-        {kind && (
-          <span className="catalog-card__kind" data-testid="catalog-card-kind">
-            {kind}
+        <div className="catalog-card__meta">
+          {kind && (
+            <span className="catalog-card__kind" data-testid="catalog-card-kind">
+              {kind}
+            </span>
+          )}
+          <span className="catalog-card__stat" data-testid="catalog-card-resources">
+            {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
           </span>
-        )}
-        <span className="catalog-card__stat" data-testid="catalog-card-resources">
-          {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
-        </span>
-        <span className="catalog-card__stat" data-testid="catalog-card-instances">
-          {instanceDisplay} instance{instanceCount !== 1 ? 's' : ''}
-        </span>
-        <span className="catalog-card__age">{formatAge(createdAt)}</span>
-      </div>
+          <span className="catalog-card__stat" data-testid="catalog-card-instances">
+            {instanceDisplay} instance{instanceCount !== 1 ? 's' : ''}
+          </span>
+          <span className="catalog-card__age">{formatAge(createdAt)}</span>
+        </div>
+      </Link>
 
       {Object.keys(labels).length > 0 && (
         <div className="catalog-card__labels" data-testid="catalog-card-labels">
@@ -96,13 +104,6 @@ export default function CatalogCard({
       )}
 
       <div className="catalog-card__actions">
-        <Link
-          to={`/rgds/${encodedName}`}
-          className="catalog-card__btn"
-          data-testid="btn-graph"
-        >
-          Graph
-        </Link>
         <Link
           to={`/rgds/${encodedName}?tab=instances`}
           className="catalog-card__btn"

@@ -42,6 +42,7 @@ function makeAccessResponse(overrides: Partial<AccessResponse> = {}): AccessResp
   return {
     serviceAccount: 'kro-system/kro',
     serviceAccountFound: true,
+    clusterRole: 'kro-manager-role',
     hasGaps: false,
     permissions: [],
     ...overrides,

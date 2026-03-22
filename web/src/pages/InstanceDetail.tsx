@@ -15,6 +15,7 @@
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import {
   getInstance,
   getInstanceEvents,
@@ -256,6 +257,13 @@ export default function InstanceDetail() {
   // ── Instance name for breadcrumbs ────────────────────────────────────────
   const displayName = instanceName ?? '…'
 
+  // ── Page title ──────────────────────────────────────────────────────────
+  usePageTitle(
+    instanceName && rgdName
+      ? `${instanceName} / ${rgdName}`
+      : instanceName ?? rgdName ?? ''
+  )
+
   // ── Loading: gate only on the fast poll (instance + events) ─────────────
   // Children load separately and do not block DAG rendering.
   const isLoading = pollLoading && !fastData
@@ -264,18 +272,27 @@ export default function InstanceDetail() {
 
   return (
     <div data-testid="instance-detail-page" className="instance-detail">
-      {/* Breadcrumbs */}
-      <div className="instance-detail-breadcrumbs">
-        <Link to="/" className="breadcrumb-link">Home</Link>
-        <span className="breadcrumb-sep">›</span>
-        {rgdName && (
-          <>
-            <Link to={`/rgds/${rgdName}`} className="breadcrumb-link">{rgdName}</Link>
-            <span className="breadcrumb-sep">›</span>
-          </>
-        )}
-        <span className="breadcrumb-current">{displayName}</span>
-      </div>
+      {/* Breadcrumbs — issue #70: add Instances segment */}
+      <nav className="instance-detail-breadcrumbs" aria-label="Breadcrumb">
+        <ol className="breadcrumb-list">
+          <li className="breadcrumb-item">
+            <Link to="/" className="breadcrumb-link">Home</Link>
+          </li>
+          {rgdName && (
+            <li className="breadcrumb-item">
+              <Link to={`/rgds/${rgdName}`} className="breadcrumb-link">{rgdName}</Link>
+            </li>
+          )}
+          {rgdName && (
+            <li className="breadcrumb-item">
+              <Link to={`/rgds/${rgdName}?tab=instances`} className="breadcrumb-link">Instances</Link>
+            </li>
+          )}
+          <li className="breadcrumb-item">
+            <span className="breadcrumb-current" aria-current="page">{displayName}</span>
+          </li>
+        </ol>
+      </nav>
 
       {/* Header */}
       <div className="instance-detail-header">

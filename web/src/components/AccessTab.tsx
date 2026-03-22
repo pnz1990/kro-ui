@@ -23,12 +23,14 @@ function resourceLabel(p: GVRPermission): string {
 }
 
 /**
- * Infer a best-guess ClusterRole name from the service account display string.
- * e.g. "kro-system/kro" → "kro-manager-role"
- * The generated command includes a disclaimer to replace if different.
+ * Return the ClusterRole name to use in fix suggestions.
+ * Prefer the backend-resolved name; fall back to a descriptive placeholder
+ * so the user knows to replace it (issue #74).
  */
-function inferClusterRoleName(serviceAccount: string): string {
-  const saName = serviceAccount.split("/")[1] ?? serviceAccount
+function resolvedClusterRoleName(data: AccessResponse): string {
+  if (data.clusterRole) return data.clusterRole
+  // Fallback: derive a guess from the SA name, clearly marked as a placeholder
+  const saName = data.serviceAccount.split('/')[1] ?? data.serviceAccount
   return `${saName}-manager-role`
 }
 
@@ -201,7 +203,7 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
               <RBACFixSuggestion
                 key={resourceLabel(p)}
                 permission={p}
-                clusterRoleName={inferClusterRoleName(data.serviceAccount)}
+                clusterRoleName={resolvedClusterRoleName(data)}
               />
             ))}
         </div>

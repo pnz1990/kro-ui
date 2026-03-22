@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import RGDCard from '@/components/RGDCard'
 import SkeletonCard from '@/components/SkeletonCard'
 import './Home.css'
 
 export default function Home() {
+  usePageTitle('')
   const [items, setItems] = useState<K8sObject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
