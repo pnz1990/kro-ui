@@ -349,7 +349,6 @@ export default function InstanceDetail() {
           node={selectedNode}
           children={children}
           namespace={namespace ?? ''}
-          instanceName={instanceName ?? ''}
           onClose={handlePanelClose}
         />
       ) : selectedNode && panelMode === 'node' ? (

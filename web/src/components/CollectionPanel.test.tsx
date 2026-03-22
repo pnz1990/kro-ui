@@ -152,7 +152,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={children}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -174,7 +173,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={children}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -191,7 +189,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={[]}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -207,7 +204,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={[]}
         namespace="default"
-        instanceName="myapp"
         onClose={onClose}
       />,
     )
@@ -222,7 +218,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={[]}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -239,7 +234,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={children}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -254,7 +248,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={children}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -281,7 +274,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={[legacyItem]}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -297,7 +289,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={children}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )
@@ -321,7 +312,6 @@ describe('CollectionPanel', () => {
         node={node}
         children={children}
         namespace="default"
-        instanceName="myapp"
         onClose={() => {}}
       />,
     )

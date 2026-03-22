@@ -178,6 +178,8 @@ function ItemYamlView({ item, namespace, onBack }: ItemYamlViewProps) {
 
   const [viewState, setViewState] = useState<YamlViewState>({ status: 'loading' })
   const fetchedRef = useRef(false)
+  // Incrementing retryCount is what re-triggers the fetch useEffect
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     if (fetchedRef.current) return
@@ -203,10 +205,11 @@ function ItemYamlView({ item, namespace, onBack }: ItemYamlViewProps) {
       })
 
     return () => clearTimeout(timeoutId)
-  }, [namespace, group, version, kind, name, kubectl])
+  }, [namespace, group, version, kind, name, kubectl, retryCount])
 
   function handleRetry() {
     fetchedRef.current = false
+    setRetryCount((c) => c + 1)
     setViewState({ status: 'loading' })
   }
 
@@ -284,7 +287,6 @@ export interface CollectionPanelProps {
   node: DAGNode
   children: K8sObject[]
   namespace: string
-  instanceName: string
   onClose: () => void
 }
 
