@@ -104,7 +104,7 @@ $ARGUMENTS
     ```bash
     # Docker
     docker run -p 40107:40107 \
-      -v ~/.kube/config:/root/.kube/config:ro \
+      -v ~/.kube/config:/home/nonroot/.kube/config:ro \
       ghcr.io/pnz1990/kro-ui:$NEXT_VERSION
 
     # Helm
