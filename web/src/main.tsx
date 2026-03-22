@@ -7,6 +7,7 @@ import './tokens.css'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Catalog from './pages/Catalog'
+import Fleet from './pages/Fleet'
 import RGDDetail from './pages/RGDDetail'
 import InstanceDetail from './pages/InstanceDetail'
 import Events from './pages/Events'
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/catalog" element={<Catalog />} />
+          <Route path="/fleet" element={<Fleet />} />
           <Route path="/events" element={<Events />} />
           <Route path="/rgds/:name" element={<RGDDetail />} />
           <Route path="/rgds/:rgdName/instances/:namespace/:instanceName" element={<InstanceDetail />} />

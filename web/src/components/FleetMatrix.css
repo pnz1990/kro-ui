@@ -1,0 +1,95 @@
+.fleet-matrix {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.fleet-matrix--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.fleet-matrix__empty-text {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.fleet-matrix__scroll {
+  overflow: auto;
+  max-height: 480px;
+}
+
+.fleet-matrix__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+/* Header row — sticky */
+.fleet-matrix__table thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface-2);
+}
+
+.fleet-matrix__th {
+  padding: 8px 14px;
+  text-align: center;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Row header column — sticky */
+.fleet-matrix__th--kind {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--color-surface-2);
+  min-width: 160px;
+}
+
+.fleet-matrix__table tbody tr:hover {
+  background: var(--color-surface-2);
+}
+
+.fleet-matrix__td {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+
+/* Sticky row header */
+.fleet-matrix__th--row {
+  text-align: left;
+  font-weight: 400;
+  color: var(--color-text);
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+}
+
+.fleet-matrix__table tbody tr:hover .fleet-matrix__th--row {
+  background: var(--color-surface-2);
+}
+
+/* Cells */
+.fleet-matrix__cell {
+  text-align: center;
+}
+
+.fleet-matrix__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.fleet-matrix__dot--present  { background: var(--color-alive); }
+.fleet-matrix__dot--degraded { background: var(--color-reconciling); }

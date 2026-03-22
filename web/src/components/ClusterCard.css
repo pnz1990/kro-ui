@@ -1,0 +1,108 @@
+.cluster-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  font-size: 1rem;
+  color: var(--color-text);
+  transition: border-color var(--transition), background var(--transition);
+  width: 100%;
+}
+
+.cluster-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-2);
+}
+
+.cluster-card:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Header */
+.cluster-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cluster-card__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cluster-card__context {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cluster-card__cluster {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Health dot */
+.cluster-card__health-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  border-radius: 50%;
+  margin-top: 3px;
+}
+
+.cluster-card__health-dot--healthy       { background: var(--color-alive); }
+.cluster-card__health-dot--degraded      { background: var(--color-reconciling); }
+.cluster-card__health-dot--unreachable   { background: var(--color-not-found); }
+.cluster-card__health-dot--kro-not-installed { background: var(--color-not-found); }
+.cluster-card__health-dot--auth-failed   { background: var(--color-error); }
+
+/* Body */
+.cluster-card__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.cluster-card__stat {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.cluster-card__status {
+  display: flex;
+  align-items: center;
+}
+
+.cluster-card__degraded-badge {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-reconciling);
+  background: var(--node-reconciling-bg);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+}
+
+.cluster-card__status-text {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.cluster-card__status-text--unreachable    { color: var(--color-not-found); }
+.cluster-card__status-text--kro-not-installed { color: var(--color-text-muted); }
+.cluster-card__status-text--auth-failed    { color: var(--color-error); }

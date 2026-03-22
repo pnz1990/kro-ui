@@ -60,3 +60,35 @@ type AccessResponse struct {
 	HasGaps             bool            `json:"hasGaps"`
 	Permissions         []GVRPermission `json:"permissions"`
 }
+
+// ClusterHealth represents the aggregated health status of a single cluster context.
+// Values: "healthy", "degraded", "unreachable", "kro-not-installed", "auth-failed"
+type ClusterHealth string
+
+const (
+	ClusterHealthy         ClusterHealth = "healthy"
+	ClusterDegraded        ClusterHealth = "degraded"
+	ClusterUnreachable     ClusterHealth = "unreachable"
+	ClusterKroNotInstalled ClusterHealth = "kro-not-installed"
+	ClusterAuthFailed      ClusterHealth = "auth-failed"
+)
+
+// ClusterSummary is the per-context summary returned by GET /api/v1/fleet/summary.
+type ClusterSummary struct {
+	Context           string        `json:"context"`
+	Cluster           string        `json:"cluster"`
+	Health            ClusterHealth `json:"health"`
+	RGDCount          int           `json:"rgdCount"`
+	InstanceCount     int           `json:"instanceCount"`
+	DegradedInstances int           `json:"degradedInstances"`
+	KroVersion        string        `json:"kroVersion"`
+	// RGDKinds lists spec.schema.kind values for each RGD present in this cluster.
+	// Used by the Fleet compare matrix (FR-005).
+	RGDKinds []string `json:"rgdKinds"`
+	Error    string   `json:"error,omitempty"`
+}
+
+// FleetSummaryResponse is the response payload for GET /api/v1/fleet/summary.
+type FleetSummaryResponse struct {
+	Clusters []ClusterSummary `json:"clusters"`
+}

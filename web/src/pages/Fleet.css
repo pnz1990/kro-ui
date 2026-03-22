@@ -1,0 +1,85 @@
+.fleet {
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.fleet__heading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.fleet__subheading {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: 24px;
+}
+
+/* Cluster cards grid */
+.fleet__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* Error state */
+.fleet__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+}
+
+.fleet__error-message {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.fleet__retry-btn {
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.fleet__retry-btn:hover {
+  background: var(--color-primary-muted);
+}
+
+/* Empty state */
+.fleet__empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 24px 0;
+}
+
+/* Compare matrix section */
+.fleet__matrix-section {
+  margin-top: 8px;
+}
+
+.fleet__section-heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.fleet__section-subheading {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
