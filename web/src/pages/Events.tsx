@@ -1,13 +1,14 @@
 // Events.tsx — Smart event stream page for kro-relevant Kubernetes events.
 //
 // Implements spec 019-smart-event-stream.
+// Extended by issue #66: adds filter input controls for instance and RGD.
 //
 // Data flow:
 //   - Poll: listEvents(namespace, rgd) every 5s
 //   - De-duplicate: new events merged into a Map keyed by metadata.uid
 //   - Slice: most recent MAX_EVENTS (200) shown; "Load more" reveals older
 //   - Views: "Stream" (chronological) / "By Instance" (grouped/collapsible)
-//   - URL params: ?instance=X and ?rgd=Y set initial filter
+//   - URL params: ?instance=X and ?rgd=Y set initial filter (and are kept in sync)
 //   - Anomalies: detectAnomalies() computed from visible events, renders banners
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
@@ -20,6 +21,7 @@ import {
   detectAnomalies,
 } from '@/lib/events'
 import type { KubeEvent } from '@/lib/events'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import EventRow from '@/components/EventRow'
 import EventGroup from '@/components/EventGroup'
 import AnomalyBanner from '@/components/AnomalyBanner'
@@ -41,11 +43,49 @@ type ViewMode = 'stream' | 'grouped'
  * Events — filtered, grouped, anomaly-detecting kro event stream.
  *
  * Spec: .specify/specs/019-smart-event-stream/ FR-001–FR-008, SC-001–SC-005
+ * Fix #66: adds filter input UI (instance text input, RGD text input, clear button).
  */
 export default function Events() {
-  const [searchParams] = useSearchParams()
-  const instanceFilter = searchParams.get('instance') ?? ''
+  usePageTitle('Events')
+
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // ── Filter state — driven by URL params, controlled by inputs ────────────
+  // These are the "committed" filters — they drive the API call and URL.
   const rgdFilter = searchParams.get('rgd') ?? ''
+  const instanceFilter = searchParams.get('instance') ?? ''
+
+  // Local input state — updates URL on blur / Enter / debounce.
+  const [rgdInput, setRgdInput] = useState(rgdFilter)
+  const [instanceInput, setInstanceInput] = useState(instanceFilter)
+
+  // Sync inputs when URL params change externally (e.g. back-navigation).
+  useEffect(() => { setRgdInput(rgdFilter) }, [rgdFilter])
+  useEffect(() => { setInstanceInput(instanceFilter) }, [instanceFilter])
+
+  function commitRgd(value: string) {
+    const trimmed = value.trim()
+    const next: Record<string, string> = {}
+    if (trimmed) next.rgd = trimmed
+    if (instanceFilter) next.instance = instanceFilter
+    setSearchParams(next)
+  }
+
+  function commitInstance(value: string) {
+    const trimmed = value.trim()
+    const next: Record<string, string> = {}
+    if (rgdFilter) next.rgd = rgdFilter
+    if (trimmed) next.instance = trimmed
+    setSearchParams(next)
+  }
+
+  function clearFilters() {
+    setRgdInput('')
+    setInstanceInput('')
+    setSearchParams({})
+  }
+
+  const hasFilters = rgdFilter !== '' || instanceFilter !== ''
 
   // ── De-duplication map: uid → KubeEvent ──────────────────────────
   const eventMapRef = useRef<Map<string, KubeEvent>>(new Map())
@@ -60,7 +100,7 @@ export default function Events() {
   // ── View mode toggle ─────────────────────────────────────────────
   const [viewMode, setViewMode] = useState<ViewMode>('stream')
 
-  // ── Reset event map when RGD filter changes (instanceFilter is UI-only) ──
+  // ── Reset event map when RGD filter changes (server-side filter) ──
   useEffect(() => {
     eventMapRef.current = new Map()
     setAllEvents([])
@@ -115,7 +155,7 @@ export default function Events() {
     }
   }, [fetchAndMerge])
 
-  // ── Filter by ?instance= URL param ───────────────────────────────
+  // ── Filter by ?instance= param (client-side) ─────────────────────
   const filteredEvents = useMemo(() => {
     if (!instanceFilter) return allEvents
     return allEvents.filter(e => e.involvedObject.name === instanceFilter)
@@ -153,19 +193,53 @@ export default function Events() {
           )}
         </div>
 
-        <div className="events-page__controls">
-          {/* Active filters display */}
-          {(instanceFilter || rgdFilter) && (
-            <div className="events-page__filters" data-testid="active-filters">
-              {instanceFilter && (
-                <span className="events-page__filter-tag">instance: {instanceFilter}</span>
-              )}
-              {rgdFilter && (
-                <span className="events-page__filter-tag">rgd: {rgdFilter}</span>
-              )}
-            </div>
+        {/* ── Filter bar (issue #66) ── */}
+        <div className="events-page__filter-bar" data-testid="filter-bar">
+          <div className="events-page__filter-field">
+            <label htmlFor="events-rgd-filter" className="events-page__filter-label">
+              RGD
+            </label>
+            <input
+              id="events-rgd-filter"
+              type="text"
+              className="events-page__filter-input"
+              placeholder="Filter by RGD name…"
+              value={rgdInput}
+              data-testid="rgd-filter-input"
+              onChange={e => setRgdInput(e.target.value)}
+              onBlur={e => commitRgd(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commitRgd(rgdInput) }}
+            />
+          </div>
+          <div className="events-page__filter-field">
+            <label htmlFor="events-instance-filter" className="events-page__filter-label">
+              Instance
+            </label>
+            <input
+              id="events-instance-filter"
+              type="text"
+              className="events-page__filter-input"
+              placeholder="Filter by instance name…"
+              value={instanceInput}
+              data-testid="instance-filter-input"
+              onChange={e => setInstanceInput(e.target.value)}
+              onBlur={e => commitInstance(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') commitInstance(instanceInput) }}
+            />
+          </div>
+          {hasFilters && (
+            <button
+              type="button"
+              className="events-page__clear-filters-btn"
+              onClick={clearFilters}
+              data-testid="clear-filters-btn"
+            >
+              Clear filters
+            </button>
           )}
+        </div>
 
+        <div className="events-page__controls">
           {/* View mode toggle */}
           <div className="events-page__view-toggle" role="group" aria-label="View mode">
             <button

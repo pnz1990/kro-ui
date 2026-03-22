@@ -26,31 +26,32 @@ export default function RGDCard({ rgd }: RGDCardProps) {
 
   return (
     <article className="rgd-card" data-testid={`rgd-card-${name}`}>
-      <div className="rgd-card__header">
-        <StatusDot state={state} reason={reason} message={message} />
-        <h2 className="rgd-card__name" data-testid="rgd-name">
-          {name}
-        </h2>
-      </div>
-      <div className="rgd-card__meta">
-        {kind && (
-          <span className="rgd-card__kind" data-testid="rgd-kind">
-            {kind}
+      {/* Primary link wraps the full card body — issue #65 */}
+      <Link
+        to={`/rgds/${encodedName}`}
+        className="rgd-card__body-link"
+        data-testid="btn-graph"
+        aria-label={`View ${name} graph`}
+      >
+        <div className="rgd-card__header">
+          <StatusDot state={state} reason={reason} message={message} />
+          <h2 className="rgd-card__name" data-testid="rgd-name">
+            {name}
+          </h2>
+        </div>
+        <div className="rgd-card__meta">
+          {kind && (
+            <span className="rgd-card__kind" data-testid="rgd-kind">
+              {kind}
+            </span>
+          )}
+          <span className="rgd-card__resources">
+            {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
           </span>
-        )}
-        <span className="rgd-card__resources">
-          {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
-        </span>
-        <span className="rgd-card__age">{formatAge(createdAt)}</span>
-      </div>
+          <span className="rgd-card__age">{formatAge(createdAt)}</span>
+        </div>
+      </Link>
       <div className="rgd-card__actions">
-        <Link
-          to={`/rgds/${encodedName}`}
-          className="rgd-card__btn"
-          data-testid="btn-graph"
-        >
-          Graph
-        </Link>
         <Link
           to={`/rgds/${encodedName}?tab=instances`}
           className="rgd-card__btn"

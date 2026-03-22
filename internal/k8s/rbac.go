@@ -46,10 +46,13 @@ type ResourcePermission struct {
 
 // AccessResult is the full permission matrix for an RGD.
 type AccessResult struct {
-	ServiceAccount      string               `json:"serviceAccount"`
-	ServiceAccountFound bool                 `json:"serviceAccountFound"`
-	HasGaps             bool                 `json:"hasGaps"`
-	Permissions         []ResourcePermission `json:"permissions"`
+	ServiceAccount      string `json:"serviceAccount"`
+	ServiceAccountFound bool   `json:"serviceAccountFound"`
+	// ClusterRole is the name of the primary ClusterRole bound to kro's service account.
+	// Empty string means it could not be determined.
+	ClusterRole string               `json:"clusterRole"`
+	HasGaps     bool                 `json:"hasGaps"`
+	Permissions []ResourcePermission `json:"permissions"`
 }
 
 // ManagedVerbs are the verbs required for resources kro actively manages.
@@ -205,6 +208,29 @@ func CheckPermissions(rules []policyRule, group, resource string, required []str
 	return granted
 }
 
+// ResolveKroClusterRole returns the name of the first ClusterRole bound to the given
+// service account via a ClusterRoleBinding. Returns an empty string if none is found.
+// The first match with a ClusterRole (not a Role) is returned; typically kro has a
+// single ClusterRoleBinding.
+func ResolveKroClusterRole(ctx context.Context, clients K8sClients, saNamespace, saName string) string {
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	crbList, err := clients.Dynamic().Resource(crbGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return ""
+	}
+	for _, crb := range crbList.Items {
+		if !bindingMatchesSA(crb.Object, saNamespace, saName) {
+			continue
+		}
+		roleKind, _, _ := UnstructuredString(crb.Object, "roleRef", "kind")
+		roleName, _, _ := UnstructuredString(crb.Object, "roleRef", "name")
+		if roleKind == "ClusterRole" && roleName != "" {
+			return roleName
+		}
+	}
+	return ""
+}
+
 // ComputeAccessResult extracts all GVRs from the RGD's spec.resources, fetches kro's
 // service account, reads its effective RBAC rules, and returns the full permission matrix.
 func ComputeAccessResult(ctx context.Context, clients K8sClients, rgdObj map[string]any) (*AccessResult, error) {
@@ -259,6 +285,7 @@ func ComputeAccessResult(ctx context.Context, clients K8sClients, rgdObj map[str
 	return &AccessResult{
 		ServiceAccount:      saDisplay,
 		ServiceAccountFound: saFound,
+		ClusterRole:         ResolveKroClusterRole(ctx, clients, saNS, saName),
 		HasGaps:             hasGaps,
 		Permissions:         permissions,
 	}, nil

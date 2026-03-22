@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
-import ContextSwitcher from './ContextSwitcher'
+import ContextSwitcher, { truncateContextName } from './ContextSwitcher'
 import type { KubeContext } from '@/lib/api'
 
 vi.mock('@/lib/api', () => ({
@@ -32,6 +32,36 @@ function renderSwitcher(props?: {
     />,
   )
 }
+
+describe('truncateContextName', () => {
+  it('returns name unchanged when ≤40 chars', () => {
+    expect(truncateContextName('dev')).toBe('dev')
+    expect(truncateContextName('a'.repeat(40))).toBe('a'.repeat(40))
+  })
+
+  it('abbreviates AWS EKS ARNs to accountPrefix…/clusterName', () => {
+    const arn1 = 'arn:aws:eks:us-west-2:319279230668:cluster/krombat'
+    expect(truncateContextName(arn1)).toBe('319279\u2026/krombat')
+
+    const arn2 = 'arn:aws:eks:us-west-2:569190534191:cluster/krombat'
+    expect(truncateContextName(arn2)).toBe('569190\u2026/krombat')
+
+    // The two ARNs that both used to truncate to "…/krombat" are now distinct
+    expect(truncateContextName(arn1)).not.toBe(truncateContextName(arn2))
+  })
+
+  it('falls back to prefix…/lastName for long generic paths', () => {
+    const name = 'some-very-long-context-name/cluster-name-here'
+    const result = truncateContextName(name)
+    expect(result).toContain('\u2026/')
+    expect(result).toContain('cluster-name-here')
+  })
+
+  it('truncates non-path names at 40 chars with …', () => {
+    const name = 'x'.repeat(50)
+    expect(truncateContextName(name)).toBe('x'.repeat(40) + '\u2026')
+  })
+})
 
 describe('ContextSwitcher', () => {
   beforeEach(() => {

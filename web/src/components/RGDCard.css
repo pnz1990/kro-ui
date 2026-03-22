@@ -4,11 +4,95 @@
   border-radius: var(--radius);
   padding: 16px;
   transition: border-color var(--transition);
+  display: flex;
+  flex-direction: column;
 }
 
 .rgd-card:hover {
   border-color: var(--color-border-focus);
 }
+
+/* Body link — covers header + meta, entire clickable area (issue #65) */
+.rgd-card__body-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+}
+
+.rgd-card__body-link:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.rgd-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rgd-card__name {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rgd-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.rgd-card__kind {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: var(--color-primary-muted);
+  color: var(--color-primary-text);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.rgd-card__resources {
+  /* inherits from meta */
+}
+
+.rgd-card__age {
+  /* inherits from meta */
+}
+
+.rgd-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rgd-card__btn {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.rgd-card__btn:hover {
+  background-color: var(--color-primary-muted);
+  color: var(--color-primary-hover);
+}
+
 
 .rgd-card__header {
   display: flex;

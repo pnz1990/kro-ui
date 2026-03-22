@@ -1,4 +1,4 @@
-/* InstanceTable — live CR instance rows. */
+/* InstanceTable — live CR instance rows. Issue #71: sortable headers. */
 
 .instance-table {
   width: 100%;
@@ -15,6 +15,31 @@
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
   user-select: none;
+}
+
+.instance-table__th--sortable {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.instance-table__th--sortable:hover {
+  color: var(--color-text);
+}
+
+.instance-table__th--sortable:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+/* Sort indicator arrows */
+.sort-indicator {
+  font-size: 10px;
+  margin-left: 4px;
+  color: var(--color-primary);
+}
+
+.sort-indicator--inactive {
+  color: var(--color-text-faint);
 }
 
 .instance-table__th--action {

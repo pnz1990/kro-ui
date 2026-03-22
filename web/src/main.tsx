@@ -11,6 +11,7 @@ import Fleet from './pages/Fleet'
 import RGDDetail from './pages/RGDDetail'
 import InstanceDetail from './pages/InstanceDetail'
 import Events from './pages/Events'
+import NotFound from './pages/NotFound'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/events" element={<Events />} />
           <Route path="/rgds/:name" element={<RGDDetail />} />
           <Route path="/rgds/:rgdName/instances/:namespace/:instanceName" element={<InstanceDetail />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </BrowserRouter>

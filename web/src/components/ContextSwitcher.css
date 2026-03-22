@@ -94,7 +94,7 @@
 /* Option */
 .context-switcher__option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
@@ -104,9 +104,24 @@
   cursor: pointer;
   transition: background var(--transition-fast);
   user-select: none;
-  white-space: nowrap;
+}
+
+/* Option text wrapper — allows subtitle below the label */
+.context-switcher__option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Subtitle — shows the full context name for disambiguation */
+.context-switcher__option-subtitle {
+  font-size: 10px;
+  color: var(--color-text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
 }
 
 .context-switcher__option:hover {

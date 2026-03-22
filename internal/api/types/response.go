@@ -55,10 +55,13 @@ type GVRPermission struct {
 
 // AccessResponse is the response payload for GET /api/v1/rgds/{name}/access.
 type AccessResponse struct {
-	ServiceAccount      string          `json:"serviceAccount"`
-	ServiceAccountFound bool            `json:"serviceAccountFound"`
-	HasGaps             bool            `json:"hasGaps"`
-	Permissions         []GVRPermission `json:"permissions"`
+	ServiceAccount      string `json:"serviceAccount"`
+	ServiceAccountFound bool   `json:"serviceAccountFound"`
+	// ClusterRole is the name of the primary ClusterRole bound to kro's service account.
+	// Empty string means it could not be determined — the frontend should fall back to a placeholder.
+	ClusterRole string          `json:"clusterRole"`
+	HasGaps     bool            `json:"hasGaps"`
+	Permissions []GVRPermission `json:"permissions"`
 }
 
 // ClusterHealth represents the aggregated health status of a single cluster context.

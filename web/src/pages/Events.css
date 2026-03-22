@@ -41,6 +41,67 @@
   color: var(--color-text-faint);
 }
 
+/* ── Filter bar (issue #66) ─────────────────────────────────────────── */
+
+.events-page__filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.events-page__filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.events-page__filter-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.events-page__filter-input {
+  padding: 5px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  min-width: 200px;
+  transition: border-color var(--transition-fast);
+}
+
+.events-page__filter-input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.events-page__filter-input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+.events-page__clear-filters-btn {
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  align-self: flex-end;
+}
+
+.events-page__clear-filters-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
 /* ── Controls bar ──────────────────────────────────────────────────── */
 
 .events-page__controls {
@@ -48,25 +109,6 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-}
-
-/* Active filter tags */
-.events-page__filters {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.events-page__filter-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  background: var(--color-primary-muted);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--color-primary-text);
 }
 
 /* View mode toggle button group */

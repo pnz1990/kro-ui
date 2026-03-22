@@ -4,12 +4,22 @@
 // DAGGraph layout (no re-layout on state change — FR-005).
 //
 // Spec 011 extension: collection nodes receive a CollectionBadge health overlay.
+// Fix #64: SVG height is fitted to actual node bounding box.
 
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
 import './LiveDAG.css'
+
+const PADDING = 32
+
+/** Compute the actual content height from node bounding boxes (issue #64). */
+function fittedHeight(graph: DAGGraph): number {
+  if (graph.nodes.length === 0) return graph.height
+  const maxBottom = Math.max(...graph.nodes.map((n) => n.y + n.height))
+  return maxBottom + PADDING
+}
 
 interface LiveDAGProps {
   graph: DAGGraph
@@ -192,14 +202,15 @@ export default function LiveDAG({
   children,
 }: LiveDAGProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
+  const svgHeight = fittedHeight(graph)
 
   return (
     <div className="dag-graph-container live-dag-container">
       <svg
         data-testid="dag-svg"
         width={graph.width}
-        height={graph.height}
-        viewBox={`0 0 ${graph.width} ${graph.height}`}
+        height={svgHeight}
+        viewBox={`0 0 ${graph.width} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Live resource dependency graph"
         role="img"

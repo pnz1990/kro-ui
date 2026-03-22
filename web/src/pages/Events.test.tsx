@@ -195,11 +195,15 @@ describe('Events', () => {
     })
   })
 
-  it('shows active filter tags for ?instance= and ?rgd= params', async () => {
+  it('shows filter inputs pre-populated from ?instance= and ?rgd= params', async () => {
     mockedListEvents.mockResolvedValue({ items: [], metadata: {} })
     renderEvents('/events?instance=my-app&rgd=my-rgd')
-    // The filter tags render synchronously based on URL params.
-    expect(screen.getByText('instance: my-app')).toBeInTheDocument()
-    expect(screen.getByText('rgd: my-rgd')).toBeInTheDocument()
+    // The filter inputs are pre-populated from URL params.
+    const rgdInput = screen.getByTestId('rgd-filter-input') as HTMLInputElement
+    const instanceInput = screen.getByTestId('instance-filter-input') as HTMLInputElement
+    expect(rgdInput.value).toBe('my-rgd')
+    expect(instanceInput.value).toBe('my-app')
+    // Clear filters button should appear when both filters are active
+    expect(screen.getByTestId('clear-filters-btn')).toBeInTheDocument()
   })
 })

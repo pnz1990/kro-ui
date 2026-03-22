@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import {
   buildChainingMap,
   collectAllLabels,
@@ -28,6 +29,7 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ]
 
 export default function Catalog() {
+  usePageTitle('Catalog')
   const [items, setItems] = useState<K8sObject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

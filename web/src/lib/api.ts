@@ -113,6 +113,8 @@ export interface GVRPermission {
 export interface AccessResponse {
   serviceAccount: string
   serviceAccountFound: boolean
+  /** The name of the primary ClusterRole bound to kro's SA. Empty if not found. */
+  clusterRole: string
   hasGaps: boolean
   permissions: GVRPermission[]
 }

@@ -13,6 +13,19 @@
   border-color: var(--color-border-focus);
 }
 
+/* Body link — covers header + meta (issue #65) */
+.catalog-card__body-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.catalog-card__body-link:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 /* ── Header ──────────────────────────────────────────────────────── */
 
 .catalog-card__header {
