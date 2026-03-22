@@ -10,6 +10,7 @@ RUN bun run build
 FROM golang:1.25-alpine AS go-builder
 WORKDIR /app
 COPY go.mod go.sum ./
+ENV GOPROXY=direct GONOSUMDB="*"
 RUN go mod download
 COPY . .
 COPY --from=web-builder /app/web/dist ./web/dist

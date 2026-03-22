@@ -30,27 +30,28 @@ All changes go through PRs. Direct push to `main` is blocked.
 
 ### Spec inventory (delivery order)
 
-| Spec | GH Issue | What | Unblocks |
-|------|----------|------|---------|
-| `001-server-core` | #1 | Binary, CLI, healthz, embed, ClientFactory, contexts API | everything |
-| `001b-rgd-api` | #2 | GET /rgds, GET /rgds/{name}, GET /rgds/{name}/instances | #4, #5 |
-| `001c-instance-api` | #3 | Instance detail, events, children, raw resource, metrics stub | #6, #7 |
-| `002-rgd-list-home` | #4 | Home page RGD card grid | — |
-| `003-rgd-detail-dag` | #5 | DAG visualization, node inspection, YAML tab | — |
-| `004-instance-list` | #6 | Instance table with namespace filter | — |
-| `005-instance-detail-live` | #7 | Live DAG with 5s polling, node YAML | — |
-| `006-cel-highlighter` | #8 | Pure TS kro CEL/schema tokenizer | #5, #7 |
-| `007-context-switcher` | #9 | Runtime kubeconfig context switching | — |
-| `008-feature-flags` | #11 | kro capabilities API, feature gate system | — |
-| `009-rgd-graph-diff` | #13 | RGD graph revision diff (BLOCKED: needs kro KREP-013) | — |
-| `011-collection-explorer` | #14 | forEach collection drill-down and health badges | — |
-| `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | — |
-| `014-multi-cluster-overview` | #16 | Fleet view across kubeconfig contexts | — |
-| `015-rgd-catalog` | #17 | Searchable RGD registry with filtering and chaining detection | — |
-| `017-rgd-validation-linting` | #18 | Surface RGD validation conditions in the UI | — |
-| `018-rbac-visualizer` | #19 | Permission gap detection for RGD managed resources | — |
-| `019-smart-event-stream` | #20 | Filtered, grouped, anomaly-detecting event view | — |
-| `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | — |
+| Spec | GH Issue | What | Status |
+|------|----------|------|--------|
+| `000-design-system` | #10 | Color palette, typography, spacing, motion tokens | Merged |
+| `001-server-core` | #1 | Binary, CLI, healthz, embed, ClientFactory, contexts API | Merged (PR #12) |
+| `001b-rgd-api` | #2 | GET /rgds, GET /rgds/{name}, GET /rgds/{name}/instances | Merged (PR #32) |
+| `001c-instance-api` | #3 | Instance detail, events, children, raw resource, metrics stub | Merged (PR #33) |
+| `002-rgd-list-home` | #4 | Home page RGD card grid | Merged (PR #35) |
+| `006-cel-highlighter` | #8 | Pure TS kro CEL/schema tokenizer | Merged (PR #34) |
+| `008-feature-flags` | #11 | kro capabilities API, feature gate system | Merged (PR #36) |
+| `003-rgd-detail-dag` | #5 | DAG visualization, node inspection, YAML tab | Merged (PR #38) |
+| `007-context-switcher` | #9 | Runtime kubeconfig context switching | Merged (PR #37) |
+| `004-instance-list` | #6 | Instance table with namespace filter | Merged (PR #46) |
+| `015-rgd-catalog` | #17 | Searchable RGD registry with filtering and chaining detection | Merged (PR #47) |
+| `005-instance-detail-live` | #7 | Live DAG with 5s polling, node YAML | Merged (PR #48) |
+| `011-collection-explorer` | #14 | forEach collection drill-down and health badges | Merged (PR #49) |
+| `017-rgd-validation-linting` | #18 | Surface RGD validation conditions in the UI | Merged (PR #50) |
+| `018-rbac-visualizer` | #19 | Permission gap detection for RGD managed resources | Merged (PR #51) |
+| `019-smart-event-stream` | #20 | Filtered, grouped, anomaly-detecting event view | Merged (PR #53) |
+| `014-multi-cluster-overview` | #16 | Fleet view across kubeconfig contexts | Merged (PR #52) |
+| `009-rgd-graph-diff` | #13 | RGD graph revision diff | Blocked (needs kro KREP-013) |
+| `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | **Next** |
+| `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | **Next** |
 
 ### Worktrunk (required workflow)
 

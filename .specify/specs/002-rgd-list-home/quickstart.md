@@ -139,9 +139,13 @@ If you don't have a cluster with kro:
 # Create kind cluster
 kind create cluster --name kro-test
 
-# Install kro via Helm
-helm install kro oci://ghcr.io/kro-run/kro/chart \
-  --namespace kro-system --create-namespace
+# Fetch latest kro version and install via Helm
+export KRO_VERSION=$(curl -sL \
+    https://api.github.com/repos/kubernetes-sigs/kro/releases/latest | \
+    jq -r '.tag_name | ltrimstr("v")')
+helm install kro oci://registry.k8s.io/kro/charts/kro \
+  --namespace kro-system --create-namespace \
+  --version=${KRO_VERSION}
 
 # Wait for kro to be ready
 kubectl wait --for=condition=Available deployment/kro-controller-manager \

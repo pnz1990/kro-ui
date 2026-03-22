@@ -9,12 +9,21 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 
 ## Features
 
-- **RGD explorer** — list all ResourceGraphDefinitions, view their dependency DAGs
-- **CEL/schema highlighting** — aligned with kro.run's custom highlighter
-- **Live instance view** — 5s auto-refresh, spec/conditions/events, node YAML inspection
-- **Context switcher** — switch kubeconfig contexts at runtime
-- **Cluster-wide + namespace filter** — see everything or narrow by namespace
-- **Dark/light theme** — dark default, aligned with kro.run palette
+**Implemented:**
+- **Home page** — RGD card grid with status dots, kind badges, resource count, age
+- **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types)
+- **RGD detail** — YAML tab with syntax-highlighted RGD manifest, copy-to-clipboard
+- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly
+- **Dark/light theme** — dark default, full design token system
+
+**In progress:**
+- **DAG visualization** — dependency graph for RGDs with node inspection (spec 003)
+- **Context switcher** — switch kubeconfig contexts at runtime (spec 007)
+
+**Planned:**
+- **Instance list** — instance table with namespace filter
+- **Live instance view** — 5s auto-refresh, node YAML inspection
+- **Collection explorer** — forEach drill-down and health badges
 
 ## Quickstart
 
@@ -41,7 +50,7 @@ docker run -p 40107:40107 \
 ### In-cluster (Helm)
 
 ```bash
-helm install kro-ui oci://ghcr.io/pnz1990/helm-charts/kro-ui \
+helm install kro-ui ./helm/kro-ui \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
@@ -61,6 +70,8 @@ kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
 | `/api/v1/instances/{ns}/{name}` | GET | Get instance detail |
 | `/api/v1/instances/{ns}/{name}/events` | GET | Instance events |
 | `/api/v1/instances/{ns}/{name}/children` | GET | Instance child resources |
+| `/api/v1/resources/{ns}/{group}/{ver}/{kind}/{name}` | GET | Raw resource YAML |
+| `/api/v1/kro/capabilities` | GET | Detected kro capabilities and feature gates |
 
 ## Development
 
@@ -88,13 +99,22 @@ GOPROXY=direct GONOSUMDB="*" go ...
 ## Testing
 
 ```bash
-# Unit tests (with race detector)
+# Go unit tests (with race detector)
 GOPROXY=direct GONOSUMDB="*" go test -race ./...
+
+# Frontend unit tests
+cd web && bun run test
+
+# TypeScript strict mode check
+cd web && bun run typecheck
 
 # E2E tests (requires kind, helm, kubectl)
 make test-e2e-install   # one-time: install Playwright + Chromium
 make test-e2e           # full run (creates kind cluster, runs tests, teardown)
 ```
+
+E2E tests auto-detect the latest kro release and install it via Helm from
+`registry.k8s.io/kro/charts/kro`. Override with `KRO_CHART_VERSION=0.8.5`.
 
 ## CI & Security
 
@@ -122,16 +142,17 @@ internal/
   server/           # HTTP server, chi router, SPA fallback
   api/handlers/     # Route handlers — thin layer over k8s package
   api/types/        # Shared API response types
-  k8s/              # Dynamic client, discovery, context switching
+  k8s/              # Dynamic client, discovery, capabilities detection
   version/          # Build-time version info
 web/
   embed.go          # go:embed frontend FS
   src/
-    components/     # DAGGraph, KroCodeBlock, ContextSwitcher, Layout, ...
+    components/     # KroCodeBlock, RGDCard, StatusDot, TopBar, Layout, ...
     pages/          # Home, RGDDetail, InstanceDetail
-    lib/api.ts      # Typed fetch client
+    lib/            # api.ts, highlighter.ts, yaml.ts, features.ts, format.ts
     hooks/          # usePolling (5s refresh)
 helm/kro-ui/        # Helm chart for in-cluster deployment
+test/e2e/           # Playwright E2E journeys + kind cluster infra
 Dockerfile          # Multi-stage: bun → go → distroless (~15MB)
 ```
 
