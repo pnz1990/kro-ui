@@ -98,3 +98,24 @@ export const listEvents = (namespace?: string, rgd?: string) => {
 
 export const getResource = (namespace: string, group: string, version: string, kind: string, name: string) =>
   get<K8sObject>(`/resources/${namespace}/${group || '_'}/${version}/${kind}/${name}`)
+
+// ── RBAC Access ──────────────────────────────────────────────────────
+
+export interface GVRPermission {
+  group: string
+  version: string
+  resource: string
+  kind: string
+  required: string[]
+  granted: Record<string, boolean>
+}
+
+export interface AccessResponse {
+  serviceAccount: string
+  serviceAccountFound: boolean
+  hasGaps: boolean
+  permissions: GVRPermission[]
+}
+
+export const getRGDAccess = (rgdName: string) =>
+  get<AccessResponse>(`/rgds/${encodeURIComponent(rgdName)}/access`)

@@ -1,0 +1,216 @@
+/* AccessTab.css — permission matrix table and banners.
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/018-rbac-visualizer/
+ */
+
+/* ── Loading / error states ──────────────────────────────────────────────── */
+
+.access-tab-loading {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.access-tab-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+  margin-bottom: 16px;
+}
+
+.access-tab-error__msg {
+  color: var(--color-error);
+  font-size: 13px;
+  flex: 1;
+}
+
+.access-tab-retry-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.access-tab-retry-btn:hover {
+  border-color: var(--color-primary);
+}
+
+/* ── Container ────────────────────────────────────────────────────────────── */
+
+.access-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Service account banner ───────────────────────────────────────────────── */
+
+.access-tab-sa-banner {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.access-tab-sa-label {
+  color: var(--color-text-faint);
+}
+
+.access-tab-sa-name {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--color-text);
+  background: var(--color-surface-3);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.access-tab-sa-note {
+  color: var(--color-text-faint);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ── Informational note ───────────────────────────────────────────────────── */
+
+.access-tab-note {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  margin-top: -8px;
+}
+
+/* ── Status banners ───────────────────────────────────────────────────────── */
+
+.access-tab-banner {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.access-tab-banner--success {
+  background: var(--node-alive-bg);
+  border: 1px solid var(--color-alive);
+  color: var(--color-alive);
+}
+
+.access-tab-banner--warning {
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+}
+
+/* ── Table wrapper (horizontal scroll) ──────────────────────────────────── */
+
+.access-tab-table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+
+/* ── Permission matrix table ──────────────────────────────────────────────── */
+
+.access-tab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.access-tab-th {
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.access-tab-th--resource {
+  min-width: 220px;
+  text-align: left;
+}
+
+.access-tab-th--verb {
+  text-align: center;
+  width: 56px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+/* ── Table rows ──────────────────────────────────────────────────────────── */
+
+.access-tab-row {
+  transition: background var(--transition-fast);
+}
+
+.access-tab-row:hover {
+  background: var(--color-surface-2);
+}
+
+.access-tab-row--gap {
+  background: var(--node-error-bg);
+}
+
+.access-tab-row--gap:hover {
+  background: var(--node-error-bg);
+  filter: brightness(0.95);
+}
+
+.access-tab-row:not(:last-child) td {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* ── Resource cell ────────────────────────────────────────────────────────── */
+
+.access-tab-td {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.access-tab-td--resource {
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.access-tab-resource-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  display: block;
+}
+
+.access-tab-resource-kind {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  display: block;
+  margin-top: 1px;
+}
+
+/* ── N/A cell (not required verb) ─────────────────────────────────────────── */
+
+.perm-cell--na .perm-cell__icon {
+  color: var(--color-text-faint);
+  font-size: 12px;
+}
+
+/* ── Fix suggestions section ─────────────────────────────────────────────── */
+
+.access-tab-fixes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.access-tab-fixes-heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}

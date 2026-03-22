@@ -42,3 +42,21 @@ type ErrorResponse struct {
 type ChildrenResponse struct {
 	Items []map[string]any `json:"items"`
 }
+
+// GVRPermission holds required vs granted permissions for a single GVR managed by an RGD.
+type GVRPermission struct {
+	Group    string          `json:"group"`
+	Version  string          `json:"version"`
+	Resource string          `json:"resource"`
+	Kind     string          `json:"kind"`
+	Required []string        `json:"required"`
+	Granted  map[string]bool `json:"granted"`
+}
+
+// AccessResponse is the response payload for GET /api/v1/rgds/{name}/access.
+type AccessResponse struct {
+	ServiceAccount      string          `json:"serviceAccount"`
+	ServiceAccountFound bool            `json:"serviceAccountFound"`
+	HasGaps             bool            `json:"hasGaps"`
+	Permissions         []GVRPermission `json:"permissions"`
+}
