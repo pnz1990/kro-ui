@@ -49,9 +49,9 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `018-rbac-visualizer` | #19 | Permission gap detection for RGD managed resources | Merged (PR #51) |
 | `019-smart-event-stream` | #20 | Filtered, grouped, anomaly-detecting event view | Merged (PR #53) |
 | `014-multi-cluster-overview` | #16 | Fleet view across kubeconfig contexts | Merged (PR #52) |
+| `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | Merged (PR #54) |
+| `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | Merged (PR #55) |
 | `009-rgd-graph-diff` | #13 | RGD graph revision diff | Blocked (needs kro KREP-013) |
-| `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | **Next** |
-| `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | **Next** |
 
 ### Worktrunk (required workflow)
 

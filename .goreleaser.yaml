@@ -6,8 +6,9 @@ version: 2
 project_name: kro-ui
 
 before:
-  hooks:
-    - make web   # build frontend into web/dist before Go build
+  hooks: []
+  # The release.yml workflow builds the frontend before invoking goreleaser.
+  # No pre-hooks needed here.
 
 builds:
   - id: kro-ui
@@ -46,6 +47,19 @@ archives:
 checksum:
   name_template: "checksums.txt"
   algorithm: sha256
+
+# web/dist is built by the workflow before goreleaser runs.
+# The built artifact modifies web/dist/index.html which goreleaser
+# would otherwise flag as a dirty state. Allow it.
+git:
+  ignore_tags: []
+  tag_sort: -version:refname
+
+gomod:
+  proxy: direct
+  env:
+    - GOPROXY=direct
+    - GONOSUMDB=*
 
 changelog:
   use: github

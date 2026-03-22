@@ -46,3 +46,4 @@ Thumbs.db
 /tmp/kro-ui-e2e-kubeconfig.yaml
 
 kro-ui
+web/tsconfig.tsbuildinfo
