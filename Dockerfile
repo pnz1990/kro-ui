@@ -7,7 +7,11 @@ COPY web/ .
 RUN bun run build
 
 # ── Stage 2: build Go binary ─────────────────────────────────────────
-FROM golang:1.25-alpine AS go-builder
+# --platform=$BUILDPLATFORM pins this stage to the CI runner's native platform
+# (linux/amd64). apk, go mod download, and go build all run natively — no QEMU.
+# TARGETARCH is injected by BuildKit and passed to GOARCH so the output binary
+# targets the correct architecture (Go cross-compilation is near-instant).
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS go-builder
 # git is required by go mod download when GOPROXY=direct fetches from VCS
 RUN apk add --no-cache git
 WORKDIR /app
@@ -16,8 +20,6 @@ ENV GOPROXY=direct GONOSUMDB="*"
 RUN go mod download
 COPY . .
 COPY --from=web-builder /app/web/dist ./web/dist
-# TARGETARCH is set by Docker BuildKit (e.g. amd64, arm64).
-# Go cross-compiles natively — no QEMU emulation needed.
 ARG TARGETARCH
 ARG VERSION=dev
 ARG COMMIT=none
