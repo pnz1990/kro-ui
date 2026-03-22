@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="kro-ui" width="160" />
+</p>
+
 # kro-ui
 
 [![CI](https://github.com/pnz1990/kro-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/pnz1990/kro-ui/actions/workflows/ci.yml)
