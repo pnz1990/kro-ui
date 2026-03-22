@@ -1,0 +1,87 @@
+/* DeepDAG.css — Styles for the deep graph expand/collapse affordance.
+ *
+ * All colors from tokens.css custom properties.
+ * No hardcoded hex values.
+ * Spec: .specify/specs/012-rgd-chaining-deep-graph/
+ */
+
+/* ── Expand toggle icon ───────────────────────────────────────────────────── */
+
+.deep-dag-expand-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--color-text-muted);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+  transition: fill var(--transition-fast);
+}
+
+/* The parent node group applies pointer-events */
+.dag-node.deep-dag-expandable {
+  cursor: pointer;
+}
+
+/* Hover: highlight the toggle and rect border */
+.dag-node.deep-dag-expandable:hover .deep-dag-expand-toggle {
+  fill: var(--color-primary);
+}
+
+/* ── Nested subgraph container ────────────────────────────────────────────── */
+
+/* foreignObject wrapper div — contains the nested LiveDAG */
+.deep-dag-nested-container {
+  width: 100%;
+  height: 100%;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Header label for nested subgraph */
+.deep-dag-nested-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.deep-dag-nested-header-kind {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-primary);
+}
+
+/* Loading / error states inside nested container */
+.deep-dag-nested-loading,
+.deep-dag-nested-error,
+.deep-dag-max-depth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 8px 16px;
+}
+
+.deep-dag-nested-error {
+  color: var(--color-error);
+}
+
+/* The nested LiveDAG itself — no extra scroll inside */
+.deep-dag-nested-container .dag-graph-container,
+.deep-dag-nested-container .live-dag-container {
+  overflow: visible;
+  min-height: unset;
+}

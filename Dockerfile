@@ -8,6 +8,7 @@ RUN bun run build
 
 # ── Stage 2: build Go binary ─────────────────────────────────────────
 FROM golang:1.25-alpine AS go-builder
+RUN apk add --no-cache git
 WORKDIR /app
 COPY go.mod go.sum ./
 ENV GOPROXY=direct GONOSUMDB="*"

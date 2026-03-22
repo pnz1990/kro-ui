@@ -20,6 +20,7 @@ import {
   getInstanceEvents,
   getInstanceChildren,
   getRGD,
+  listRGDs,
 } from '@/lib/api'
 import type { K8sObject, K8sList } from '@/lib/api'
 import type { DAGNode } from '@/lib/dag'
@@ -28,7 +29,7 @@ import { buildDAGGraph } from '@/lib/dag'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
 import { usePolling } from '@/hooks/usePolling'
-import LiveDAG from '@/components/LiveDAG'
+import DeepDAG from '@/components/DeepDAG'
 import LiveNodeDetailPanel from '@/components/LiveNodeDetailPanel'
 import CollectionPanel from '@/components/CollectionPanel'
 import SpecPanel from '@/components/SpecPanel'
@@ -125,6 +126,15 @@ export default function InstanceDetail() {
       .catch((err: Error) => { setRgdError(err.message) })
       .finally(() => setRgdLoading(false))
   }, [rgdName])
+
+  // ── All RGDs — fetched once for chaining detection (spec 012) ────────────
+  const [allRGDs, setAllRGDs] = useState<K8sObject[]>([])
+
+  useEffect(() => {
+    listRGDs()
+      .then((list) => setAllRGDs(list.items ?? []))
+      .catch(() => { /* non-fatal: chaining detection degrades gracefully */ })
+  }, [])
 
   // ── Children — fetched separately; does NOT block DAG rendering ──────────
   // ListChildResources does full-cluster discovery and can be slow (O(N) GVRs).
@@ -320,12 +330,14 @@ export default function InstanceDetail() {
             {rgdLoading ? (
               <div className="instance-detail-dag-empty">Loading graph…</div>
             ) : dagGraph && dagGraph.nodes.length > 0 ? (
-              <LiveDAG
+              <DeepDAG
                 graph={dagGraph}
                 nodeStateMap={nodeStateMap}
                 onNodeClick={handleNodeClick}
                 selectedNodeId={selectedNodeId ?? undefined}
                 children={children}
+                rgds={allRGDs}
+                namespace={namespace ?? ''}
               />
             ) : (
               <div className="instance-detail-dag-empty">

@@ -4,6 +4,8 @@
 // (spec.resources[].id, spec.resources[].template, etc.).
 // The DAGGraph component is purely data-driven and has zero kro knowledge.
 
+import type { K8sObject } from '@/lib/api'
+
 // ── Types ─────────────────────────────────────────────────────────────────
 
 /**
@@ -330,6 +332,31 @@ function layoutDAG(
   const totalHeight = currentY - V_GAP + PADDING
 
   return { positions, width: totalWidth, height: totalHeight }
+}
+
+// ── Chaining detection ────────────────────────────────────────────────────
+
+/**
+ * detectKroInstance — returns true when the given kind is managed by one of
+ * the provided RGDs (i.e., a ResourceGraphDefinition exists whose
+ * spec.schema.kind matches the given kind).
+ *
+ * FR-001: Used by DeepDAG to decide which nodes show an expand icon.
+ *
+ * @param kind - The Kubernetes kind string from a DAGNode (e.g. "Database")
+ * @param rgds - The full list of RGD objects from the cluster
+ */
+export function detectKroInstance(kind: string, rgds: K8sObject[]): boolean {
+  if (!kind) return false
+  for (const rgd of rgds) {
+    const spec = rgd.spec
+    if (typeof spec !== 'object' || spec === null) continue
+    const schema = (spec as Record<string, unknown>).schema
+    if (typeof schema !== 'object' || schema === null) continue
+    const schemaKind = (schema as Record<string, unknown>).kind
+    if (typeof schemaKind === 'string' && schemaKind === kind) return true
+  }
+  return false
 }
 
 // ── Main export ───────────────────────────────────────────────────────────
