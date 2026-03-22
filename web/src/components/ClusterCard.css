@@ -93,7 +93,7 @@
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--color-reconciling);
-  background: rgba(245, 158, 11, 0.10);
+  background: var(--node-reconciling-bg);
   padding: 2px 7px;
   border-radius: var(--radius-sm);
 }
