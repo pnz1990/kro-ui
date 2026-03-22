@@ -1,0 +1,193 @@
+/* Events.css — Smart event stream page layout.
+ *
+ * All colors from tokens.css custom properties.
+ * Spec: .specify/specs/019-smart-event-stream/
+ */
+
+/* ── Page shell ────────────────────────────────────────────────────── */
+
+.events-page {
+  padding: 24px 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Header ────────────────────────────────────────────────────────── */
+
+.events-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.events-page__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.events-page__title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.events-page__refresh-hint {
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+/* ── Controls bar ──────────────────────────────────────────────────── */
+
+.events-page__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Active filter tags */
+.events-page__filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.events-page__filter-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: var(--color-primary-muted);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-primary-text);
+}
+
+/* View mode toggle button group */
+.events-page__view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.events-page__toggle-btn {
+  padding: 5px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  border-right: 1px solid var(--color-border);
+}
+
+.events-page__toggle-btn:last-child {
+  border-right: none;
+}
+
+.events-page__toggle-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.events-page__toggle-btn--active {
+  background: var(--color-primary-muted);
+  color: var(--color-primary-text);
+  font-weight: 500;
+}
+
+.events-page__toggle-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+/* ── Anomaly banners ────────────────────────────────────────────────── */
+
+.events-page__anomalies {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Status states ──────────────────────────────────────────────────── */
+
+.events-page__loading,
+.events-page__empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: 14px;
+}
+
+.events-page__error {
+  padding: 12px 16px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--node-error-border);
+  border-radius: var(--radius);
+  color: var(--color-error);
+  font-size: 13px;
+}
+
+/* ── Content area ───────────────────────────────────────────────────── */
+
+.events-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Stream view: flat list */
+.events-page__stream {
+  /* no extra styles — EventRow handles its own borders */
+}
+
+.event-stream-list {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* Grouped view: stacked EventGroup components */
+.events-page__grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Load more ──────────────────────────────────────────────────────── */
+
+.events-page__load-more {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.events-page__load-more-btn {
+  padding: 7px 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.events-page__load-more-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.events-page__load-more-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
