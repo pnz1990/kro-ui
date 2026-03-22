@@ -9,22 +9,24 @@ import DAGGraph from "@/components/DAGGraph"
 import NodeDetailPanel from "@/components/NodeDetailPanel"
 import InstanceTable from "@/components/InstanceTable"
 import NamespaceFilter from "@/components/NamespaceFilter"
+import ValidationTab from "@/components/ValidationTab"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
-type TabId = "graph" | "instances" | "yaml"
+type TabId = "graph" | "instances" | "yaml" | "validation"
 
 function isValidTab(t: string | null): t is TabId {
-  return t === "graph" || t === "instances" || t === "yaml"
+  return t === "graph" || t === "instances" || t === "yaml" || t === "validation"
 }
 
 /**
- * RGDDetail — RGD detail page with three tabs: Graph, Instances, YAML.
+ * RGDDetail — RGD detail page with four tabs: Graph, Instances, YAML, Validation.
  *
  * Active tab is reflected in and restored from `?tab=` URL query parameter.
  * Default tab is "graph".
  *
- * Spec: .specify/specs/003-rgd-detail-dag/ and .specify/specs/004-instance-list/
+ * Spec: .specify/specs/003-rgd-detail-dag/, .specify/specs/004-instance-list/,
+ *       and .specify/specs/017-rgd-validation-linting/
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
@@ -192,6 +194,16 @@ export default function RGDDetail() {
         >
           YAML
         </button>
+        <button
+          data-testid="tab-validation"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "validation"}
+          onClick={() => setTab("validation")}
+          type="button"
+        >
+          Validation
+        </button>
       </div>
 
       {/* Tab content */}
@@ -286,6 +298,12 @@ export default function RGDDetail() {
         {activeTab === "yaml" && (
           <div className="rgd-tab-panel">
             <KroCodeBlock code={toYaml(rgd)} title="ResourceGraphDefinition" />
+          </div>
+        )}
+
+        {activeTab === "validation" && (
+          <div className="rgd-tab-panel">
+            <ValidationTab rgd={rgd} />
           </div>
         )}
       </div>

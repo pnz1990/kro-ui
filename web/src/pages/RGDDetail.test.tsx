@@ -106,6 +106,17 @@ describe('RGDDetail', () => {
     expect(screen.getByTestId('dag-svg')).toBeInTheDocument()
   })
 
+  // ── T034g: ?tab=validation shows ValidationTab ────────────────────────
+
+  it('T034g: ?tab=validation shows Validation tab content', async () => {
+    renderDetail('?tab=validation')
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-validation')).toHaveAttribute('aria-selected', 'true'),
+    )
+    expect(screen.getByTestId('validation-tab')).toBeInTheDocument()
+    expect(screen.queryByTestId('dag-svg')).not.toBeInTheDocument()
+  })
+
   // ── T034e: Node click opens NodeDetailPanel ────────────────────────────
 
   it('T034e: clicking a DAG node opens NodeDetailPanel', async () => {
