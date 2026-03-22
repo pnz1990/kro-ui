@@ -58,8 +58,8 @@ git:
 gomod:
   proxy: direct
   env:
-    - GOPROXY=direct
-    - GONOSUMDB=*
+    - "GOPROXY=direct"
+    - "GONOSUMDB=*"
 
 changelog:
   use: github
