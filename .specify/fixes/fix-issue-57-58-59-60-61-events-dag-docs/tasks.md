@@ -113,12 +113,12 @@ refactor might store `undefined` explicitly.
 - [x] Add schema test for falsy defaults
 
 ### Phase 6 — Verify
-- [ ] `go vet ./...`
-- [ ] `GOPROXY=direct GONOSUMDB="*" go test -race ./internal/...`
-- [ ] `bun run --cwd web tsc --noEmit`
-- [ ] `bun run --cwd web vitest run`
+- [x] `go vet ./...`
+- [x] `GOPROXY=direct GONOSUMDB="*" go test -race ./internal/...`
+- [x] `bun run --cwd web tsc --noEmit`
+- [x] `bun run --cwd web vitest run`
 
 ### Phase 7 — PR
-- [ ] Commit: `fix(events,dag,docs): fix 5 bugs — closes #57, #58, #59, #60, #61`
-- [ ] Push branch
-- [ ] Open PR
+- [x] Commit: `fix(events,dag,docs): fix 5 bugs — closes #57, #58, #59, #60, #61`
+- [x] Push branch
+- [x] Open PR
