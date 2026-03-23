@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
-import { extractReadyStatus, formatAge, extractCreationTimestamp } from '@/lib/format'
+import { extractInstanceHealth, formatAge, extractCreationTimestamp } from '@/lib/format'
 import { isTerminating } from '@/lib/k8s'
 import ReadinessBadge from './ReadinessBadge'
 import './InstanceTable.css'
@@ -43,13 +43,13 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
     // Newest first by default (desc): higher timestamp = smaller age
     cmp = bMs - aMs
   } else if (key === 'ready') {
-    const { state: aState } = extractReadyStatus(a)
-    const { state: bState } = extractReadyStatus(b)
-    // Worst first: error=0, reconciling=1, pending=2, alive: 3, unknown=4
+    const { state: aState } = extractInstanceHealth(a)
+    const { state: bState } = extractInstanceHealth(b)
+    // Worst first: error=0, reconciling=1, pending=2, unknown=3, ready=4
     const order: Record<string, number> = {
-      error: 0, reconciling: 1, pending: 2, alive: 3, unknown: 4,
+      error: 0, reconciling: 1, pending: 2, unknown: 3, ready: 4,
     }
-    cmp = (order[aState] ?? 4) - (order[bState] ?? 4)
+    cmp = (order[aState] ?? 3) - (order[bState] ?? 3)
   }
   return dir === 'asc' ? cmp : -cmp
 }
@@ -185,7 +185,7 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
               typeof meta?.namespace === 'string' ? meta.namespace : ''
             const createdAt = extractCreationTimestamp(item)
             const age = createdAt ? formatAge(createdAt) : '—'
-            const readyStatus = extractReadyStatus(item)
+            const readyStatus = extractInstanceHealth(item)
             const { display, full } = truncate(name)
 
             return (

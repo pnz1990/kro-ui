@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { vi } from 'vitest'
 import AccessTab from './AccessTab'
 import type { AccessResponse } from '@/lib/api'
@@ -140,7 +140,7 @@ describe('AccessTab', () => {
     })
   })
 
-  it('shows SA not found note when serviceAccountFound is false', async () => {
+  it('shows SA not found note when serviceAccountFound is false but serviceAccount is non-empty', async () => {
     const resp = makeAccessResponse({
       serviceAccountFound: false,
       serviceAccount: 'kro-system/kro',
@@ -178,5 +178,231 @@ describe('AccessTab', () => {
     )
     expect(screen.getByText(/cluster unreachable/i)).toBeInTheDocument()
     expect(screen.getByText(/Retry/i)).toBeInTheDocument()
+  })
+
+  // ── US1: Manual override form when SA not found ─────────────────────────
+
+  it('shows manual override form when serviceAccount is empty and serviceAccountFound is false', async () => {
+    const resp = makeAccessResponse({
+      serviceAccount: '',
+      serviceAccountFound: false,
+      permissions: [],
+      hasGaps: false,
+    })
+    mockGetRGDAccess.mockResolvedValue(resp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-override-form')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('access-tab-sa-ns-input')).toBeInTheDocument()
+    expect(screen.getByTestId('access-tab-sa-name-input')).toBeInTheDocument()
+    expect(screen.getByTestId('access-tab-sa-override-submit')).toBeInTheDocument()
+  })
+
+  it('submit button is disabled when inputs are empty', async () => {
+    const resp = makeAccessResponse({
+      serviceAccount: '',
+      serviceAccountFound: false,
+      permissions: [],
+      hasGaps: false,
+    })
+    mockGetRGDAccess.mockResolvedValue(resp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-override-submit')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('access-tab-sa-override-submit')).toBeDisabled()
+  })
+
+  it('submit button is enabled when both inputs have values', async () => {
+    const resp = makeAccessResponse({
+      serviceAccount: '',
+      serviceAccountFound: false,
+      permissions: [],
+      hasGaps: false,
+    })
+    mockGetRGDAccess.mockResolvedValue(resp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-ns-input')).toBeInTheDocument(),
+    )
+
+    fireEvent.change(screen.getByTestId('access-tab-sa-ns-input'), {
+      target: { value: 'kro-prod' },
+    })
+    fireEvent.change(screen.getByTestId('access-tab-sa-name-input'), {
+      target: { value: 'kro-operator' },
+    })
+
+    expect(screen.getByTestId('access-tab-sa-override-submit')).not.toBeDisabled()
+  })
+
+  // ── US2: Manual form submit re-fetches with query params ────────────────
+
+  it('re-fetches with saNamespace and saName query params on manual form submit', async () => {
+    const emptyResp = makeAccessResponse({
+      serviceAccount: '',
+      serviceAccountFound: false,
+      permissions: [],
+      hasGaps: false,
+    })
+    const overrideResp = makeAccessResponse({
+      serviceAccount: 'kro-prod/kro-operator',
+      serviceAccountFound: true,
+      permissions: [],
+      hasGaps: false,
+    })
+    // First call returns empty SA, second (override) returns real SA
+    mockGetRGDAccess.mockResolvedValueOnce(emptyResp).mockResolvedValueOnce(overrideResp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-ns-input')).toBeInTheDocument(),
+    )
+
+    fireEvent.change(screen.getByTestId('access-tab-sa-ns-input'), {
+      target: { value: 'kro-prod' },
+    })
+    fireEvent.change(screen.getByTestId('access-tab-sa-name-input'), {
+      target: { value: 'kro-operator' },
+    })
+    fireEvent.click(screen.getByTestId('access-tab-sa-override-submit'))
+
+    await waitFor(() =>
+      expect(mockGetRGDAccess).toHaveBeenCalledWith('test-app', {
+        saNamespace: 'kro-prod',
+        saName: 'kro-operator',
+      }),
+    )
+  })
+
+  it('shows permission matrix after successful manual override', async () => {
+    const emptyResp = makeAccessResponse({
+      serviceAccount: '',
+      serviceAccountFound: false,
+      permissions: [],
+      hasGaps: false,
+    })
+    const overrideResp = makeAccessResponse({
+      serviceAccount: 'kro-prod/kro-operator',
+      serviceAccountFound: true,
+      permissions: [
+        makePermission('apps', 'deployments', 'Deployment', [
+          'get', 'list', 'watch', 'create', 'update', 'patch', 'delete',
+        ]),
+      ],
+      hasGaps: false,
+    })
+    mockGetRGDAccess.mockResolvedValueOnce(emptyResp).mockResolvedValueOnce(overrideResp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-ns-input')).toBeInTheDocument(),
+    )
+
+    fireEvent.change(screen.getByTestId('access-tab-sa-ns-input'), {
+      target: { value: 'kro-prod' },
+    })
+    fireEvent.change(screen.getByTestId('access-tab-sa-name-input'), {
+      target: { value: 'kro-operator' },
+    })
+    fireEvent.click(screen.getByTestId('access-tab-sa-override-submit'))
+
+    // After override, the permission matrix should show (no more override form)
+    await waitFor(() =>
+      expect(screen.queryByTestId('access-tab-sa-override-form')).not.toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('access-tab-success-banner')).toBeInTheDocument()
+  })
+
+  it('shows (manually specified) badge after manual override', async () => {
+    const emptyResp = makeAccessResponse({
+      serviceAccount: '',
+      serviceAccountFound: false,
+      permissions: [],
+      hasGaps: false,
+    })
+    const overrideResp = makeAccessResponse({
+      serviceAccount: 'kro-prod/kro-operator',
+      serviceAccountFound: true,
+      permissions: [],
+      hasGaps: false,
+    })
+    mockGetRGDAccess.mockResolvedValueOnce(emptyResp).mockResolvedValueOnce(overrideResp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-ns-input')).toBeInTheDocument(),
+    )
+
+    fireEvent.change(screen.getByTestId('access-tab-sa-ns-input'), {
+      target: { value: 'kro-prod' },
+    })
+    fireEvent.change(screen.getByTestId('access-tab-sa-name-input'), {
+      target: { value: 'kro-operator' },
+    })
+    fireEvent.click(screen.getByTestId('access-tab-sa-override-submit'))
+
+    await waitFor(() =>
+      expect(screen.getByText(/manually specified/i)).toBeInTheDocument(),
+    )
+  })
+
+  // ── US3: Human-readable SA banner ──────────────────────────────────────
+
+  it('shows labeled namespace and service account name not raw slash format', async () => {
+    const resp = makeAccessResponse({
+      serviceAccount: 'kro-system/kro',
+      serviceAccountFound: true,
+    })
+    mockGetRGDAccess.mockResolvedValue(resp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-banner')).toBeInTheDocument(),
+    )
+
+    // Should show "Namespace:" and "Service account:" labels
+    expect(screen.getByText('Namespace:')).toBeInTheDocument()
+    expect(screen.getByText('Service account:')).toBeInTheDocument()
+    expect(screen.getByTestId('access-tab-sa-namespace')).toHaveTextContent('kro-system')
+    expect(screen.getByTestId('access-tab-sa-name')).toHaveTextContent('kro')
+
+    // Raw "kro-system/kro" slash string should NOT appear as a single text node
+    expect(screen.queryByText('kro-system/kro')).not.toBeInTheDocument()
+  })
+
+  it('shows (auto-detected) indicator when serviceAccountFound is true', async () => {
+    const resp = makeAccessResponse({
+      serviceAccount: 'kro-system/kro',
+      serviceAccountFound: true,
+    })
+    mockGetRGDAccess.mockResolvedValue(resp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-banner')).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/auto-detected/i)).toBeInTheDocument()
+  })
+
+  it('banner has title attribute with full namespace/name for accessibility', async () => {
+    const resp = makeAccessResponse({
+      serviceAccount: 'kro-system/kro',
+      serviceAccountFound: true,
+    })
+    mockGetRGDAccess.mockResolvedValue(resp)
+
+    render(<AccessTab rgdName="test-app" />)
+    await waitFor(() =>
+      expect(screen.getByTestId('access-tab-sa-banner')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('access-tab-sa-banner')).toHaveAttribute(
+      'title',
+      'kro-system/kro',
+    )
   })
 })

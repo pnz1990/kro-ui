@@ -14,7 +14,7 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { buildDAGGraph, detectKroInstance, nodeBadge, liveStateClass, forEachLabel } from '@/lib/dag'
+import { buildDAGGraph, detectKroInstance, nodeBadge, liveStateClass, forEachLabel, nodeStateForNode } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
@@ -67,18 +67,6 @@ export interface DeepDAGProps {
 }
 
 // ── Helpers (shared helpers imported from @/lib/dag) ─────────────────────
-
-function nodeState(node: DAGNode, stateMap: NodeStateMap): NodeLiveState | undefined {
-  if (node.nodeType === 'instance') {
-    const states = Object.values(stateMap).map((e) => e.state)
-    if (states.includes('reconciling')) return 'reconciling'
-    if (states.includes('error')) return 'error'
-    if (states.length > 0) return 'alive'
-    return undefined
-  }
-  const kindKey = (node.kind || node.label).toLowerCase()
-  return stateMap[kindKey]?.state
-}
 
 /** Returns true if this node's child resource has deletionTimestamp set. */
 function nodeIsTerminating(node: DAGNode, stateMap: NodeStateMap): boolean {
@@ -339,7 +327,7 @@ export default function DeepDAG({
         {/* Nodes */}
         <g>
           {graph.nodes.map((node) => {
-            const state = nodeState(node, nodeStateMap)
+            const state = nodeStateForNode(node, nodeStateMap)
             const isSelected = node.id === selectedNodeId
             const isKroNode = detectKroInstance(node.kind, rgds)
             const expState = expansionMap.get(node.id)

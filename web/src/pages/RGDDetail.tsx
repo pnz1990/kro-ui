@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams, useLocation, Link } from "react-router-dom"
-import { getRGD, listRGDs, listInstances } from "@/lib/api"
+import { getRGD, listRGDs, listInstances, getInstance, getInstanceChildren } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
 import { extractRGDKind, extractReadyStatus } from "@/lib/format"
+import { buildNodeStateMap } from "@/lib/instanceNodeState"
+import type { NodeStateMap } from "@/lib/instanceNodeState"
 import { usePageTitle } from "@/hooks/usePageTitle"
 import StatusDot from "@/components/StatusDot"
 import KroCodeBlock from "@/components/KroCodeBlock"
@@ -18,6 +20,8 @@ import AccessTab from "@/components/AccessTab"
 import DocsTab from "@/components/DocsTab"
 import GenerateTab from "@/components/GenerateTab"
 import OptimizationAdvisor from "@/components/OptimizationAdvisor"
+import InstanceOverlayBar from "@/components/InstanceOverlayBar"
+import type { PickerItem } from "@/components/InstanceOverlayBar"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
@@ -144,6 +148,128 @@ export default function RGDDetail() {
     const next: Record<string, string> = { tab: "instances" }
     if (ns) next.namespace = ns
     setSearchParams(next)
+  }
+
+  // ── Graph tab overlay state ───────────────────────────────────────────────
+  // spec: .specify/specs/029-dag-instance-overlay/
+
+  // Picker: list of instances for the overlay <select>
+  const [pickerItems, setPickerItems] = useState<PickerItem[]>([])
+  const [pickerLoading, setPickerLoading] = useState(false)
+  const [pickerError, setPickerError] = useState<string | null>(null)
+
+  // Selected overlay key: "<namespace>/<name>" or null (= no overlay)
+  const [overlayKey, setOverlayKey] = useState<string | null>(null)
+  // Raw instance data for the selected overlay (drives summary bar)
+  const [overlayInstance, setOverlayInstance] = useState<K8sObject | null>(null)
+  // NodeStateMap built from selected instance + children (drives node colors)
+  const [overlayNodeStateMap, setOverlayNodeStateMap] = useState<NodeStateMap | null>(null)
+  const [overlayLoading, setOverlayLoading] = useState(false)
+  const [overlayError, setOverlayError] = useState<string | null>(null)
+  // Retry counter — incrementing re-triggers the overlay fetch effect
+  const [overlayRetry, setOverlayRetry] = useState(0)
+
+  // Fetch picker items once when the Graph tab first becomes active.
+  // Mirrors the lazy fetch pattern used for the Instances tab.
+  useEffect(() => {
+    if (activeTab !== "graph" || !name) return
+    // One-shot: don't re-fetch if already loaded or in progress
+    if (pickerItems.length > 0 || pickerLoading || pickerError) return
+    setPickerLoading(true)
+    setPickerError(null)
+    listInstances(name)
+      .then((data) => {
+        const items: PickerItem[] = data.items.map((item) => {
+          const meta = item.metadata as Record<string, unknown> | undefined
+          return {
+            namespace: typeof meta?.namespace === 'string' ? meta.namespace : '',
+            name: typeof meta?.name === 'string' ? meta.name : '',
+          }
+        }).filter((item) => item.name !== '')
+        setPickerItems(items)
+        setPickerError(null)
+      })
+      .catch((err: Error) => {
+        setPickerError(err.message)
+      })
+      .finally(() => setPickerLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, name])
+
+  // Fetch overlay data when the selected instance key changes (or on retry).
+  useEffect(() => {
+    if (!overlayKey || !name) {
+      // Key cleared → reset overlay state immediately
+      setOverlayInstance(null)
+      setOverlayNodeStateMap(null)
+      setOverlayError(null)
+      return
+    }
+    // Parse "<namespace>/<name>" — namespace may be empty for cluster-scoped CRs
+    const slashIdx = overlayKey.indexOf('/')
+    const ns = slashIdx === -1 ? '' : overlayKey.slice(0, slashIdx)
+    const instanceName = slashIdx === -1 ? overlayKey : overlayKey.slice(slashIdx + 1)
+
+    setOverlayLoading(true)
+    setOverlayError(null)
+    setOverlayNodeStateMap(null)
+
+    Promise.all([
+      getInstance(ns, instanceName, String(name)),
+      getInstanceChildren(ns, instanceName, String(name)),
+    ])
+      .then(([instance, childrenRes]) => {
+        setOverlayInstance(instance)
+        setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items))
+        setOverlayError(null)
+      })
+      .catch((err: Error) => {
+        setOverlayError(err.message)
+        setOverlayInstance(null)
+        setOverlayNodeStateMap(null)
+      })
+      .finally(() => setOverlayLoading(false))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlayKey, name, overlayRetry])
+
+  function handleOverlaySelect(key: string | null) {
+    setOverlayKey(key)
+    if (!key) {
+      // Clear synchronously so StaticChainDAG loses nodeStateMap immediately
+      setOverlayInstance(null)
+      setOverlayNodeStateMap(null)
+      setOverlayError(null)
+    }
+  }
+
+  function handlePickerRetry() {
+    setPickerError(null)
+    setPickerItems([])
+    setPickerLoading(false)
+    // Re-trigger the picker fetch effect by temporarily resetting its guard
+    // (the effect checks pickerItems.length + pickerLoading + pickerError)
+    if (!name) return
+    setPickerLoading(true)
+    listInstances(name)
+      .then((data) => {
+        const items: PickerItem[] = data.items.map((item) => {
+          const meta = item.metadata as Record<string, unknown> | undefined
+          return {
+            namespace: typeof meta?.namespace === 'string' ? meta.namespace : '',
+            name: typeof meta?.name === 'string' ? meta.name : '',
+          }
+        }).filter((item) => item.name !== '')
+        setPickerItems(items)
+        setPickerError(null)
+      })
+      .catch((err: Error) => setPickerError(err.message))
+      .finally(() => setPickerLoading(false))
+  }
+
+  function handleOverlayRetry() {
+    if (!overlayKey) return
+    setOverlayError(null)
+    setOverlayRetry((c) => c + 1)
   }
 
   // ── Memoised DAG ─────────────────────────────────────────────────────────
@@ -304,6 +430,19 @@ export default function RGDDetail() {
             <div
               className={`rgd-graph-area${selectedNode ? " rgd-graph-area--with-panel" : ""}`}
             >
+              <InstanceOverlayBar
+                rgdName={String(rgdName)}
+                items={pickerItems}
+                pickerLoading={pickerLoading}
+                pickerError={pickerError}
+                selected={overlayKey}
+                overlayInstance={overlayInstance}
+                overlayLoading={overlayLoading}
+                overlayError={overlayError}
+                onSelect={handleOverlaySelect}
+                onPickerRetry={handlePickerRetry}
+                onOverlayRetry={handleOverlayRetry}
+              />
               {dagGraph && dagGraph.nodes.length > 0 ? (
                 <StaticChainDAG
                   graph={dagGraph}
@@ -311,6 +450,7 @@ export default function RGDDetail() {
                   onNodeClick={(id) => setSelectedNodeId(id)}
                   selectedNodeId={selectedNodeId ?? undefined}
                   rgdName={String(rgdName)}
+                  nodeStateMap={overlayNodeStateMap ?? undefined}
                 />
               ) : (
                 <div className="rgd-graph-empty">

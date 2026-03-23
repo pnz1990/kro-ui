@@ -6,6 +6,8 @@ import {
   extractResourceCount,
   readyStateColor,
   readyStateLabel,
+  extractInstanceHealth,
+  aggregateHealth,
 } from './format'
 
 // ── formatAge ────────────────────────────────────────────────────────
@@ -216,5 +218,153 @@ describe('readyStateLabel', () => {
 
   it('returns Unknown for unknown', () => {
     expect(readyStateLabel('unknown')).toBe('Unknown')
+  })
+})
+
+// ── extractInstanceHealth ────────────────────────────────────────────
+
+describe('extractInstanceHealth', () => {
+  it("returns 'reconciling' when Progressing=True regardless of Ready value", () => {
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'Progressing', status: 'True' },
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('reconciling')
+  })
+
+  it("returns 'reconciling' when Progressing=True and Ready absent", () => {
+    const obj = {
+      status: {
+        conditions: [{ type: 'Progressing', status: 'True' }],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('reconciling')
+  })
+
+  it("returns 'error' when Ready=False and Progressing absent", () => {
+    const obj = {
+      status: {
+        conditions: [{ type: 'Ready', status: 'False', reason: 'CreateFailed', message: 'failed' }],
+      },
+    }
+    const result = extractInstanceHealth(obj)
+    expect(result.state).toBe('error')
+    expect(result.reason).toBe('CreateFailed')
+    expect(result.message).toBe('failed')
+  })
+
+  it("returns 'ready' when Ready=True", () => {
+    const obj = {
+      status: {
+        conditions: [{ type: 'Ready', status: 'True', reason: 'ResourcesReady', message: 'all good' }],
+      },
+    }
+    const result = extractInstanceHealth(obj)
+    expect(result.state).toBe('ready')
+    expect(result.reason).toBe('ResourcesReady')
+  })
+
+  it("returns 'unknown' when status.conditions is absent", () => {
+    expect(extractInstanceHealth({}).state).toBe('unknown')
+  })
+
+  it("returns 'unknown' when status is missing", () => {
+    expect(extractInstanceHealth({ metadata: { name: 'test' } }).state).toBe('unknown')
+  })
+
+  it("returns 'unknown' when conditions array is empty", () => {
+    const obj = { status: { conditions: [] } }
+    expect(extractInstanceHealth(obj).state).toBe('unknown')
+  })
+
+  it("returns 'pending' when all conditions have status=Unknown", () => {
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'Unknown' },
+          { type: 'Progressing', status: 'Unknown' },
+        ],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('pending')
+  })
+
+  it("returns 'unknown' with empty reason/message when called with empty object {}", () => {
+    const result = extractInstanceHealth({})
+    expect(result.state).toBe('unknown')
+    expect(result.reason).toBe('')
+    expect(result.message).toBe('')
+  })
+
+  it('uses first Ready condition when multiple Ready conditions exist (malformed input)', () => {
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'True', reason: 'First' },
+          { type: 'Ready', status: 'False', reason: 'Second' },
+        ],
+      },
+    }
+    // find() returns the first match; state should be 'ready'
+    const result = extractInstanceHealth(obj)
+    expect(result.state).toBe('ready')
+    expect(result.reason).toBe('First')
+  })
+
+  it("returns reason and message as '' when condition fields are absent", () => {
+    const obj = {
+      status: {
+        conditions: [{ type: 'Ready', status: 'True' }],
+      },
+    }
+    const result = extractInstanceHealth(obj)
+    expect(result.reason).toBe('')
+    expect(result.message).toBe('')
+  })
+})
+
+// ── aggregateHealth ──────────────────────────────────────────────────
+
+describe('aggregateHealth', () => {
+  it('returns all zeros for empty items array', () => {
+    const summary = aggregateHealth([])
+    expect(summary).toEqual({ total: 0, ready: 0, error: 0, reconciling: 0, pending: 0, unknown: 0 })
+  })
+
+  it('counts totals correctly across mixed states', () => {
+    const items = [
+      // ready
+      { status: { conditions: [{ type: 'Ready', status: 'True' }] } },
+      // error
+      { status: { conditions: [{ type: 'Ready', status: 'False' }] } },
+      // reconciling
+      { status: { conditions: [{ type: 'Progressing', status: 'True' }, { type: 'Ready', status: 'False' }] } },
+      // unknown (no status)
+      {},
+      // pending (all Unknown)
+      { status: { conditions: [{ type: 'Ready', status: 'Unknown' }] } },
+    ]
+    const summary = aggregateHealth(items)
+    expect(summary.total).toBe(5)
+    expect(summary.ready).toBe(1)
+    expect(summary.error).toBe(1)
+    expect(summary.reconciling).toBe(1)
+    expect(summary.unknown).toBe(1)
+    expect(summary.pending).toBe(1)
+  })
+
+  it('counts all-ready correctly', () => {
+    const items = [
+      { status: { conditions: [{ type: 'Ready', status: 'True' }] } },
+      { status: { conditions: [{ type: 'Ready', status: 'True' }] } },
+    ]
+    const summary = aggregateHealth(items)
+    expect(summary.total).toBe(2)
+    expect(summary.ready).toBe(2)
+    expect(summary.error).toBe(0)
   })
 })

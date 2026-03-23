@@ -54,7 +54,7 @@ export default function Home() {
         const rgdNames = res.items.map(extractRGDName).filter(Boolean)
         Promise.allSettled(
           rgdNames.map((name) =>
-            listInstances(name, undefined, ac.signal).then((list) => ({
+            listInstances(name, undefined, { signal: ac.signal }).then((list) => ({
               name,
               count: list.items.filter(isTerminating).length,
             }))

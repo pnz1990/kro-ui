@@ -467,3 +467,102 @@ func (s *stubK8sClientsIface) CachedServerGroupsAndResources() ([]*metav1.APIRes
 	_, lists, err := s.disc.ServerGroupsAndResources()
 	return lists, err
 }
+
+// TestResolveKroServiceAccount validates that kro's service account is resolved
+// from the cluster's Deployments, and returns empty strings when none is found.
+func TestResolveKroServiceAccount(t *testing.T) {
+	deployGVR := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+	ctx := context.Background()
+
+	tests := []struct {
+		name  string
+		build func(t *testing.T) K8sClients
+		check func(t *testing.T, ns, name string, found bool)
+	}{
+		{
+			name: "no deployments found returns empty strings and found=false",
+			build: func(t *testing.T) K8sClients {
+				t.Helper()
+				// No deployments registered — stub returns list error for unregistered GVRs.
+				dyn := newStubDynamic()
+				_ = deployGVR // acknowledged but not registered
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+			},
+			check: func(t *testing.T, ns, name string, found bool) {
+				t.Helper()
+				assert.Equal(t, "", ns, "namespace must be empty when no deployment found")
+				assert.Equal(t, "", name, "SA name must be empty when no deployment found")
+				assert.False(t, found, "found must be false when no deployment found")
+			},
+		},
+		{
+			name: "deployment with serviceAccountName in kro-system is resolved",
+			build: func(t *testing.T) K8sClients {
+				t.Helper()
+				dyn := newStubDynamic()
+				deploy := unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "kro-controller-manager"},
+					"spec": map[string]any{
+						"template": map[string]any{
+							"spec": map[string]any{
+								"serviceAccountName": "kro-controller",
+							},
+						},
+					},
+				}}
+				dyn.resources[deployGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"kro-system": {items: []unstructured.Unstructured{deploy}},
+						"kro":        {items: []unstructured.Unstructured{}},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+			},
+			check: func(t *testing.T, ns, name string, found bool) {
+				t.Helper()
+				assert.Equal(t, "kro-system", ns)
+				assert.Equal(t, "kro-controller", name)
+				assert.True(t, found)
+			},
+		},
+		{
+			name: "deployment with empty serviceAccountName is skipped",
+			build: func(t *testing.T) K8sClients {
+				t.Helper()
+				dyn := newStubDynamic()
+				// Deployment named "kro" but with no serviceAccountName set
+				deploy := unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "kro"},
+					"spec": map[string]any{
+						"template": map[string]any{
+							"spec": map[string]any{
+								"serviceAccountName": "",
+							},
+						},
+					},
+				}}
+				dyn.resources[deployGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"kro-system": {items: []unstructured.Unstructured{deploy}},
+						"kro":        {items: []unstructured.Unstructured{}},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+			},
+			check: func(t *testing.T, ns, name string, found bool) {
+				t.Helper()
+				assert.Equal(t, "", ns, "namespace must be empty when SA name is empty")
+				assert.Equal(t, "", name, "SA name must be empty when serviceAccountName field is empty")
+				assert.False(t, found)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients := tt.build(t)
+			ns, name, found := ResolveKroServiceAccount(ctx, clients)
+			tt.check(t, ns, name, found)
+		})
+	}
+}

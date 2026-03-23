@@ -1,14 +1,19 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
+import { listInstances } from '@/lib/api'
 import {
   extractRGDName,
   extractRGDKind,
   extractResourceCount,
   extractCreationTimestamp,
   extractReadyStatus,
+  aggregateHealth,
   formatAge,
 } from '@/lib/format'
+import type { HealthSummary } from '@/lib/format'
 import StatusDot from './StatusDot'
+import HealthChip from './HealthChip'
 import './RGDCard.css'
 
 interface RGDCardProps {
@@ -29,6 +34,29 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
   const { state, reason, message } = extractReadyStatus(rgd)
 
   const encodedName = encodeURIComponent(name)
+
+  // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004)
+  const [chipSummary, setChipSummary] = useState<HealthSummary | null>(null)
+  const [chipLoading, setChipLoading] = useState(true)
+
+  useEffect(() => {
+    if (!name) {
+      setChipLoading(false)
+      return
+    }
+    const ac = new AbortController()
+    listInstances(name, undefined, { signal: ac.signal })
+      .then((list) => {
+        setChipSummary(aggregateHealth(list.items))
+      })
+      .catch(() => {
+        // Silently swallow — chip simply absent on any error (constitution §XII)
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setChipLoading(false)
+      })
+    return () => ac.abort()
+  }, [name])
 
   return (
     <article className="rgd-card" data-testid={`rgd-card-${name}`}>
@@ -66,6 +94,7 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
           </span>
           <span className="rgd-card__age">{formatAge(createdAt)}</span>
         </div>
+        <HealthChip summary={chipSummary} loading={chipLoading} />
       </Link>
       <div className="rgd-card__actions">
         <Link
