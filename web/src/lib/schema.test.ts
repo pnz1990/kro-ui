@@ -225,6 +225,43 @@ describe('parseSimpleSchema', () => {
     const pt = parseSimpleSchema('integer')
     expect('default' in pt).toBe(false)
   })
+
+  // ── #87: Space-separated constraints within a default= segment ────────────
+  // kro sometimes emits `default="normal" enum=easy,normal,hard` (no pipe before
+  // enum). The parser must strip trailing constraint tokens from the default value.
+
+  it('strips trailing space-separated enum from default — no pipe separator', () => {
+    // Actual format from live cluster: `string | default="normal" enum=easy,normal,hard`
+    expect(parseSimpleSchema('string | default="normal" enum=easy,normal,hard')).toEqual({
+      type: 'string',
+      default: '"normal"',
+    })
+  })
+
+  it('strips trailing space-separated minimum+maximum from default — no pipe separator', () => {
+    // Actual format from live cluster: `integer | default=3 minimum=1 maximum=10`
+    expect(parseSimpleSchema('integer | default=3 minimum=1 maximum=10')).toEqual({
+      type: 'integer',
+      default: '3',
+    })
+  })
+
+  it('strips only constraint tokens — preserves multi-word quoted defaults', () => {
+    // A default that contains a space but no constraint keyword should be preserved
+    expect(parseSimpleSchema('string | default=hello world')).toEqual({
+      type: 'string',
+      default: 'hello world',
+    })
+  })
+
+  it('pipe-separated constraints still work correctly (regression)', () => {
+    // The original pipe-separated format must still parse correctly
+    expect(parseSimpleSchema('string | default=normal | enum=easy,normal,hard')).toEqual({
+      type: 'string',
+      default: 'normal',
+      enum: 'easy,normal,hard',
+    })
+  })
 })
 
 // ── inferStatusType ────────────────────────────────────────────────────────

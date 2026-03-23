@@ -35,8 +35,9 @@ export default function CatalogCard({
   const labels = extractLabels(rgd)
   const encodedName = encodeURIComponent(name)
 
+  // §XII: never render '?' for absent data — use em-dash for "not loaded"
   const instanceDisplay =
-    instanceCount === null ? '?' : String(instanceCount)
+    instanceCount === null ? '—' : String(instanceCount)
 
   return (
     <article className="catalog-card" data-testid={`catalog-card-${name}`}>

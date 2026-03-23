@@ -1,4 +1,5 @@
 import type { ClusterSummary } from '@/lib/api'
+import { abbreviateContext } from '@/lib/format'
 import './FleetMatrix.css'
 
 // RGDPresence represents a single cell in the matrix.
@@ -58,8 +59,10 @@ export default function FleetMatrix({ clusters, rgdsByContext }: FleetMatrixProp
                 RGD kind
               </th>
               {clusters.map((c) => (
-                <th key={c.context} className="fleet-matrix__th" scope="col" title={c.cluster}>
-                  {c.context}
+                <th key={c.context} className="fleet-matrix__th" scope="col"
+                  title={c.context}
+                >
+                  {abbreviateContext(c.context)}
                 </th>
               ))}
             </tr>

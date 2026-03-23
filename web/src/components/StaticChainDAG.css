@@ -171,3 +171,128 @@
   overflow: visible;
   min-height: unset;
 }
+
+/* ── Node fill rules (fix #92) ───────────────────────────────────────────
+ * StaticChainDAG does not use DAGGraph.tsx, so DAGGraph.css is never loaded.
+ * These rules mirror DAGGraph.css node fill/stroke rules, scoped under
+ * .static-chain-dag-container to avoid specificity conflicts.
+ */
+
+/* Base node rect */
+.static-chain-dag-container .dag-node rect.dag-node-rect {
+  fill: var(--node-default-bg);
+  stroke: var(--node-default-border);
+  stroke-width: 1;
+  transition: stroke var(--transition-fast), fill var(--transition-fast);
+}
+
+/* Hover */
+.static-chain-dag-container .dag-node:hover rect.dag-node-rect {
+  stroke: var(--color-primary);
+  fill: var(--color-primary-muted);
+}
+
+/* Selected */
+.static-chain-dag-container .dag-node--selected rect.dag-node-rect {
+  stroke: var(--color-primary);
+  stroke-width: 2;
+  fill: var(--color-primary-muted);
+}
+
+/* Root CR (NodeTypeInstance) */
+.static-chain-dag-container .dag-node--instance rect.dag-node-rect {
+  fill: var(--node-root-bg);
+  stroke: var(--node-root-border);
+  stroke-width: 2;
+}
+
+.static-chain-dag-container .dag-node--instance:hover rect.dag-node-rect,
+.static-chain-dag-container .dag-node--instance.dag-node--selected rect.dag-node-rect {
+  fill: var(--color-primary-muted);
+  stroke: var(--color-primary);
+  stroke-width: 2;
+}
+
+/* forEach Collection (NodeTypeCollection) */
+.static-chain-dag-container .dag-node--collection rect.dag-node-rect {
+  fill: var(--node-collection-bg);
+  stroke: var(--node-collection-border);
+  stroke-width: 1;
+}
+
+/* External reference (NodeTypeExternal + NodeTypeExternalCollection) */
+.static-chain-dag-container .dag-node--external rect.dag-node-rect,
+.static-chain-dag-container .dag-node--externalCollection rect.dag-node-rect {
+  fill: var(--node-external-bg);
+  stroke: var(--node-external-border);
+  stroke-width: 1;
+  stroke-dasharray: 5 3;
+}
+
+/* Conditional modifier (includeWhen) */
+.static-chain-dag-container .node-conditional rect.dag-node-rect {
+  stroke-dasharray: 5 3;
+}
+
+/* Node text */
+.static-chain-dag-container .dag-node-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--color-text);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.static-chain-dag-container .dag-node-kind {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.static-chain-dag-container .dag-node-foreach {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--dag-foreach-color);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+/* Type badges */
+.static-chain-dag-container .dag-node-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.static-chain-dag-container .dag-node-badge--collection {
+  fill: var(--node-collection-border);
+}
+
+.static-chain-dag-container .dag-node-badge--conditional {
+  fill: var(--color-text-muted);
+}
+
+.static-chain-dag-container .dag-node-badge--external {
+  fill: var(--node-external-border);
+}
+
+.static-chain-dag-container .dag-node-badge--ready-when {
+  fill: var(--color-ready-when);
+}
+
+/* Edges */
+.static-chain-dag-container .dag-edge {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+  opacity: 0.7;
+}

@@ -42,7 +42,7 @@
   margin-top: 8px;
   padding: 7px 20px;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 500;

@@ -365,7 +365,8 @@ export default function StaticChainDAG({
                   <text className="dag-node-label" x={cx} y={labelY}>
                     {node.label}
                   </text>
-                  {node.kind && (
+                  {/* §XII / fix #86: suppress kind when it fell back to the nodeId */}
+                  {node.kind && node.kind !== node.id && (
                     <text className="dag-node-kind" x={cx} y={kindY}>
                       {node.kind}
                     </text>

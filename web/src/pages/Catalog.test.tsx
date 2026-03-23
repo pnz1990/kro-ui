@@ -283,7 +283,7 @@ describe('Catalog', () => {
 
   // ── Instance count ─────────────────────────────────────────────
 
-  it('shows ? for instance count when fetch fails', async () => {
+  it('shows — for instance count when fetch fails', async () => {
     mockedListRGDs.mockResolvedValue({
       items: [makeRGD('broken', 'Broken')],
       metadata: {},
@@ -294,7 +294,7 @@ describe('Catalog', () => {
 
     await waitFor(() => {
       const card = screen.getByTestId('catalog-card-broken')
-      expect(within(card).getByTestId('catalog-card-instances')).toHaveTextContent('? instances')
+      expect(within(card).getByTestId('catalog-card-instances')).toHaveTextContent('— instances')
     })
   })
 
