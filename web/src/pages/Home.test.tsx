@@ -5,6 +5,13 @@ import Home from './Home'
 
 vi.mock('@/lib/api', () => ({
   listRGDs: vi.fn(),
+  getControllerMetrics: vi.fn(() => Promise.resolve({
+    watchCount: null,
+    gvrCount: null,
+    queueDepth: null,
+    workqueueDepth: null,
+    scrapedAt: '2026-03-22T00:00:00Z',
+  })),
 }))
 
 import { listRGDs } from '@/lib/api'
@@ -37,7 +44,8 @@ describe('Home', () => {
     // Never-resolving promise keeps loading state
     mockedListRGDs.mockReturnValue(new Promise(() => {}))
     const { container } = renderHome()
-    const skeletons = container.querySelectorAll('[aria-hidden="true"]')
+    // Count only the RGD skeleton cards (not MetricsStrip skeleton cells).
+    const skeletons = container.querySelectorAll('.skeleton-card')
     expect(skeletons.length).toBe(3)
   })
 

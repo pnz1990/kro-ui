@@ -143,3 +143,21 @@ export interface FleetSummaryResponse {
 }
 
 export const getFleetSummary = () => get<FleetSummaryResponse>('/fleet/summary')
+
+// ── Controller Metrics ────────────────────────────────────────────────
+
+/**
+ * Snapshot of kro controller operational counters.
+ * Null fields mean the metric was absent in the upstream scrape —
+ * they must be rendered as "Not reported", never as 0.
+ */
+export interface ControllerMetrics {
+  watchCount: number | null
+  gvrCount: number | null
+  queueDepth: number | null
+  workqueueDepth: number | null
+  /** ISO 8601 timestamp of the last successful scrape */
+  scrapedAt: string
+}
+
+export const getControllerMetrics = () => get<ControllerMetrics>('/kro/metrics')

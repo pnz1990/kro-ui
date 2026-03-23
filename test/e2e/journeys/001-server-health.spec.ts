@@ -78,12 +78,22 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
     expect(body.error.length).toBeGreaterThan(0)
   })
 
-  test('Step 6: /api/v1/metrics returns 501 Not Implemented', async ({ request }) => {
-    const res = await request.get(`${BASE}/api/v1/metrics`)
+  test('Step 6: /api/v1/kro/metrics returns a valid JSON metrics snapshot', async ({ request }) => {
+    // The metrics endpoint scrapes kro's Prometheus endpoint. In the E2E
+    // environment the kro metrics port is not port-forwarded, so the scrape
+    // fails and kro-ui responds 503 with a structured JSON error — never HTML.
+    const res = await request.get(`${BASE}/api/v1/kro/metrics`)
 
-    expect(res.status()).toBe(501)
-    const body = await res.json() as { error: string }
-    expect(body.error).toBeDefined()
+    // Either 200 (metrics reachable) or a structured error (503/502/504).
+    expect([200, 502, 503, 504]).toContain(res.status())
+    const body = await res.json() as Record<string, unknown>
+    // On 200 the response must have scrapedAt; on error it must have error.
+    if (res.status() === 200) {
+      expect(body.scrapedAt).toBeDefined()
+    } else {
+      expect(typeof body.error).toBe('string')
+      expect((body.error as string).length).toBeGreaterThan(0)
+    }
   })
 
 })

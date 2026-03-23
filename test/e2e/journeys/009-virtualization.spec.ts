@@ -76,8 +76,8 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await searchInput.fill('xyzzy-no-match-12345')
     // Wait for the 300ms debounce to fire
     await page.waitForTimeout(400)
-    // VirtualGrid empty state must be visible
-    const emptyStatus = page.locator('[role="status"]')
+    // VirtualGrid empty state must be visible (scoped to avoid ambiguity with MetricsStrip)
+    const emptyStatus = page.getByTestId('virtual-grid-container').locator('[role="status"]')
     await expect(emptyStatus).toBeVisible()
 
     // Clear the search — list should return
@@ -117,7 +117,8 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     // Immediately after typing (before debounce) the grid may still show items
     // Wait for 300ms debounce + a little render time
     await page.waitForTimeout(400)
-    const emptyStatus = page.locator('[role="status"]')
+    // VirtualGrid empty state must be visible (scoped to avoid ambiguity with MetricsStrip)
+    const emptyStatus = page.getByTestId('virtual-grid-container').locator('[role="status"]')
     await expect(emptyStatus).toBeVisible()
 
     // Clear and verify list returns

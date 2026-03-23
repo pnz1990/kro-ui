@@ -9,6 +9,7 @@ import { extractRGDName } from '@/lib/format'
 import { matchesSearch } from '@/lib/catalog'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
+import MetricsStrip from '@/components/MetricsStrip'
 import RGDCard from '@/components/RGDCard'
 import SearchBar from '@/components/SearchBar'
 import SkeletonCard from '@/components/SkeletonCard'
@@ -71,6 +72,7 @@ export default function Home() {
 
   return (
     <div className="home">
+      <MetricsStrip />
       <div className="home__header">
         <h1 className="home__heading">ResourceGraphDefinitions</h1>
         {!isLoading && error === null && (

@@ -39,16 +39,18 @@ type Handler struct {
 	factory      k8sClients
 	ctxMgr       contextManager
 	fleetBuilder fleetClientBuilder
+	metricsURL   string
 }
 
-// New creates a Handler with the given ClientFactory.
-func New(factory *k8sclient.ClientFactory) *Handler {
+// New creates a Handler with the given ClientFactory and metrics source URL.
+func New(factory *k8sclient.ClientFactory, metricsURL string) *Handler {
 	return &Handler{
 		factory: factory,
 		ctxMgr:  factory,
 		fleetBuilder: &realFleetClientBuilder{
 			kubeconfigPath: factory.KubeconfigPath(),
 		},
+		metricsURL: metricsURL,
 	}
 }
 

@@ -56,7 +56,7 @@ func TestHealthz(t *testing.T) {
 		},
 	}
 
-	r, err := NewRouter(nil)
+	r, err := NewRouter(nil, "")
 	require.NoError(t, err)
 
 	for _, tt := range tests {
