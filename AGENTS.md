@@ -226,7 +226,7 @@ workflow level (proxy.golang.org is blocked).
 - Installs kro via Helm, applies test fixtures, starts kro-ui binary
 - 20-minute timeout
 - Uploads Playwright report + traces as artifacts on failure
-- **Not a required status check** — informational, may be promoted later
+- **Required status check** — blocks merge on failure
 
 ### Release (`release.yml`)
 
@@ -244,7 +244,7 @@ workflow level (proxy.golang.org is blocked).
 - 1 approving review required
 - CODEOWNERS review required (auto-assigned)
 - Stale reviews dismissed on new push
-- Required status checks: `build`, `govulncheck`, `Analyze (go)`, `Analyze (javascript-typescript)`
+- Required status checks: `build`, `govulncheck`, `Analyze (go)`, `Analyze (javascript-typescript)`, `e2e`
 - Branch must be up to date before merge (strict mode)
 - Linear history enforced
 - Force push and branch deletion blocked
