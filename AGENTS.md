@@ -357,6 +357,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps (026-rgd-yaml-generator)
 - N/A — all state is local React `useState`; no persistence (026-rgd-yaml-generator)
 - Go 1.25 (backend — no changes) / TypeScript 5.x + React 19 + React Router v7, Vite — all already present; no new npm deps (030-error-patterns-tab)
+- TypeScript 5.x + React 19, Go 1.25 + React, React Router v7, Vite; no new npm deps (027-instance-telemetry-panel)
+- N/A — all data is in-memory React state (027-instance-telemetry-panel)
 
 ## Recent Changes
 - 026-rgd-yaml-generator: Added Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps

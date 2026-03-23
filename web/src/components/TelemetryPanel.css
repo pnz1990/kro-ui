@@ -1,0 +1,78 @@
+/* TelemetryPanel.css — Styles for the per-instance telemetry strip.
+ *
+ * Horizontal flex strip of 4 metric cells matching the MetricsStrip layout
+ * pattern. All colors via var(--token) from tokens.css — no hardcoded values.
+ *
+ * Implements spec 027-instance-telemetry-panel NFR-003.
+ */
+
+/* ── Outer container ──────────────────────────────────────────────────── */
+
+.telemetry-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Metric cell ──────────────────────────────────────────────────────── */
+
+.telemetry-panel__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  padding: 14px 16px;
+  gap: 4px;
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.telemetry-panel__cell:last-child {
+  border-right: none;
+}
+
+/* ── Value (large monospace number/text) ──────────────────────────────── */
+
+.telemetry-panel__value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+/* Color modifier classes — drive value color by semantic state */
+
+.telemetry-panel__value--alive {
+  color: var(--color-alive);
+}
+
+.telemetry-panel__value--error {
+  color: var(--color-error);
+}
+
+.telemetry-panel__value--warning {
+  color: var(--color-status-warning);
+}
+
+.telemetry-panel__value--muted {
+  color: var(--color-text-muted);
+}
+
+/* ── Label (small all-caps descriptor) ───────────────────────────────── */
+
+.telemetry-panel__label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
