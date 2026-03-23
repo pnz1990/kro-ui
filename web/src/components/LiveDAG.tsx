@@ -7,13 +7,13 @@
 // Fix #64: SVG height is fitted to actual node bounding box.
 // Fix #73: Portal tooltip on node hover shows ID, kind, type, live state.
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState, NodeStateEntry } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import { tokenize } from '@/lib/highlighter'
-import type { TokenType } from '@/lib/highlighter'
+import { nodeTypeLabel, tokenClass } from '@/lib/dagTooltip'
 import CollectionBadge from './CollectionBadge'
 import './LiveDAG.css'
 
@@ -119,17 +119,6 @@ function nodeClassName(
   return parts.join(' ')
 }
 
-/** Human-readable node type label. */
-function nodeTypeLabel(node: DAGNode): string {
-  switch (node.nodeType) {
-    case 'instance':           return 'Root CR'
-    case 'resource':           return 'Managed resource'
-    case 'collection':         return 'forEach collection'
-    case 'external':           return 'External ref'
-    case 'externalCollection': return 'External ref collection'
-  }
-}
-
 /** Human-readable live state label. */
 function liveStateLabel(state: NodeLiveState | undefined): string {
   if (!state) return 'Not reported'
@@ -141,7 +130,7 @@ function liveStateLabel(state: NodeLiveState | undefined): string {
   }
 }
 
-/** CSS modifier class for state label color. */
+/** CSS modifier class for state label colour. */
 function stateLabelClass(state: NodeLiveState | undefined): string {
   if (!state) return 'dag-tooltip__state--notfound'
   switch (state) {
@@ -149,21 +138,6 @@ function stateLabelClass(state: NodeLiveState | undefined): string {
     case 'reconciling': return 'dag-tooltip__state--reconciling'
     case 'error':       return 'dag-tooltip__state--error'
     case 'not-found':   return 'dag-tooltip__state--notfound'
-  }
-}
-
-/** Map TokenType to inline CSS class (same as DAGGraph). */
-function tokenClass(type: TokenType): string {
-  switch (type) {
-    case 'celExpression':  return 'dag-tooltip-token--cel'
-    case 'kroKeyword':     return 'dag-tooltip-token--kw'
-    case 'yamlKey':        return 'dag-tooltip-token--key'
-    case 'schemaType':     return 'dag-tooltip-token--type'
-    case 'schemaPipe':     return 'dag-tooltip-token--pipe'
-    case 'schemaKeyword':  return 'dag-tooltip-token--skw'
-    case 'schemaValue':    return 'dag-tooltip-token--val'
-    case 'comment':        return 'dag-tooltip-token--comment'
-    case 'plain':          return ''
   }
 }
 
@@ -179,8 +153,20 @@ interface TooltipState {
 
 function LiveDagTooltip({ state }: { state: TooltipState }) {
   const { node, state: liveState, entry, x, y } = state
-  const left = x + 12
-  const top = y + 12
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ left: x + 12, top: y + 12 })
+
+  useEffect(() => {
+    if (!ref.current) return
+    const { width, height } = ref.current.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    let left = x + 12
+    let top = y + 12
+    if (left + width > vw - 8) left = x - width - 12
+    if (top + height > vh - 8) top = y - height - 12
+    setPos({ left, top })
+  }, [x, y])
 
   const tokens = node.includeWhen.length > 0
     ? tokenize(node.includeWhen.join(' && '))
@@ -188,9 +174,10 @@ function LiveDagTooltip({ state }: { state: TooltipState }) {
 
   return createPortal(
     <div
+      ref={ref}
       className="dag-tooltip"
       role="tooltip"
-      style={{ left, top }}
+      style={{ left: pos.left, top: pos.top }}
     >
       <div className="dag-tooltip__id">{node.id}</div>
       <div className="dag-tooltip__row">
@@ -201,7 +188,7 @@ function LiveDagTooltip({ state }: { state: TooltipState }) {
       </div>
       <div className="dag-tooltip__row">
         <span className="dag-tooltip__label">Type</span>
-        <span className="dag-tooltip__value">{nodeTypeLabel(node)}</span>
+        <span className="dag-tooltip__value">{nodeTypeLabel(node.nodeType)}</span>
       </div>
       <div className="dag-tooltip__row">
         <span className="dag-tooltip__label">State</span>

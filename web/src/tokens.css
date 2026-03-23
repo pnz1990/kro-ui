@@ -97,6 +97,7 @@
 
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-tooltip:  0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 /* ── Light mode ────────────────────────────────────────────────────────── */
@@ -172,6 +173,7 @@
 
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-tooltip:  0 4px 16px rgba(0, 0, 0, 0.16);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────── */

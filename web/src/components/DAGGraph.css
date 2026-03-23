@@ -160,7 +160,7 @@
   padding: 10px 12px;
   min-width: 160px;
   max-width: 320px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-tooltip);
   font-family: var(--font-sans);
   font-size: 12px;
 }

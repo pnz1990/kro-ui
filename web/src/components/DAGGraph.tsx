@@ -9,7 +9,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import { tokenize } from '@/lib/highlighter'
-import type { TokenType } from '@/lib/highlighter'
+import { nodeTypeLabel, tokenClass } from '@/lib/dagTooltip'
 import './DAGGraph.css'
 
 interface DAGGraphProps {
@@ -58,32 +58,6 @@ function nodeBadge(node: DAGNode): string | null {
     case 'external':
     case 'externalCollection': return '⬡'
     default: return null
-  }
-}
-
-/** Human-readable node type label. */
-function nodeTypeLabel(node: DAGNode): string {
-  switch (node.nodeType) {
-    case 'instance':           return 'Root CR'
-    case 'resource':           return 'Managed resource'
-    case 'collection':         return 'forEach collection'
-    case 'external':           return 'External ref'
-    case 'externalCollection': return 'External ref collection'
-  }
-}
-
-/** Map TokenType to inline CSS class. */
-function tokenClass(type: TokenType): string {
-  switch (type) {
-    case 'celExpression':  return 'dag-tooltip-token--cel'
-    case 'kroKeyword':     return 'dag-tooltip-token--kw'
-    case 'yamlKey':        return 'dag-tooltip-token--key'
-    case 'schemaType':     return 'dag-tooltip-token--type'
-    case 'schemaPipe':     return 'dag-tooltip-token--pipe'
-    case 'schemaKeyword':  return 'dag-tooltip-token--skw'
-    case 'schemaValue':    return 'dag-tooltip-token--val'
-    case 'comment':        return 'dag-tooltip-token--comment'
-    case 'plain':          return ''
   }
 }
 
@@ -138,7 +112,7 @@ function DagTooltip({ state }: DagTooltipProps) {
       </div>
       <div className="dag-tooltip__row">
         <span className="dag-tooltip__label">Type</span>
-        <span className="dag-tooltip__value">{nodeTypeLabel(node)}</span>
+        <span className="dag-tooltip__value">{nodeTypeLabel(node.nodeType)}</span>
       </div>
       {tokens && (
         <div className="dag-tooltip__cel">
