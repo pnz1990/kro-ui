@@ -86,6 +86,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         checked={fv.value === 'true'}
         onChange={(e) => onChange({ value: e.target.checked ? 'true' : 'false' })}
         aria-label={fv.name}
+        aria-required={isRequired}
       />
     )
   } else if (type === 'integer' || type === 'number') {
@@ -193,6 +194,12 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
  * All onChange calls update state synchronously.
  */
 export default function InstanceForm({ schema, state, onChange }: InstanceFormProps) {
+  // True when at least one spec field is required — controls legend visibility.
+  // Mirrors the isRequired logic in FieldRow: required flag OR no default defined.
+  const hasRequiredField = schema.specFields.some((f) => {
+    const pt = f.parsedType
+    return pt?.required === true || !('default' in (pt ?? {}))
+  })
   return (
     <div className="instance-form" data-testid="instance-form">
       {/* metadata.name row — always first */}
@@ -213,8 +220,8 @@ export default function InstanceForm({ schema, state, onChange }: InstanceFormPr
         </div>
       </div>
 
-      {/* Required/optional legend — shown when there are spec fields */}
-      {state.fields.length > 0 && (
+      {/* Required/optional legend — shown only when at least one required field exists */}
+      {hasRequiredField && (
         <div className="instance-form__legend">
           <span>
             <span

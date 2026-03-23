@@ -8,6 +8,11 @@
 //   ∀  — forEach collection fan-out
 //   ⬡  — external reference node
 //
+// Note: readyWhen CEL expressions are surfaced via the node tooltip and
+// NodeDetailPanel, not as a standalone glyph badge from nodeBadge(). They
+// are intentionally omitted from this legend — the legend only lists glyphs
+// that appear directly on DAG node rects.
+//
 // Spec: .specify/specs/034-generate-form-polish/ FR-006, FR-007, FR-008
 // Issue: #118
 
