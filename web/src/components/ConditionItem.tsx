@@ -10,6 +10,7 @@
 // Spec: .specify/specs/017-rgd-validation-linting/ FR-002, FR-003
 
 import { useState } from 'react'
+import { rewriteConditionMessage } from '@/lib/conditions'
 
 /** Maximum message length before truncation. */
 const MESSAGE_PREVIEW_LEN = 200
@@ -51,51 +52,6 @@ function formatTime(ts: string | undefined): string {
   } catch {
     return ts
   }
-}
-
-/**
- * rewriteConditionMessage — translates known kro internal error strings into
- * plain-English summaries. Returns null when no pattern matches (caller should
- * show the raw message as-is). (Issue #103)
- *
- * Recognised patterns:
- *   1. "cannot resolve group version kind ... schema not found"
- *      → "Referenced kind X is not yet registered — check that the providing
- *         RGD is Ready before applying this one."
- *   2. "references unknown identifiers: [...]"
- *      → "CEL expression references an unknown field or resource ID — check
- *         forEach, includeWhen, and readyWhen expressions for typos."
- *   3. "failed to build OpenAPI schema ... unknown type: array"
- *      → "Schema uses 'type: array' which is not supported by this kro version —
- *         use lists.range() with an integer field instead."
- */
-function rewriteConditionMessage(reason: string, message: string): string | null {
-  if (message.includes('cannot resolve group version kind') && message.includes('schema not found')) {
-    // Extract "Kind=ChainChild" from within the GVK string.
-    // The message format is: ... "kro.run/v1alpha1, Kind=ChainChild" ...
-    const kindMatch = message.match(/Kind=([A-Za-z][A-Za-z0-9]*)/)
-    const kindName = kindMatch ? kindMatch[1] : 'the referenced kind'
-    return `Referenced kind "${kindName}" is not yet registered. ` +
-      `Ensure the ResourceGraphDefinition that provides this kind is Ready before applying.`
-  }
-
-  if (message.includes('references unknown identifiers')) {
-    const identMatch = message.match(/references unknown identifiers:\s*\[([^\]]+)\]/)
-    const identList = identMatch ? identMatch[1] : 'unknown fields'
-    return `CEL expression references unknown identifier(s): ${identList}. ` +
-      `Check forEach, includeWhen, and readyWhen expressions for typos or missing resource IDs.`
-  }
-
-  if (message.includes('unknown type: array') || (message.includes('field type') && message.includes('array'))) {
-    return `Schema field uses "type: array" which is not supported by this kro version. ` +
-      `Use an integer field with lists.range() in the forEach expression instead.`
-  }
-
-  if (reason === 'AwaitingReconciliation') {
-    return null // handled by the "Awaiting controller processing" hint already
-  }
-
-  return null // no known pattern — show raw
 }
 
 /**
