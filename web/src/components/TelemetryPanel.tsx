@@ -45,7 +45,7 @@ function MetricCell({ label, value, colorModifier, testId }: MetricCellProps) {
 
   return (
     <div className="telemetry-panel__cell" data-testid={testId ?? 'telemetry-cell'}>
-      <span className={valueClass} aria-label={label}>
+      <span className={valueClass}>
         {value}
       </span>
       <span className="telemetry-panel__label">{label}</span>
