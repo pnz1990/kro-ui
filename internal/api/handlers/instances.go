@@ -119,8 +119,3 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	log.Debug().Str("gvr", gvr.String()).Str("name", name).Msg("fetched resource")
 	respond(w, http.StatusOK, obj)
 }
-
-// GetMetrics is a stub — returns 501 until phase 2 implements Prometheus integration.
-func (h *Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
-	respondError(w, http.StatusNotImplemented, "metrics integration not yet implemented (phase 2)")
-}

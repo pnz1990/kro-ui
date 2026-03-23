@@ -593,36 +593,3 @@ func TestGetResource(t *testing.T) {
 		})
 	}
 }
-
-func TestGetMetrics(t *testing.T) {
-	tests := []struct {
-		name  string
-		build func(t *testing.T) *Handler
-		check func(t *testing.T, rr *httptest.ResponseRecorder)
-	}{
-		{
-			name: "always returns 501",
-			build: func(t *testing.T) *Handler {
-				t.Helper()
-				return newRGDTestHandler(newStubDynamic(), newStubDiscovery())
-			},
-			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
-				t.Helper()
-				require.Equal(t, http.StatusNotImplemented, rr.Code)
-				body := rr.Body.String()
-				assert.Contains(t, body, `"error"`)
-				assert.Contains(t, body, "metrics integration not yet implemented (phase 2)")
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := tt.build(t)
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/metrics", nil)
-			rr := httptest.NewRecorder()
-			h.GetMetrics(rr, req)
-			tt.check(t, rr)
-		})
-	}
-}

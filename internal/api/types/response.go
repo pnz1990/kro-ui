@@ -95,3 +95,23 @@ type ClusterSummary struct {
 type FleetSummaryResponse struct {
 	Clusters []ClusterSummary `json:"clusters"`
 }
+
+// ControllerMetricsResponse is the response payload for GET /api/v1/kro/metrics.
+// Pointer fields encode as JSON null when the metric was absent in the upstream scrape.
+// A null value means "not reported" — never interpret null as zero.
+type ControllerMetricsResponse struct {
+	// WatchCount is the number of active informers managed by the WatchManager
+	// (dynamic_controller_watch_count).
+	WatchCount *int64 `json:"watchCount"`
+	// GVRCount is the number of instance GVRs currently managed by the dynamic controller
+	// (dynamic_controller_gvr_count).
+	GVRCount *int64 `json:"gvrCount"`
+	// QueueDepth is the current length of the kro dynamic controller workqueue
+	// (dynamic_controller_queue_length).
+	QueueDepth *int64 `json:"queueDepth"`
+	// WorkqueueDepth is the current depth of the underlying client-go workqueue
+	// (workqueue_depth{name="dynamic-controller-queue"}). STABLE metric.
+	WorkqueueDepth *int64 `json:"workqueueDepth"`
+	// ScrapedAt is the RFC3339 timestamp when the upstream endpoint responded.
+	ScrapedAt string `json:"scrapedAt"`
+}
