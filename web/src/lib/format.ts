@@ -284,9 +284,12 @@ export function extractCreationTimestamp(obj: K8sObject): string {
 /**
  * Abbreviate a kubeconfig context name for display.
  *
- * - AWS EKS ARNs (`arn:aws:eks:…:cluster/name`) → `accountId/clusterName`
+ * - AWS EKS ARNs (`arn:aws:eks:…:accountId:cluster/name`):
+ *   Returns `{first6}…{last3}/{clusterName}` (e.g. `319279…668/krombat`).
+ *   The first 6 + last 3 digits of the account ID provide enough context to
+ *   disambiguate two accounts that share the same cluster name. See issue #117.
  * - Short aliases (no `:`) → returned as-is
- * - Other long names → last segment after `/`
+ * - Other long names → returned as-is (guessing last segment risks ambiguity)
  *
  * The full value is always accessible via a `title` attribute on the element.
  * See §XIII (Context/cluster disambiguation) and AGENTS.md anti-pattern #63.
@@ -300,7 +303,16 @@ export function abbreviateContext(ctx: string): string {
   // AWS EKS ARN: arn:aws:eks:<region>:<accountId>:cluster/<clusterName>
   const eksMatch = ctx.match(/^arn:aws:eks:[^:]+:([^:]+):cluster\/(.+)$/)
   if (eksMatch) {
-    return `${eksMatch[1]}/${eksMatch[2]}`
+    const accountId = eksMatch[1]
+    const clusterName = eksMatch[2]
+    // Show first 6 + last 3 digits of account ID to disambiguate. If the account
+    // ID is short enough to fit entirely, show it all (no ellipsis needed).
+    if (accountId.length <= 9) {
+      return `${accountId}/${clusterName}`
+    }
+    const prefix = accountId.slice(0, 6)
+    const suffix = accountId.slice(-3)
+    return `${prefix}\u2026${suffix}/${clusterName}`
   }
 
   // Only abbreviate known formats. For unrecognized coloned formats (e.g.

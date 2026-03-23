@@ -79,7 +79,11 @@ export default function ConditionItem({ condition, label, isAbsent }: ConditionI
         </div>
         <div className="condition-item__message">
           <span className="condition-item__pending-hint">
-            Not emitted by the connected kro version
+            Not emitted by the connected kro version. This condition is available
+            in kro v0.3.0+. Check your installed version with:{' '}
+            <code className="condition-item__inline-code">
+              kubectl -n kro get deploy kro -o jsonpath=&apos;&#123;.spec.template.spec.containers[0].image&#125;&apos;
+            </code>
           </span>
         </div>
       </div>

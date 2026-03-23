@@ -169,6 +169,37 @@
   font-size: 14px;
 }
 
+/* Issue #125: structured empty state with title, hint, and polling indicator */
+.events-page__empty-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin: 0 0 8px;
+}
+
+.events-page__empty-hint {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.events-page__empty-cmd {
+  display: inline-block;
+  margin: 8px 0;
+  padding: 4px 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.events-page__empty-polling {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
 /* Loading state is visually distinct from empty: pulse animation to signal activity (#90) */
 .events-page__loading {
   animation: events-loading-pulse 1.8s ease-in-out infinite;

@@ -14,7 +14,14 @@ import './CatalogCard.css'
 
 interface CatalogCardProps {
   rgd: K8sObject
-  instanceCount: number | null
+  /**
+   * Instance count for this RGD.
+   * - undefined: fetch in-flight (show loading indicator)
+   * - null: fetch failed (show em-dash per §XII)
+   * - number: resolved count
+   * Issue #116: previously always null before fetch resolved, so count never appeared.
+   */
+  instanceCount: number | null | undefined
   /** List of RGD names that reference this RGD (chaining "used by"). */
   usedBy: string[]
   /** Callback when a label pill is clicked — activates the label filter. */
@@ -35,9 +42,14 @@ export default function CatalogCard({
   const labels = extractLabels(rgd)
   const encodedName = encodeURIComponent(name)
 
-  // §XII: never render '?' for absent data — use em-dash for "not loaded"
+  // §XII: never render '?' for absent data.
+  // undefined = loading (show …), null = failed (show —), number = count.
   const instanceDisplay =
-    instanceCount === null ? '—' : String(instanceCount)
+    instanceCount === undefined ? '…' :
+    instanceCount === null ? '—' :
+    String(instanceCount)
+  // Use 1 for plural check when undefined or null (avoid "1 instances")
+  const instanceCountForPlural = typeof instanceCount === 'number' ? instanceCount : 2
 
   return (
     <article className="catalog-card" data-testid={`catalog-card-${name}`}>
@@ -65,7 +77,7 @@ export default function CatalogCard({
             {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
           </span>
           <span className="catalog-card__stat" data-testid="catalog-card-instances">
-            {instanceDisplay} instance{instanceCount !== 1 ? 's' : ''}
+            {instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}
           </span>
           <span className="catalog-card__age">{formatAge(createdAt)}</span>
         </div>

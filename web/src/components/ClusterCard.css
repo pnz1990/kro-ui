@@ -106,3 +106,19 @@
 .cluster-card__status-text--unreachable    { color: var(--color-not-found); }
 .cluster-card__status-text--kro-not-installed { color: var(--color-text-muted); }
 .cluster-card__status-text--auth-failed    { color: var(--color-error); }
+
+/* Issue #124: actionable hint for auth-failed state. */
+.cluster-card__status-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-faint);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.cluster-card__status-hint code {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}

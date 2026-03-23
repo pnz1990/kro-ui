@@ -98,6 +98,12 @@
   font-style: italic;
 }
 
+/* Issue #133: explain namespace/name format for users unfamiliar with K8s SA notation */
+.access-tab-sa-format-hint {
+  color: var(--color-text-faint);
+  font-size: 12px;
+}
+
 /* ── Manual SA override form (032-rbac-sa-autodetect) ─────────────────────── */
 
 .access-tab-sa-override-form {

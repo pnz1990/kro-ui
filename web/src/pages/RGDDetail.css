@@ -111,6 +111,14 @@
 
 /* ── Graph tab ────────────────────────────────────────────────────────────── */
 
+/* Issue #129: "refreshed X ago" indicator (constitution §XIII). */
+.rgd-graph-refresh-hint {
+  padding: 4px 32px;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  text-align: right;
+}
+
 .rgd-graph-area {
   flex: 1;
   overflow: auto;
