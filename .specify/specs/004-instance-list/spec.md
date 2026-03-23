@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-instance-list`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `003-rgd-detail-dag` (merged) — rendered inside the Instances tab
 **Constitution ref**: §II (dynamic client), §V (Simplicity — no pagination library)
 
@@ -94,6 +94,10 @@ instances in `default` appear. Select "All Namespaces"`database` → all instanc
   present in the unfiltered instance list — no separate API call
 - **FR-004**: Each row MUST show: name, namespace, age, readiness badge, and an
   "Open" link
+- **FR-004a**: Column headers for Name, Age, and Ready MUST be clickable sort
+  toggles with visible sort direction indicators (↑ ascending / ↓ descending /
+  ⇅ unsorted). Default sort: Name A→Z. Sort state is local (not URL-synced).
+  The Ready column MUST sort not-ready first by default when activated (issue #71).
 - **FR-005**: "Open" link MUST navigate to
   `/rgds/:rgdName/instances/:namespace/:name`
 - **FR-006**: Active namespace selection MUST be reflected in and restored from

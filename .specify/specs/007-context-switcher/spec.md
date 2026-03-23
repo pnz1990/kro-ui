@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-context-switcher`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `002-rgd-list-home` (merged) — context name is shown in `TopBar`
 **Constitution ref**: §II (ClientFactory must be runtime-switchable), §III
 (switch is read-only — no cluster mutations), §VI (sync.RWMutex, error wrapping)
@@ -48,7 +48,9 @@ the `production` cluster's RGDs.
 ### User Story 2 — Active context name is always visible (Priority: P1)
 
 The top bar always shows the active kubeconfig context name. Long EKS ARN
-strings are truncated with the full value accessible via tooltip.
+strings are truncated with the full value accessible via tooltip. The truncation
+algorithm MUST produce unambiguous labels when multiple contexts share the same
+cluster name suffix (e.g. two accounts both named `krombat`).
 
 **Why this priority**: Without visible context, an operator can unknowingly
 act on the wrong cluster. This is a safety concern that applies to every page
@@ -56,19 +58,24 @@ in the UI.
 
 **Independent Test**: With context
 `arn:aws:eks:us-west-2:123456789012:cluster/staging`, confirm the top bar shows
-a truncated form (e.g., `…/staging`) with the full ARN in a `title` tooltip.
-With context `minikube`, confirm the full name is shown untruncated.
+`123456…/staging` (6-digit account prefix + cluster name) with the full ARN
+in a `title` tooltip. With context `minikube`, confirm the full name is shown
+untruncated.
 
 **Acceptance Scenarios**:
 
 1. **Given** context name `minikube` (≤40 chars), **When** displayed in the top
    bar, **Then** the full name is shown with no truncation
 2. **Given** context name
-   `arn:aws:eks:us-west-2:123456789012:cluster/staging` (>40 chars), **When**
-   displayed, **Then** the name is truncated to show the most identifiable
-   part (e.g., the cluster name suffix after the last `/`) with the full string
-   in a `title` attribute
-3. **Given** context changes via the switcher, **When** displayed, **Then** the
+   `arn:aws:eks:us-west-2:123456789012:cluster/staging` (EKS ARN), **When**
+   displayed, **Then** the name is truncated to `123456…/staging` — the first
+   6 digits of the account ID followed by `…/<clusterName>`. The full ARN is
+   in a `title` attribute. This format ensures two contexts pointing to same-named
+   clusters in different AWS accounts are visually distinct (issue #63).
+3. **Given** two contexts with same cluster name but different account IDs
+   (e.g. `111111…/krombat` and `222222…/krombat`), **When** displayed,
+   **Then** their truncated labels are distinct
+4. **Given** context changes via the switcher, **When** displayed, **Then** the
    top bar updates immediately after the switch response
 
 ---
@@ -137,7 +144,10 @@ With context `minikube`, confirm the full name is shown untruncated.
   in the dropdown or as a top-of-page banner); the displayed context name MUST
   NOT change
 - **FR-010**: Context names longer than 40 characters MUST be truncated in the
-  top bar display with the full name in a `title` attribute
+  top bar display with the full name in a `title` attribute. For AWS EKS ARNs
+  (`arn:aws:eks:<region>:<accountId>:cluster/<name>`), the truncated form MUST
+  be `<first-6-digits-of-accountId>…/<clusterName>` to ensure disambiguation
+  when multiple contexts share the same cluster name in different accounts.
 
 ### Non-Functional Requirements
 
@@ -264,13 +274,13 @@ Step 4: RGD list reloads from new context
     because both contexts point at the same cluster)
   - Assert: URL is still / (no navigation occurred)
 
-Step 5: Long context name is truncated
+Step 5: Long EKS ARN context name is truncated with account disambiguation
   - The global setup also registers a context named
     "arn:aws:eks:us-west-2:000000000000:cluster/kro-ui-e2e-long-name" (fake
     ARN, same endpoint) in the kubeconfig
   - Switch to that context via the dropdown
-  - Assert: [data-testid="context-name"] does NOT contain the full ARN string
-    character-for-character in its visible text (it is truncated)
+  - Assert: [data-testid="context-name"] visible text matches `000000…/kro-ui-e2e-long-name`
+    (6-digit account prefix + cluster name, NOT just `…/kro-ui-e2e-long-name`)
   - Assert: [data-testid="context-name"] has a title attribute containing the
     full ARN string
 

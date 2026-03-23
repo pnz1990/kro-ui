@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-rgd-list-home`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `001-go-api-server` (merged)
 **Constitution ref**: §I (Iterative-First), §V (Simplicity), §IX (Theme)
 
@@ -49,25 +49,28 @@ browser and confirm RGD cards are visible with correct name, kind, and status.
 
 ---
 
-### User Story 2 — Operator navigates from a card to an RGD's graph or instances (Priority: P1)
+### User Story 2 — Operator navigates from a card to an RGD (Priority: P1)
 
-Every RGD card has two explicit action buttons so the operator can go directly
-to the view they need.
+Every RGD card is fully clickable — clicking anywhere on the card body navigates
+to the RGD's Graph tab. An explicit "Instances" action button provides direct
+access to the instances list.
 
 **Why this priority**: Card navigation is the primary UX flow. Without it the
-home page is a dead end.
+home page is a dead end. Cards with only small text links as the sole navigation
+target are a UX violation (see constitution §XIII, issue #65).
 
-**Independent Test**: Click "Graph" on the `web-service-graph` card`database` → URL becomes
-`/rgds/web-service-graph`. Click "Instances"`database` → URL becomes
-`/rgds/web-service-graph?tab=instances`. Press browser Back`database` → home page at same
-scroll position.
+**Independent Test**: Click anywhere on the `web-service-graph` card body →
+URL becomes `/rgds/web-service-graph`. Click the "Instances" button → URL
+becomes `/rgds/web-service-graph?tab=instances`. Press browser Back → home
+page at same scroll position.
 
 **Acceptance Scenarios**:
 
-1. **Given** an RGD card, **When** "Graph" is clicked, **Then** the browser
-   navigates to `/rgds/:name` using React Router (`<Link>`, no full page reload)
-2. **Given** an RGD card, **When** "Instances" is clicked, **Then** the browser
-   navigates to `/rgds/:name?tab=instances`
+1. **Given** an RGD card, **When** the card body is clicked anywhere (other
+   than the "Instances" button), **Then** the browser navigates to `/rgds/:name`
+   using React Router (`<Link>`, no full page reload)
+2. **Given** an RGD card, **When** the "Instances" button is clicked, **Then**
+   the browser navigates to `/rgds/:name?tab=instances`
 3. **Given** the user navigates away and presses the browser Back button,
    **When** returning to the home page, **Then** the card grid is shown at the
    same scroll position (React Router preserves state)
@@ -119,8 +122,9 @@ production data believing they are on staging. This is a safety concern.
   `spec.schema.kind`), resource count (`spec.resources.length`), age, status dot
 - **FR-003**: Status dot MUST be derived from `status.conditions`:
   `Ready=True``database` → green, `Ready=False``database` → red, absent/unknown`database` → gray
-- **FR-004**: Each card MUST render a "Graph" `<Link>` to `/rgds/:name` and an
-  "Instances" `<Link>` to `/rgds/:name?tab=instances`
+- **FR-004**: Each card MUST be fully clickable — the entire card body MUST be
+  wrapped in a `<Link>` to `/rgds/:name`. An "Instances" `<Link>` to
+  `/rgds/:name?tab=instances` MUST remain as a secondary action button.
 - **FR-005**: A skeleton loading state (CSS-only, no library) MUST be shown
   while the API call is in-flight
 - **FR-006**: An error state with "Retry" button MUST be shown on API failure

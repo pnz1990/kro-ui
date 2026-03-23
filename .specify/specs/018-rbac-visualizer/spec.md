@@ -2,7 +2,7 @@
 
 **Feature Branch**: `018-rbac-visualizer`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `003-rgd-detail-dag` (merged)
 **Constitution ref**: §II (Cluster Adaptability — dynamic client), §III (Read-Only),
 §V (Simplicity), §IX (Theme)
@@ -77,7 +77,9 @@ to add the missing permission to kro's ClusterRole.
 ### Edge Cases
 
 - kro installed via Helm with custom service account name → detect via the kro
-  Deployment's `spec.template.spec.serviceAccountName` or fall back to `kro`
+  Deployment's `spec.template.spec.serviceAccountName`. MUST NOT hardcode a
+  fallback SA name like `"kro"` — derive only from the cluster (constitution
+  §XIII: no hardcoded config values). If discovery fails, show an error state.
 - kro service account not found → show "Could not find kro's service account"
   with a field to manually specify it
 - Namespace-scoped RoleBindings → check both ClusterRoleBindings and

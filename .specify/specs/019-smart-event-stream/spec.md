@@ -2,7 +2,7 @@
 
 **Feature Branch**: `019-smart-event-stream`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `001c-instance-api` (merged)
 **Constitution ref**: §II (Cluster Adaptability — dynamic client), §III (Read-Only),
 §V (Simplicity — polling not WebSocket), §IX (Theme)
@@ -26,8 +26,8 @@ metrics endpoint required.
 ### User Story 1 — SRE sees live kro events filtered from noise (Priority: P1)
 
 An "Events" page shows a live stream of Kubernetes Events relevant to kro:
-events on RGDs, on kro-managed instances, and on child resources owned by kro
-instances. The stream polls every 5 seconds and prepends new events at the top.
+events on RGDs and on kro-managed instance CRs. The stream polls every 5
+seconds and prepends new events at the top.
 
 **Why this priority**: When something breaks, events are the first thing an SRE
 checks. Filtering out non-kro noise saves critical time during incidents.
@@ -39,8 +39,8 @@ events (e.g., kube-system pod events) are excluded.
 **Acceptance Scenarios**:
 
 1. **Given** a namespace with kro instances and other workloads, **When** the
-   Events page loads, **Then** only events whose `involvedObject` traces back
-   to a kro RGD or instance are shown
+   Events page loads, **Then** only events whose `involvedObject.uid` matches
+   a known RGD UID or kro instance CR UID are shown
 2. **Given** new events arrive, **When** the 5s poll fires, **Then** new events
    are prepended at the top; existing events are NOT duplicated
 3. **Given** a Warning event, **When** rendered, **Then** the row has an amber
@@ -93,8 +93,13 @@ in 1 minute for the same instance).
 
 - Events API returns events from previous resource incarnations (same name,
   different UID) → filter by `involvedObject.uid` to avoid stale events
-- Event `involvedObject` references a child resource → trace owner references
-  up to the kro instance to attribute it correctly
+- Child resource event attribution: events on child resources created by kro
+  are NOT included in the stream. Only events directly on RGDs and instance
+  CRs are shown. This is intentional — owner-reference chain traversal requires
+  O(n) serial API calls across all resource types and causes 75s+ response times
+  on large clusters (see: https://github.com/pnz1990/kro-ui/issues/57). If child
+  resource events are needed in future, implement with a cached discovery layer
+  and parallel bounded-timeout list calls per constitution §XI.
 - Events page opened with `?instance=X` query param → pre-filter to that instance
 - Events page opened with `?rgd=Y` query param → pre-filter to instances of that RGD
 
@@ -105,10 +110,13 @@ in 1 minute for the same instance).
 ### Functional Requirements
 
 - **FR-001**: Events page MUST fetch Kubernetes Events filtered by namespace
-  and kro-relevant `involvedObject` kinds
-- **FR-002**: kro-relevance MUST be determined by: event is on an RGD, event is
-  on a kro instance CR, or event is on a resource whose owner reference chain
-  leads to a kro instance
+  and kro-relevant `involvedObject` UIDs
+- **FR-002**: kro-relevance MUST be determined by UID matching: event is on an
+  RGD (UID in RGD list) or event is on a kro instance CR (UID in instance list).
+  Child resource owner-reference chain traversal is intentionally excluded —
+  it requires O(n) serial `ServerGroupsAndResources` + per-type `List` calls
+  across all API resource types (200+ on EKS), causing 75s+ response times.
+  See constitution §XI and issue #57.
 - **FR-003**: Events MUST be de-duplicated by `metadata.uid` across poll cycles
 - **FR-004**: Grouping toggle MUST support: "Stream" (chronological) and
   "By Instance" (grouped/collapsible)
@@ -117,7 +125,10 @@ in 1 minute for the same instance).
   - Error burst: > 10 Warning events in 1 minute for same instance
 - **FR-006**: Page MUST poll every 5 seconds using `usePolling` hook
 - **FR-007**: Page MUST support URL params `?instance=X` and `?rgd=Y` for
-  pre-filtering
+  pre-filtering, AND MUST provide visible input controls (text input for instance,
+  dropdown or text input for RGD) that update these URL params on change — URL
+  params alone without input fields is not acceptable (see constitution §XIII,
+  issue #66)
 - **FR-008**: A new backend endpoint MUST be added:
   `GET /api/v1/events?namespace=X&rgd=Y` — returns kro-filtered events
 

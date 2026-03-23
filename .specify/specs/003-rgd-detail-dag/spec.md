@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-rgd-detail-dag`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `002-rgd-list-home` (merged)
 **Constitution ref**: §II (Cluster Adaptability), §V (Simplicity — no D3, no
 force simulation), §VI (Go Standards), §IX (Theme)
@@ -198,9 +198,16 @@ The active tab is reflected in the URL query parameter so it can be bookmarked.
   query parameter
 - **FR-011**: The DAG layout algorithm MUST be deterministic (same input → same
   output every call)
-- **FR-012**: `specPatch` MUST NOT appear anywhere — it is not an upstream kro
+ - **FR-012**: `specPatch` MUST NOT appear anywhere — it is not an upstream kro
   concept. If encountered in a template (from a fork), render as `NodeTypeResource`
   with an "unknown template structure" badge
+- **FR-013**: When a resource template's `kind` field is absent, non-string, or
+  unresolvable, the node MUST fall back to the node's `id` as the kind label.
+  A `?` kind label is always a bug (issue #58, constitution §XII).
+- **FR-014**: The SVG container height MUST be fitted to the actual bounding box
+  of the rendered nodes after layout. The container MUST NOT have a fixed
+  `calc(100vh - Npx)` height that leaves empty space below the last node row
+  (issue #64).
 
 ### Non-Functional Requirements
 

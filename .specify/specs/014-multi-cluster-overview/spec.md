@@ -2,7 +2,7 @@
 
 **Feature Branch**: `014-multi-cluster-overview`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `007-context-switcher` (merged)
 **Constitution ref**: §II (Cluster Adaptability), §III (Read-Only), §V (Simplicity),
 §IX (Theme)
@@ -82,6 +82,11 @@ shows: present (green), absent (empty), or degraded (amber).
 - Same RGD kind name in different clusters but different RGD spec → show as same
   row (matched by `spec.schema.kind`); the dashboard shows presence, not
   structural equality
+- Multiple kubeconfig contexts pointing to the same physical cluster (same
+  `cluster.server` URL, e.g. a full ARN alias and a short alias) → deduplicate
+  into a single card showing the shorter/friendlier context name, with the
+  aliases listed as a subtitle. Do NOT show duplicate cards with identical data
+  (issue #62).
 
 ---
 
@@ -103,6 +108,12 @@ shows: present (green), absent (empty), or degraded (amber).
 - **FR-005**: Compare matrix MUST match RGDs across clusters by
   `spec.schema.kind` (not by RGD name, since names may differ)
 - **FR-006**: All styles MUST use CSS tokens from `tokens.css`
+- **FR-007**: Contexts pointing to the same cluster server URL MUST be
+  deduplicated — show one card with aliases listed as subtitle (issue #62)
+- **FR-008**: Fleet page MUST provide a manual "Refresh" button that re-fetches
+  all cluster summaries. A "last refreshed N ago" timestamp MUST be shown
+  (issue #72). Fleet data is fetched once on mount (not polled) — manual
+  refresh is the update mechanism.
 
 ### Non-Functional Requirements
 

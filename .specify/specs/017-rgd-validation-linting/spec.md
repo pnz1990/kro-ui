@@ -2,7 +2,7 @@
 
 **Feature Branch**: `017-rgd-validation-linting`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `003-rgd-detail-dag` (merged)
 **Constitution ref**: §II (Cluster Adaptability), §III (Read-Only),
 §V (Simplicity), §IX (Theme)
@@ -64,10 +64,17 @@ message from the condition.
    message displayed in a monospace block
 3. **Given** an RGD with `CustomResourceDefinitionSynced=False`, **When**
    rendered, **Then** the item shows red X with the sync error message
-4. **Given** an RGD with no conditions (just applied, controller hasn't
-   processed yet), **When** rendered, **Then** all items show gray "Pending"
-   indicators with "Awaiting controller processing"
-5. **Given** the Validation tab is open and the RGD conditions change (e.g.,
+4. **Given** an RGD with no conditions (the connected kro version does not
+   emit these condition types), **When** rendered, **Then** all absent items
+   show a neutral `–` indicator with **"Not reported"** and the sub-text
+   "Not emitted by the connected kro version" — **not** "Pending". This
+   distinguishes "kro doesn't emit this condition on this version" from
+   "kro emitted the condition but hasn't processed it yet".
+5. **Given** an RGD where a condition IS present but has `status=Unknown`
+   (controller has emitted it but hasn't finished processing), **When**
+   rendered, **Then** the item shows a gray `○` indicator with "Pending"
+   and "Awaiting controller processing" — distinct from the absent case above.
+6. **Given** the Validation tab is open and the RGD conditions change (e.g.,
    controller processes it), **When** the user refreshes or navigates back,
    **Then** the updated conditions are shown
 
@@ -107,7 +114,12 @@ collections, external refs), and a list of all CEL cross-references detected.
 - **FR-001**: Validation tab MUST read conditions from the already-loaded RGD
   object (no additional API call)
 - **FR-002**: Each known condition type MUST be displayed with: type name,
-  status icon (green ✓ / red ✗ / gray ○), reason, message, last transition time
+  status icon (green ✓ / red ✗ / gray ○ / dash –), reason, message, last
+  transition time. The status rendering MUST distinguish three states:
+  - `True` → green ✓ "Passed"
+  - `False` → red ✗ with reason and message
+  - `Unknown` (condition present, status Unknown) → gray ○ "Pending / Awaiting controller processing"
+  - Absent (condition not in `status.conditions` at all) → dash `–` "Not reported / Not emitted by the connected kro version" with neutral `condition-item--absent` styling
 - **FR-003**: Unknown condition types MUST be rendered generically
 - **FR-004**: Resource summary MUST be computed client-side from `spec.resources`
   using the same node type classification as spec 003 (`buildDAGGraph`)
@@ -140,7 +152,8 @@ collections, external refs), and a list of all CEL cross-references detected.
 describe("ValidationTab", () => {
   it("shows green checkmark for True conditions", () => { ... })
   it("shows red X for False conditions", () => { ... })
-  it("shows gray pending for absent conditions", () => { ... })
+  it('shows "Not reported" (–) with condition-item--absent for absent conditions', () => { ... })
+  it('shows gray pending (○) for conditions present with status=Unknown', () => { ... })
   it("renders unknown condition types generically", () => { ... })
   it("shows resource summary with correct type breakdown", () => { ... })
 })

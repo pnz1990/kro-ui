@@ -2,7 +2,7 @@
 
 **Spec**: `008-feature-flags`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `001-server-core` (merged)
 **Constitution ref**: §II (Cluster Adaptability — kro evolves rapidly)
 

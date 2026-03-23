@@ -2,7 +2,7 @@
 
 **Feature Branch**: `009-rgd-graph-diff`
 **Created**: 2026-03-20
-**Status**: Draft — BLOCKED (requires kro KREP-013 Graph Revisions, expected v0.9.0)
+**Status**: Blocked (needs upstream kro KREP-013) — BLOCKED (requires kro KREP-013 Graph Revisions, expected v0.9.0)
 **Depends on**: `003-rgd-detail-dag` (merged)
 **Constitution ref**: §II (Cluster Adaptability), §V (Simplicity), §IX (Theme)
 

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `011-collection-explorer`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `005-instance-detail-live` (merged)
 **Constitution ref**: §II (Cluster Adaptability — dynamic client), §III (Read-Only),
 §V (Simplicity), §IX (Theme)

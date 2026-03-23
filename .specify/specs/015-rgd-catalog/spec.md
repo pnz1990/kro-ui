@@ -2,7 +2,7 @@
 
 **Feature Branch**: `015-rgd-catalog`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `002-rgd-list-home` (merged)
 **Constitution ref**: §II (Cluster Adaptability — dynamic client), §III (Read-Only),
 §V (Simplicity), §IX (Theme)
@@ -127,6 +127,10 @@ The catalog supports sorting by: name (A-Z), kind (A-Z), instance count
 - **FR-006**: "Used by" linkage MUST be clickable, navigating to the referencing
   RGD's detail page
 - **FR-007**: All styles MUST use CSS tokens from `tokens.css`
+- **FR-008**: Each catalog card MUST be fully clickable — the entire card body
+  MUST be wrapped in a `<Link>` to `/rgds/:name`. Secondary action buttons may
+  remain inside the card. A card where only small text links are clickable is a
+  UX violation (constitution §XIII, issue #65).
 
 ### Non-Functional Requirements
 

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `006-cel-highlighter`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: none — this is a pure, standalone utility with no runtime deps
 **Constitution ref**: §V (no external highlighting libraries), §IX (token colors
 must match kro.run exactly), §VII (pure function`database` → fully unit testable)

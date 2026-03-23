@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-instance-detail-live`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged
 **Depends on**: `004-instance-list` (merged)
 **Constitution ref**: §II (dynamic client, adaptability), §III (read-only),
 §V (polling not WebSocket), §VI (error handling, logging), §VII (testing)
@@ -189,6 +189,10 @@ returns "Resource not found". This was a concrete bug observed in open-krode.
   successful poll cycle
 - **FR-010**: `forEach` node clicks MUST NOT trigger a YAML fetch — show the
   guidance note instead
+- **FR-011**: When a resource template's `kind` field is absent or non-string,
+  the live DAG node MUST fall back to the node's `id` as the kind label. A `?`
+  kind label is always a bug (issue #58, constitution §XII). This is enforced in
+  the shared `buildDAGGraph` function in `dag.ts`.
 
 ### Non-Functional Requirements
 
