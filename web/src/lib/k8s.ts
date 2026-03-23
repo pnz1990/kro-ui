@@ -72,14 +72,23 @@ export function extractMetadata(obj: K8sObject): KubernetesMetadata {
       })
     : undefined
 
+  // Filter to entries whose values are strings — avoids unsound double-cast.
   const labels: Record<string, string> | undefined =
     m.labels && typeof m.labels === 'object' && !Array.isArray(m.labels)
-      ? (m.labels as Record<string, unknown>) as Record<string, string>
+      ? Object.fromEntries(
+          Object.entries(m.labels as Record<string, unknown>)
+            .filter(([ , v]) => typeof v === 'string')
+            .map(([k, v]) => [k, v as string]),
+        )
       : undefined
 
   const annotations: Record<string, string> | undefined =
     m.annotations && typeof m.annotations === 'object' && !Array.isArray(m.annotations)
-      ? (m.annotations as Record<string, unknown>) as Record<string, string>
+      ? Object.fromEntries(
+          Object.entries(m.annotations as Record<string, unknown>)
+            .filter(([ , v]) => typeof v === 'string')
+            .map(([k, v]) => [k, v as string]),
+        )
       : undefined
 
   return {
@@ -137,17 +146,24 @@ export function getFinalizers(obj: K8sObject): string[] {
 }
 
 /**
- * getKroFinalizers — returns finalizers that start with 'kro.run/'.
+ * KRO_FINALIZER_PREFIX — the string prefix used by kro on all finalizers it manages.
+ * Exported so consumers (e.g. FinalizersPanel) can detect kro-owned finalizers
+ * without duplicating this literal.
+ */
+export const KRO_FINALIZER_PREFIX = 'kro.run/'
+
+/**
+ * getKroFinalizers — returns finalizers that start with KRO_FINALIZER_PREFIX.
  */
 export function getKroFinalizers(obj: K8sObject): string[] {
-  return getFinalizers(obj).filter((f) => f.startsWith('kro.run/'))
+  return getFinalizers(obj).filter((f) => f.startsWith(KRO_FINALIZER_PREFIX))
 }
 
 /**
- * getNonKroFinalizers — returns finalizers that do NOT start with 'kro.run/'.
+ * getNonKroFinalizers — returns finalizers that do NOT start with KRO_FINALIZER_PREFIX.
  */
 export function getNonKroFinalizers(obj: K8sObject): string[] {
-  return getFinalizers(obj).filter((f) => !f.startsWith('kro.run/'))
+  return getFinalizers(obj).filter((f) => !f.startsWith(KRO_FINALIZER_PREFIX))
 }
 
 // ── Deletion event classification ──────────────────────────────────────────

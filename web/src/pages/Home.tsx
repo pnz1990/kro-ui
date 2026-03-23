@@ -3,7 +3,7 @@
 // Search input is debounced (300ms) to avoid per-keystroke filter churn.
 // FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
@@ -33,11 +33,20 @@ export default function Home() {
   // Fetched in the background after the RGD list loads; absent = not yet fetched.
   const [terminatingCounts, setTerminatingCounts] = useState<Map<string, number>>(new Map())
 
+  // Abort controller ref — cancels in-flight listInstances fan-out on unmount or re-fetch.
+  const abortRef = useRef<AbortController | null>(null)
+
   const fetchRGDs = useCallback(() => {
+    // Abort any in-flight fan-out from a previous call
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+
     setIsLoading(true)
     setError(null)
     listRGDs()
       .then((res) => {
+        if (ac.signal.aborted) return
         setItems(res.items)
         // FR-007: fire-and-forget background fetch of terminating counts.
         // Each RGD gets one listInstances call. Errors are silently ignored —
@@ -45,12 +54,13 @@ export default function Home() {
         const rgdNames = res.items.map(extractRGDName).filter(Boolean)
         Promise.allSettled(
           rgdNames.map((name) =>
-            listInstances(name).then((list) => ({
+            listInstances(name, undefined, ac.signal).then((list) => ({
               name,
               count: list.items.filter(isTerminating).length,
             }))
           )
         ).then((results) => {
+          if (ac.signal.aborted) return
           const counts = new Map<string, number>()
           for (const result of results) {
             if (result.status === 'fulfilled') {
@@ -62,15 +72,17 @@ export default function Home() {
         // allSettled never rejects — no .catch needed
       })
       .catch((err: unknown) => {
+        if (ac.signal.aborted) return
         setError(err instanceof Error ? err.message : String(err))
       })
       .finally(() => {
-        setIsLoading(false)
+        if (!ac.signal.aborted) setIsLoading(false)
       })
   }, [])
 
   useEffect(() => {
     fetchRGDs()
+    return () => { abortRef.current?.abort() }
   }, [fetchRGDs])
 
   // Client-side filter — reuses matchesSearch from catalog lib (no reimplementation).

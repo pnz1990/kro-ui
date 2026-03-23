@@ -9,6 +9,7 @@
 // Spec: .specify/specs/031-deletion-debugger/ FR-002, FR-006
 
 import { useState } from 'react'
+import { KRO_FINALIZER_PREFIX } from '@/lib/k8s'
 import './FinalizersPanel.css'
 
 interface FinalizersPanelProps {
@@ -61,7 +62,7 @@ export default function FinalizersPanel({ finalizers, defaultExpanded = false }:
           {finalizers.map((f) => (
             <span
               key={f}
-              className={`finalizer-badge${f.startsWith('kro.run/') ? ' finalizer-badge--kro' : ''}`}
+              className={`finalizer-badge${f.startsWith(KRO_FINALIZER_PREFIX) ? ' finalizer-badge--kro' : ''}`}
             >
               {f}
             </span>
