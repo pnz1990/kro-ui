@@ -21,8 +21,14 @@
  *   3. Register additional kubeconfig contexts (alt + long-name) pointing at
  *      the same cluster endpoint — used by the context-switcher journey
  *   4. Create the kro-ui-e2e namespace
- *   5. Apply test fixture manifests (test-app RGD + test-instance CR)
- *   6. Wait for the RGD to be accepted and the instance to be reconciled
+ *   5. Apply pre-requisite resources (ConfigMap for external-ref fixture)
+ *   6. Apply all fixture RGDs, wait for Ready, then apply instances:
+ *        a. test-app RGD + test-instance (NodeTypeResource, includeWhen)
+ *        b. test-collection RGD + test-collection-instance (NodeTypeCollection forEach)
+ *        c. multi-resource RGD + multi-resource-instance (4-resource DAG with HPA)
+ *        d. external-ref RGD + external-ref-instance (NodeTypeExternal)
+ *        e. cel-functions RGD + cel-functions-instance (CEL extension functions)
+ *        f. chain-parent + chain-child RGDs (chaining graph — no instances needed)
  *   7. Build the kro-ui binary (if not already built)
  *   8. Start the kro-ui server process in the background
  *   9. Wait for /healthz to respond
@@ -110,22 +116,22 @@ export default async function globalSetup() {
     encoding: 'utf8',
   })
 
-  // ── 5. Apply test fixtures ────────────────────────────────────────────────
-  console.log('[setup] Applying test fixtures…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-rgd.yaml')])
+  // ── 5. Apply pre-requisite resources ─────────────────────────────────────
+  // The external-ref RGD reads this ConfigMap via externalRef. It must exist
+  // before the RGD or its instance is applied.
+  console.log('[setup] Applying external-ref pre-requisite ConfigMap…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-prereq.yaml')])
 
-  // Wait for the RGD to be accepted by kro before applying the instance.
-  console.log('[setup] Waiting for test-app RGD to be accepted…')
+  // ── 6a. test-app RGD + instance ──────────────────────────────────────────
+  console.log('[setup] Applying test-app RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-rgd.yaml')])
+  console.log('[setup] Waiting for test-app RGD to be Ready…')
   execFile('kubectl', [
     '--kubeconfig', KUBECONFIG_PATH,
     'wait', 'rgd/test-app',
     '--for=condition=Ready', '--timeout=120s',
   ], { retries: 3 })
-
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-instance.yaml')])
-
-  // Wait for the instance's child Namespace to exist — indicates reconciliation
-  // has at least started. We do not wait for full readiness to avoid flakiness.
   console.log('[setup] Waiting for test-instance to reconcile…')
   execFile('kubectl', [
     '--kubeconfig', KUBECONFIG_PATH,
@@ -134,17 +140,96 @@ export default async function globalSetup() {
   ], { retries: 5 })
   console.log('[setup] test-instance reconciled')
 
-  // Apply the collection fixture (forEach node annotation test — spec 021).
-  // We only apply the RGD — not the instance — because kro's forEach CRD
-  // generation takes an unpredictable amount of time and the instance cannot
-  // be applied before the CRD is Established.
-  // Journey 010 Steps 1 & 2 (static DAG) only need the RGD to exist in the API;
-  // Steps 3 & 4 (live instance) are skipped in CI.
-  console.log('[setup] Applying test-collection RGD (static DAG only)…')
+  // ── 6b. test-collection RGD + instance ───────────────────────────────────
+  // Uses a longer timeout (180s) because forEach CRD generation takes longer
+  // than plain-resource RGDs. Instance is now applied in CI — journey 010
+  // steps 3 and 4 are promoted from skipped to active.
+  console.log('[setup] Applying test-collection RGD…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-rgd.yaml')])
-  console.log('[setup] test-collection RGD applied')
+  console.log('[setup] Waiting for test-collection RGD to be Ready (forEach CRD generation)…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'rgd/test-collection',
+    '--for=condition=Ready', '--timeout=180s',
+  ], { retries: 3 })
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-instance.yaml')])
+  console.log('[setup] Waiting for test-collection-instance ConfigMaps to appear…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'configmap/test-collection-instance-us-east-1-config',
+    '--for=jsonpath={.metadata.name}=test-collection-instance-us-east-1-config',
+    '--namespace', NAMESPACE,
+    '--timeout=120s',
+  ], { retries: 5 })
+  console.log('[setup] test-collection-instance reconciled')
 
-  // ── 6. Build kro-ui binary if needed ─────────────────────────────────────
+  // ── 6c. multi-resource RGD + instance ────────────────────────────────────
+  console.log('[setup] Applying multi-resource RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-rgd.yaml')])
+  console.log('[setup] Waiting for multi-resource RGD to be Ready…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'rgd/multi-resource',
+    '--for=condition=Ready', '--timeout=120s',
+  ], { retries: 3 })
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-instance.yaml')])
+  console.log('[setup] Waiting for multi-resource-instance Deployment to become Available…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'deployment/kro-ui-multi-deploy',
+    '--for=condition=Available',
+    '--namespace', NAMESPACE,
+    '--timeout=120s',
+  ], { retries: 5 })
+  console.log('[setup] multi-resource-instance reconciled')
+
+  // ── 6d. external-ref RGD + instance ──────────────────────────────────────
+  console.log('[setup] Applying external-ref RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-rgd.yaml')])
+  console.log('[setup] Waiting for external-ref RGD to be Ready…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'rgd/external-ref',
+    '--for=condition=Ready', '--timeout=120s',
+  ], { retries: 3 })
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-instance.yaml')])
+  console.log('[setup] Waiting for external-ref-instance owned ConfigMap to appear…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'configmap/kro-ui-echo-echo',
+    '--for=jsonpath={.metadata.name}=kro-ui-echo-echo',
+    '--namespace', NAMESPACE,
+    '--timeout=120s',
+  ], { retries: 5 })
+  console.log('[setup] external-ref-instance reconciled')
+
+  // ── 6e. cel-functions RGD + instance ─────────────────────────────────────
+  console.log('[setup] Applying cel-functions RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-rgd.yaml')])
+  console.log('[setup] Waiting for cel-functions RGD to be Ready…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'rgd/cel-functions',
+    '--for=condition=Ready', '--timeout=120s',
+  ], { retries: 3 })
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-instance.yaml')])
+  console.log('[setup] Waiting for cel-functions-instance Deployment to become Available…')
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'deployment/kroui-cel',
+    '--for=condition=Available',
+    '--namespace', NAMESPACE,
+    '--timeout=120s',
+  ], { retries: 5 })
+  console.log('[setup] cel-functions-instance reconciled')
+
+  // ── 6f. Chain RGDs (no instances needed for chaining graph tests) ─────────
+  console.log('[setup] Applying chain RGDs…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-child.yaml')])
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-parent.yaml')])
+  console.log('[setup] Chain RGDs applied')
+
+  // ── 7. Build kro-ui binary if needed ─────────────────────────────────────
   const binaryPath = process.env.KRO_UI_BINARY ?? join(ROOT_DIR, 'bin', 'kro-ui')
   if (!existsSync(binaryPath)) {
     console.log('[setup] Building kro-ui binary…')
@@ -152,7 +237,7 @@ export default async function globalSetup() {
     console.log('[setup] Binary built')
   }
 
-  // ── 7. Start kro-ui server ────────────────────────────────────────────────
+  // ── 8. Start kro-ui server ────────────────────────────────────────────────
   console.log(`[setup] Starting kro-ui server on port ${PORT}…`)
   serverProcess = spawn(
     binaryPath,
@@ -171,7 +256,7 @@ export default async function globalSetup() {
   process.env.KRO_UI_SERVER_PID = String(serverProcess.pid)
   process.env.KRO_UI_KUBECONFIG = KUBECONFIG_PATH
 
-  // ── 8. Wait for healthz ───────────────────────────────────────────────────
+  // ── 9. Wait for healthz ───────────────────────────────────────────────────
   console.log('[setup] Waiting for kro-ui to be ready…')
   await waitForHealthz(`http://localhost:${PORT}/api/v1/healthz`, 30_000)
   console.log(`[setup] kro-ui ready at http://localhost:${PORT}`)

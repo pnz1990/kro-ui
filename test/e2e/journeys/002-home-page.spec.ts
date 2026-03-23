@@ -110,4 +110,68 @@ test.describe('Journey 002 — Home page RGD cards and navigation', () => {
     await page.getByTestId('rgd-card-test-app').getByTestId('btn-instances').click()
     await expect(page).toHaveURL(`${BASE}/rgds/test-app?tab=instances`)
   })
+
+  test('Step 5: Home page shows cards for all fixture RGDs', async ({ page }) => {
+    await page.goto(BASE)
+
+    for (const name of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
+      await expect(page.getByTestId(`rgd-card-${name}`)).toBeVisible()
+    }
+  })
+
+  test('Step 6: All visible card kind labels are non-empty and not "?"', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+
+    const kindLabels = page.locator('[data-testid="rgd-kind"]')
+    const count = await kindLabels.count()
+    expect(count).toBeGreaterThan(0)
+
+    for (let i = 0; i < count; i++) {
+      const text = await kindLabels.nth(i).textContent()
+      expect(text).not.toBe('')
+      expect(text).not.toBe('?')
+    }
+  })
+
+  test('Step 7: Search filter narrows cards to matching RGD', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+
+    const searchInput = page.locator('input[type="search"]')
+    await expect(searchInput).toBeVisible()
+
+    await searchInput.fill('multi-resource')
+    await page.waitForTimeout(400) // debounce
+
+    // Only multi-resource card visible
+    await expect(page.getByTestId('rgd-card-multi-resource')).toBeVisible()
+    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
+
+    // Clear restores all cards
+    await searchInput.fill('')
+    await page.waitForTimeout(400)
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+  })
+
+  test('Step 8: Searching a non-matching string shows empty state', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('virtual-grid-container')).toBeVisible()
+
+    const searchInput = page.locator('input[type="search"]')
+    await searchInput.fill('xyzzy-no-match-99999')
+    await page.waitForTimeout(400)
+
+    const emptyStatus = page.getByTestId('virtual-grid-container').locator('[role="status"]')
+    await expect(emptyStatus).toBeVisible()
+  })
+
+  test('Step 9: Clicking the full card body of multi-resource navigates to its detail page', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('rgd-card-multi-resource')).toBeVisible()
+
+    // Click the card's link wrapper (not a specific button) — validates fully-clickable card
+    await page.getByTestId('rgd-card-multi-resource').click()
+    await expect(page).toHaveURL(`${BASE}/rgds/multi-resource`)
+  })
 })

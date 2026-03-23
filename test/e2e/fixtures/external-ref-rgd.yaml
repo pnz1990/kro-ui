@@ -1,0 +1,61 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# external-ref RGD — E2E fixture for NodeTypeExternal rendering tests.
+#
+# Adapted from kubernetes-sigs/kro test/e2e/chainsaw/check-external-references/rgd.yaml
+#
+# Node types exercised:
+#   - NodeTypeInstance: root EchoApp CR (variable: schema)
+#   - NodeTypeExternal: inputConfig (reads kro-ui-external-input ConfigMap by name)
+#   - NodeTypeResource: echoOutput (owned ConfigMap, references inputConfig field)
+#
+# CEL expressions used:
+#   - ${schema.spec.name}                                  — schema spec reference
+#   - ${inputConfig.?data.ECHO_VALUE.orValue("not found")} — optional chaining + orValue
+#
+# The optional-chaining and orValue expressions exercise token types not present
+# in test-rgd.yaml and are asserted in journey 006 step 9.
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: external-ref
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: EchoApp
+    group: e2e.kro-ui.dev
+    spec:
+      name: string | default=kro-ui-echo
+    status:
+      echoValue: ${echoOutput.data.ECHO_VALUE}
+  resources:
+    - id: inputConfig
+      externalRef:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: kro-ui-external-input
+          namespace: kro-ui-e2e
+
+    - id: echoOutput
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.name}-echo
+          namespace: kro-ui-e2e
+        data:
+          ECHO_VALUE: '${inputConfig.?data.ECHO_VALUE.orValue("not found")}'
+          SOURCE: kro-ui-external-input

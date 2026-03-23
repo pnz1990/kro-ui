@@ -96,4 +96,45 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
     }
   })
 
+  test('Step 7: /api/v1/rgds response includes all fixture RGDs', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/rgds`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as { items: Array<{ metadata: { name: string } }> }
+    const names = body.items.map(i => i.metadata.name)
+
+    for (const expected of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
+      expect(names).toContain(expected)
+    }
+  })
+
+  test('Step 8: /api/v1/rgds/multi-resource/instances returns multi-resource-instance', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/rgds/multi-resource/instances`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as { items: Array<{ metadata: { name: string } }> }
+    const inst = body.items.find(i => i.metadata.name === 'multi-resource-instance')
+    expect(inst).toBeDefined()
+  })
+
+  test('Step 9: instance detail endpoint returns spec and metadata fields', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/rgds/test-app/instances/kro-ui-e2e/test-instance`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as Record<string, unknown>
+    expect(body.spec).toBeDefined()
+    expect(body.metadata).toBeDefined()
+  })
+
+  test('Step 10: instance events endpoint returns valid JSON with items key', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/rgds/test-app/instances/kro-ui-e2e/test-instance/events`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as { items: unknown[] }
+    expect(Array.isArray(body.items)).toBe(true)
+  })
+
+  test('Step 11: external-ref instance detail endpoint responds without error', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as { metadata: { name: string } }
+    expect(body.metadata.name).toBe('external-ref-instance')
+  })
+
 })

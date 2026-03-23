@@ -83,4 +83,35 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     await expect(revisionsTab).toHaveCount(0)
   })
 
+  test('Step 3: hasForEach and hasExternalRef are true given fixture RGDs applied successfully', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/kro/capabilities`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as {
+      schema: { hasForEach: boolean; hasExternalRef: boolean }
+    }
+
+    // Both test-collection (forEach) and external-ref (externalRef) RGDs applied
+    // successfully in global-setup, so the installed kro must support these features.
+    expect(body.schema.hasForEach).toBe(true)
+    expect(body.schema.hasExternalRef).toBe(true)
+  })
+
+  test('Step 4: external-ref DAG renders externalRef node (not gated off)', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // When hasExternalRef is true the UI must render the node, not hide it
+    const externalNode = page.locator('.node-type--external')
+    await expect(externalNode).toBeVisible()
+  })
+
+  test('Step 5: test-collection DAG renders forEach collection node (not gated off)', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/test-collection`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // When hasForEach is true the UI must render the collection node
+    const collectionNode = page.locator('.node-type--collection')
+    await expect(collectionNode).toBeVisible()
+  })
+
 })

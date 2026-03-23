@@ -139,4 +139,64 @@ test.describe('004: Instance List', () => {
     // InstanceDetail stub page is visible
     await expect(page.getByTestId('instance-detail-page')).toBeVisible()
   })
+
+  // ── Steps 6-10: new fixture instances ────────────────────────────────────
+
+  test('Step 6: multi-resource-instance appears in the instance table', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource?tab=instances`)
+    await expect(page.getByTestId('instance-table')).toBeVisible()
+
+    const row = page.getByTestId('instance-row-multi-resource-instance')
+    await expect(row).toBeVisible()
+    await expect(row.getByTestId('instance-namespace')).toHaveText('kro-ui-e2e')
+  })
+
+  test('Step 7: multi-resource-instance readiness badge is not in error state', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource?tab=instances&namespace=kro-ui-e2e`)
+    await expect(page.getByTestId('instance-table')).toBeVisible()
+
+    const row = page.getByTestId('instance-row-multi-resource-instance')
+    await expect(row).toBeVisible()
+
+    const badge = row.getByTestId('readiness-badge')
+    await expect(badge).toBeVisible()
+    // Badge must not carry an error class on a healthy kind cluster
+    await expect(badge).not.toHaveClass(/badge--error/)
+  })
+
+  test('Step 8: external-ref-instance appears in the instance table', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref?tab=instances`)
+    await expect(page.getByTestId('instance-table')).toBeVisible()
+
+    const row = page.getByTestId('instance-row-external-ref-instance')
+    await expect(row).toBeVisible()
+    await expect(row.getByTestId('instance-namespace')).toHaveText('kro-ui-e2e')
+  })
+
+  test('Step 9: namespace filter on multi-resource instances — kro-ui-e2e shows instance, default does not', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource?tab=instances`)
+    await expect(page.getByTestId('instance-table')).toBeVisible()
+
+    // Select kro-ui-e2e — instance visible
+    await page.getByTestId('namespace-filter').selectOption('kro-ui-e2e')
+    await expect(page.getByTestId('instance-row-multi-resource-instance')).toBeVisible()
+
+    // Select default — no multi-resource instances there
+    await page.getByTestId('namespace-filter').selectOption('default')
+    await expect(page.getByTestId('instance-empty-state')).toBeVisible()
+    await expect(page.getByTestId('instance-row-multi-resource-instance')).not.toBeVisible()
+  })
+
+  test('Step 10: sort indicator arrow appears on Name column header', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/test-app?tab=instances`)
+    await expect(page.getByTestId('instance-table')).toBeVisible()
+
+    // Click the Name column header to activate sort
+    const nameHeader = page.getByTestId('col-header-name')
+    await nameHeader.click()
+
+    // Sort indicator must be visible
+    const sortIndicator = nameHeader.locator('[data-testid="sort-indicator"]')
+    await expect(sortIndicator).toBeVisible()
+  })
 })

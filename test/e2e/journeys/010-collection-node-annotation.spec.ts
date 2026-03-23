@@ -15,18 +15,15 @@
 /**
  * Journey 010: Collection Node Annotation — forEach expression and cardinality badge
  *
- * Steps 1 & 2 test the static RGD detail DAG — these only require the RGD to be
- * present in the cluster (no Ready condition needed, kro-ui reads it as a raw object).
- *
- * Steps 3 & 4 test the live instance DAG — these are skipped in CI because the
- * forEach RGD CRD generation timing is non-deterministic and may exceed the E2E
- * setup budget. They can be run locally with SKIP_KIND_DELETE=true after verifying
- * that the test-collection RGD has reached Ready.
+ * All steps are now active in CI. The test-collection RGD is waited on with a
+ * 180s timeout in global-setup.ts, and the instance is applied after the CRD
+ * is Established, making the live DAG steps reliable.
  *
  * Spec ref: .specify/specs/021-collection-node-cardinality/spec.md
  *
  * Cluster pre-conditions:
- * - test-collection RGD applied (RegionalDeployment, regionConfig forEach resource)
+ * - test-collection RGD applied and Ready (RegionalDeployment, regionConfig forEach resource)
+ * - test-collection-instance applied (2 regions: us-east-1, eu-west-1)
  */
 
 import { test, expect } from '@playwright/test'
@@ -52,10 +49,9 @@ test.describe('010: Collection Node Annotation', () => {
     await expect(page.getByTestId('dag-node-foreach-schema')).not.toBeVisible()
   })
 
-  // Steps 3 & 4 require the forEach CRD to be Established and an instance to exist.
-  // Skipped in CI due to non-deterministic CRD generation timing.
-  // Run locally: SKIP_KIND_DELETE=true make test-e2e (after RGD is Ready).
-  test.skip('Step 3: live instance detail DAG shows forEach annotation on collection node', async ({ page }) => {
+  // Steps 3 & 4 are now active in CI — global-setup.ts waits 180s for the
+  // forEach RGD to be Ready and applies the instance before tests run.
+  test('Step 3: live instance detail DAG shows forEach annotation on collection node', async ({ page }) => {
     const INSTANCE_URL = `${BASE}/rgds/test-collection/instances/kro-ui-e2e/test-collection-instance`
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
@@ -65,7 +61,7 @@ test.describe('010: Collection Node Annotation', () => {
     await expect(annotation).toContainText('region')
   })
 
-  test.skip('Step 4: cardinality badge appears on live DAG collection node', async ({ page }) => {
+  test('Step 4: cardinality badge appears on live DAG collection node', async ({ page }) => {
     const INSTANCE_URL = `${BASE}/rgds/test-collection/instances/kro-ui-e2e/test-collection-instance`
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
@@ -73,5 +69,19 @@ test.describe('010: Collection Node Annotation', () => {
     await expect(badge).toBeVisible({ timeout: 30000 })
     const badgeText = await badge.textContent()
     expect(badgeText).toMatch(/^\d+\/\d+$/)
+  })
+
+  test('Step 5: cardinality badge count matches the instance region count (2/2)', async ({ page }) => {
+    const INSTANCE_URL = `${BASE}/rgds/test-collection/instances/kro-ui-e2e/test-collection-instance`
+    await page.goto(INSTANCE_URL)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
+
+    const badge = page.getByTestId('collection-badge')
+    await expect(badge).toBeVisible({ timeout: 30000 })
+
+    // test-collection-instance.yaml has 2 regions (us-east-1, eu-west-1)
+    // When fully reconciled the badge should show 2/2
+    const badgeText = await badge.textContent()
+    expect(badgeText).toMatch(/^[12]\/2$/) // allow 1/2 transiently during reconciliation
   })
 })

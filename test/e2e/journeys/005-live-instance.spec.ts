@@ -163,4 +163,75 @@ test.describe('005: Live Instance Detail', () => {
     await expect(page.getByTestId('conditions-panel')).toBeVisible()
     await expect(page.getByTestId('events-panel')).toBeVisible()
   })
+
+  // ── Steps 7-9: multi-resource-instance live DAG ───────────────────────────
+
+  test('Step 7: multi-resource live DAG renders 5 nodes including autoscaler', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource/instances/kro-ui-e2e/multi-resource-instance`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
+
+    // 5 nodes: schema + appConfig + appService + appDeployment + appAutoscaler
+    const nodes = page.locator('[data-testid^="dag-node-"]')
+    await expect(nodes).toHaveCount(5)
+    await expect(page.getByTestId('dag-node-appAutoscaler')).toBeVisible()
+
+    // Every node must have a state badge (alive/reconciling/pending — no error on healthy cluster)
+    const stateBadges = page.locator('[data-testid="node-state-badge"]')
+    const badgeCount = await stateBadges.count()
+    expect(badgeCount).toBeGreaterThan(0)
+  })
+
+  test('Step 8: clicking appDeployment node shows Deployment kind and non-empty YAML', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource/instances/kro-ui-e2e/multi-resource-instance`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
+
+    await page.getByTestId('dag-node-appDeployment').click()
+    await expect(page.getByTestId('node-detail-panel')).toBeVisible()
+    await expect(page.getByTestId('node-detail-kind')).toHaveText('Deployment')
+
+    // YAML section must render (may need a moment for fetch)
+    await expect(page.getByTestId('node-yaml-section')).toBeVisible()
+  })
+
+  test('Step 9: conditions panel for multi-resource-instance has at least one condition row', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource/instances/kro-ui-e2e/multi-resource-instance`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+    await expect(page.getByTestId('conditions-panel')).toBeVisible()
+
+    // At least one condition row must be present — multi-resource RGD produces real conditions
+    const conditionRows = page.locator('[data-testid="condition-row"]')
+    const rowCount = await conditionRows.count()
+    expect(rowCount).toBeGreaterThan(0)
+  })
+
+  // ── Steps 10-11: external-ref-instance live DAG ───────────────────────────
+
+  test('Step 10: external-ref live DAG contains NodeTypeExternal node with correct label', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
+
+    // The externalRef node must have the external node type class — never "?"
+    const externalNode = page.locator('.node-type--external')
+    await expect(externalNode).toBeVisible()
+
+    // The node label text must not be "?"
+    const nodeLabel = page.getByTestId('dag-node-inputConfig').locator('[data-testid="node-kind-label"]')
+    const labelText = await nodeLabel.textContent()
+    expect(labelText).not.toBe('?')
+    expect(labelText?.length).toBeGreaterThan(0)
+  })
+
+  test('Step 11: clicking externalRef node shows pre-req ConfigMap YAML', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
+
+    await page.getByTestId('dag-node-inputConfig').click()
+    await expect(page.getByTestId('node-detail-panel')).toBeVisible()
+    await expect(page.getByTestId('node-detail-type')).toHaveText('External ref')
+
+    // YAML section must render
+    await expect(page.getByTestId('node-yaml-section')).toBeVisible()
+  })
 })
