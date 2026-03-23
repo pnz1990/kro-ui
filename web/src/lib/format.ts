@@ -200,11 +200,8 @@ export function abbreviateContext(ctx: string): string {
     return `${eksMatch[1]}/${eksMatch[2]}`
   }
 
-  // Any other ARN-like string with colons — take last colon-segment
-  if (ctx.includes(':')) {
-    return ctx.split(':').pop() || ctx
-  }
-
-  // Short alias or plain name — use as-is
+  // Only abbreviate known formats. For unrecognized coloned formats (e.g.
+  // OIDC contexts, manual aliases) return as-is — guessing the last segment
+  // risks ambiguity. The full value is always on the title attribute.
   return ctx
 }
