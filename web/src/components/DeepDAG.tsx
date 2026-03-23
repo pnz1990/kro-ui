@@ -12,7 +12,7 @@
 //
 // Spec: .specify/specs/012-rgd-chaining-deep-graph/
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import { buildDAGGraph, detectKroInstance } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
@@ -22,6 +22,8 @@ import { getRGD, getInstance, getInstanceChildren, listInstances } from '@/lib/a
 import CollectionBadge from './CollectionBadge'
 import ExpandableNode from './ExpandableNode'
 import type { ExpandedNodeData } from './ExpandableNode'
+import DAGTooltip from './DAGTooltip'
+import type { DAGTooltipTarget } from './DAGTooltip'
 import './LiveDAG.css'
 import './DeepDAG.css'
 
@@ -148,6 +150,10 @@ export default function DeepDAG({
   const [expansionMap, setExpansionMap] = useState<Map<string, NodeExpansionState>>(
     () => new Map()
   )
+
+  // ── Hover tooltip state ────────────────────────────────────────────────────
+  const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
 
   // ── Node → RGD name index ─────────────────────────────────────────────────
   // Build a kind → rgdName lookup from the RGD list (same logic as catalog.ts).
@@ -300,6 +306,7 @@ export default function DeepDAG({
   return (
     <div className="dag-graph-container live-dag-container deep-dag-container">
       <svg
+        ref={svgRef}
         data-testid="dag-svg"
         width={graph.width}
         height={svgHeight}
@@ -407,6 +414,18 @@ export default function DeepDAG({
                 aria-label={`${node.label} (${node.nodeType})`}
                 aria-pressed={isSelected}
                 onClick={() => onNodeClick?.(node)}
+                onMouseEnter={() => {
+                  const svgRect = svgRef.current?.getBoundingClientRect()
+                  if (!svgRect) return
+                  setHoveredTooltip({
+                    node,
+                    anchorX: svgRect.left + node.x,
+                    anchorY: svgRect.top + node.y,
+                    nodeWidth: node.width,
+                    nodeHeight: node.height,
+                  })
+                }}
+                onMouseLeave={() => setHoveredTooltip(null)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
@@ -443,6 +462,16 @@ export default function DeepDAG({
                     {badge}
                   </text>
                 )}
+                {node.hasReadyWhen && (
+                  <text
+                    className="dag-node-badge dag-node-badge--ready-when"
+                    x={node.x + 10}
+                    y={node.y + node.height - 8}
+                    aria-label="has readyWhen condition"
+                  >
+                    ⧖
+                  </text>
+                )}
                 {node.nodeType === 'collection' && children && children.length > 0 && (
                   <CollectionBadge
                     nodeId={node.id}
@@ -458,6 +487,14 @@ export default function DeepDAG({
           })}
         </g>
       </svg>
+
+      <DAGTooltip
+        node={hoveredTooltip?.node ?? null}
+        anchorX={hoveredTooltip?.anchorX ?? 0}
+        anchorY={hoveredTooltip?.anchorY ?? 0}
+        nodeWidth={hoveredTooltip?.nodeWidth ?? 0}
+        nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
+      />
     </div>
   )
 }

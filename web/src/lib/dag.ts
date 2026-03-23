@@ -19,6 +19,28 @@ export type NodeType =
   | 'external'           // External ref by name — externalRef.metadata.name
   | 'externalCollection' // External ref by selector — externalRef.metadata.selector
 
+/**
+ * nodeTypeLabel — human-readable label for a kro upstream node type.
+ *
+ * Defined once here so all components (NodeDetailPanel, LiveNodeDetailPanel,
+ * DAGTooltip) share a single source of truth. Never copy-paste this map.
+ */
+export const NODE_TYPE_LABEL: Record<NodeType, string> = {
+  instance:           'Root CR',
+  resource:           'Managed Resource',
+  collection:         'forEach Collection',
+  external:           'External Ref',
+  externalCollection: 'External Ref Collection',
+}
+
+/**
+ * nodeTypeLabel — returns the display label for a NodeType, falling back to
+ * the raw type string if the type is unrecognized (graceful degradation).
+ */
+export function nodeTypeLabel(type: NodeType): string {
+  return NODE_TYPE_LABEL[type] ?? String(type)
+}
+
 /** A single node in the dependency graph, with layout coordinates. */
 export interface DAGNode {
   // Identity

@@ -151,6 +151,7 @@
 .live-dag-container .dag-node-badge--collection { fill: var(--node-collection-border); }
 .live-dag-container .dag-node-badge--conditional { fill: var(--color-text-muted); }
 .live-dag-container .dag-node-badge--external    { fill: var(--node-external-border); }
+.live-dag-container .dag-node-badge--ready-when  { fill: var(--color-ready-when); }
 
 /* ── Edges ────────────────────────────────────────────────────────────────── */
 

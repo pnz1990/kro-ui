@@ -2,8 +2,12 @@
 //
 // Shows kind, concept explanation per upstream kro node type, and
 // CEL expressions highlighted via KroCodeBlock.
+//
+// Spec 021: readyWhen, includeWhen, forEach, and status projections are each
+// shown in their own independently-labelled section (not merged into one block).
 
 import type { DAGNode, NodeType } from '@/lib/dag'
+import { NODE_TYPE_LABEL } from '@/lib/dag'
 import KroCodeBlock from './KroCodeBlock'
 import './NodeDetailPanel.css'
 
@@ -31,15 +35,6 @@ const CONCEPT_TEXT: Record<NodeType, string> = {
     'matched by label selector. kro reads them but does not create or own them.',
 }
 
-/** Short label for the node type badge. */
-const TYPE_LABEL: Record<NodeType, string> = {
-  instance: 'Root CR',
-  resource: 'Managed Resource',
-  collection: 'forEach Collection',
-  external: 'External Ref',
-  externalCollection: 'External Ref Collection',
-}
-
 /** Badge icon per node type. */
 const TYPE_ICON: Record<NodeType, string> = {
   instance: '◉',
@@ -47,6 +42,11 @@ const TYPE_ICON: Record<NodeType, string> = {
   collection: '∀',
   external: '⬡',
   externalCollection: '⬡',
+}
+
+/** Filter blank CEL expressions before rendering. */
+function nonEmpty(exprs: string[]): string[] {
+  return exprs.filter((s) => s.trim() !== '')
 }
 
 /** Render a section with a label and content. */
@@ -69,45 +69,26 @@ function Section({
  * NodeDetailPanel — slide-in panel showing CEL and concept details for a node.
  *
  * Spec: .specify/specs/003-rgd-detail-dag/
+ * Updated spec 021: four independent CEL sections instead of one merged block.
  * Opens when a DAG node is clicked. All data comes from the already-loaded RGD.
  */
 export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps) {
   const conceptText = CONCEPT_TEXT[node.nodeType]
-  const typeLabel = TYPE_LABEL[node.nodeType]
+  const typeLabel = NODE_TYPE_LABEL[node.nodeType]
   const typeIcon = TYPE_ICON[node.nodeType]
 
-  // Build a YAML-like snippet of the CEL expressions for display
-  const celLines: string[] = []
-  if (node.readyWhen.length > 0) {
-    celLines.push('readyWhen:')
-    for (const expr of node.readyWhen) {
-      celLines.push(`  - ${expr}`)
-    }
-  }
-  if (node.includeWhen.length > 0) {
-    celLines.push('includeWhen:')
-    for (const expr of node.includeWhen) {
-      celLines.push(`  - ${expr}`)
-    }
-  }
-  if (node.forEach) {
-    celLines.push(`forEach: ${node.forEach}`)
-  }
-  // For root node, show status projections
-  if (node.nodeType === 'instance' && node.schemaStatus) {
-    const entries = Object.entries(node.schemaStatus)
-    if (entries.length > 0) {
-      celLines.push('status:')
-      for (const [key, val] of entries) {
-        celLines.push(`  ${key}: ${String(val)}`)
-      }
-    }
-  }
-  const celCode = celLines.join('\n')
+  const readyWhenExprs = nonEmpty(node.readyWhen)
+  const includeWhenExprs = nonEmpty(node.includeWhen)
 
   // External ref info
   const extRef = node.externalRef as Record<string, unknown> | undefined
   const extMeta = extRef?.metadata as Record<string, unknown> | undefined
+
+  // Status projections (root node only)
+  const statusEntries =
+    node.nodeType === 'instance' && node.schemaStatus
+      ? Object.entries(node.schemaStatus)
+      : []
 
   return (
     <div data-testid="node-detail-panel" className="node-detail-panel">
@@ -160,10 +141,40 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
           </p>
         </Section>
 
-        {/* CEL expressions */}
-        {celCode && (
-          <Section label="CEL Expressions">
-            <KroCodeBlock code={celCode} />
+        {/* Ready When — readyWhen CEL conditions (spec 021) */}
+        {readyWhenExprs.length > 0 && (
+          <Section label="Ready When">
+            <KroCodeBlock
+              code={'readyWhen:\n' + readyWhenExprs.map((e) => `  - ${e}`).join('\n')}
+            />
+          </Section>
+        )}
+
+        {/* Include When — conditional inclusion guard */}
+        {includeWhenExprs.length > 0 && (
+          <Section label="Include When">
+            <KroCodeBlock
+              code={'includeWhen:\n' + includeWhenExprs.map((e) => `  - ${e}`).join('\n')}
+            />
+          </Section>
+        )}
+
+        {/* forEach — collection iterator */}
+        {node.forEach && (
+          <Section label="forEach">
+            <KroCodeBlock code={`forEach: ${node.forEach}`} />
+          </Section>
+        )}
+
+        {/* Status Projections — root node only */}
+        {statusEntries.length > 0 && (
+          <Section label="Status Projections">
+            <KroCodeBlock
+              code={
+                'status:\n' +
+                statusEntries.map(([k, v]) => `  ${k}: ${String(v)}`).join('\n')
+              }
+            />
           </Section>
         )}
 

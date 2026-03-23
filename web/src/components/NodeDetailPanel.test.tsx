@@ -75,9 +75,9 @@ describe('NodeDetailPanel', () => {
     expect(screen.getByTestId('node-detail-concept')).toHaveTextContent('Root Custom Resource')
   })
 
-  // ── T027: includeWhen expressions rendered via KroCodeBlock ──────────
+  // ── T027 (updated): includeWhen renders in labelled "Include When" section ──
 
-  it('T027: node with includeWhen expressions renders KroCodeBlock', () => {
+  it('T027: node with includeWhen renders "Include When" section label', () => {
     const node = makeNode({
       nodeType: 'resource',
       isConditional: true,
@@ -85,7 +85,10 @@ describe('NodeDetailPanel', () => {
     })
     render(<NodeDetailPanel node={node} onClose={() => {}} />)
 
-    // KroCodeBlock is rendered (has data-testid="kro-code-block")
+    // The section label should be "Include When", not the old "CEL Expressions"
+    const labels = screen.getAllByText(/include when/i)
+    expect(labels.length).toBeGreaterThanOrEqual(1)
+    // KroCodeBlock is still rendered
     expect(screen.getByTestId('kro-code-block')).toBeInTheDocument()
   })
 
@@ -98,5 +101,73 @@ describe('NodeDetailPanel', () => {
 
     fireEvent.click(screen.getByTestId('node-detail-close'))
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  // ── T015a: readyWhen section (spec 021) ───────────────────────────────
+
+  it('T015a: node with readyWhen shows "Ready When" section, not "CEL Expressions"', () => {
+    const node = makeNode({
+      nodeType: 'resource',
+      hasReadyWhen: true,
+      readyWhen: ['${appNamespace.status.phase == "Active"}'],
+    })
+    render(<NodeDetailPanel node={node} onClose={() => {}} />)
+
+    // "Ready When" label must be present
+    expect(screen.getByText('Ready When')).toBeInTheDocument()
+    // Old merged label must NOT appear
+    expect(screen.queryByText('CEL Expressions')).not.toBeInTheDocument()
+  })
+
+  it('T015b: node with only readyWhen shows no "Include When" section', () => {
+    const node = makeNode({
+      nodeType: 'resource',
+      hasReadyWhen: true,
+      readyWhen: ['${appNamespace.status.phase == "Active"}'],
+      includeWhen: [],
+    })
+    render(<NodeDetailPanel node={node} onClose={() => {}} />)
+
+    expect(screen.queryByText('Include When')).not.toBeInTheDocument()
+  })
+
+  it('T015c: node with both readyWhen and includeWhen shows both sections independently', () => {
+    const node = makeNode({
+      nodeType: 'resource',
+      hasReadyWhen: true,
+      isConditional: true,
+      readyWhen: ['${appNamespace.status.phase == "Active"}'],
+      includeWhen: ['${schema.spec.enableConfig}'],
+    })
+    render(<NodeDetailPanel node={node} onClose={() => {}} />)
+
+    expect(screen.getByText('Ready When')).toBeInTheDocument()
+    expect(screen.getByText('Include When')).toBeInTheDocument()
+  })
+
+  it('T015d: node with no readyWhen and no includeWhen shows neither section heading', () => {
+    const node = makeNode({
+      nodeType: 'resource',
+      hasReadyWhen: false,
+      readyWhen: [],
+      includeWhen: [],
+    })
+    render(<NodeDetailPanel node={node} onClose={() => {}} />)
+
+    expect(screen.queryByText('Ready When')).not.toBeInTheDocument()
+    expect(screen.queryByText('Include When')).not.toBeInTheDocument()
+    expect(screen.queryByText('CEL Expressions')).not.toBeInTheDocument()
+  })
+
+  it('T015e: node with empty-string readyWhen array treats it as absent', () => {
+    const node = makeNode({
+      nodeType: 'resource',
+      hasReadyWhen: false,
+      readyWhen: ['', '   '],
+      includeWhen: [],
+    })
+    render(<NodeDetailPanel node={node} onClose={() => {}} />)
+
+    expect(screen.queryByText('Ready When')).not.toBeInTheDocument()
   })
 })

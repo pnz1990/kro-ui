@@ -130,6 +130,10 @@
   fill: var(--node-external-border);
 }
 
+.dag-node-badge--ready-when {
+  fill: var(--color-ready-when);
+}
+
 /* ── Edges ────────────────────────────────────────────────────────────────── */
 
 .dag-edge {
