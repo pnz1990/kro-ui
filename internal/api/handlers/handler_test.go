@@ -84,6 +84,10 @@ type stubK8sClients struct {
 
 func (s *stubK8sClients) Dynamic() dynamic.Interface              { return s.dyn }
 func (s *stubK8sClients) Discovery() discovery.DiscoveryInterface { return s.disc }
+func (s *stubK8sClients) CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error) {
+	_, lists, err := s.disc.ServerGroupsAndResources()
+	return lists, err
+}
 
 // newRGDTestHandler creates a Handler with stub dynamic and discovery clients.
 func newRGDTestHandler(dyn *stubDynamic, disc *stubDiscovery) *Handler {

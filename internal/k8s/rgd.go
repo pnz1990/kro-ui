@@ -18,6 +18,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,10 +28,20 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+// perResourceTimeout is the per-GVR List deadline used by ListChildResources.
+// Constitution §XI: fan-out list operations MUST use a per-resource timeout of 2 seconds.
+const perResourceTimeout = 2 * time.Second
+
 // K8sClients provides access to dynamic and discovery clients.
+// CachedServerGroupsAndResources is separated from Discovery() so callers can
+// benefit from the ≥30s cache without bypassing it.
 type K8sClients interface {
 	Dynamic() dynamic.Interface
 	Discovery() discovery.DiscoveryInterface
+	// CachedServerGroupsAndResources returns all API resource lists from a
+	// ≥30-second cache, refreshing only when the cache is stale.
+	// Constitution §XI: Never call ServerGroupsAndResources() per-request.
+	CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error)
 }
 
 // UnstructuredString extracts a string value from a nested map by path.
@@ -121,19 +133,26 @@ func ResolveInstanceGVR(ctx context.Context, clients K8sClients, rgdName string)
 
 // ListChildResources finds all resources in the given namespace that carry the
 // kro.run/instance-name label matching the instance name.
-// Uses the discovery client to enumerate all resource types, then label-selects.
-// This approach automatically handles any new resource kinds kro introduces.
+//
+// Uses cached discovery to enumerate all resource types (cache TTL ≥30s),
+// then fans out label-selector List calls concurrently with a 2s per-resource
+// timeout. Resources that time out or error are silently skipped — a partial
+// result is always better than a hung request.
+//
+// Constitution §XI: no sequential API loops; discovery must be cached;
+// fan-out via goroutines with per-resource deadline.
 func ListChildResources(ctx context.Context, clients K8sClients, namespace, instanceName string) ([]map[string]any, error) {
 	log := zerolog.Ctx(ctx)
 	labelSelector := fmt.Sprintf("kro.run/instance-name=%s", instanceName)
 
-	// Get all API resources from discovery — this is what makes it future-proof.
-	_, apiLists, err := clients.Discovery().ServerGroupsAndResources()
+	// Use cached discovery — avoids per-request ServerGroupsAndResources() call.
+	apiLists, err := clients.CachedServerGroupsAndResources()
 	if err != nil {
 		return nil, fmt.Errorf("discovery: %w", err)
 	}
 
-	var results []map[string]any
+	// Collect all listable GVRs.
+	var gvrs []schema.GroupVersionResource
 	for _, apiList := range apiLists {
 		gv, err := schema.ParseGroupVersion(apiList.GroupVersion)
 		if err != nil {
@@ -143,22 +162,52 @@ func ListChildResources(ctx context.Context, clients K8sClients, namespace, inst
 			if !IsListable(res) {
 				continue
 			}
-			gvr := schema.GroupVersionResource{
+			gvrs = append(gvrs, schema.GroupVersionResource{
 				Group:    gv.Group,
 				Version:  gv.Version,
 				Resource: res.Name,
-			}
-			raw, err := clients.Dynamic().Resource(gvr).Namespace(namespace).List(
-				ctx, metav1.ListOptions{LabelSelector: labelSelector},
+			})
+		}
+	}
+
+	// Fan out concurrently — one goroutine per GVR, each with a 2s deadline.
+	// Constitution §XI: "Fan-out list operations MUST use errgroup with a
+	// per-resource timeout of 2 seconds."
+	var (
+		mu      sync.Mutex
+		results []map[string]any
+	)
+
+	dyn := clients.Dynamic()
+	var wg sync.WaitGroup
+	wg.Add(len(gvrs))
+
+	for _, gvr := range gvrs {
+		gvr := gvr // capture loop variable
+		go func() {
+			defer wg.Done()
+
+			rctx, cancel := context.WithTimeout(ctx, perResourceTimeout)
+			defer cancel()
+
+			raw, err := dyn.Resource(gvr).Namespace(namespace).List(
+				rctx, metav1.ListOptions{LabelSelector: labelSelector},
 			)
 			if err != nil || raw == nil {
 				log.Debug().Err(err).Str("gvr", gvr.String()).Msg("skipped resource during child listing")
-				continue
+				return
 			}
+			if len(raw.Items) == 0 {
+				return
+			}
+			mu.Lock()
 			for _, item := range raw.Items {
 				results = append(results, item.Object)
 			}
-		}
+			mu.Unlock()
+		}()
 	}
+
+	wg.Wait()
 	return results, nil
 }

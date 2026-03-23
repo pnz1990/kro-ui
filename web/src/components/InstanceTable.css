@@ -1,4 +1,10 @@
-/* InstanceTable — live CR instance rows. Issue #71: sortable headers. */
+/* InstanceTable — live CR instance rows. Issue #71: sortable headers. Issue #109: pagination. */
+
+.instance-table-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 .instance-table {
   width: 100%;
@@ -88,4 +94,48 @@
   border-color: var(--color-primary);
   background: var(--color-primary-muted);
   color: var(--color-primary-text);
+}
+
+/* ── Pagination ───────────────────────────────────────────────────────────── */
+
+.instance-table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.instance-table-pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.instance-table-pagination__btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-muted);
+}
+
+.instance-table-pagination__btn:disabled {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+}
+
+.instance-table-pagination__info {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.instance-table-pagination__count {
+  color: var(--color-text-faint);
 }

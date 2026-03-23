@@ -263,6 +263,40 @@ function extractWord(line: string, pos: number): string {
 // ── Public API ─────────────────────────────────────────────────────────
 
 /**
+ * tokenClass — maps a TokenType to its CSS class name.
+ *
+ * Defined here (alongside TokenType) so every consumer — KroCodeBlock,
+ * DAGTooltip, or any future component — imports from a single source.
+ * Never duplicate this function in component files. (AGENTS.md anti-pattern #77)
+ *
+ * The DAGTooltip uses `dag-tooltip-token--*` classes; the code block uses
+ * `token-*` classes. The two sets serve different stylesheets, so this
+ * helper accepts an optional `prefix` parameter (default: `"token-"`).
+ */
+export function tokenClass(type: TokenType, prefix = "token-"): string {
+  switch (type) {
+    case "celExpression":
+      return prefix === "token-" ? "token-cel-expression token-cel" : `${prefix}cel`
+    case "kroKeyword":
+      return `${prefix}kro-keyword`
+    case "yamlKey":
+      return `${prefix}yaml-key`
+    case "schemaType":
+      return `${prefix}schema-type`
+    case "schemaPipe":
+      return `${prefix}schema-pipe`
+    case "schemaKeyword":
+      return `${prefix}schema-keyword`
+    case "schemaValue":
+      return `${prefix}schema-value`
+    case "comment":
+      return `${prefix}comment`
+    case "plain":
+      return ""
+  }
+}
+
+/**
  * Tokenize kro-flavored YAML into an ordered array of typed tokens.
  *
  * Invariants:

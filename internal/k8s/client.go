@@ -21,12 +21,48 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+// discoveryCacheTTL is the minimum age before cached discovery results are refreshed.
+// Constitution §XI: discovery results MUST be cached for ≥30 seconds.
+const discoveryCacheTTL = 30 * time.Second
+
+// apiResourceCache is an in-memory TTL cache for ServerGroupsAndResources results.
+// Separate mutex from ClientFactory so discovery reads don't block client switching.
+type apiResourceCache struct {
+	mu     sync.RWMutex
+	lists  []*metav1.APIResourceList
+	expiry time.Time
+}
+
+func (c *apiResourceCache) get() ([]*metav1.APIResourceList, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.lists == nil || time.Now().After(c.expiry) {
+		return nil, false
+	}
+	return c.lists, true
+}
+
+func (c *apiResourceCache) set(lists []*metav1.APIResourceList) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.lists = lists
+	c.expiry = time.Now().Add(discoveryCacheTTL)
+}
+
+func (c *apiResourceCache) invalidate() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.lists = nil
+}
 
 // ClientFactory holds the kubeconfig loader and provides clients for the active context.
 // Context switching is safe for concurrent use.
@@ -37,6 +73,7 @@ type ClientFactory struct {
 	restConfig     *rest.Config
 	dynamic        dynamic.Interface
 	discovery      discovery.DiscoveryInterface
+	discCache      apiResourceCache
 }
 
 // NewClientFactory creates a ClientFactory from the given kubeconfig path and context.
@@ -104,6 +141,8 @@ func (f *ClientFactory) load(context string) error {
 	f.dynamic = dyn
 	f.discovery = disc
 	f.activeContext = active
+	// Invalidate discovery cache on context switch so the new cluster is discovered fresh.
+	f.discCache.invalidate()
 	return nil
 }
 
@@ -128,6 +167,28 @@ func (f *ClientFactory) Discovery() discovery.DiscoveryInterface {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.discovery
+}
+
+// CachedServerGroupsAndResources returns all API resource lists, using a
+// ≥30-second in-memory cache to avoid hammering the API server on every request.
+//
+// Constitution §XI: "Discovery operations MUST be cached for ≥30 seconds.
+// Never call discovery on every request."
+func (f *ClientFactory) CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error) {
+	if cached, ok := f.discCache.get(); ok {
+		return cached, nil
+	}
+
+	f.mu.RLock()
+	disc := f.discovery
+	f.mu.RUnlock()
+
+	_, lists, err := disc.ServerGroupsAndResources()
+	if err != nil {
+		return nil, fmt.Errorf("server groups and resources: %w", err)
+	}
+	f.discCache.set(lists)
+	return lists, nil
 }
 
 // ActiveContext returns the name of the currently active context.
