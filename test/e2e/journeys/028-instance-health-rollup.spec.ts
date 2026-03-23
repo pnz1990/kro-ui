@@ -96,13 +96,11 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     // Detail page must render
     await expect(page.locator('[data-testid="instance-detail-page"]')).toBeVisible({ timeout: 10000 })
 
-    // HealthPill must be visible in the header
+    // Wait for the pill to resolve from skeleton to an actual state label.
+    // The skeleton renders with aria-hidden and empty text; the resolved pill
+    // has text content matching one of the 5 known state labels.
     const pill = page.locator('[data-testid="health-pill"]')
-    await expect(pill).toBeVisible({ timeout: 8000 })
-
-    // Pill must show one of the 5 state labels
-    const pillText = await pill.textContent()
-    expect(pillText?.trim()).toMatch(/^(Ready|Reconciling|Error|Pending|Unknown)$/)
+    await expect(pill).toHaveText(/^(Ready|Reconciling|Error|Pending|Unknown)$/, { timeout: 10000 })
   })
 
   test('Step 5: ConditionsPanel empty state shows "Not reported" when no conditions', async ({ page }) => {
