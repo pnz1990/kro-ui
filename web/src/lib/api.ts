@@ -3,8 +3,8 @@
 
 const BASE = '/api/v1'
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(BASE + path)
+async function get<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
+  const res = await fetch(BASE + path, { signal: options?.signal })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error ?? `HTTP ${res.status}`)
@@ -50,9 +50,9 @@ export type K8sList = { items: K8sObject[]; metadata: Record<string, unknown> }
 
 export const listRGDs = () => get<K8sList>('/rgds')
 export const getRGD = (name: string) => get<K8sObject>(`/rgds/${name}`)
-export const listInstances = (rgdName: string, namespace?: string) => {
+export const listInstances = (rgdName: string, namespace?: string, options?: { signal?: AbortSignal }) => {
   const qs = namespace ? `?namespace=${encodeURIComponent(namespace)}` : ''
-  return get<K8sList>(`/rgds/${encodeURIComponent(rgdName)}/instances${qs}`)
+  return get<K8sList>(`/rgds/${encodeURIComponent(rgdName)}/instances${qs}`, options)
 }
 
 // ── Instances ────────────────────────────────────────────────────────

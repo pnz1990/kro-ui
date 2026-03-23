@@ -37,6 +37,111 @@ function isCondition(v: unknown): v is K8sCondition {
   return typeof obj.type === 'string' && typeof obj.status === 'string'
 }
 
+// ── Instance health (5-state) ─────────────────────────────────────────
+
+/**
+ * Five-state health enumeration for a kro instance.
+ *
+ * Priority order (worst → best): error > reconciling > pending > unknown > ready
+ *
+ * - reconciling: kro is actively reconciling (Progressing=True)
+ * - error:       Ready=False
+ * - ready:       Ready=True
+ * - pending:     conditions present but all status=Unknown
+ * - unknown:     conditions absent or empty array
+ */
+export type InstanceHealthState =
+  | 'ready'
+  | 'reconciling'
+  | 'error'
+  | 'pending'
+  | 'unknown'
+
+/** Full extraction result for 5-state instance health. */
+export interface InstanceHealth {
+  state: InstanceHealthState
+  reason: string
+  message: string
+}
+
+/** Aggregated health counts across all instances of an RGD. */
+export interface HealthSummary {
+  total: number
+  ready: number
+  error: number
+  reconciling: number
+  pending: number
+  unknown: number
+}
+
+const UNKNOWN_INSTANCE_HEALTH: InstanceHealth = { state: 'unknown', reason: '', message: '' }
+
+/**
+ * Extract a 5-state health value from an unstructured kro instance object.
+ *
+ * Derivation order (deterministic, left-to-right):
+ *  1. Absent/non-array conditions → 'unknown'
+ *  2. Progressing=True → 'reconciling' (checked before Ready)
+ *  3. Ready=True/False → 'ready'/'error'
+ *  4. All conditions Unknown → 'pending'
+ *  5. Otherwise → 'unknown'
+ *
+ * Never throws. `reason` and `message` are always strings.
+ */
+export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
+  const status = obj.status
+  if (typeof status !== 'object' || status === null) return UNKNOWN_INSTANCE_HEALTH
+
+  const conditions = (status as Record<string, unknown>).conditions
+  if (!Array.isArray(conditions) || conditions.length === 0) return UNKNOWN_INSTANCE_HEALTH
+
+  // Only work with valid condition objects
+  const valid = conditions.filter((c): c is K8sCondition => isCondition(c))
+  if (valid.length === 0) return UNKNOWN_INSTANCE_HEALTH
+
+  // Step 2: Progressing=True → reconciling
+  const progressing = valid.find((c) => c.type === 'Progressing' && c.status === 'True')
+  if (progressing) {
+    return {
+      state: 'reconciling',
+      reason: progressing.reason ?? '',
+      message: progressing.message ?? '',
+    }
+  }
+
+  // Step 3: Ready condition
+  const ready = valid.find((c) => c.type === 'Ready')
+  if (ready) {
+    if (ready.status === 'True') {
+      return { state: 'ready', reason: ready.reason ?? '', message: ready.message ?? '' }
+    }
+    if (ready.status === 'False') {
+      return { state: 'error', reason: ready.reason ?? '', message: ready.message ?? '' }
+    }
+  }
+
+  // Step 4: All conditions have status=Unknown → pending
+  if (valid.every((c) => c.status === 'Unknown')) {
+    return { state: 'pending', reason: '', message: '' }
+  }
+
+  return UNKNOWN_INSTANCE_HEALTH
+}
+
+/**
+ * Aggregate health counts across a list of instances.
+ * Used by RGDCard's async health chip.
+ */
+export function aggregateHealth(items: K8sObject[]): HealthSummary {
+  const summary: HealthSummary = { total: 0, ready: 0, error: 0, reconciling: 0, pending: 0, unknown: 0 }
+  for (const item of items) {
+    summary.total++
+    const { state } = extractInstanceHealth(item)
+    summary[state]++
+  }
+  return summary
+}
+
 // ── Age formatting ───────────────────────────────────────────────────
 
 const SECOND = 1000

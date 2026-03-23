@@ -45,10 +45,12 @@
   --color-not-found:       #6b7280;   /* absent / unknown — gray */
 
   /* Semantic: UI status badges (same hue, separate tokens for semantics) */
-  --color-status-ready:    #10b981;
-  --color-status-error:    #f43f5e;
-  --color-status-unknown:  #6b7280;
-  --color-status-warning:  #f59e0b;
+  --color-status-ready:          #10b981;
+  --color-status-error:          #f43f5e;
+  --color-status-unknown:        #6b7280;
+  --color-status-warning:        #f59e0b;
+  --color-status-reconciling:    #f59e0b;   /* Reconciling badge (= --color-reconciling) */
+  --color-status-pending:        #8b5cf6;   /* Pending badge (= --color-pending)         */
 
   /* DAG node live state overlays (background + border per state) */
   --node-alive-bg:         rgba(16, 185, 129, 0.12);
@@ -162,10 +164,12 @@
   --color-not-found:       #6b7280;
 
   /* Semantic: UI status */
-  --color-status-ready:    #059669;
-  --color-status-error:    #e11d48;
-  --color-status-unknown:  #6b7280;
-  --color-status-warning:  #d97706;
+  --color-status-ready:          #059669;
+  --color-status-error:          #e11d48;
+  --color-status-unknown:        #6b7280;
+  --color-status-warning:        #d97706;
+  --color-status-reconciling:    #d97706;   /* Reconciling badge (= --color-reconciling) */
+  --color-status-pending:        #7c3aed;   /* Pending badge (= --color-pending)         */
 
   /* DAG node live state overlays */
   --node-alive-bg:         rgba(5, 150, 105, 0.10);

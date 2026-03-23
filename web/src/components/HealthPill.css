@@ -1,0 +1,72 @@
+/* HealthPill.css — Instance health status pill for the detail page header.
+ *
+ * All colors from tokens.css custom properties — no hardcoded hex/rgba.
+ * Slightly larger than ReadinessBadge (header context).
+ * Spec: .specify/specs/028-instance-health-rollup/
+ */
+
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  vertical-align: middle;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+/* Ready=True — emerald */
+.health-pill--ready {
+  color: var(--color-status-ready);
+  background: var(--node-alive-bg);
+  border: 1px solid var(--color-alive);
+}
+
+/* Progressing=True — amber */
+.health-pill--reconciling {
+  color: var(--color-status-reconciling);
+  background: var(--node-reconciling-bg);
+  border: 1px solid var(--color-reconciling);
+}
+
+/* Ready=False — rose */
+.health-pill--error {
+  color: var(--color-status-error);
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+}
+
+/* All conditions Unknown — violet */
+.health-pill--pending {
+  color: var(--color-status-pending);
+  background: var(--node-pending-bg);
+  border: 1px solid var(--color-pending);
+}
+
+/* No conditions — gray */
+.health-pill--unknown {
+  color: var(--color-status-unknown);
+  background: var(--node-notfound-bg);
+  border: 1px solid var(--color-not-found);
+}
+
+/* Loading skeleton */
+.health-pill--loading {
+  display: inline-block;
+  width: 64px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-3);
+  vertical-align: middle;
+  animation: health-pill-shimmer 1.4s ease infinite;
+}
+
+@keyframes health-pill-shimmer {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}

@@ -1,0 +1,64 @@
+/* HealthChip.css — Compact instance health pill for RGDCard.
+ *
+ * All colors from tokens.css custom properties — no hardcoded hex/rgba.
+ * Spec: .specify/specs/028-instance-health-rollup/
+ */
+
+.health-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  transition: color var(--transition-fast);
+}
+
+/* All instances ready — green */
+.health-chip--ready {
+  color: var(--color-alive);
+}
+
+/* Any instance has Ready=False — rose */
+.health-chip--error {
+  color: var(--color-status-error);
+}
+
+/* Any instance is reconciling (no errors) — amber */
+.health-chip--reconciling {
+  color: var(--color-status-reconciling);
+}
+
+/* All conditions Unknown — violet */
+.health-chip--pending {
+  color: var(--color-status-pending);
+}
+
+/* Unknown state — gray */
+.health-chip--unknown {
+  color: var(--color-status-unknown);
+}
+
+/* No instances — muted text */
+.health-chip--empty {
+  color: var(--color-text-muted);
+}
+
+/* Loading skeleton */
+.health-chip--skeleton {
+  display: inline-block;
+  width: 56px;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-3);
+  animation: health-chip-shimmer 1.4s ease infinite;
+}
+
+@keyframes health-chip-shimmer {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}
