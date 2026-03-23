@@ -60,6 +60,12 @@ export default function RGDDetail() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   // Issue #129: track when the RGD was last fetched for the "refreshed X ago" indicator.
   const [rgdLastFetched, setRgdLastFetched] = useState<Date | null>(null)
+  // Issue #129: tick every 1s so the elapsed label stays current (same pattern as Fleet).
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // ── All RGDs for chain detection (spec 025) ───────────────────────────────
   const [rgds, setRgds] = useState<K8sObject[]>([])
