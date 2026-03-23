@@ -160,3 +160,14 @@
   stroke-width: 1.5;
   opacity: 0.7;
 }
+
+/* ── Portal tooltip live-state modifiers (shared via DAGGraph.css base classes) ── */
+
+.dag-tooltip__state {
+  font-weight: 500;
+}
+
+.dag-tooltip__state--alive       { color: var(--color-alive); }
+.dag-tooltip__state--reconciling { color: var(--color-reconciling); }
+.dag-tooltip__state--error       { color: var(--color-error); }
+.dag-tooltip__state--notfound    { color: var(--color-text-faint); }

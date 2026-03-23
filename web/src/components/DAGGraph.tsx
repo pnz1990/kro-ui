@@ -3,8 +3,13 @@
 // Data-driven: accepts {nodes, edges} — zero kro-specific logic.
 // All kro knowledge lives in web/src/lib/dag.ts.
 // Fix #64: SVG height is fitted to actual node bounding box, not layout estimate.
+// Fix #73: Portal tooltip on node hover shows ID, kind, type, includeWhen CEL.
 
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
+import { tokenize } from '@/lib/highlighter'
+import type { TokenType } from '@/lib/highlighter'
 import './DAGGraph.css'
 
 interface DAGGraphProps {
@@ -56,15 +61,115 @@ function nodeBadge(node: DAGNode): string | null {
   }
 }
 
+/** Human-readable node type label. */
+function nodeTypeLabel(node: DAGNode): string {
+  switch (node.nodeType) {
+    case 'instance':           return 'Root CR'
+    case 'resource':           return 'Managed resource'
+    case 'collection':         return 'forEach collection'
+    case 'external':           return 'External ref'
+    case 'externalCollection': return 'External ref collection'
+  }
+}
+
+/** Map TokenType to inline CSS class. */
+function tokenClass(type: TokenType): string {
+  switch (type) {
+    case 'celExpression':  return 'dag-tooltip-token--cel'
+    case 'kroKeyword':     return 'dag-tooltip-token--kw'
+    case 'yamlKey':        return 'dag-tooltip-token--key'
+    case 'schemaType':     return 'dag-tooltip-token--type'
+    case 'schemaPipe':     return 'dag-tooltip-token--pipe'
+    case 'schemaKeyword':  return 'dag-tooltip-token--skw'
+    case 'schemaValue':    return 'dag-tooltip-token--val'
+    case 'comment':        return 'dag-tooltip-token--comment'
+    case 'plain':          return ''
+  }
+}
+
+// ── Tooltip state ──────────────────────────────────────────────────────────
+
+interface TooltipState {
+  node: DAGNode
+  x: number
+  y: number
+}
+
+// ── Portal tooltip ─────────────────────────────────────────────────────────
+
+interface DagTooltipProps {
+  state: TooltipState
+}
+
+function DagTooltip({ state }: DagTooltipProps) {
+  const { node, x, y } = state
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState({ left: x + 12, top: y + 12 })
+
+  useEffect(() => {
+    if (!ref.current) return
+    const { width, height } = ref.current.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    let left = x + 12
+    let top = y + 12
+    if (left + width > vw - 8) left = x - width - 12
+    if (top + height > vh - 8) top = y - height - 12
+    setPos({ left, top })
+  }, [x, y])
+
+  const tokens = node.includeWhen.length > 0
+    ? tokenize(node.includeWhen.join(' && '))
+    : null
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="dag-tooltip"
+      role="tooltip"
+      style={{ left: pos.left, top: pos.top }}
+    >
+      <div className="dag-tooltip__id">{node.id}</div>
+      <div className="dag-tooltip__row">
+        <span className="dag-tooltip__label">Kind</span>
+        <span className="dag-tooltip__value dag-tooltip__value--mono">
+          {node.kind || node.id}
+        </span>
+      </div>
+      <div className="dag-tooltip__row">
+        <span className="dag-tooltip__label">Type</span>
+        <span className="dag-tooltip__value">{nodeTypeLabel(node)}</span>
+      </div>
+      {tokens && (
+        <div className="dag-tooltip__cel">
+          <span className="dag-tooltip__label">includeWhen</span>
+          <span className="dag-tooltip__cel-code">
+            {tokens.map((tok, i) => (
+              <span key={i} className={tokenClass(tok.type)}>
+                {tok.text}
+              </span>
+            ))}
+          </span>
+        </div>
+      )}
+    </div>,
+    document.body,
+  )
+}
+
+// ── NodeGroup ──────────────────────────────────────────────────────────────
+
 /** Single DAG node rendered as SVG group. */
 function NodeGroup({
   node,
   isSelected,
   onNodeClick,
+  onNodeHover,
 }: {
   node: DAGNode
   isSelected: boolean
   onNodeClick?: (id: string) => void
+  onNodeHover?: (node: DAGNode | null, x: number, y: number) => void
 }) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
@@ -75,6 +180,24 @@ function NodeGroup({
 
   const className =
     nodeTypeClass(node) + (isSelected ? ' dag-node--selected' : '')
+
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent) => {
+      onNodeHover?.(node, e.clientX, e.clientY)
+    },
+    [node, onNodeHover],
+  )
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      onNodeHover?.(node, e.clientX, e.clientY)
+    },
+    [node, onNodeHover],
+  )
+
+  const handleMouseLeave = useCallback(() => {
+    onNodeHover?.(null, 0, 0)
+  }, [onNodeHover])
 
   return (
     <g
@@ -91,6 +214,9 @@ function NodeGroup({
           onNodeClick?.(node.id)
         }
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       <rect
         className="dag-node-rect"
@@ -138,6 +264,18 @@ export default function DAGGraph({
 }: DAGGraphProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
   const svgHeight = fittedHeight(graph)
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+
+  const handleNodeHover = useCallback(
+    (node: DAGNode | null, x: number, y: number) => {
+      if (node === null) {
+        setTooltip(null)
+      } else {
+        setTooltip({ node, x, y })
+      }
+    },
+    [],
+  )
 
   return (
     <div className="dag-graph-container">
@@ -192,10 +330,13 @@ export default function DAGGraph({
               node={node}
               isSelected={node.id === selectedNodeId}
               onNodeClick={onNodeClick}
+              onNodeHover={handleNodeHover}
             />
           ))}
         </g>
       </svg>
+
+      {tooltip && <DagTooltip state={tooltip} />}
     </div>
   )
 }

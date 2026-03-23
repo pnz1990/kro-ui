@@ -1,11 +1,12 @@
 // Home — RGD cards grid. Fetches GET /api/v1/rgds on mount.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs } from '@/lib/api'
-import { extractRGDName } from '@/lib/format'
+import { extractRGDKind, extractRGDName } from '@/lib/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import RGDCard from '@/components/RGDCard'
+import SearchBar from '@/components/SearchBar'
 import SkeletonCard from '@/components/SkeletonCard'
 import './Home.css'
 
@@ -14,6 +15,7 @@ export default function Home() {
   const [items, setItems] = useState<K8sObject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
 
   const fetchRGDs = useCallback(() => {
     setIsLoading(true)
@@ -34,9 +36,33 @@ export default function Home() {
     fetchRGDs()
   }, [fetchRGDs])
 
+  const filtered = useMemo(() => {
+    if (!query.trim()) return items
+    const q = query.trim().toLowerCase()
+    return items.filter(
+      (rgd) =>
+        extractRGDName(rgd).toLowerCase().includes(q) ||
+        extractRGDKind(rgd).toLowerCase().includes(q),
+    )
+  }, [items, query])
+
   return (
     <div className="home">
-      <h1 className="home__heading">ResourceGraphDefinitions</h1>
+      <div className="home__header">
+        <h1 className="home__heading">ResourceGraphDefinitions</h1>
+        {!isLoading && error === null && items.length > 0 && (
+          <div className="home__toolbar">
+            <SearchBar
+              value={query}
+              onSearch={setQuery}
+              placeholder="Search by name or kind…"
+            />
+            <span className="home__count">
+              {filtered.length} of {items.length}
+            </span>
+          </div>
+        )}
+      </div>
 
       {isLoading && (
         <div className="home__grid">
@@ -68,9 +94,18 @@ export default function Home() {
         </div>
       )}
 
-      {!isLoading && error === null && items.length > 0 && (
+      {!isLoading && error === null && items.length > 0 && filtered.length === 0 && (
+        <div className="home__empty">
+          <p>No ResourceGraphDefinitions match &ldquo;{query}&rdquo;.</p>
+          <button className="home__clear-search" onClick={() => setQuery('')}>
+            Clear search
+          </button>
+        </div>
+      )}
+
+      {!isLoading && error === null && filtered.length > 0 && (
         <div className="home__grid">
-          {items.map((rgd) => (
+          {filtered.map((rgd) => (
             <RGDCard key={extractRGDName(rgd)} rgd={rgd} />
           ))}
         </div>

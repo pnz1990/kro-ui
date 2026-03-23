@@ -135,4 +135,62 @@ describe('DAGGraph', () => {
     expect(onClick).toHaveBeenCalledOnce()
     expect(onClick).toHaveBeenCalledWith('clickable')
   })
+
+  // ── T020: Tooltip on hover (issue #73) ───────────────────────────────────
+
+  it('T020: hovering a node shows a tooltip with node ID, kind, and type', () => {
+    const node = makeNode('my-service', {
+      nodeType: 'resource',
+      kind: 'Deployment',
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+
+    render(<DAGGraph graph={graph} />)
+
+    const group = screen.getByTestId('dag-node-my-service')
+    fireEvent.mouseEnter(group, { clientX: 100, clientY: 100 })
+
+    // Tooltip is rendered in a portal — query via document.body
+    const tooltip = document.querySelector('[role="tooltip"]')
+    expect(tooltip).not.toBeNull()
+    expect(tooltip!.textContent).toContain('my-service')
+    expect(tooltip!.textContent).toContain('Deployment')
+    expect(tooltip!.textContent).toContain('Managed resource')
+  })
+
+  it('T021: tooltip disappears on mouse leave', () => {
+    const node = makeNode('my-service', { nodeType: 'resource', x: 50, y: 32 })
+    const graph = makeGraph([node])
+
+    render(<DAGGraph graph={graph} />)
+
+    const group = screen.getByTestId('dag-node-my-service')
+    fireEvent.mouseEnter(group, { clientX: 100, clientY: 100 })
+    expect(document.querySelector('[role="tooltip"]')).not.toBeNull()
+
+    fireEvent.mouseLeave(group)
+    expect(document.querySelector('[role="tooltip"]')).toBeNull()
+  })
+
+  it('T022: tooltip for conditional node shows includeWhen label', () => {
+    const node = makeNode('cond-node', {
+      nodeType: 'resource',
+      isConditional: true,
+      includeWhen: ['self.spec.enabled == true'],
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+
+    render(<DAGGraph graph={graph} />)
+
+    const group = screen.getByTestId('dag-node-cond-node')
+    fireEvent.mouseEnter(group, { clientX: 100, clientY: 100 })
+
+    const tooltip = document.querySelector('[role="tooltip"]')
+    expect(tooltip).not.toBeNull()
+    expect(tooltip!.textContent).toContain('includeWhen')
+  })
 })
