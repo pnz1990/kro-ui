@@ -5,6 +5,7 @@
 import { usePolling } from '@/hooks/usePolling'
 import { getControllerMetrics } from '@/lib/api'
 import type { ControllerMetrics } from '@/lib/api'
+import { formatAge } from '@/lib/format'
 import './MetricsStrip.css'
 
 // ── Counter cell ──────────────────────────────────────────────────────
@@ -82,6 +83,11 @@ export default function MetricsStrip() {
       <CounterCell label="GVRs served" value={data?.gvrCount} />
       <CounterCell label="Queue depth (kro)" value={data?.queueDepth} />
       <CounterCell label="Queue depth (client-go)" value={data?.workqueueDepth} />
+      {data?.scrapedAt && (
+        <span className="metrics-strip__updated">
+          Updated {formatAge(data.scrapedAt)} ago
+        </span>
+      )}
     </div>
   )
 }

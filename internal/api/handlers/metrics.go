@@ -19,7 +19,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 
 	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8s "github.com/pnz1990/kro-ui/internal/k8s"
@@ -33,9 +33,10 @@ import (
 //   - 502 Bad Gateway         — endpoint returned non-200
 //   - 504 Gateway Timeout     — endpoint did not respond within budget
 func (h *Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
 	metrics, err := k8s.ScrapeMetrics(r.Context(), h.metricsURL)
 	if err != nil {
-		log.Ctx(r.Context()).Error().Err(err).Str("url", h.metricsURL).Msg("metrics scrape failed")
+		log.Error().Err(err).Str("url", h.metricsURL).Msg("metrics scrape failed")
 
 		var bgErr *k8s.ErrMetricsBadGateway
 		var toErr *k8s.ErrMetricsTimeout
