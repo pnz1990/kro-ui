@@ -51,6 +51,13 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `014-multi-cluster-overview` | #16 | Fleet view across kubeconfig contexts | Merged (PR #52) |
 | `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | Merged (PR #54) |
 | `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | Merged (PR #55) |
+| `home-search-dag-tooltip` | #77 | Home search filter + DAG node hover tooltip | Merged (PR #77) |
+| `023-rgd-optimization-advisor` | #78 | forEach collapse suggestions in catalog | Merged (PR #78) |
+| `022-controller-metrics-panel` | #79 | kro controller metrics panel | Merged (PR #79) |
+| `024-rgd-list-virtualization` | #80 | RGD list virtualization for 5,000+ RGDs | Merged (PR #80) |
+| `021-collection-node-cardinality` | #81 | forEach cardinality badge and expression on DAG nodes | Merged (PR #81) |
+| `025-rgd-static-chain-graph` | #82 | RGD static chaining graph — detect, expand, navigate | Merged (PR #82) |
+| `021-readywhen-cel-dag` | #83 | Surface readyWhen CEL expressions on DAG nodes | Merged (PR #83) |
 | `009-rgd-graph-diff` | #13 | RGD graph revision diff | Blocked (needs kro KREP-013) |
 
 ### Worktrunk (required workflow)
