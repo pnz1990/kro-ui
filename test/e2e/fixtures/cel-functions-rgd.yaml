@@ -18,10 +18,14 @@
 #
 # Purpose: exercises the full breadth of CEL token types in the kro-ui highlighter:
 #   - String method calls: .split(), .slice(), .join()
-#   - Extension functions: json.marshal(), json.unmarshal(), quantity(), random.seededString()
+#   - Extension functions: json.marshal(), json.unmarshal(), quantity()
 #   - Arithmetic on status fields: availableReplicas * 10
 #   - Ternary expressions: condition ? "a" : "b"
 #   - size() function
+#
+# Note: random.seededString() is omitted — it requires CEL extension initialisation
+# that is slow on CI runners and causes the RGD Ready condition to time out.
+# The token types it exercises (function calls) are already covered by json.marshal.
 #
 # These token forms are asserted in journey 006 steps 6-8.
 apiVersion: kro.run/v1alpha1
@@ -65,8 +69,6 @@ spec:
                       value: ${schema.spec.fullDNSName.split('.')[0]}
                     - name: DNS_PARTIALS
                       value: ${schema.spec.fullDNSName.split('.').slice(0, 2).join('.')}
-                    - name: RANDOM_SEEDED
-                      value: ${random.seededString(8, schema.metadata.uid)}
                     - name: JSON_MARSHAL
                       value: "${json.marshal({\"name\": schema.spec.name})}"
                     - name: QUANTITY_CHECK

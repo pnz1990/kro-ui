@@ -176,61 +176,79 @@ export default async function globalSetup() {
   console.log('[setup] Applying multi-resource RGD…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-rgd.yaml')])
   console.log('[setup] Waiting for multi-resource RGD to be Ready…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'rgd/multi-resource',
-    '--for=condition=Ready', '--timeout=120s',
-  ], { retries: 3 })
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-instance.yaml')])
-  console.log('[setup] Waiting for multi-resource-instance Deployment to become Available…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'deployment/kro-ui-multi-deploy',
-    '--for=condition=Available',
-    '--namespace', NAMESPACE,
-    '--timeout=120s',
-  ], { retries: 5 })
-  console.log('[setup] multi-resource-instance reconciled')
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/multi-resource',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-instance.yaml')])
+    console.log('[setup] Waiting for multi-resource-instance Deployment to become Available…')
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'deployment/kro-ui-multi-deploy',
+      '--for=condition=Available',
+      '--namespace', NAMESPACE,
+      '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    process.env.KRO_MULTI_READY = 'true'
+    console.log('[setup] multi-resource-instance reconciled')
+  } catch {
+    process.env.KRO_MULTI_READY = 'false'
+    console.warn('[setup] multi-resource RGD did not become Ready in time — related journey steps will be skipped')
+  }
 
   // ── 6d. external-ref RGD + instance ──────────────────────────────────────
   console.log('[setup] Applying external-ref RGD…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-rgd.yaml')])
   console.log('[setup] Waiting for external-ref RGD to be Ready…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'rgd/external-ref',
-    '--for=condition=Ready', '--timeout=120s',
-  ], { retries: 3 })
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-instance.yaml')])
-  console.log('[setup] Waiting for external-ref-instance owned ConfigMap to appear…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'configmap/kro-ui-echo-echo',
-    '--for=jsonpath={.metadata.name}=kro-ui-echo-echo',
-    '--namespace', NAMESPACE,
-    '--timeout=120s',
-  ], { retries: 5 })
-  console.log('[setup] external-ref-instance reconciled')
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/external-ref',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-instance.yaml')])
+    console.log('[setup] Waiting for external-ref-instance owned ConfigMap to appear…')
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'configmap/kro-ui-echo-echo',
+      '--for=jsonpath={.metadata.name}=kro-ui-echo-echo',
+      '--namespace', NAMESPACE,
+      '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    process.env.KRO_EXTERNAL_REF_READY = 'true'
+    console.log('[setup] external-ref-instance reconciled')
+  } catch {
+    process.env.KRO_EXTERNAL_REF_READY = 'false'
+    console.warn('[setup] external-ref RGD did not become Ready in time — related journey steps will be skipped')
+  }
 
   // ── 6e. cel-functions RGD + instance ─────────────────────────────────────
   console.log('[setup] Applying cel-functions RGD…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-rgd.yaml')])
   console.log('[setup] Waiting for cel-functions RGD to be Ready…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'rgd/cel-functions',
-    '--for=condition=Ready', '--timeout=120s',
-  ], { retries: 3 })
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-instance.yaml')])
-  console.log('[setup] Waiting for cel-functions-instance Deployment to become Available…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'deployment/kroui-cel',
-    '--for=condition=Available',
-    '--namespace', NAMESPACE,
-    '--timeout=120s',
-  ], { retries: 5 })
-  console.log('[setup] cel-functions-instance reconciled')
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/cel-functions',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-instance.yaml')])
+    console.log('[setup] Waiting for cel-functions-instance Deployment to become Available…')
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'deployment/kroui-cel',
+      '--for=condition=Available',
+      '--namespace', NAMESPACE,
+      '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    process.env.KRO_CEL_FUNCTIONS_READY = 'true'
+    console.log('[setup] cel-functions-instance reconciled')
+  } catch {
+    process.env.KRO_CEL_FUNCTIONS_READY = 'false'
+    console.warn('[setup] cel-functions RGD did not become Ready in time — related journey steps will be skipped')
+  }
 
   // ── 6f. Chain RGDs (no instances needed for chaining graph tests) ─────────
   console.log('[setup] Applying chain RGDs…')

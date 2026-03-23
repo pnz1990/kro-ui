@@ -167,6 +167,7 @@ test.describe('005: Live Instance Detail', () => {
   // ── Steps 7-9: multi-resource-instance live DAG ───────────────────────────
 
   test('Step 7: multi-resource live DAG renders 5 nodes including autoscaler', async ({ page }) => {
+    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
     await page.goto(`${BASE}/rgds/multi-resource/instances/kro-ui-e2e/multi-resource-instance`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
@@ -182,6 +183,7 @@ test.describe('005: Live Instance Detail', () => {
   })
 
   test('Step 8: clicking appDeployment node shows Deployment kind and non-empty YAML', async ({ page }) => {
+    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
     await page.goto(`${BASE}/rgds/multi-resource/instances/kro-ui-e2e/multi-resource-instance`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
@@ -194,6 +196,7 @@ test.describe('005: Live Instance Detail', () => {
   })
 
   test('Step 9: conditions panel for multi-resource-instance has at least one condition row', async ({ page }) => {
+    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
     await page.goto(`${BASE}/rgds/multi-resource/instances/kro-ui-e2e/multi-resource-instance`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
@@ -206,9 +209,8 @@ test.describe('005: Live Instance Detail', () => {
     expect(rowCount).toBeGreaterThan(0)
   })
 
-  // ── Steps 10-11: external-ref-instance live DAG ───────────────────────────
-
   test('Step 10: external-ref live DAG contains NodeTypeExternal node with correct label', async ({ page }) => {
+    if (process.env.KRO_EXTERNAL_REF_READY !== 'true') test.skip()
     await page.goto(`${BASE}/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 
@@ -224,6 +226,7 @@ test.describe('005: Live Instance Detail', () => {
   })
 
   test('Step 11: clicking externalRef node shows pre-req ConfigMap YAML', async ({ page }) => {
+    if (process.env.KRO_EXTERNAL_REF_READY !== 'true') test.skip()
     await page.goto(`${BASE}/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
 

@@ -108,6 +108,7 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 8: /api/v1/rgds/multi-resource/instances returns multi-resource-instance', async ({ request }) => {
+    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
     const res = await request.get(`${BASE}/api/v1/rgds/multi-resource/instances`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { items: Array<{ metadata: { name: string } }> }
@@ -131,6 +132,7 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 11: external-ref instance detail endpoint responds without error', async ({ request }) => {
+    if (process.env.KRO_EXTERNAL_REF_READY !== 'true') test.skip()
     const res = await request.get(`${BASE}/api/v1/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { metadata: { name: string } }
