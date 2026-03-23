@@ -352,3 +352,10 @@ The current branch name tells you which spec to read. For example, branch
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
 
+
+## Active Technologies
+- Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps (026-rgd-yaml-generator)
+- N/A — all state is local React `useState`; no persistence (026-rgd-yaml-generator)
+
+## Recent Changes
+- 026-rgd-yaml-generator: Added Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps
