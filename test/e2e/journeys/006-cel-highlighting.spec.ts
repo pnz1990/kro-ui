@@ -120,12 +120,13 @@ test.describe('Journey 006 — CEL syntax highlighting', () => {
     expect(hasJsonMarshal).toBe(true)
   })
 
-  test('Step 8: cel-functions YAML tab has at least one token-string span', async ({ page }) => {
+  test('Step 8: cel-functions YAML tab has YAML key tokens visible', async ({ page }) => {
     await page.goto('/rgds/cel-functions?tab=yaml')
     await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
 
-    const stringSpans = page.locator('[data-testid="kro-code-block"] span.token-string')
-    await expect(stringSpans.first()).toBeVisible()
+    // token-yaml-key is the standard kro highlighter token for YAML keys
+    const keySpans = page.locator('[data-testid="kro-code-block"] span.token-yaml-key')
+    await expect(keySpans.first()).toBeVisible()
   })
 
   // ── Step 9: external-ref RGD — optional chaining token ───────────────────

@@ -49,6 +49,11 @@ import { tmpdir } from 'node:os'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// Path to the fixture state file — written by globalSetup and read by journeys.
+// Playwright workers do NOT inherit process.env mutations from globalSetup, so
+// we persist fixture readiness flags to a JSON file instead.
+export const FIXTURE_STATE_PATH = resolve(__dirname, '../fixture-state.json')
+
 const CLUSTER_NAME = 'kro-ui-e2e'
 const PRIMARY_CONTEXT = 'kind-kro-ui-e2e'
 const ALT_CONTEXT = 'kro-ui-e2e-alt'
@@ -69,6 +74,16 @@ let serverProcess: ChildProcess | null = null
 
 export default async function globalSetup() {
   console.log('\n[setup] Starting kro-ui E2E global setup…')
+
+  // Fixture readiness flags — written to FIXTURE_STATE_PATH at the end of setup
+  // so Playwright worker processes can read them (process.env mutations in
+  // globalSetup are NOT visible to workers which run in a separate process).
+  const fixtureState = {
+    collectionReady: false,
+    multiReady: false,
+    externalRefReady: false,
+    celFunctionsReady: false,
+  }
 
   // ── 1. Create kind cluster ───────────────────────────────────────────────
   if (!process.env.SKIP_KIND_CREATE) {
@@ -165,10 +180,9 @@ export default async function globalSetup() {
       '--namespace', NAMESPACE,
       '--timeout=120s',
     ], { stdio: 'inherit', encoding: 'utf8' })
-    process.env.KRO_COLLECTION_READY = 'true'
+    fixtureState.collectionReady = true
     console.log('[setup] test-collection-instance reconciled')
   } catch {
-    process.env.KRO_COLLECTION_READY = 'false'
     console.warn('[setup] test-collection RGD did not become Ready in time — journey 010 live-instance steps will be skipped')
   }
 
@@ -191,10 +205,9 @@ export default async function globalSetup() {
       '--namespace', NAMESPACE,
       '--timeout=120s',
     ], { stdio: 'inherit', encoding: 'utf8' })
-    process.env.KRO_MULTI_READY = 'true'
+    fixtureState.multiReady = true
     console.log('[setup] multi-resource-instance reconciled')
   } catch {
-    process.env.KRO_MULTI_READY = 'false'
     console.warn('[setup] multi-resource RGD did not become Ready in time — related journey steps will be skipped')
   }
 
@@ -217,10 +230,9 @@ export default async function globalSetup() {
       '--namespace', NAMESPACE,
       '--timeout=120s',
     ], { stdio: 'inherit', encoding: 'utf8' })
-    process.env.KRO_EXTERNAL_REF_READY = 'true'
+    fixtureState.externalRefReady = true
     console.log('[setup] external-ref-instance reconciled')
   } catch {
-    process.env.KRO_EXTERNAL_REF_READY = 'false'
     console.warn('[setup] external-ref RGD did not become Ready in time — related journey steps will be skipped')
   }
 
@@ -243,10 +255,9 @@ export default async function globalSetup() {
       '--namespace', NAMESPACE,
       '--timeout=120s',
     ], { stdio: 'inherit', encoding: 'utf8' })
-    process.env.KRO_CEL_FUNCTIONS_READY = 'true'
+    fixtureState.celFunctionsReady = true
     console.log('[setup] cel-functions-instance reconciled')
   } catch {
-    process.env.KRO_CEL_FUNCTIONS_READY = 'false'
     console.warn('[setup] cel-functions RGD did not become Ready in time — related journey steps will be skipped')
   }
 
@@ -255,6 +266,12 @@ export default async function globalSetup() {
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-child.yaml')])
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-parent.yaml')])
   console.log('[setup] Chain RGDs applied')
+
+  // ── 6g. Write fixture state for worker processes ──────────────────────────
+  // Playwright workers run in a separate process from globalSetup — env var
+  // mutations here are not visible in tests. Write state to a JSON file instead.
+  writeFileSync(FIXTURE_STATE_PATH, JSON.stringify(fixtureState, null, 2))
+  console.log(`[setup] Fixture state written to ${FIXTURE_STATE_PATH}:`, fixtureState)
 
   // ── 7. Build kro-ui binary if needed ─────────────────────────────────────
   const binaryPath = process.env.KRO_UI_BINARY ?? join(ROOT_DIR, 'bin', 'kro-ui')

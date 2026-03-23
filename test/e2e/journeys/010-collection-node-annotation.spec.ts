@@ -32,6 +32,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const BASE = 'http://localhost:40107'
 const RGD_URL = `${BASE}/rgds/test-collection`
@@ -56,10 +57,8 @@ test.describe('010: Collection Node Annotation', () => {
 
   // Steps 3-5 require the forEach CRD to be Established and an instance to
   // exist. They run only when global-setup successfully waited for the RGD.
-  const collectionReady = process.env.KRO_COLLECTION_READY === 'true'
-
   test('Step 3: live instance detail DAG shows forEach annotation on collection node', async ({ page }) => {
-    if (!collectionReady) test.skip()
+    test.skip(!fixtureState.collectionReady, 'test-collection RGD did not become Ready in setup')
     const INSTANCE_URL = `${BASE}/rgds/test-collection/instances/kro-ui-e2e/test-collection-instance`
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
@@ -70,7 +69,7 @@ test.describe('010: Collection Node Annotation', () => {
   })
 
   test('Step 4: cardinality badge appears on live DAG collection node', async ({ page }) => {
-    if (!collectionReady) test.skip()
+    test.skip(!fixtureState.collectionReady, 'test-collection RGD did not become Ready in setup')
     const INSTANCE_URL = `${BASE}/rgds/test-collection/instances/kro-ui-e2e/test-collection-instance`
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })
@@ -81,7 +80,7 @@ test.describe('010: Collection Node Annotation', () => {
   })
 
   test('Step 5: cardinality badge count matches the instance region count (2/2)', async ({ page }) => {
-    if (!collectionReady) test.skip()
+    test.skip(!fixtureState.collectionReady, 'test-collection RGD did not become Ready in setup')
     const INSTANCE_URL = `${BASE}/rgds/test-collection/instances/kro-ui-e2e/test-collection-instance`
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: DAG_TIMEOUT })

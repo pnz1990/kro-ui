@@ -22,6 +22,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
@@ -91,12 +92,12 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
       schema: { hasForEach: boolean; hasExternalRef: boolean }
     }
 
-    if (process.env.KRO_COLLECTION_READY === 'true') {
+    if (fixtureState.collectionReady) {
       expect(body.schema.hasForEach).toBe(true)
     } else {
       expect(typeof body.schema.hasForEach).toBe('boolean')
     }
-    if (process.env.KRO_EXTERNAL_REF_READY === 'true') {
+    if (fixtureState.externalRefReady) {
       expect(body.schema.hasExternalRef).toBe(true)
     } else {
       expect(typeof body.schema.hasExternalRef).toBe('boolean')

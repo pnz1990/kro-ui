@@ -22,6 +22,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
@@ -108,7 +109,7 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 8: /api/v1/rgds/multi-resource/instances returns multi-resource-instance', async ({ request }) => {
-    test.skip(process.env.KRO_MULTI_READY !== 'true', 'multi-resource RGD did not become Ready in setup')
+    test.skip(!fixtureState.multiReady, 'multi-resource RGD did not become Ready in setup')
     const res = await request.get(`${BASE}/api/v1/rgds/multi-resource/instances`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { items: Array<{ metadata: { name: string } }> }
@@ -134,7 +135,7 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 11: external-ref instance detail endpoint responds without error', async ({ request }) => {
-    test.skip(process.env.KRO_EXTERNAL_REF_READY !== 'true', 'external-ref RGD did not become Ready in setup')
+    test.skip(!fixtureState.externalRefReady, 'external-ref RGD did not become Ready in setup')
     // Route: /api/v1/instances/{namespace}/{name}
     const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/external-ref-instance`)
     expect(res.status()).toBe(200)
