@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildDAGGraph, detectKroInstance } from './dag'
+import { buildDAGGraph, detectKroInstance, detectCollapseGroups } from './dag'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -342,5 +342,191 @@ describe('buildDAGGraph — kind fallback (issue #58)', () => {
     const node = graph.nodes.find((n) => n.id === 'orphanRef')
     expect(node?.kind).toBe('orphanRef')
     expect(node?.kind).not.toBe('')
+  })
+})
+
+// ── detectCollapseGroups ──────────────────────────────────────────────────
+
+describe('detectCollapseGroups', () => {
+  // Helper: build a resource with a given kind and top-level template keys
+  function makeResource(
+    id: string,
+    kind: string,
+    keys: string[] = ['spec', 'metadata'],
+    opts: { apiVersion?: string; forEach?: string } = {},
+  ) {
+    const template: Record<string, unknown> = {
+      apiVersion: opts.apiVersion ?? 'apps/v1',
+      kind,
+    }
+    for (const k of keys) template[k] = {}
+    const r: Record<string, unknown> = { id, template }
+    if (opts.forEach !== undefined) r.forEach = opts.forEach
+    return r
+  }
+
+  it('returns empty array for undefined spec', () => {
+    expect(detectCollapseGroups(undefined)).toEqual([])
+  })
+
+  it('returns empty array for null spec', () => {
+    expect(detectCollapseGroups(null)).toEqual([])
+  })
+
+  it('returns empty array for non-object spec', () => {
+    expect(detectCollapseGroups('string')).toEqual([])
+    expect(detectCollapseGroups(42)).toEqual([])
+  })
+
+  it('returns empty array for spec with no resources', () => {
+    expect(detectCollapseGroups({})).toEqual([])
+    expect(detectCollapseGroups({ resources: [] })).toEqual([])
+  })
+
+  it('returns empty array for RGD with all unique kinds', () => {
+    const spec = minimalSpec([
+      makeResource('svc', 'Service'),
+      makeResource('dep', 'Deployment'),
+      makeResource('cm', 'ConfigMap'),
+    ])
+    expect(detectCollapseGroups(spec)).toEqual([])
+  })
+
+  it('detects 3 Deployments of same apiVersion as a single candidate group', () => {
+    const spec = minimalSpec([
+      makeResource('d1', 'Deployment'),
+      makeResource('d2', 'Deployment'),
+      makeResource('d3', 'Deployment'),
+    ])
+    const groups = detectCollapseGroups(spec)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('Deployment')
+    expect(groups[0].apiVersion).toBe('apps/v1')
+    expect(groups[0].nodeIds).toHaveLength(3)
+    expect(groups[0].nodeIds).toContain('d1')
+    expect(groups[0].nodeIds).toContain('d2')
+    expect(groups[0].nodeIds).toContain('d3')
+  })
+
+  it('detects 2 ConfigMaps with >=70% key overlap as a candidate group', () => {
+    // Both have keys: spec, metadata, data — 100% overlap
+    const spec = minimalSpec([
+      makeResource('cm1', 'ConfigMap', ['metadata', 'data'], { apiVersion: 'v1' }),
+      makeResource('cm2', 'ConfigMap', ['metadata', 'data'], { apiVersion: 'v1' }),
+    ])
+    const groups = detectCollapseGroups(spec)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].kind).toBe('ConfigMap')
+    expect(groups[0].nodeIds).toEqual(['cm1', 'cm2'])
+  })
+
+  it('does NOT flag 2 ConfigMaps with <70% key overlap', () => {
+    // cm1 has keys: [a,b,c,d,e], cm2 has keys: [f,g,h,i,j]
+    // intersection=0, union=10, Jaccard=0 < 0.70
+    const spec = minimalSpec([
+      makeResource('cm1', 'ConfigMap', ['a', 'b', 'c', 'd', 'e'], { apiVersion: 'v1' }),
+      makeResource('cm2', 'ConfigMap', ['f', 'g', 'h', 'i', 'j'], { apiVersion: 'v1' }),
+    ])
+    expect(detectCollapseGroups(spec)).toEqual([])
+  })
+
+  it('excludes NodeTypeCollection nodes (forEach present) from analysis', () => {
+    const spec = minimalSpec([
+      makeResource('d1', 'Deployment', ['metadata', 'spec'], { forEach: '${schema.spec.items}' }),
+      makeResource('d2', 'Deployment', ['metadata', 'spec']),
+    ])
+    // Only d2 qualifies (d1 is NodeTypeCollection); group needs ≥2 → no group
+    expect(detectCollapseGroups(spec)).toEqual([])
+  })
+
+  it('excludes NodeTypeExternal nodes from analysis', () => {
+    // externalRef resources should not be included even if same kind
+    const spec = minimalSpec([
+      {
+        id: 'ext1',
+        externalRef: { apiVersion: 'v1', kind: 'Service', metadata: { name: 'svc1' } },
+      },
+      {
+        id: 'ext2',
+        externalRef: { apiVersion: 'v1', kind: 'Service', metadata: { name: 'svc2' } },
+      },
+    ])
+    expect(detectCollapseGroups(spec)).toEqual([])
+  })
+
+  it('groups by apiVersion+kind, not kind alone', () => {
+    // Same kind "Deployment" but different apiVersions → separate groups → neither has ≥2
+    const spec = minimalSpec([
+      makeResource('d1', 'Deployment', ['metadata', 'spec'], { apiVersion: 'apps/v1' }),
+      makeResource('d2', 'Deployment', ['metadata', 'spec'], { apiVersion: 'apps/v2alpha1' }),
+    ])
+    // Two groups of 1 each → no output
+    expect(detectCollapseGroups(spec)).toEqual([])
+  })
+
+  it('handles missing template field gracefully (no throw)', () => {
+    // Resource with no template and no externalRef classifies as 'resource' but has no kind
+    const spec = minimalSpec([
+      { id: 'r1' },
+      { id: 'r2' },
+    ])
+    expect(() => detectCollapseGroups(spec)).not.toThrow()
+    // No kind resolvable → no groups
+    expect(detectCollapseGroups(spec)).toEqual([])
+  })
+
+  it('handles missing apiVersion in template — groups on kind alone with empty apiVersion', () => {
+    const spec = minimalSpec([
+      {
+        id: 'r1',
+        template: { kind: 'Deployment', metadata: {}, spec: {} },
+      },
+      {
+        id: 'r2',
+        template: { kind: 'Deployment', metadata: {}, spec: {} },
+      },
+      {
+        id: 'r3',
+        template: { kind: 'Deployment', metadata: {}, spec: {} },
+      },
+    ])
+    const groups = detectCollapseGroups(spec)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].apiVersion).toBe('')
+    expect(groups[0].kind).toBe('Deployment')
+    expect(groups[0].nodeIds).toHaveLength(3)
+  })
+
+  it('returns multiple groups when multiple qualifying sets exist', () => {
+    const spec = minimalSpec([
+      makeResource('d1', 'Deployment'),
+      makeResource('d2', 'Deployment'),
+      makeResource('d3', 'Deployment'),
+      makeResource('cm1', 'ConfigMap', ['metadata', 'data'], { apiVersion: 'v1' }),
+      makeResource('cm2', 'ConfigMap', ['metadata', 'data'], { apiVersion: 'v1' }),
+    ])
+    const groups = detectCollapseGroups(spec)
+    expect(groups).toHaveLength(2)
+    const depGroup = groups.find((g) => g.kind === 'Deployment')
+    const cmGroup = groups.find((g) => g.kind === 'ConfigMap')
+    expect(depGroup).toBeDefined()
+    expect(depGroup?.nodeIds).toHaveLength(3)
+    expect(cmGroup).toBeDefined()
+    expect(cmGroup?.nodeIds).toHaveLength(2)
+  })
+
+  it('excludes resources that already have a forEach field', () => {
+    // d1 has forEach (NodeTypeCollection) → excluded; d2+d3 are resources
+    const spec = minimalSpec([
+      makeResource('d1', 'Deployment', ['metadata', 'spec'], { forEach: '${schema.spec.items}' }),
+      makeResource('d2', 'Deployment', ['metadata', 'spec']),
+      makeResource('d3', 'Deployment', ['metadata', 'spec']),
+    ])
+    // Only d2 and d3 qualify — group of 2, 100% key overlap → qualifies
+    const groups = detectCollapseGroups(spec)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].nodeIds).not.toContain('d1')
+    expect(groups[0].nodeIds).toContain('d2')
+    expect(groups[0].nodeIds).toContain('d3')
   })
 })

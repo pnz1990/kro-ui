@@ -95,6 +95,11 @@
   --transition:      150ms ease;
   --transition-slow: 250ms ease;
 
+  /* Optimization Advisor — amber advisory color family */
+  --color-advisor-bg:     rgba(245, 158, 11, 0.06);
+  --color-advisor-border: rgba(245, 158, 11, 0.25);
+  --color-advisor-icon:   #f59e0b;
+
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-tooltip:  0 4px 16px rgba(0, 0, 0, 0.4);
@@ -170,6 +175,11 @@
   --hl-schema-keyword:     #6b8cae;
   --hl-schema-value:       #7c5caa;
   --hl-comment:            #9ca3af;
+
+  /* Optimization Advisor — amber advisory color family */
+  --color-advisor-bg:     rgba(217, 119, 6, 0.06);
+  --color-advisor-border: rgba(217, 119, 6, 0.25);
+  --color-advisor-icon:   #d97706;
 
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.12);

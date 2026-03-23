@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom"
 import { getRGD, listInstances } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
-import { buildDAGGraph } from "@/lib/dag"
+import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
 import { usePageTitle } from "@/hooks/usePageTitle"
 import KroCodeBlock from "@/components/KroCodeBlock"
 import DAGGraph from "@/components/DAGGraph"
@@ -13,6 +13,7 @@ import NamespaceFilter from "@/components/NamespaceFilter"
 import ValidationTab from "@/components/ValidationTab"
 import AccessTab from "@/components/AccessTab"
 import DocsTab from "@/components/DocsTab"
+import OptimizationAdvisor from "@/components/OptimizationAdvisor"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
@@ -131,6 +132,13 @@ export default function RGDDetail() {
   const dagGraph = useMemo(() => {
     if (!rgd?.spec) return null
     return buildDAGGraph(rgd.spec as Record<string, unknown>)
+  }, [rgd])
+
+  // ── Collapse candidate groups (static analysis, no API call) ─────────────
+  // spec: .specify/specs/023-rgd-optimization-advisor/
+  const collapseGroups = useMemo(() => {
+    if (!rgd?.spec) return []
+    return detectCollapseGroups(rgd.spec)
   }, [rgd])
 
   const selectedNode = useMemo(() => {
@@ -252,6 +260,10 @@ export default function RGDDetail() {
                 </div>
               )}
             </div>
+            <OptimizationAdvisor
+              key={String(rgdName)}
+              groups={collapseGroups}
+            />
             {selectedNode && (
               <NodeDetailPanel
                 node={selectedNode}
