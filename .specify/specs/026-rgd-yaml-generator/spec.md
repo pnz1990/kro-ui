@@ -2,7 +2,7 @@
 
 **Feature Branch**: `026-rgd-yaml-generator`
 **Created**: 2026-03-23
-**Status**: Draft
+**Status**: Implemented
 **Depends on**: `020-schema-doc-generator` (merged), `003-rgd-detail-dag` (merged)
 **Constitution ref**: §II (Cluster Adaptability), §III (Read-Only), §V (Simplicity),
 §IX (Theme), §XIII (UX Standards)
@@ -11,32 +11,16 @@
 
 ## Context
 
-kro-ui already has a static "Example Manifest" in the Docs tab (spec `020`) that
-generates a copy-pasteable YAML skeleton from the RGD schema. This is useful but
-passive — it does not help users understand which fields are valid, does not
-validate the YAML as they fill it in, and produces only a minimal skeleton with
-placeholder values.
+kro-ui's Docs tab (spec `020`) already renders a static `ExampleYAML` block — a
+read-only YAML skeleton with placeholder values. This is useful for a quick glance
+but does nothing when a developer actually needs to create an instance: they must
+still hand-edit the YAML, look up valid enum values, remember the apiVersion, and
+handle required vs. optional fields manually.
 
-This spec adds three related capabilities under a single "Generate" tab on the
-RGD detail page:
-
-1. **Interactive Instance YAML Form** — a form-based YAML editor where each spec
-   field has an appropriate input control (text, number, boolean toggle, enum
-   select, array editor). The form renders live YAML as the user types.
-
-2. **RGD Authoring Assistant** — a guided UI for creating a new
-   `ResourceGraphDefinition` YAML manifest from scratch: choose a kind name, add
-   spec fields with their types, add resource templates with placeholder CEL
-   expressions. Produces a valid RGD YAML skeleton ready to apply.
-
-3. **Batch Instance Generator** — a template-mode where users define a list of
-   variable bindings (e.g. `name=foo bar baz`) and the tool generates one YAML
-   manifest per binding, as a multi-document YAML (`---` separated) suitable for
-   `kubectl apply`.
-
-All generation is purely **client-side** — no new backend endpoints. No mutating
-API calls. The cluster is used only to read the RGD schema (already loaded on the
-detail page).
+This spec adds a **Generate** tab to the RGD detail page with three client-side
+YAML generation modes. All generation is purely client-side — no new backend
+endpoints, no mutating API calls. The cluster is used only to read the already-loaded
+RGD schema.
 
 ---
 
@@ -44,169 +28,114 @@ detail page).
 
 ### User Story 1 — Developer fills a form and gets a valid instance YAML (Priority: P1)
 
-On the RGD detail page, a "Generate" tab shows a form with one input control per
-spec field. As the user fills in values, the right-hand pane shows live-updated
-YAML. A "Copy" button and a `kubectl apply` command snippet are provided.
+On the RGD detail page, a "Generate" tab (`?tab=generate`) shows an interactive
+form with one input control per spec field. As the user fills in values, the
+right-hand pane shows live-updated YAML. A "Copy YAML" button and a
+"Copy kubectl apply" button (heredoc snippet) are provided.
 
 **Why this priority**: The core use case. Developers know they want a
 `WebApplication` with `name=hello image=nginx replicas=3` — they should not need
-to know the apiVersion, group, or YAML structure. This form does it for them.
+to know the apiVersion, group, or YAML structure.
 
 **Independent Test**: Open any RGD's Generate tab. Confirm: each spec field maps
 to one form row, changing a value updates the YAML preview immediately, and the
-Copy button writes valid YAML to clipboard.
+Copy YAML button writes valid YAML to clipboard.
 
 **Acceptance Scenarios**:
 
 1. **Given** a `WebApplication` RGD with spec fields `name: string`, `image: string`,
    `replicas: integer | default=2`, **When** the Generate tab opens, **Then** three
    form rows are visible — `name` (text input), `image` (text input),
-   `replicas` (number input with value `2` pre-filled from default)
+   `replicas` (number input pre-filled with `2`)
 
 2. **Given** field `replicas: integer | default=2`, **When** the user changes the
    value to `5`, **Then** the YAML preview updates immediately to show `replicas: 5`
 
-3. **Given** field `env: string | enum=dev,staging,prod`, **When** the Generate
-   tab renders, **Then** `env` is rendered as a `<select>` with options `dev`,
-   `staging`, `prod`
+3. **Given** field `env: string | enum=dev,staging,prod`, **When** rendered,
+   **Then** `env` is a `<select>` with options `dev`, `staging`, `prod`
 
-4. **Given** field `enabled: boolean | default=true`, **When** the Generate tab
-   renders, **Then** `enabled` is rendered as a toggle/checkbox checked by default
+4. **Given** field `enabled: boolean | default=true`, **When** rendered,
+   **Then** `enabled` is a checkbox, checked by default
 
-5. **Given** field `tags: []string`, **When** the Generate tab renders, **Then**
-   a multi-value text input allows adding/removing string items; the YAML shows
-   the array syntax
+5. **Given** field `tags: []string`, **When** rendered,
+   **Then** a repeatable row UI allows adding/removing string items
 
-6. **Given** the user clicks "Copy YAML", **When** executed, **Then** the clipboard
-   contains the full YAML document (including `apiVersion`, `kind`, `metadata`,
-   `spec`) with no code-fence markers
+6. **Given** the user clicks "Copy YAML", **Then** the clipboard contains the
+   full YAML document (apiVersion, kind, metadata, spec) with no code-fence markers
 
-7. **Given** the YAML preview is visible, **When** the user clicks "Copy kubectl
-   apply", **Then** the clipboard contains
+7. **Given** the user clicks "Copy kubectl apply", **Then** the clipboard contains
    `kubectl apply -f - <<'EOF'\n<yaml>\nEOF`
 
-8. **Given** a field marked `| required` with no default, **When** the form
-   renders, **Then** the field shows a required indicator and the YAML line
-   renders with the entered value (or empty placeholder if untouched)
-
-9. **Given** a field with `| enum=` constraint, **When** the user submits the
-   form (no-op — read-only tool), **Then** no validation error is shown for
-   values not in the enum (the form controls naturally constrain to valid values
-   via `<select>`)
-
-10. **Given** no spec fields on the RGD, **When** the Generate tab renders,
-    **Then** the YAML preview still shows a valid minimal manifest (only
-    `apiVersion`, `kind`, `metadata.name`) and a message "This RGD has no
-    configurable fields"
+8. **Given** no spec fields on the RGD, **When** the Generate tab renders,
+   **Then** the YAML preview shows a valid minimal manifest with only
+   `apiVersion`, `kind`, `metadata.name`, and a message "This RGD has no
+   configurable fields"
 
 ---
 
 ### User Story 2 — Developer generates N instance manifests from a variable list (Priority: P2)
 
-A "Batch" mode on the Generate tab allows the user to enter a column-per-variable
-table (or a newline-separated list for a single variable). The generator produces
-one YAML document per row, separated by `---`, all ready to `kubectl apply`.
+A "Batch" mode allows the user to enter one line of `key=value` pairs per manifest.
+The generator produces one YAML document per line, separated by `---`.
 
-**Why this priority**: Platform teams frequently need to create the same resource
-in multiple namespaces, with different names, or for different tenants. This is
-the "for-each at apply time" use case.
-
-**Independent Test**: Enter `name=alpha\nbeta\ngamma` in batch mode. Confirm: three
-YAML documents separated by `---` appear in the output, each with the correct
-name substituted.
+**Independent Test**: Switch to Batch. Enter two `key=value` lines. Confirm: two
+YAML documents separated by `---` appear in the preview.
 
 **Acceptance Scenarios**:
 
-1. **Given** the user switches to "Batch" mode, **When** rendered, **Then** a
-   textarea appears where each line is a set of `key=value` pairs for that
-   document (e.g. `name=alpha image=nginx`)
+1. **Given** batch input with 3 lines each providing `name=<value>`, **When**
+   rendered, **Then** 3 YAML documents separated by `---` are shown
 
-2. **Given** batch input with 3 lines each providing `name=<value>`, **When**
-   the preview renders, **Then** 3 YAML documents separated by `---` are shown
+2. **Given** a batch line omits a field that has a schema default, **When** rendered,
+   **Then** that field uses the schema default value
 
-3. **Given** a batch line provides only some spec fields, **When** rendered,
-   **Then** missing fields use the schema default value (or empty placeholder
-   if required)
+3. **Given** a malformed token (`=bad`), **When** encountered,
+   **Then** a per-row error indicator shows `Line N: malformed token...`
 
-4. **Given** the user clicks "Copy All", **When** executed, **Then** the
-   clipboard contains all N documents concatenated with `---` separators as
-   valid multi-document YAML
-
-5. **Given** an invalid batch row (e.g. `=badformat`), **When** encountered,
-   **Then** that row is skipped with a visible per-row error indicator
-   (does not block copying valid rows)
+4. **Given** the user clicks "Copy All", **Then** the clipboard contains all N
+   documents as valid multi-document YAML
 
 ---
 
 ### User Story 3 — Developer authors a new RGD YAML skeleton (Priority: P2)
 
-A "New RGD" tab on the Generate page (or within the Generate tab) lets the user
-interactively define: the new CR kind name, the API group, spec fields with their
-types and defaults, and placeholder resource templates. The output is a complete
-RGD YAML skeleton.
+A "New RGD" mode lets the user define a CR kind name, spec fields with
+SimpleSchema types and defaults, and resource templates. The output is a complete
+`ResourceGraphDefinition` YAML scaffold.
 
-**Why this priority**: Lower than instance generation but high value for onboarding.
-New kro users do not know the structure of a `ResourceGraphDefinition` YAML — this
-wizard scaffolds one from their intent.
-
-**Independent Test**: Set kind=`MyApp`, add one field `name: string`, add one
-resource template (kind `Deployment`, id `web`). Confirm: the generated YAML is a
-valid RGD structure with the correct `spec.schema`, `spec.resources[0]` skeleton,
-and `${schema.spec.name}` placeholder in the template metadata.
+**Independent Test**: Switch to "New RGD". Verify the pre-populated starter
+(kind `MyApp`, one Deployment resource) shows a valid RGD YAML preview. Add a
+spec field `replicas: integer | default=2` — confirm the YAML shows the correct
+SimpleSchema string.
 
 **Acceptance Scenarios**:
 
-1. **Given** the user is on the "New RGD" authoring mode, **When** they type
-   `WebApp` in the Kind field, **Then** the YAML preview shows `kind: WebApp`
-   under `spec.schema.kind`
+1. **Given** the user types `WebApp` in the Kind field, **Then** the YAML shows
+   `kind: WebApp` under `spec.schema.kind`
 
-2. **Given** the user adds a spec field `replicas` of type `integer` with
-   default `2`, **When** added, **Then** the YAML preview shows
-   `spec.schema.spec.replicas: "integer | default=2"`
+2. **Given** the user adds a spec field `replicas: integer` with default `2`,
+   **Then** the YAML shows `spec.schema.spec.replicas: "integer | default=2"`
 
-3. **Given** the user adds a resource template with id `web` and kind
-   `Deployment`, **When** added, **Then** the YAML preview shows:
-   ```yaml
-   spec:
-     resources:
-       - id: web
-         template:
-           apiVersion: apps/v1
-           kind: Deployment
-           metadata:
-             name: ${schema.metadata.name}-web
-   ```
+3. **Given** the user adds a resource template with id `web` and kind `Deployment`,
+   **Then** the YAML shows a resource block with
+   `name: ${schema.metadata.name}-web` (CEL placeholder preserved unquoted)
 
-4. **Given** the user has defined a kind and at least one spec field, **When**
-   they click "Copy RGD YAML", **Then** the clipboard contains a valid
-   `ResourceGraphDefinition` YAML with the `kro.run/v1alpha1` apiVersion
+4. **Given** clicking "Copy RGD YAML", **Then** the clipboard contains valid
+   `kro.run/v1alpha1 ResourceGraphDefinition` YAML
 
-5. **Given** the RGD authoring form is empty, **When** rendered, **Then** a
-   placeholder kind `MyApp` and a starter resource `web` (Deployment) are
-   pre-populated so the user sees a working example immediately
-
-6. **Given** the user renames the kind from `MyApp` to `Platform`, **When**
-   changed, **Then** the `spec.schema.kind` in the YAML preview updates and
-   the `metadata.name` in resource templates updates to use
-   `${schema.metadata.name}-<id>` with the new kind name context
+5. **Given** the form is opened fresh, **Then** it is pre-populated with kind
+   `MyApp` and one starter Deployment resource so the user sees a working example
 
 ---
 
 ### Edge Cases
 
-- RGD has no spec fields (only status projections) → form shows "No configurable
-  fields" message; YAML preview still includes valid `apiVersion`, `kind`,
-  `metadata.name` with a placeholder
-- RGD schema `kind` is empty → use the RGD's own `metadata.name` as the fallback
-  kind (graceful degradation — never render `?` or `undefined`)
-- Field type is unknown/unparseable → render as free-text input with no type
-  constraint
-- Very large number of spec fields (20+) → form scrolls within its panel; YAML
-  preview remains visible via sticky positioning or split-pane layout
-- `metadata.name` input is left empty → YAML preview uses `my-<kind-slug>` as
-  placeholder (same as ExampleYAML in spec 020)
-- Batch mode with 0 rows → show empty state "Enter one set of values per line to
-  generate multiple manifests"
+- RGD has no spec fields → form shows "No configurable fields" message; YAML
+  preview still includes valid `apiVersion`, `kind`, `metadata.name`
+- RGD schema `kind` is empty → `metadata.name` pre-filled as `my-resource`
+- Unknown field type → rendered as free-text `<input type="text">`
+- `metadata.name` left empty → YAML preview uses `my-<kind-slug>` placeholder
+- Batch mode with 0 rows → shows "Enter one set of values per line" empty state
 
 ---
 
@@ -214,127 +143,78 @@ and `${schema.spec.name}` placeholder in the template metadata.
 
 ### Functional Requirements
 
-- **FR-001**: Generate tab MUST be accessible via `?tab=generate` URL parameter
-  on the RGD detail page
-- **FR-002**: Form fields MUST be derived from the already-loaded RGD schema
-  (`spec.schema.spec`) — no additional API call (same as DocsTab, FR-001 of spec
-  020)
-- **FR-003**: Each spec field type MUST map to an appropriate HTML input:
+- **FR-001**: Generate tab accessible via `?tab=generate` on the RGD detail page
+- **FR-002**: Form fields derived from already-loaded RGD schema — no additional
+  API call
+- **FR-003**: Each spec field type maps to an appropriate HTML input:
   - `string` (no enum) → `<input type="text">`
-  - `string` with `| enum=` → `<select>` with one `<option>` per enum value
+  - `string` with `| enum=` → `<select>`
   - `integer` / `number` → `<input type="number">`
-  - `boolean` → `<input type="checkbox">` or toggle
-  - `[]<type>` → repeatable row with add/remove controls
-  - Unknown / object / map → `<textarea>` (raw YAML value)
-- **FR-004**: YAML preview MUST update synchronously (no debounce) as the user
-  changes form values. Uses the existing `toYaml` utility (`web/src/lib/yaml.ts`)
-  or plain string construction.
-- **FR-005**: `metadata.name` MUST always be an editable field in the form, pre-filled
-  with `my-<kind-slug>` (same slug logic as spec 020 `ExampleYAML`)
-- **FR-006**: "Copy YAML" button MUST use the Clipboard API and show a brief
-  "Copied!" confirmation (same UX as spec 020 `KroCodeBlock`)
-- **FR-007**: "Copy kubectl apply" button MUST produce a heredoc snippet:
-  `kubectl apply -f - <<'EOF'\n<yaml>\nEOF`
-- **FR-008**: Batch mode MUST accept free-text input: one line = one manifest;
-  each line is space-separated `key=value` pairs
-- **FR-009**: Batch mode documents MUST be separated by `---\n` in the output
-- **FR-010**: RGD authoring mode MUST generate a valid `ResourceGraphDefinition`
-  YAML with `apiVersion: kro.run/v1alpha1`, `kind: ResourceGraphDefinition`,
-  the user-defined `spec.schema`, and at least one `spec.resources[]` entry
-- **FR-011**: All form state is local (React `useState`) — no URL params for
-  form field values; only the `?tab=generate` param is preserved
-- **FR-012**: Generate tab MUST be present on the RGD detail page tab bar as
-  "Generate" between "Docs" and existing tabs
-- **FR-013**: New RGD authoring MUST be reachable from the catalog or home page
-  via a "New RGD" action button (in addition to the Generate tab)
+  - `boolean` → `<input type="checkbox">`
+  - `[]<type>` → repeatable rows with add/remove
+  - Unknown / object / map → `<textarea>`
+- **FR-004**: YAML preview updates synchronously on every form change
+- **FR-005**: `metadata.name` is always an editable field, pre-filled with
+  `my-<kind-slug>`
+- **FR-006**: "Copy YAML" uses Clipboard API with 2s "Copied!" icon confirmation
+- **FR-007**: "Copy kubectl apply" copies a heredoc snippet
+- **FR-008**: Batch mode: one line = one YAML document; `key=value` token format
+- **FR-009**: Batch documents separated by `---\n` in the output
+- **FR-010**: RGD authoring produces valid `kro.run/v1alpha1 ResourceGraphDefinition`
+  YAML with CEL `${...}` placeholders preserved unquoted
+- **FR-011**: All form state is local React `useState` — no URL params for field
+  values; only `?tab=generate` is preserved
+- **FR-012**: Generate tab present in RGD detail tab bar as "Generate" (7th tab)
 
 ### Non-Functional Requirements
 
-- **NFR-001**: Form → YAML preview round-trip MUST be <16ms (one frame) — no
-  async operations in the critical path
-- **NFR-002**: TypeScript strict mode MUST pass
-- **NFR-003**: All styles MUST use `tokens.css` custom properties — no inline hex,
-  no `rgba()` literals in component CSS
-- **NFR-004**: No new npm dependencies — implemented with plain React + DOM APIs
-- **NFR-005**: Generate tab MUST be fully usable at 500+ RGDs on the cluster
-  (no global list fetch in this component)
+- **NFR-001**: Form → YAML preview round-trip < 16ms (synchronous, one render)
+- **NFR-002**: TypeScript strict mode passes with 0 errors
+- **NFR-003**: All CSS uses `tokens.css` custom properties — no inline hex/rgba
+- **NFR-004**: No new npm dependencies
+- **NFR-005**: `AuthoringResource._key` is a stable internal React key, never
+  equal to the user-editable `id` field (prevents remount-on-keystroke bug)
 
 ### Key Components
 
-- **`GenerateTab`** (`web/src/components/GenerateTab.tsx`): top-level component
-  for the Generate tab; owns mode state (form / batch / new-rgd) and the YAML
-  output. Renders `InstanceForm`, `BatchForm`, or `RGDAuthoringForm` based on mode.
-- **`InstanceForm`** (`web/src/components/InstanceForm.tsx`): interactive form
-  for instance manifest generation. One row per spec field with type-appropriate
-  input. Derives fields from `SchemaDoc` (reuses `buildSchemaDoc` from spec 020).
-- **`BatchForm`** (`web/src/components/BatchForm.tsx`): textarea-driven batch
-  manifest generator. Parses rows into per-document value maps.
-- **`RGDAuthoringForm`** (`web/src/components/RGDAuthoringForm.tsx`): guided
-  form to scaffold a new `ResourceGraphDefinition` YAML. Owns kind, group,
-  spec-field list, and resource-template list.
-- **`YAMLPreview`** (`web/src/components/YAMLPreview.tsx`): shared read-only YAML
-  display with "Copy YAML" and "Copy kubectl apply" buttons. Wraps `KroCodeBlock`.
-- **`generateInstanceYAML`** (`web/src/lib/generator.ts`): pure function —
-  takes `SchemaDoc` + a `Record<string, string>` of field values → returns YAML
-  string. Reuses slug logic from spec 020 `ExampleYAML`.
-- **`generateRGDYAML`** (`web/src/lib/generator.ts`): pure function — takes
-  authoring form state → returns RGD YAML string.
-- **`parseBatchRow`** (`web/src/lib/generator.ts`): pure function — parses a
-  single batch row string into a `Record<string, string>` key-value map.
+- **`GenerateTab`** (`web/src/components/GenerateTab.tsx`): orchestrator; owns
+  mode (form/batch/rgd) and derived YAML
+- **`InstanceForm`** (`web/src/components/InstanceForm.tsx`): type-dispatched
+  per-field form
+- **`BatchForm`** (`web/src/components/BatchForm.tsx`): textarea + error list +
+  count badge
+- **`RGDAuthoringForm`** (`web/src/components/RGDAuthoringForm.tsx`): metadata +
+  repeatable spec fields + repeatable resources
+- **`YAMLPreview`** (`web/src/components/YAMLPreview.tsx`): `KroCodeBlock` +
+  "Copy kubectl apply"
+- **`generator.ts`** (`web/src/lib/generator.ts`): pure functions —
+  `kindToSlug`, `generateInstanceYAML`, `generateBatchYAML`, `parseBatchRow`,
+  `generateRGDYAML`
 
 ---
 
 ## Testing Requirements
 
-### Unit Tests (required before merge)
+### Unit Tests (implemented)
 
-```typescript
-// web/src/lib/generator.test.ts
-describe("generateInstanceYAML", () => {
-  it("generates valid YAML with required fields filled", () => { ... })
-  it("omits optional fields with defaults when value matches default", () => { ... })
-  it("includes metadata.name from form input", () => { ... })
-  it("uses kind-slug for metadata.name placeholder when name is empty", () => { ... })
-  it("renders boolean field as 'true'/'false' string in YAML", () => { ... })
-  it("renders array field as YAML list block", () => { ... })
-})
-
-describe("parseBatchRow", () => {
-  it("parses 'name=foo image=nginx' → { name: 'foo', image: 'nginx' }", () => { ... })
-  it("handles value with spaces: 'name=hello world' → { name: 'hello world' }", () => { ... })
-  it("skips malformed token '=bad' → excludes from result map", () => { ... })
-  it("parses empty string → empty map", () => { ... })
-})
-
-describe("generateRGDYAML", () => {
-  it("produces apiVersion: kro.run/v1alpha1 and kind: ResourceGraphDefinition", () => { ... })
-  it("includes spec.schema.kind from form input", () => { ... })
-  it("includes spec.schema.spec fields with SimpleSchema type strings", () => { ... })
-  it("includes spec.resources[0] with id and template placeholder", () => { ... })
-})
-
-// web/src/components/GenerateTab.test.tsx
-describe("GenerateTab", () => {
-  it("renders form with one row per spec field", () => { ... })
-  it("renders enum field as select with correct options", () => { ... })
-  it("renders boolean field as checkbox", () => { ... })
-  it("updates YAML preview on field change", () => { ... })
-  it("renders mode tabs: Form / Batch / New RGD", () => { ... })
-  it("switches to batch mode on tab click", () => { ... })
-})
-```
+- `web/src/lib/generator.test.ts` — 33 tests covering all five functions,
+  edge cases (falsy defaults, malformed batch tokens, CEL placeholder preservation,
+  boolean/integer type coercion, array serialization)
+- `web/src/components/GenerateTab.test.tsx` — 19 component tests covering
+  all three modes, enum select, boolean checkbox, batch errors, count badge,
+  Add Field / Add Resource / Remove actions
 
 ---
 
 ## Success Criteria
 
-- **SC-001**: Generate tab is accessible via `?tab=generate` on every RGD detail
-  page and renders without error for any RGD
+- **SC-001**: Generate tab renders without error for any RGD
 - **SC-002**: Form correctly maps all spec field types to appropriate controls
-- **SC-003**: YAML preview is always valid YAML (parseable) regardless of current
-  form state
+- **SC-003**: YAML preview is always parseable YAML regardless of form state
 - **SC-004**: Batch mode produces exactly N documents for N non-empty input rows
-- **SC-005**: RGD authoring produces a syntactically valid `ResourceGraphDefinition`
-  YAML that can be applied to a kro cluster
+- **SC-005**: RGD authoring produces syntactically valid `ResourceGraphDefinition`
+  YAML with unquoted CEL placeholders
 - **SC-006**: TypeScript strict mode passes with 0 errors
-- **SC-007**: No inline hex or `rgba()` literals in any component CSS
+- **SC-007**: No inline hex or `rgba()` in any component CSS
+- **SC-008**: Resource rows use stable `_key` (not user-editable `id`) as React
+  key — no remount on id edit

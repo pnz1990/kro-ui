@@ -299,7 +299,7 @@ describe('generateRGDYAML', () => {
   it('includes resource template with CEL metadata.name placeholder', () => {
     const yaml = generateRGDYAML(
       makeRGDState({
-        resources: [{ id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
+        resources: [{ _key: 'k1', id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
       }),
     )
     expect(yaml).toContain('id: web')
@@ -315,7 +315,7 @@ describe('generateRGDYAML', () => {
   it('CEL placeholders are NOT quoted by yaml serializer', () => {
     const yaml = generateRGDYAML(
       makeRGDState({
-        resources: [{ id: 'svc', apiVersion: 'v1', kind: 'Service' }],
+        resources: [{ _key: 'k2', id: 'svc', apiVersion: 'v1', kind: 'Service' }],
       }),
     )
     // Should appear literally, not escaped

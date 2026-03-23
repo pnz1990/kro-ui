@@ -58,7 +58,7 @@ const STARTER_RGD_STATE: RGDAuthoringState = {
   group: 'kro.run',
   apiVersion: 'v1alpha1',
   specFields: [],
-  resources: [{ id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
+  resources: [{ _key: 'starter-web', id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
 }
 
 /**

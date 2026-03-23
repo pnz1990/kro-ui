@@ -56,7 +56,9 @@ export interface AuthoringField {
 
 /** A resource template entry in the RGD authoring form. */
 export interface AuthoringResource {
-  /** Resource id in spec.resources[]. */
+  /** Stable internal React key — never exposed in the UI or in generated YAML. */
+  _key: string
+  /** User-editable resource id in spec.resources[]. */
   id: string
   /** Template resource apiVersion (e.g. 'apps/v1'). */
   apiVersion: string

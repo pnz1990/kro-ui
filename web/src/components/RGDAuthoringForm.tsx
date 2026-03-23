@@ -77,22 +77,23 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
 
   function addResource() {
     const newRes: AuthoringResource = {
-      id: newResourceId(),
+      _key: newResourceId(),
+      id: 'resource',
       apiVersion: 'apps/v1',
       kind: 'Deployment',
     }
     onChange({ ...state, resources: [...state.resources, newRes] })
   }
 
-  function updateResource(id: string, patch: Partial<AuthoringResource>) {
+  function updateResource(_key: string, patch: Partial<AuthoringResource>) {
     onChange({
       ...state,
-      resources: state.resources.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+      resources: state.resources.map((r) => (r._key === _key ? { ...r, ...patch } : r)),
     })
   }
 
-  function removeResource(id: string) {
-    onChange({ ...state, resources: state.resources.filter((r) => r.id !== id) })
+  function removeResource(_key: string) {
+    onChange({ ...state, resources: state.resources.filter((r) => r._key !== _key) })
   }
 
   return (
@@ -217,13 +218,13 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
       <section className="rgd-authoring-form__section">
         <h3 className="rgd-authoring-form__section-title">Resources</h3>
         {state.resources.map((res) => (
-          <div key={res.id} className="rgd-authoring-form__resource-row">
+          <div key={res._key} className="rgd-authoring-form__resource-row">
             <input
               type="text"
               className="rgd-authoring-form__input rgd-authoring-form__input--id"
               placeholder="id"
               value={res.id}
-              onChange={(e) => updateResource(res.id, { id: e.target.value })}
+              onChange={(e) => updateResource(res._key, { id: e.target.value })}
               aria-label="Resource id"
             />
             <input
@@ -231,7 +232,7 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
               className="rgd-authoring-form__input"
               placeholder="apiVersion"
               value={res.apiVersion}
-              onChange={(e) => updateResource(res.id, { apiVersion: e.target.value })}
+              onChange={(e) => updateResource(res._key, { apiVersion: e.target.value })}
               aria-label="Resource apiVersion"
             />
             <input
@@ -239,13 +240,13 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
               className="rgd-authoring-form__input"
               placeholder="kind"
               value={res.kind}
-              onChange={(e) => updateResource(res.id, { kind: e.target.value })}
+              onChange={(e) => updateResource(res._key, { kind: e.target.value })}
               aria-label="Resource kind"
             />
             <button
               type="button"
               className="rgd-authoring-form__remove-btn"
-              onClick={() => removeResource(res.id)}
+              onClick={() => removeResource(res._key)}
               aria-label="Remove resource"
             >
               ×
