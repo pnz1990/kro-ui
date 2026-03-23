@@ -118,8 +118,8 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 9: instance detail endpoint returns spec and metadata fields', async ({ request }) => {
-    // Route: /api/v1/instances/{namespace}/{name}  (RGD name is not in path)
-    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/test-instance`)
+    // Route: /api/v1/instances/{namespace}/{name}?rgd={rgdName}
+    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/test-instance?rgd=test-app`)
     expect(res.status()).toBe(200)
     const body = await res.json() as Record<string, unknown>
     expect(body.spec).toBeDefined()
@@ -127,8 +127,8 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 10: instance events endpoint returns valid JSON with items key', async ({ request }) => {
-    // Route: /api/v1/instances/{namespace}/{name}/events
-    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/test-instance/events`)
+    // Route: /api/v1/instances/{namespace}/{name}/events?rgd={rgdName}
+    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/test-instance/events?rgd=test-app`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { items: unknown[] }
     expect(Array.isArray(body.items)).toBe(true)
@@ -136,8 +136,8 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
 
   test('Step 11: external-ref instance detail endpoint responds without error', async ({ request }) => {
     test.skip(!fixtureState.externalRefReady, 'external-ref RGD did not become Ready in setup')
-    // Route: /api/v1/instances/{namespace}/{name}
-    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/external-ref-instance`)
+    // Route: /api/v1/instances/{namespace}/{name}?rgd={rgdName}
+    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/external-ref-instance?rgd=external-ref`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { metadata: { name: string } }
     expect(body.metadata.name).toBe('external-ref-instance')

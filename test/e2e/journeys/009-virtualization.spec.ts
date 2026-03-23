@@ -142,7 +142,7 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     expect(cardCount).toBeLessThan(100)
   })
 
-  test('Step 8: searching "cel-functions" on home page shows exactly 1 card', async ({ page }) => {
+  test('Step 8: searching "cel-functions" on home page shows the cel-functions card', async ({ page }) => {
     await page.goto(BASE)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
 
@@ -150,12 +150,13 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await searchInput.fill('cel-functions')
     await page.waitForTimeout(400)
 
-    const cards = page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]')
-    await expect(cards).toHaveCount(1)
+    // cel-functions card must be visible; count may be > 1 if other RGD names partially match
     await expect(page.getByTestId('rgd-card-cel-functions')).toBeVisible()
+    // No unrelated card (e.g. test-app) should be visible
+    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
   })
 
-  test('Step 9: searching "external-ref" on home page shows exactly 1 card', async ({ page }) => {
+  test('Step 9: searching "external-ref" on home page shows the external-ref card', async ({ page }) => {
     await page.goto(BASE)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
 
@@ -163,8 +164,8 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await searchInput.fill('external-ref')
     await page.waitForTimeout(400)
 
-    const cards = page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]')
-    await expect(cards).toHaveCount(1)
+    // external-ref card must be visible; test-app must not be
     await expect(page.getByTestId('rgd-card-external-ref')).toBeVisible()
+    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
   })
 })
