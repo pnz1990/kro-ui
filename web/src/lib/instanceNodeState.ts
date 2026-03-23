@@ -4,6 +4,7 @@
 // Kubernetes conditions and child resource presence.
 
 import type { K8sObject } from './api'
+import { isTerminating, getFinalizers, getDeletionTimestamp } from './k8s'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,16 @@ export interface NodeStateEntry {
   /** Group, version from child resource apiVersion (may be empty for core) */
   group: string
   version: string
+  /**
+   * True if the child resource has metadata.deletionTimestamp set.
+   * When true, `state` is overridden to 'error' so the DAG ring shows error colour.
+   * Spec: 031-deletion-debugger FR-003
+   */
+  terminating?: boolean
+  /** Child's finalizer list when terminating. Spec: 031-deletion-debugger FR-003 */
+  finalizers?: string[]
+  /** Raw deletionTimestamp ISO string when terminating. Spec: 031-deletion-debugger FR-003 */
+  deletionTimestamp?: string
 }
 
 /** Map from node ID → NodeStateEntry. Built once per poll cycle. */
@@ -107,11 +118,31 @@ export function buildNodeStateMap(
 
     if (!kind) continue
 
+    // Deletion state — check before deriving the node state
+    // FR-003: terminating children override state to 'error'
+    const childTerminating = isTerminating(child)
+    const childFinalizers = getFinalizers(child)
+    const childDeletionTimestamp = getDeletionTimestamp(child)
+
+    // When a child is terminating, force error state so the DAG ring turns rose.
+    // This takes precedence over the global presentState derived from conditions.
+    const nodeState: NodeLiveState = childTerminating ? 'error' : presentState
+
     // Key by lowercase kind — allows case-insensitive lookup from DAGNode.kind
     const key = kind.toLowerCase()
     // If multiple children of same kind, first one wins (ordered by API response)
     if (!(key in result)) {
-      result[key] = { state: presentState, kind, name, namespace, group, version }
+      result[key] = {
+        state: nodeState,
+        kind,
+        name,
+        namespace,
+        group,
+        version,
+        terminating: childTerminating || undefined,
+        finalizers: childFinalizers.length > 0 ? childFinalizers : undefined,
+        deletionTimestamp: childDeletionTimestamp,
+      }
     }
   }
 

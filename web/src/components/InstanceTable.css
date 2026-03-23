@@ -139,3 +139,27 @@
 .instance-table-pagination__count {
   color: var(--color-text-faint);
 }
+
+/* ── Terminating filter (spec 031-deletion-debugger FR-005) ─────────────── */
+
+.instance-table-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.instance-filter-terminating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.instance-filter-terminating input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--color-error);
+}

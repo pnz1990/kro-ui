@@ -2,6 +2,7 @@
  *
  * All colors from tokens.css custom properties.
  * Spec: .specify/specs/005-instance-detail-live/
+ * Extended by spec: .specify/specs/031-deletion-debugger/ (deletion event tagging FR-004)
  */
 
 .events-panel {
@@ -78,4 +79,22 @@
   font-size: 12px;
   color: var(--color-text-muted);
   line-height: 1.5;
+}
+
+/* ── Deletion event tagging (spec 031-deletion-debugger FR-004) ───────────── */
+
+/* Left rose border accent for deletion-category event rows */
+.event-row--deletion {
+  border-left: 2px solid var(--color-error);
+  /* Compensate for the 2px border so content stays aligned with non-deletion rows */
+  padding-left: 14px;
+}
+
+/* ⊘ symbol tag in the event header */
+.event-deletion-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-error);
+  flex-shrink: 0;
+  line-height: 1;
 }

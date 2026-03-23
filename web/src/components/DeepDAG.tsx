@@ -68,6 +68,13 @@ export interface DeepDAGProps {
 
 // ── Helpers (shared helpers imported from @/lib/dag) ─────────────────────
 
+/** Returns true if this node's child resource has deletionTimestamp set. */
+function nodeIsTerminating(node: DAGNode, stateMap: NodeStateMap): boolean {
+  if (node.nodeType === 'instance') return false
+  const kindKey = (node.kind || node.label).toLowerCase()
+  return stateMap[kindKey]?.terminating === true
+}
+
 function edgePath(
   from: { x: number; y: number; width: number; height: number },
   to: { x: number; y: number; width: number; height: number },
@@ -366,6 +373,7 @@ export default function DeepDAG({
 
             // Standard nodes (identical to LiveDAG NodeGroup)
             const badge = nodeBadge(node)
+            const isNodeTerminating = nodeIsTerminating(node, nodeStateMap)
             const cx = node.x + node.width / 2
             // Fixed pixel offsets — safe for both 48px (resource) and 60px (collection) nodes.
             const labelY = node.y + 17
@@ -452,6 +460,16 @@ export default function DeepDAG({
                     aria-label="has readyWhen condition"
                   >
                     ⧖
+                  </text>
+                )}
+                {isNodeTerminating && (
+                  <text
+                    className="dag-node-badge dag-node-badge--terminating"
+                    x={node.x + 10}
+                    y={node.y + 12}
+                    aria-label="resource is terminating"
+                  >
+                    ⊗
                   </text>
                 )}
                 {node.nodeType === 'collection' && children && children.length > 0 && (

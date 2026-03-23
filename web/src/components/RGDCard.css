@@ -93,7 +93,21 @@
   color: var(--color-primary-hover);
 }
 
+/* ── Terminating instance badge (spec 031-deletion-debugger FR-007) ────────── */
 
+/* Small rose pill shown in the meta row when N ≥ 1 instances are terminating.
+ * Absent / 0 count: badge is not rendered (guard in RGDCard.tsx, AC-015). */
+.rgd-card__terminating-badge {
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-error);
+  background: var(--node-error-bg);
+  border: 1px solid var(--node-error-border);
+  cursor: default;
+  white-space: nowrap;
+}
 .rgd-card__header {
   display: flex;
   align-items: center;

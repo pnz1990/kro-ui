@@ -28,59 +28,7 @@ export interface ReadyStatus {
   message: string
 }
 
-/**
- * 5-state instance health for the overlay summary bar and any component that
- * needs to distinguish between Progressing (reconciling), all-Unknown (pending),
- * Ready=False (error), Ready=True (ready), and no conditions (unknown).
- *
- * Precedence (highest wins):
- *   reconciling — Progressing=True is present
- *   error       — Ready=False (and no Progressing=True)
- *   ready       — Ready=True
- *   pending     — conditions present but all status=Unknown
- *   unknown     — no conditions at all
- */
-export type InstanceHealthState = 'ready' | 'reconciling' | 'error' | 'pending' | 'unknown'
-
-export interface InstanceHealth {
-  state: InstanceHealthState
-}
-
-/**
- * extractInstanceHealth — derives a 5-state health value from a K8s instance object.
- *
- * Never throws. Returns { state: 'unknown' } for any malformed input.
- */
-export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
-  const status = obj.status
-  if (typeof status !== 'object' || status === null) return { state: 'unknown' }
-
-  const conditions = (status as Record<string, unknown>).conditions
-  if (!Array.isArray(conditions) || conditions.length === 0) return { state: 'unknown' }
-
-  const conds = conditions.filter(isCondition)
-  if (conds.length === 0) return { state: 'unknown' }
-
-  // Progressing=True wins — kro is actively reconciling
-  if (conds.some((c) => c.type === 'Progressing' && c.status === 'True')) {
-    return { state: 'reconciling' }
-  }
-  // Ready=False → error
-  if (conds.some((c) => c.type === 'Ready' && c.status === 'False')) {
-    return { state: 'error' }
-  }
-  // Ready=True → ready
-  if (conds.some((c) => c.type === 'Ready' && c.status === 'True')) {
-    return { state: 'ready' }
-  }
-  // Conditions present but all status=Unknown → pending (waiting on dependency)
-  if (conds.every((c) => c.status === 'Unknown')) {
-    return { state: 'pending' }
-  }
-  return { state: 'unknown' }
-}
-
-// ── Type guard ───────────────────────────────────────────────────────
+// ── Instance health (5-state) ─────────────────────────────────────────
 
 /** Runtime type guard: narrows unknown to K8sCondition. */
 function isCondition(v: unknown): v is K8sCondition {
@@ -88,8 +36,6 @@ function isCondition(v: unknown): v is K8sCondition {
   const obj = v as Record<string, unknown>
   return typeof obj.type === 'string' && typeof obj.status === 'string'
 }
-
-// ── Instance health (5-state) ─────────────────────────────────────────
 
 /**
  * Five-state health enumeration for a kro instance.

@@ -3,6 +3,7 @@
  * All colors from tokens.css custom properties.
  * No hardcoded hex values.
  * Spec: .specify/specs/012-rgd-chaining-deep-graph/
+ * Extended by spec: .specify/specs/031-deletion-debugger/ (terminating badge)
  */
 
 /* ── Expand toggle icon ───────────────────────────────────────────────────── */
@@ -84,4 +85,18 @@
 .deep-dag-nested-container .live-dag-container {
   overflow: visible;
   min-height: unset;
+}
+
+/* ── Terminating node badge (FR-003) ──────────────────────────────────────── */
+
+/* ⊗ badge shown at top-left of nodes whose child resource has deletionTimestamp set.
+ * Uses --color-error (rose) to match the Terminating banner colour.
+ * Positioned at top-left to avoid collision with the existing top-right nodeBadge. */
+.dag-node-badge--terminating {
+  fill: var(--color-error);
+  font-size: 12px;
+  font-weight: 700;
+  dominant-baseline: middle;
+  text-anchor: middle;
+  pointer-events: none;
 }

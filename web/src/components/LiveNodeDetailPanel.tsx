@@ -5,6 +5,7 @@
 //   - YAML fetch from the cluster for resource nodes (FR-006)
 //   - forEach node guidance note (FR-010)
 //   - Survives poll refreshes — the panel is NOT re-mounted on state update (FR-008)
+//   - Terminating row + Finalizers section (FR-006, spec 031-deletion-debugger)
 //
 // Spec: .specify/specs/005-instance-detail-live/
 // Spec 021: readyWhen, includeWhen, forEach, status each in independent sections.
@@ -13,9 +14,12 @@ import { useState, useEffect, useRef } from 'react'
 import type { DAGNode } from '@/lib/dag'
 import { NODE_TYPE_LABEL } from '@/lib/dag'
 import type { NodeLiveState } from '@/lib/instanceNodeState'
+import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
 import { toYaml } from '@/lib/yaml'
+import { isTerminating, getDeletionTimestamp, getFinalizers, formatRelativeTime } from '@/lib/k8s'
 import KroCodeBlock from './KroCodeBlock'
+import FinalizersPanel from './FinalizersPanel'
 import './LiveNodeDetailPanel.css'
 
 // ── Props ──────────────────────────────────────────────────────────────────
@@ -86,6 +90,8 @@ type YamlState =
 interface YamlSectionProps {
   nodeId: string
   resourceInfo: LiveNodeDetailPanelProps['resourceInfo']
+  /** Called with the raw K8sObject when fetch succeeds — used to extract deletion metadata. */
+  onRawObj?: (obj: K8sObject) => void
 }
 
 function buildKubectlCmd(
@@ -99,7 +105,7 @@ function buildKubectlCmd(
   return `kubectl get ${kind} ${name} -o yaml`
 }
 
-function YamlSection({ nodeId, resourceInfo }: YamlSectionProps) {
+function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
   const [yamlState, setYamlState] = useState<YamlState>({ status: 'idle' })
   // Track the nodeId for which we have fetched — don't re-fetch on re-render
   const fetchedForRef = useRef<string | null>(null)
@@ -120,6 +126,8 @@ function YamlSection({ nodeId, resourceInfo }: YamlSectionProps) {
     getResource(namespace, group, version, kind, name)
       .then((obj) => {
         clearTimeout(timeoutId)
+        // Notify parent with the raw object for deletion metadata extraction
+        onRawObj?.(obj)
         const yamlText = toYaml(obj)
         setYamlState({ status: 'loaded', yaml: yamlText, kubectl })
       })
@@ -134,7 +142,7 @@ function YamlSection({ nodeId, resourceInfo }: YamlSectionProps) {
       })
 
     return () => clearTimeout(timeoutId)
-  }, [nodeId, resourceInfo])
+  }, [nodeId, resourceInfo, onRawObj])
 
   function handleRetry() {
     fetchedForRef.current = null
@@ -226,6 +234,7 @@ function nonEmpty(exprs: string[]): string[] {
  * - FR-008: survives poll refreshes (no re-mount; only liveState prop changes)
  * - FR-010: forEach nodes show guidance, no YAML fetch
  * - NFR-004: 15s YAML fetch timeout
+ * - spec 031-deletion-debugger FR-006: Terminating row + Finalizers panel for child nodes
  */
 export default function LiveNodeDetailPanel({
   node,
@@ -248,6 +257,23 @@ export default function LiveNodeDetailPanel({
   const extMeta = extRef?.metadata as Record<string, unknown> | undefined
 
   const isForEach = node.nodeType === 'collection'
+
+  // ── Deletion metadata from fetched raw resource (FR-006) ──────────────────
+  // Populated via the onRawObj callback from YamlSection when the resource fetch succeeds.
+  const [rawResourceObj, setRawResourceObj] = useState<K8sObject | null>(null)
+
+  // Reset when the selected node changes (different nodeId = different resource)
+  const prevNodeIdRef = useRef<string | null>(null)
+  if (prevNodeIdRef.current !== node.id) {
+    prevNodeIdRef.current = node.id
+    // Reset to null synchronously during render when nodeId changes
+    // (safe because this runs before the YamlSection fetch for the new node)
+  }
+
+  // Compute deletion info from the raw object (graceful: null = not yet fetched)
+  const resourceIsTerminating = rawResourceObj ? isTerminating(rawResourceObj) : false
+  const resourceDeletionTs = rawResourceObj ? getDeletionTimestamp(rawResourceObj) : undefined
+  const resourceFinalizers = rawResourceObj ? getFinalizers(rawResourceObj) : []
 
   return (
     <div data-testid="node-detail-panel" className="node-detail-panel live-node-detail-panel">
@@ -275,6 +301,14 @@ export default function LiveNodeDetailPanel({
 
       {/* Body */}
       <div className="node-detail-body">
+        {/* Terminating row (FR-006) — only for non-instance, non-forEach nodes */}
+        {!isForEach && node.nodeType !== 'instance' && resourceIsTerminating && resourceDeletionTs && (
+          <div className="live-panel-terminating-row" role="status">
+            <span aria-hidden="true">⊗</span>
+            Terminating since {formatRelativeTime(resourceDeletionTs)}
+          </div>
+        )}
+
         {/* Node type badge */}
         <Section label="Type">
           <div className="node-type-badge-row">
@@ -310,7 +344,21 @@ export default function LiveNodeDetailPanel({
         {/* YAML section — resource and external nodes only */}
         {!isForEach && node.nodeType !== 'instance' && (
           <Section label="Live YAML">
-            <YamlSection nodeId={node.id} resourceInfo={resourceInfo} />
+            <YamlSection
+              nodeId={node.id}
+              resourceInfo={resourceInfo}
+              onRawObj={setRawResourceObj}
+            />
+          </Section>
+        )}
+
+        {/* Finalizers (FR-006) — shown after YAML section for non-instance, non-forEach nodes */}
+        {!isForEach && node.nodeType !== 'instance' && resourceFinalizers.length > 0 && (
+          <Section label="Finalizers">
+            <FinalizersPanel
+              finalizers={resourceFinalizers}
+              defaultExpanded={resourceIsTerminating}
+            />
           </Section>
         )}
 

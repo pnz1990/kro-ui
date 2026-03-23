@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth, formatAge, extractCreationTimestamp } from '@/lib/format'
+import { isTerminating } from '@/lib/k8s'
 import ReadinessBadge from './ReadinessBadge'
 import './InstanceTable.css'
 
@@ -60,6 +61,7 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
  * Sortable columns: Name (A→Z default), Age (newest first default),
  * Ready (worst first default — errors before healthy).
  * Paginated at PAGE_SIZE rows to stay within DOM bounds at 500+ instances.
+ * "Terminating only" filter (spec 031-deletion-debugger FR-005).
  *
  * Issue #71: adds clickable column headers with sort indicators.
  * Issue #109: add pagination for 500+ instances (Constitution §XIII).
@@ -70,6 +72,20 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('ready')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
+
+  // FR-005: Terminating-only filter
+  const [showTerminatingOnly, setShowTerminatingOnly] = useState(false)
+
+  // FR-005: Update document title when filter is active
+  useEffect(() => {
+    if (showTerminatingOnly) {
+      document.title = `${rgdName} — Instances (Terminating) — kro-ui`
+    } else {
+      document.title = `${rgdName} — kro-ui`
+    }
+    // Restore to rgdName-only on unmount
+    return () => { document.title = `${rgdName} — kro-ui` }
+  }, [showTerminatingOnly, rgdName])
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -84,7 +100,10 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
     setPage(0)
   }
 
-  const sorted = [...items].sort((a, b) => compareItems(a, b, sortKey, sortDir))
+  // FR-005: Apply terminating filter before sort/pagination
+  const effectiveItems = showTerminatingOnly ? items.filter(isTerminating) : items
+
+  const sorted = [...effectiveItems].sort((a, b) => compareItems(a, b, sortKey, sortDir))
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages - 1)
   const pageItems = sorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
@@ -107,7 +126,24 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
 
   return (
     <div className="instance-table-container">
-      <table className="instance-table" data-testid="instance-table">
+      {/* FR-005: Terminating only filter toggle */}
+      <div className="instance-table-filters">
+        <label className="instance-filter-terminating">
+          <input
+            type="checkbox"
+            checked={showTerminatingOnly}
+            onChange={(e) => { setShowTerminatingOnly(e.target.checked); setPage(0) }}
+          />
+          Terminating only
+        </label>
+      </div>
+
+      {/* AC-009: Empty state when filter is active but no matches */}
+      {showTerminatingOnly && effectiveItems.length === 0 ? (
+        <p className="panel-empty">No instances are currently terminating.</p>
+      ) : (
+        <>
+        <table className="instance-table" data-testid="instance-table">
         <thead>
           <tr>
             <th
@@ -205,7 +241,7 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
           </button>
           <span className="instance-table-pagination__info">
             {safePage + 1} / {totalPages}
-            <span className="instance-table-pagination__count"> ({items.length} total)</span>
+            <span className="instance-table-pagination__count"> ({effectiveItems.length} total)</span>
           </span>
           <button
             className="instance-table-pagination__btn"
@@ -216,6 +252,8 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
             ›
           </button>
         </div>
+      )}
+        </>
       )}
     </div>
   )
