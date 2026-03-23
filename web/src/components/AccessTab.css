@@ -1,6 +1,6 @@
 /* AccessTab.css — permission matrix table and banners.
  * All colors from tokens.css custom properties.
- * Spec: .specify/specs/018-rbac-visualizer/
+ * Spec: .specify/specs/018-rbac-visualizer/ + .specify/specs/032-rbac-sa-autodetect/
  */
 
 /* ── Loading / error states ──────────────────────────────────────────────── */
@@ -62,6 +62,27 @@
   color: var(--color-text-faint);
 }
 
+.access-tab-sa-value {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--color-text);
+  background: var(--color-surface-3);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.access-tab-sa-sep {
+  margin: 0 6px;
+  color: var(--color-text-faint);
+}
+
+.access-tab-sa-source {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
 .access-tab-sa-name {
   font-family: var(--font-mono);
   font-size: 0.9em;
@@ -75,6 +96,79 @@
   color: var(--color-text-faint);
   font-size: 12px;
   font-style: italic;
+}
+
+/* ── Manual SA override form (032-rbac-sa-autodetect) ─────────────────────── */
+
+.access-tab-sa-override-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+
+.access-tab-sa-override-desc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.access-tab-sa-override-inputs {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.access-tab-sa-override-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  flex: 1;
+  min-width: 180px;
+}
+
+.access-tab-sa-override-input {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: var(--font-mono);
+  transition: border-color var(--transition-fast);
+}
+
+.access-tab-sa-override-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.access-tab-sa-override-btn {
+  align-self: flex-start;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.access-tab-sa-override-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.access-tab-sa-override-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ── Informational note ───────────────────────────────────────────────────── */
