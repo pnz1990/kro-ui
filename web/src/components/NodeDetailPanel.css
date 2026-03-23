@@ -18,7 +18,7 @@
   flex-direction: column;
   overflow: hidden;
   z-index: 100;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-panel);
 }
 
 /* ── Panel header ─────────────────────────────────────────────────────────── */

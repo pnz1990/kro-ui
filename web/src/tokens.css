@@ -112,6 +112,13 @@
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-tooltip:  0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-panel:    -4px 0 16px rgba(0, 0, 0, 0.3);
+
+  /* readyWhen indicator — amber, semantically "waiting on condition" */
+  --color-ready-when: #f59e0b;
+
+  /* Z-index scale */
+  --z-tooltip: 200;
 }
 
 /* ── Light mode ────────────────────────────────────────────────────────── */
@@ -202,6 +209,13 @@
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.12);
   --shadow-tooltip:  0 4px 16px rgba(0, 0, 0, 0.16);
+  --shadow-panel:    -4px 0 16px rgba(0, 0, 0, 0.08);
+
+  /* readyWhen indicator — darker amber for light bg */
+  --color-ready-when: #d97706;
+
+  /* Z-index scale */
+  --z-tooltip: 200;
 }
 
 /* ── Reset ──────────────────────────────────────────────────────────────── */

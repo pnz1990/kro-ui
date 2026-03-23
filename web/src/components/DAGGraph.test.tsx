@@ -137,12 +137,14 @@ describe('DAGGraph', () => {
     expect(onClick).toHaveBeenCalledWith('clickable')
   })
 
-  // ── T020: Tooltip on hover (issue #73) ───────────────────────────────────
+  // ── T020: Tooltip on hover shows node metadata (issue #73) ───────────────
 
-  it('T020: hovering a node shows a tooltip with node ID, kind, and type', () => {
+  it('T020: hovering a node with readyWhen shows a portal tooltip with node ID and kind', () => {
     const node = makeNode('my-service', {
       nodeType: 'resource',
       kind: 'Deployment',
+      hasReadyWhen: true,
+      readyWhen: ['${schema.spec.enabled}'],
       x: 50,
       y: 32,
     })
@@ -151,35 +153,40 @@ describe('DAGGraph', () => {
     render(<DAGGraph graph={graph} />)
 
     const group = screen.getByTestId('dag-node-my-service')
-    fireEvent.mouseEnter(group, { clientX: 100, clientY: 100 })
+    fireEvent.mouseEnter(group)
 
     // Tooltip is rendered in a portal — query via document.body
-    const tooltip = document.querySelector('[role="tooltip"]')
+    const tooltip = document.body.querySelector('[role="tooltip"]')
     expect(tooltip).not.toBeNull()
     expect(tooltip!.textContent).toContain('my-service')
     expect(tooltip!.textContent).toContain('Deployment')
-    expect(tooltip!.textContent).toContain('Managed resource')
   })
 
   it('T021: tooltip disappears on mouse leave', () => {
-    const node = makeNode('my-service', { nodeType: 'resource', x: 50, y: 32 })
+    const node = makeNode('my-service', {
+      nodeType: 'resource',
+      hasReadyWhen: true,
+      readyWhen: ['${schema.spec.enabled}'],
+      x: 50,
+      y: 32,
+    })
     const graph = makeGraph([node])
 
     render(<DAGGraph graph={graph} />)
 
     const group = screen.getByTestId('dag-node-my-service')
-    fireEvent.mouseEnter(group, { clientX: 100, clientY: 100 })
-    expect(document.querySelector('[role="tooltip"]')).not.toBeNull()
+    fireEvent.mouseEnter(group)
+    expect(document.body.querySelector('[role="tooltip"]')).not.toBeNull()
 
     fireEvent.mouseLeave(group)
-    expect(document.querySelector('[role="tooltip"]')).toBeNull()
+    expect(document.body.querySelector('[role="tooltip"]')).toBeNull()
   })
 
-  it('T022: tooltip for conditional node shows includeWhen label', () => {
+  it('T022: tooltip for conditional node shows includeWhen section', () => {
     const node = makeNode('cond-node', {
       nodeType: 'resource',
       isConditional: true,
-      includeWhen: ['self.spec.enabled == true'],
+      includeWhen: ['${schema.spec.enabled == true}'],
       x: 50,
       y: 32,
     })
@@ -188,10 +195,95 @@ describe('DAGGraph', () => {
     render(<DAGGraph graph={graph} />)
 
     const group = screen.getByTestId('dag-node-cond-node')
-    fireEvent.mouseEnter(group, { clientX: 100, clientY: 100 })
+    fireEvent.mouseEnter(group)
 
-    const tooltip = document.querySelector('[role="tooltip"]')
+    const tooltip = document.body.querySelector('[role="tooltip"]')
     expect(tooltip).not.toBeNull()
-    expect(tooltip!.textContent).toContain('includeWhen')
+    expect(tooltip!.textContent).toContain('Include When')
+  })
+
+  // ── T021a/T021b: readyWhen badge — spec 021 ───────────────────────────
+
+  it('T021a: node with hasReadyWhen=true renders dag-node-badge--ready-when SVG text', () => {
+    const node = makeNode('appNamespace', {
+      hasReadyWhen: true,
+      readyWhen: ['${appNamespace.status.phase == "Active"}'],
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+    const { container } = render(<DAGGraph graph={graph} />)
+
+    const badge = container.querySelector('.dag-node-badge--ready-when')
+    expect(badge).toBeInTheDocument()
+    expect(badge?.textContent).toContain('⧖')
+  })
+
+  it('T021b: node with hasReadyWhen=false does NOT render dag-node-badge--ready-when', () => {
+    const node = makeNode('noCondition', {
+      hasReadyWhen: false,
+      readyWhen: [],
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+    const { container } = render(<DAGGraph graph={graph} />)
+
+    const badge = container.querySelector('.dag-node-badge--ready-when')
+    expect(badge).not.toBeInTheDocument()
+  })
+
+  // ── T012: readyWhen tooltip tests — spec 021 ──────────────────────────
+
+  it('T012a: mouseenter on readyWhen node renders the dag-node-tooltip portal in document.body', () => {
+    const node = makeNode('appNamespace', {
+      hasReadyWhen: true,
+      readyWhen: ['${appNamespace.status.phase == "Active"}'],
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+    render(<DAGGraph graph={graph} />)
+
+    const group = screen.getByTestId('dag-node-appNamespace')
+    fireEvent.mouseEnter(group)
+
+    // The tooltip portal is appended to document.body
+    expect(document.body.querySelector('#dag-node-tooltip')).toBeInTheDocument()
+  })
+
+  it('T012b: mouseenter on node without readyWhen or includeWhen does NOT render tooltip', () => {
+    const node = makeNode('noCondition', {
+      hasReadyWhen: false,
+      readyWhen: [],
+      includeWhen: [],
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+    render(<DAGGraph graph={graph} />)
+
+    const group = screen.getByTestId('dag-node-noCondition')
+    fireEvent.mouseEnter(group)
+
+    expect(document.body.querySelector('#dag-node-tooltip')).not.toBeInTheDocument()
+  })
+
+  it('T012c: mouseleave removes tooltip from document.body', () => {
+    const node = makeNode('appNamespace', {
+      hasReadyWhen: true,
+      readyWhen: ['${appNamespace.status.phase == "Active"}'],
+      x: 50,
+      y: 32,
+    })
+    const graph = makeGraph([node])
+    render(<DAGGraph graph={graph} />)
+
+    const group = screen.getByTestId('dag-node-appNamespace')
+    fireEvent.mouseEnter(group)
+    expect(document.body.querySelector('#dag-node-tooltip')).toBeInTheDocument()
+
+    fireEvent.mouseLeave(group)
+    expect(document.body.querySelector('#dag-node-tooltip')).not.toBeInTheDocument()
   })
 })

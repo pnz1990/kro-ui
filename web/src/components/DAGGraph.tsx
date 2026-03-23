@@ -4,12 +4,13 @@
 // All kro knowledge lives in web/src/lib/dag.ts.
 // Fix #64: SVG height is fitted to actual node bounding box, not layout estimate.
 // Fix #73: Portal tooltip on node hover shows ID, kind, type, includeWhen CEL.
+// Spec 021: hover tooltip via shared DAGTooltip (portal, viewport-clamped);
+//           readyWhen badge + section split in detail panel.
 
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { tokenize } from '@/lib/highlighter'
-import { nodeTypeLabel, tokenClass } from '@/lib/dagTooltip'
+import DAGTooltip from './DAGTooltip'
+import type { DAGTooltipTarget } from './DAGTooltip'
 import './DAGGraph.css'
 
 interface DAGGraphProps {
@@ -61,89 +62,19 @@ function nodeBadge(node: DAGNode): string | null {
   }
 }
 
-// ── Tooltip state ──────────────────────────────────────────────────────────
-
-interface TooltipState {
-  node: DAGNode
-  x: number
-  y: number
-}
-
-// ── Portal tooltip ─────────────────────────────────────────────────────────
-
-interface DagTooltipProps {
-  state: TooltipState
-}
-
-function DagTooltip({ state }: DagTooltipProps) {
-  const { node, x, y } = state
-  const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ left: x + 12, top: y + 12 })
-
-  useEffect(() => {
-    if (!ref.current) return
-    const { width, height } = ref.current.getBoundingClientRect()
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-    let left = x + 12
-    let top = y + 12
-    if (left + width > vw - 8) left = x - width - 12
-    if (top + height > vh - 8) top = y - height - 12
-    setPos({ left, top })
-  }, [x, y])
-
-  const tokens = node.includeWhen.length > 0
-    ? tokenize(node.includeWhen.join(' && '))
-    : null
-
-  return createPortal(
-    <div
-      ref={ref}
-      className="dag-tooltip"
-      role="tooltip"
-      style={{ left: pos.left, top: pos.top }}
-    >
-      <div className="dag-tooltip__id">{node.id}</div>
-      <div className="dag-tooltip__row">
-        <span className="dag-tooltip__label">Kind</span>
-        <span className="dag-tooltip__value dag-tooltip__value--mono">
-          {node.kind || node.id}
-        </span>
-      </div>
-      <div className="dag-tooltip__row">
-        <span className="dag-tooltip__label">Type</span>
-        <span className="dag-tooltip__value">{nodeTypeLabel(node.nodeType)}</span>
-      </div>
-      {tokens && (
-        <div className="dag-tooltip__cel">
-          <span className="dag-tooltip__label">includeWhen</span>
-          <span className="dag-tooltip__cel-code">
-            {tokens.map((tok, i) => (
-              <span key={i} className={tokenClass(tok.type)}>
-                {tok.text}
-              </span>
-            ))}
-          </span>
-        </div>
-      )}
-    </div>,
-    document.body,
-  )
-}
-
-// ── NodeGroup ──────────────────────────────────────────────────────────────
-
 /** Single DAG node rendered as SVG group. */
 function NodeGroup({
   node,
   isSelected,
   onNodeClick,
-  onNodeHover,
+  onHover,
+  svgRef,
 }: {
   node: DAGNode
   isSelected: boolean
   onNodeClick?: (id: string) => void
-  onNodeHover?: (node: DAGNode | null, x: number, y: number) => void
+  onHover: (target: DAGTooltipTarget | null) => void
+  svgRef: React.RefObject<SVGSVGElement | null>
 }) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
@@ -155,23 +86,17 @@ function NodeGroup({
   const className =
     nodeTypeClass(node) + (isSelected ? ' dag-node--selected' : '')
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent) => {
-      onNodeHover?.(node, e.clientX, e.clientY)
-    },
-    [node, onNodeHover],
-  )
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      onNodeHover?.(node, e.clientX, e.clientY)
-    },
-    [node, onNodeHover],
-  )
-
-  const handleMouseLeave = useCallback(() => {
-    onNodeHover?.(null, 0, 0)
-  }, [onNodeHover])
+  function handleMouseEnter() {
+    const svgRect = svgRef.current?.getBoundingClientRect()
+    if (!svgRect) return
+    onHover({
+      node,
+      anchorX: svgRect.left + node.x,
+      anchorY: svgRect.top + node.y,
+      nodeWidth: node.width,
+      nodeHeight: node.height,
+    })
+  }
 
   return (
     <g
@@ -182,15 +107,14 @@ function NodeGroup({
       aria-label={`${node.label} (${node.nodeType})`}
       aria-pressed={isSelected}
       onClick={() => onNodeClick?.(node.id)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => onHover(null)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onNodeClick?.(node.id)
         }
       }}
-      onMouseEnter={handleMouseEnter}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
     >
       <rect
         className="dag-node-rect"
@@ -221,6 +145,16 @@ function NodeGroup({
           {badge}
         </text>
       )}
+      {node.hasReadyWhen && (
+        <text
+          className="dag-node-badge dag-node-badge--ready-when"
+          x={node.x + 10}
+          y={node.y + node.height - 8}
+          aria-label="has readyWhen condition"
+        >
+          ⧖
+        </text>
+      )}
     </g>
   )
 }
@@ -238,22 +172,13 @@ export default function DAGGraph({
 }: DAGGraphProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
   const svgHeight = fittedHeight(graph)
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
-
-  const handleNodeHover = useCallback(
-    (node: DAGNode | null, x: number, y: number) => {
-      if (node === null) {
-        setTooltip(null)
-      } else {
-        setTooltip({ node, x, y })
-      }
-    },
-    [],
-  )
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
   return (
     <div className="dag-graph-container">
       <svg
+        ref={svgRef}
         data-testid="dag-svg"
         width={graph.width}
         height={svgHeight}
@@ -291,7 +216,7 @@ export default function DAGGraph({
                 className="dag-edge"
                 d={edgePath(fromNode, toNode)}
                 markerEnd="url(#dag-arrowhead)"
-              />
+            />
             )
           })}
         </g>
@@ -304,13 +229,20 @@ export default function DAGGraph({
               node={node}
               isSelected={node.id === selectedNodeId}
               onNodeClick={onNodeClick}
-              onNodeHover={handleNodeHover}
+              onHover={setHoveredTooltip}
+              svgRef={svgRef}
             />
           ))}
         </g>
       </svg>
 
-      {tooltip && <DagTooltip state={tooltip} />}
+      <DAGTooltip
+        node={hoveredTooltip?.node ?? null}
+        anchorX={hoveredTooltip?.anchorX ?? 0}
+        anchorY={hoveredTooltip?.anchorY ?? 0}
+        nodeWidth={hoveredTooltip?.nodeWidth ?? 0}
+        nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
+      />
     </div>
   )
 }

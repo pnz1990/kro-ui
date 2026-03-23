@@ -1,0 +1,76 @@
+/* DAGTooltip.css — Styles for the shared DAG node hover tooltip.
+ *
+ * Rendered via createPortal to document.body — position: fixed.
+ * All colors and shadows via tokens.css custom properties only.
+ * Spec: .specify/specs/021-readywhen-cel-dag/
+ */
+
+/* ── Tooltip container ────────────────────────────────────────────────────── */
+
+.dag-tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-tooltip);
+  padding: 12px 14px;
+  min-width: 220px;
+  max-width: 360px;
+  /* Start invisible; useEffect flips to dag-tooltip--visible after clamping */
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dag-tooltip--visible {
+  opacity: 1;
+  transition: opacity var(--transition-fast);
+}
+
+/* ── Header row: id · kind · node type ───────────────────────────────────── */
+
+.dag-tooltip-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.dag-tooltip-node-id {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.dag-tooltip-node-kind {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.dag-tooltip-node-type {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-left: auto;
+}
+
+/* ── Content sections (Include When, Ready When) ─────────────────────────── */
+
+.dag-tooltip-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.dag-tooltip-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}

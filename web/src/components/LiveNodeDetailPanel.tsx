@@ -7,9 +7,11 @@
 //   - Survives poll refreshes — the panel is NOT re-mounted on state update (FR-008)
 //
 // Spec: .specify/specs/005-instance-detail-live/
+// Spec 021: readyWhen, includeWhen, forEach, status each in independent sections.
 
 import { useState, useEffect, useRef } from 'react'
 import type { DAGNode } from '@/lib/dag'
+import { NODE_TYPE_LABEL } from '@/lib/dag'
 import type { NodeLiveState } from '@/lib/instanceNodeState'
 import { getResource } from '@/lib/api'
 import { toYaml } from '@/lib/yaml'
@@ -200,20 +202,17 @@ const CONCEPT_TEXT: Record<string, string> = {
     'matched by label selector. kro reads them but does not create or own them.',
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  instance: 'Root CR',
-  resource: 'Managed Resource',
-  collection: 'forEach Collection',
-  external: 'External Ref',
-  externalCollection: 'External Ref Collection',
-}
-
 const TYPE_ICON: Record<string, string> = {
   instance: '◉',
   resource: '⬜',
   collection: '∀',
   external: '⬡',
   externalCollection: '⬡',
+}
+
+/** Filter blank CEL expressions before rendering. */
+function nonEmpty(exprs: string[]): string[] {
+  return exprs.filter((s) => s.trim() !== '')
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -235,28 +234,15 @@ export default function LiveNodeDetailPanel({
   onClose,
 }: LiveNodeDetailPanelProps) {
   const conceptText = CONCEPT_TEXT[node.nodeType] ?? ''
-  const typeLabel = TYPE_LABEL[node.nodeType] ?? node.nodeType
+  const typeLabel = NODE_TYPE_LABEL[node.nodeType] ?? node.nodeType
   const typeIcon = TYPE_ICON[node.nodeType] ?? '⬜'
 
-  // Build CEL snippet
-  const celLines: string[] = []
-  if (node.readyWhen.length > 0) {
-    celLines.push('readyWhen:')
-    for (const expr of node.readyWhen) celLines.push(`  - ${expr}`)
-  }
-  if (node.includeWhen.length > 0) {
-    celLines.push('includeWhen:')
-    for (const expr of node.includeWhen) celLines.push(`  - ${expr}`)
-  }
-  if (node.forEach) celLines.push(`forEach: ${node.forEach}`)
-  if (node.nodeType === 'instance' && node.schemaStatus) {
-    const entries = Object.entries(node.schemaStatus)
-    if (entries.length > 0) {
-      celLines.push('status:')
-      for (const [key, val] of entries) celLines.push(`  ${key}: ${String(val)}`)
-    }
-  }
-  const celCode = celLines.join('\n')
+  const readyWhenExprs = nonEmpty(node.readyWhen)
+  const includeWhenExprs = nonEmpty(node.includeWhen)
+  const statusEntries =
+    node.nodeType === 'instance' && node.schemaStatus
+      ? Object.entries(node.schemaStatus)
+      : []
 
   const extRef = node.externalRef as Record<string, unknown> | undefined
   const extMeta = extRef?.metadata as Record<string, unknown> | undefined
@@ -328,10 +314,40 @@ export default function LiveNodeDetailPanel({
           </Section>
         )}
 
-        {/* CEL expressions */}
-        {celCode && (
-          <Section label="CEL Expressions">
-            <KroCodeBlock code={celCode} />
+        {/* Ready When — readyWhen CEL conditions (spec 021) */}
+        {readyWhenExprs.length > 0 && (
+          <Section label="Ready When">
+            <KroCodeBlock
+              code={'readyWhen:\n' + readyWhenExprs.map((e) => `  - ${e}`).join('\n')}
+            />
+          </Section>
+        )}
+
+        {/* Include When — conditional inclusion guard */}
+        {includeWhenExprs.length > 0 && (
+          <Section label="Include When">
+            <KroCodeBlock
+              code={'includeWhen:\n' + includeWhenExprs.map((e) => `  - ${e}`).join('\n')}
+            />
+          </Section>
+        )}
+
+        {/* forEach — collection iterator */}
+        {node.forEach && (
+          <Section label="forEach">
+            <KroCodeBlock code={`forEach: ${node.forEach}`} />
+          </Section>
+        )}
+
+        {/* Status Projections — root node only */}
+        {statusEntries.length > 0 && (
+          <Section label="Status Projections">
+            <KroCodeBlock
+              code={
+                'status:\n' +
+                statusEntries.map(([k, v]) => `  ${k}: ${String(v)}`).join('\n')
+              }
+            />
           </Section>
         )}
 

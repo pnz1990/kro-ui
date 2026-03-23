@@ -5,16 +5,16 @@
 //
 // Spec 011 extension: collection nodes receive a CollectionBadge health overlay.
 // Fix #64: SVG height is fitted to actual node bounding box.
-// Fix #73: Portal tooltip on node hover shows ID, kind, type, live state.
+// Fix #73 / Spec 021: hover tooltip via shared DAGTooltip (portal, viewport-clamped).
+// Spec 021: readyWhen badge on nodes with hasReadyWhen.
 
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import type { NodeStateMap, NodeLiveState, NodeStateEntry } from '@/lib/instanceNodeState'
+import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
-import { tokenize } from '@/lib/highlighter'
-import { nodeTypeLabel, tokenClass } from '@/lib/dagTooltip'
 import CollectionBadge from './CollectionBadge'
+import DAGTooltip from './DAGTooltip'
+import type { DAGTooltipTarget } from './DAGTooltip'
 import './LiveDAG.css'
 
 const PADDING = 32
@@ -69,16 +69,6 @@ function nodeState(
   return entry?.state
 }
 
-/** Look up the full NodeStateEntry for a node (used for tooltip). */
-function nodeEntry(
-  node: DAGNode,
-  stateMap: NodeStateMap,
-): NodeStateEntry | undefined {
-  if (node.nodeType === 'instance') return undefined
-  const kindKey = (node.kind || node.label).toLowerCase()
-  return stateMap[kindKey]
-}
-
 /** Edge path: cubic bezier from parent bottom-center to child top-center. */
 function edgePath(
   from: { x: number; y: number; width: number; height: number },
@@ -119,108 +109,6 @@ function nodeClassName(
   return parts.join(' ')
 }
 
-/** Human-readable live state label. */
-function liveStateLabel(state: NodeLiveState | undefined): string {
-  if (!state) return 'Not reported'
-  switch (state) {
-    case 'alive':       return 'Alive'
-    case 'reconciling': return 'Reconciling'
-    case 'error':       return 'Error'
-    case 'not-found':   return 'Not found'
-  }
-}
-
-/** CSS modifier class for state label colour. */
-function stateLabelClass(state: NodeLiveState | undefined): string {
-  if (!state) return 'dag-tooltip__state--notfound'
-  switch (state) {
-    case 'alive':       return 'dag-tooltip__state--alive'
-    case 'reconciling': return 'dag-tooltip__state--reconciling'
-    case 'error':       return 'dag-tooltip__state--error'
-    case 'not-found':   return 'dag-tooltip__state--notfound'
-  }
-}
-
-// ── Tooltip ────────────────────────────────────────────────────────────────
-
-interface TooltipState {
-  node: DAGNode
-  state: NodeLiveState | undefined
-  entry: NodeStateEntry | undefined
-  x: number
-  y: number
-}
-
-function LiveDagTooltip({ state }: { state: TooltipState }) {
-  const { node, state: liveState, entry, x, y } = state
-  const ref = useRef<HTMLDivElement>(null)
-  const [pos, setPos] = useState({ left: x + 12, top: y + 12 })
-
-  useEffect(() => {
-    if (!ref.current) return
-    const { width, height } = ref.current.getBoundingClientRect()
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-    let left = x + 12
-    let top = y + 12
-    if (left + width > vw - 8) left = x - width - 12
-    if (top + height > vh - 8) top = y - height - 12
-    setPos({ left, top })
-  }, [x, y])
-
-  const tokens = node.includeWhen.length > 0
-    ? tokenize(node.includeWhen.join(' && '))
-    : null
-
-  return createPortal(
-    <div
-      ref={ref}
-      className="dag-tooltip"
-      role="tooltip"
-      style={{ left: pos.left, top: pos.top }}
-    >
-      <div className="dag-tooltip__id">{node.id}</div>
-      <div className="dag-tooltip__row">
-        <span className="dag-tooltip__label">Kind</span>
-        <span className="dag-tooltip__value dag-tooltip__value--mono">
-          {node.kind || node.id}
-        </span>
-      </div>
-      <div className="dag-tooltip__row">
-        <span className="dag-tooltip__label">Type</span>
-        <span className="dag-tooltip__value">{nodeTypeLabel(node.nodeType)}</span>
-      </div>
-      <div className="dag-tooltip__row">
-        <span className="dag-tooltip__label">State</span>
-        <span className={`dag-tooltip__value dag-tooltip__state ${stateLabelClass(liveState)}`}>
-          {liveStateLabel(liveState)}
-        </span>
-      </div>
-      {entry && entry.name && (
-        <div className="dag-tooltip__row">
-          <span className="dag-tooltip__label">Name</span>
-          <span className="dag-tooltip__value dag-tooltip__value--mono">
-            {entry.namespace ? `${entry.namespace}/${entry.name}` : entry.name}
-          </span>
-        </div>
-      )}
-      {tokens && (
-        <div className="dag-tooltip__cel">
-          <span className="dag-tooltip__label">includeWhen</span>
-          <span className="dag-tooltip__cel-code">
-            {tokens.map((tok, i) => (
-              <span key={i} className={tokenClass(tok.type)}>
-                {tok.text}
-              </span>
-            ))}
-          </span>
-        </div>
-      )}
-    </div>,
-    document.body,
-  )
-}
-
 // ── Node component ─────────────────────────────────────────────────────────
 
 interface NodeGroupProps {
@@ -228,12 +116,13 @@ interface NodeGroupProps {
   state: NodeLiveState | undefined
   isSelected: boolean
   onNodeClick?: (node: DAGNode) => void
-  onNodeHover?: (node: DAGNode | null, x: number, y: number) => void
+  onHover: (target: DAGTooltipTarget | null) => void
+  svgRef: React.RefObject<SVGSVGElement | null>
   /** Pre-filtered children for collection badge (only passed for collection nodes). */
   children?: K8sObject[]
 }
 
-function NodeGroup({ node, state, isSelected, onNodeClick, onNodeHover, children }: NodeGroupProps) {
+function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, children }: NodeGroupProps) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
   const labelY = node.y + node.height / 2 - (node.kind ? 7 : 0)
@@ -243,18 +132,17 @@ function NodeGroup({ node, state, isSelected, onNodeClick, onNodeHover, children
 
   const className = nodeClassName(node, state, isSelected)
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent) => onNodeHover?.(node, e.clientX, e.clientY),
-    [node, onNodeHover],
-  )
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => onNodeHover?.(node, e.clientX, e.clientY),
-    [node, onNodeHover],
-  )
-  const handleMouseLeave = useCallback(
-    () => onNodeHover?.(null, 0, 0),
-    [onNodeHover],
-  )
+  function handleMouseEnter() {
+    const svgRect = svgRef.current?.getBoundingClientRect()
+    if (!svgRect) return
+    onHover({
+      node,
+      anchorX: svgRect.left + node.x,
+      anchorY: svgRect.top + node.y,
+      nodeWidth: node.width,
+      nodeHeight: node.height,
+    })
+  }
 
   return (
     <g
@@ -265,15 +153,14 @@ function NodeGroup({ node, state, isSelected, onNodeClick, onNodeHover, children
       aria-label={`${node.label} (${node.nodeType})`}
       aria-pressed={isSelected}
       onClick={() => onNodeClick?.(node)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => onHover(null)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onNodeClick?.(node)
         }
       }}
-      onMouseEnter={handleMouseEnter}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
     >
       <rect
         className="dag-node-rect"
@@ -302,6 +189,16 @@ function NodeGroup({ node, state, isSelected, onNodeClick, onNodeHover, children
           y={badgeY}
         >
           {badge}
+        </text>
+      )}
+      {node.hasReadyWhen && (
+        <text
+          className="dag-node-badge dag-node-badge--ready-when"
+          x={node.x + 10}
+          y={node.y + node.height - 8}
+          aria-label="has readyWhen condition"
+        >
+          ⧖
         </text>
       )}
       {node.nodeType === 'collection' && children && children.length > 0 && (
@@ -337,28 +234,13 @@ export default function LiveDAG({
 }: LiveDAGProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
   const svgHeight = fittedHeight(graph)
-  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
-
-  const handleNodeHover = useCallback(
-    (node: DAGNode | null, x: number, y: number) => {
-      if (node === null) {
-        setTooltip(null)
-      } else {
-        setTooltip({
-          node,
-          state: nodeState(node, nodeStateMap),
-          entry: nodeEntry(node, nodeStateMap),
-          x,
-          y,
-        })
-      }
-    },
-    [nodeStateMap],
-  )
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
   return (
     <div className="dag-graph-container live-dag-container">
       <svg
+        ref={svgRef}
         data-testid="dag-svg"
         width={graph.width}
         height={svgHeight}
@@ -410,14 +292,21 @@ export default function LiveDAG({
               state={nodeState(node, nodeStateMap)}
               isSelected={node.id === selectedNodeId}
               onNodeClick={onNodeClick}
-              onNodeHover={handleNodeHover}
+              onHover={setHoveredTooltip}
+              svgRef={svgRef}
               children={node.nodeType === 'collection' ? children : undefined}
             />
           ))}
         </g>
       </svg>
 
-      {tooltip && <LiveDagTooltip state={tooltip} />}
+      <DAGTooltip
+        node={hoveredTooltip?.node ?? null}
+        anchorX={hoveredTooltip?.anchorX ?? 0}
+        anchorY={hoveredTooltip?.anchorY ?? 0}
+        nodeWidth={hoveredTooltip?.nodeWidth ?? 0}
+        nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
+      />
     </div>
   )
 }
