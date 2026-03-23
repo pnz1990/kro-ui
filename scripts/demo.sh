@@ -176,11 +176,11 @@ info "Applying external-ref RGD + instance…"
 wait_rgd_ready external-ref 120s
 "${KC[@]}" apply -f "${FIXTURES_DIR}/external-ref-instance.yaml"
 
-# cel-functions
+# cel-functions (uses quantity() CEL function — requires kro v0.3.0+; optional)
 info "Applying cel-functions RGD + instance…"
 "${KC[@]}" apply -f "${FIXTURES_DIR}/cel-functions-rgd.yaml"
-wait_rgd_ready cel-functions 120s
-"${KC[@]}" apply -f "${FIXTURES_DIR}/cel-functions-instance.yaml"
+wait_rgd_ready cel-functions 120s optional
+"${KC[@]}" apply -f "${FIXTURES_DIR}/cel-functions-instance.yaml" 2>/dev/null || true
 
 # chain RGDs (no instances needed)
 info "Applying chain RGDs…"
