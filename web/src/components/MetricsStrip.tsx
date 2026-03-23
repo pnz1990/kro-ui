@@ -65,12 +65,30 @@ export default function MetricsStrip() {
     )
   }
 
-  // Degraded state — fetch failed and we have no prior data to show
+  // Degraded state — fetch failed and we have no prior data to show.
+  // Surface context so the user knows whether this is a config issue or a
+  // connectivity issue (issue #97).
   if (error !== null && data === null) {
+    // usePolling stores errors as string | null — safe to use String() directly.
+    const errMsg = String(error)
+    let detail: string
+    if (errMsg.includes('504') || errMsg.toLowerCase().includes('timeout')) {
+      detail = 'metrics endpoint did not respond in time'
+    } else if (errMsg.includes('502') || errMsg.toLowerCase().includes('bad gateway')) {
+      detail = 'metrics endpoint returned an error'
+    } else if (errMsg.includes('503') || errMsg.toLowerCase().includes('service unavailable')) {
+      // Endpoint reachable but kro isn't exposing /metrics on that port yet
+      detail = 'metrics endpoint returned 503 — check that kro is exposing /metrics'
+    } else if (errMsg.toLowerCase().includes('connection refused') || errMsg.toLowerCase().includes('unreachable')) {
+      // Network/DNS failure — likely --metrics-url not set or wrong address
+      detail = 'start kro-ui with --metrics-url to enable'
+    } else {
+      detail = 'metrics endpoint unavailable'
+    }
     return (
       <div className="metrics-strip metrics-strip--degraded" role="status">
         <span className="metrics-strip__degraded-msg">
-          Controller metrics unavailable
+          Controller metrics unavailable — {detail}
         </span>
       </div>
     )

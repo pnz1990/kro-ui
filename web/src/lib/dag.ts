@@ -10,8 +10,15 @@ import type { NodeLiveState } from '@/lib/instanceNodeState'
 // ── Types ─────────────────────────────────────────────────────────────────
 
 /**
- * Exactly the five upstream kro node types from pkg/graph/node.go.
- * No other values are valid.
+ * The five upstream kro node types from pkg/graph/node.go, plus one
+ * kro-ui-specific type for kro's `state:` field feature.
+ *
+ * 'state' — kro state store node: has `state:` block, no `template:`, no
+ * `externalRef:`. Produces no Kubernetes objects; mutates kro's internal
+ * state store via kstate(). Upstream kro does not yet define NodeTypeState
+ * in pkg/graph/node.go — this is a kro-ui rendering decision until upstream
+ * formalises it. Detection: presence of `state:` key and absence of `template:`
+ * in the resource entry.
  */
 export type NodeType =
   | 'instance'           // Root CR — synthesized from spec.schema, id = 'schema'
@@ -19,6 +26,7 @@ export type NodeType =
   | 'collection'         // forEach fan-out — has template + forEach
   | 'external'           // External ref by name — externalRef.metadata.name
   | 'externalCollection' // External ref by selector — externalRef.metadata.selector
+  | 'state'              // kro state store — has state:, no template: (kro-ui extension)
 
 /**
  * nodeTypeLabel — human-readable label for a kro upstream node type.
@@ -32,6 +40,7 @@ export const NODE_TYPE_LABEL: Record<NodeType, string> = {
   collection:         'forEach Collection',
   external:           'External Ref',
   externalCollection: 'External Ref Collection',
+  state:              'State Store',
 }
 
 /**
@@ -417,6 +426,13 @@ function extractForEachDisplay(raw: unknown): string | undefined {
  * This is the SINGLE source of truth for node-type classification. Both
  * buildDAGGraph and detectCollapseGroups call this function — never inline
  * the classification rules elsewhere.
+ *
+ * Classification order (checked top-to-bottom):
+ *   1. externalRef present → external or externalCollection
+ *   2. template + forEach  → collection
+ *   3. template only       → resource
+ *   4. state: present (no template, no externalRef) → state (kro-ui extension)
+ *   5. fallback            → resource
  */
 function classifyResource(r: unknown): NodeType | null {
   const res = asObject(r)
@@ -431,6 +447,10 @@ function classifyResource(r: unknown): NodeType | null {
     return meta?.selector !== undefined ? 'externalCollection' : 'external'
   }
   if (template && forEach !== undefined) return 'collection'
+  if (template) return 'resource'
+  // kro state: block — no template, no externalRef.
+  // Produces no Kubernetes objects; mutates kro's internal state store.
+  if (res.state !== undefined) return 'state'
   return 'resource'
 }
 
@@ -554,6 +574,7 @@ export function nodeBadge(node: DAGNode): string | null {
     case 'collection':          return '∀'
     case 'external':
     case 'externalCollection':  return '⬡'
+    case 'state':               return null  // distinguished by fill colour, not badge
     default:                    return null
   }
 }
@@ -756,6 +777,7 @@ export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[])
     const celExpressions: string[] = []
     if (template) walkTemplate(template, celExpressions)
     else if (externalRef) walkTemplate(externalRef, celExpressions)
+    else if (asObject(res.state)) walkTemplate(asObject(res.state), celExpressions)
 
     // ── Extract forEach iterator variable names (to exclude from ID matching)
     const iteratorVars = new Set<string>()

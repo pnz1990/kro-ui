@@ -126,6 +126,65 @@ describe('buildDAGGraph', () => {
     expect(node?.includeWhen).toEqual(['${schema.spec.enableConfig}'])
   })
 
+  // ── T006b: state: block → NodeTypeState ('state') — issue #94/#95 ─────
+
+  it('T006b: classifies state: block (no template) as NodeTypeState', () => {
+    const spec = minimalSpec([
+      {
+        id: 'dungeonInit',
+        state: {
+          fields: {
+            heroHP: '${200}',
+            bossHP: '${400}',
+          },
+          storeName: 'game',
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'dungeonInit')
+    expect(node?.nodeType).toBe('state')
+  })
+
+  it('T006c: state node kind falls back to nodeId (never "?") — §XII fix #94', () => {
+    const spec = minimalSpec([
+      {
+        id: 'combatResolve',
+        state: {
+          fields: { heroHP: '${0}' },
+          storeName: 'game',
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'combatResolve')
+    // state node has no template.kind → falls back to nodeId
+    expect(node?.kind).toBe('combatResolve')
+    expect(node?.kind).not.toBe('?')
+    expect(node?.kind).not.toBe('')
+  })
+
+  it('T006d: state node CEL expressions extracted from state.fields', () => {
+    const spec = minimalSpec([
+      {
+        id: 'tickDoT',
+        includeWhen: ['${schema.spec.attackSeq > 0}'],
+        state: {
+          fields: {
+            heroHP: '${kstate(schema.status.game, "heroHP", 0) - 5}',
+          },
+          storeName: 'game',
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const node = graph.nodes.find((n) => n.id === 'tickDoT')
+    expect(node?.nodeType).toBe('state')
+    expect(node?.isConditional).toBe(true)
+    // CEL expressions from state.fields should be collected
+    expect(node?.celExpressions.length).toBeGreaterThan(0)
+  })
+
   // ── T007: CEL cross-reference → edge from dependency to dependent ─────
 
   it('T007: creates edges for direct CEL references between resources', () => {

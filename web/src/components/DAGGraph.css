@@ -80,6 +80,27 @@
   stroke-dasharray: 5 3;
 }
 
+/* State store (kro state: field — no Kubernetes objects produced) */
+.dag-node--state rect.dag-node-rect {
+  fill: var(--node-state-bg);
+  stroke: var(--node-state-border);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+
+.dag-node--state:hover rect.dag-node-rect,
+.dag-node--state.dag-node--selected rect.dag-node-rect {
+  fill: var(--node-state-bg);
+  stroke: var(--node-state-border);
+  stroke-width: 2;
+  stroke-dasharray: 3 2;
+}
+
+.dag-node--state .dag-node-kind {
+  fill: var(--node-state-border);
+  font-style: italic;
+}
+
 /* ── Conditional modifier (includeWhen) ──────────────────────────────────── */
 
 .node-conditional rect.dag-node-rect {

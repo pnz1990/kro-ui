@@ -283,7 +283,7 @@ export default function Events() {
 
       {/* ── Loading state ── */}
       {loading && allEvents.length === 0 && !error && (
-        <div className="events-page__loading" aria-live="polite" data-testid="events-loading">
+        <div className="events-page__loading" aria-live="polite" aria-busy="true" data-testid="events-loading">
           Loading events…
         </div>
       )}

@@ -14,6 +14,7 @@ export function nodeTypeLabel(nodeType: NodeType): string {
     case 'collection':         return 'forEach collection'
     case 'external':           return 'External ref'
     case 'externalCollection': return 'External ref collection'
+    case 'state':              return 'State store'
   }
 }
 

@@ -33,6 +33,10 @@ const CONCEPT_TEXT: Record<NodeType, string> = {
   externalCollection:
     'External Reference Collection — References to pre-existing Kubernetes resources ' +
     'matched by label selector. kro reads them but does not create or own them.',
+  state:
+    'State Store — A kro state node. It does not create any Kubernetes resource; ' +
+    'instead it computes values and stores them in kro\'s internal state store (kstate()). ' +
+    'Other resources can reference these values via ${kstate(schema.status.storeName, \'field\', default)}.',
 }
 
 /** Badge icon per node type. */
@@ -42,6 +46,7 @@ const TYPE_ICON: Record<NodeType, string> = {
   collection: '∀',
   external: '⬡',
   externalCollection: '⬡',
+  state: '⊞',
 }
 
 /** Filter blank CEL expressions before rendering. */

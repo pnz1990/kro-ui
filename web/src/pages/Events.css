@@ -169,6 +169,16 @@
   font-size: 14px;
 }
 
+/* Loading state is visually distinct from empty: pulse animation to signal activity (#90) */
+.events-page__loading {
+  animation: events-loading-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes events-loading-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 .events-page__error {
   padding: 12px 16px;
   background: var(--node-error-bg);
