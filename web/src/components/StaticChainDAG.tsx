@@ -25,7 +25,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { buildChainSubgraph } from '@/lib/dag'
+import { buildChainSubgraph, nodeBadge, forEachLabel } from '@/lib/dag'
 import type { K8sObject } from '@/lib/api'
 import './StaticChainDAG.css'
 
@@ -86,16 +86,6 @@ function nodeBaseClass(node: DAGNode, isSelected: boolean): string {
   if (node.isChainable) parts.push('node-chainable')
   if (isSelected) parts.push('dag-node--selected')
   return parts.join(' ')
-}
-
-function nodeBadge(node: DAGNode): string | null {
-  if (node.isConditional) return '?'
-  switch (node.nodeType) {
-    case 'collection': return '∀'
-    case 'external':
-    case 'externalCollection': return '⬡'
-    default: return null
-  }
 }
 
 // ── NestedSubgraph ────────────────────────────────────────────────────────
@@ -318,8 +308,10 @@ export default function StaticChainDAG({
             const isSelected = node.id === selectedNodeId
             const badge = nodeBadge(node)
             const cx = node.x + node.width / 2
-            const labelY = node.y + node.height / 2 - (node.kind ? 7 : 0)
-            const kindY = node.y + node.height / 2 + 8
+            // Fixed pixel offsets — safe for both 48px (resource) and 60px (collection) nodes.
+            const labelY = node.y + 17
+            const kindY = node.y + 32
+            const forEachY = node.y + 45
             const badgeX = node.x + node.width - 10
             const badgeY = node.y + 10
             const className = nodeBaseClass(node, isSelected)
@@ -376,6 +368,18 @@ export default function StaticChainDAG({
                   {node.kind && (
                     <text className="dag-node-kind" x={cx} y={kindY}>
                       {node.kind}
+                    </text>
+                  )}
+                  {forEachLabel(node.forEach) && (
+                    <text
+                      data-testid={`dag-node-foreach-${node.id}`}
+                      className="dag-node-foreach"
+                      x={cx}
+                      y={forEachY}
+                      aria-label={`forEach: ${node.forEach}`}
+                    >
+                      <title>{node.forEach}</title>
+                      {forEachLabel(node.forEach)}
                     </text>
                   )}
                   {badge && (

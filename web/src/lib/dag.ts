@@ -487,6 +487,42 @@ export function detectCollapseGroups(spec: unknown): CollapseGroup[] {
   return result
 }
 
+// ── Shared DAG rendering helpers ──────────────────────────────────────────
+
+/**
+ * Returns the badge character for a DAG node, or null if none applies.
+ * The conditional modifier (?) overrides the node-type badge (∀, ⬡).
+ * Defined here once; imported by DAGGraph, StaticChainDAG, LiveDAG, DeepDAG.
+ * Constitution §IX: shared helpers must not be copy-pasted across components.
+ */
+export function nodeBadge(node: DAGNode): string | null {
+  if (node.isConditional) return '?'
+  switch (node.nodeType) {
+    case 'collection':          return '∀'
+    case 'external':
+    case 'externalCollection':  return '⬡'
+    default:                    return null
+  }
+}
+
+/**
+ * Maximum visible character count for the forEach annotation on a DAG node.
+ * Based on NODE_WIDTH=180 with 10px padding each side at 9px monospace (~5.4px/char).
+ */
+export const FOREACH_LABEL_MAX_CHARS = 28
+
+/**
+ * Returns a display string for the forEach CEL expression on a DAG node.
+ * - Returns '' for absent or empty input (no annotation rendered).
+ * - Truncates to 27 chars + '…' when longer than FOREACH_LABEL_MAX_CHARS.
+ * Defined here once; imported by all DAG renderer components.
+ */
+export function forEachLabel(forEach: string | undefined): string {
+  if (!forEach) return ''
+  if (forEach.length <= FOREACH_LABEL_MAX_CHARS) return forEach
+  return forEach.slice(0, FOREACH_LABEL_MAX_CHARS - 1) + '…'
+}
+
 // ── Chaining detection ────────────────────────────────────────────────────
 
 /**
