@@ -4,7 +4,9 @@ import { getRGD, listRGDs, listInstances } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
+import { extractRGDKind, extractReadyStatus } from "@/lib/format"
 import { usePageTitle } from "@/hooks/usePageTitle"
+import StatusDot from "@/components/StatusDot"
 import KroCodeBlock from "@/components/KroCodeBlock"
 import StaticChainDAG from "@/components/StaticChainDAG"
 import NodeDetailPanel from "@/components/NodeDetailPanel"
@@ -33,7 +35,8 @@ function isValidTab(t: string | null): t is TabId {
  *
  * Spec: .specify/specs/003-rgd-detail-dag/, .specify/specs/004-instance-list/,
  *       .specify/specs/017-rgd-validation-linting/, .specify/specs/018-rbac-visualizer/,
- *       .specify/specs/020-schema-doc-generator/, .specify/specs/030-error-patterns-tab/
+ *       .specify/specs/020-schema-doc-generator/, .specify/specs/030-error-patterns-tab/,
+ *       .specify/specs/036-rgd-detail-header/
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
@@ -185,6 +188,9 @@ export default function RGDDetail() {
 
   if (!rgd) return null
 
+  const rgdKind = extractRGDKind(rgd)
+  const readyState = extractReadyStatus(rgd)
+
   return (
     <div className="rgd-detail">
       {/* Breadcrumb — shown when navigated via "View RGD →" (spec 025) */}
@@ -198,7 +204,13 @@ export default function RGDDetail() {
 
       {/* Header */}
       <div className="rgd-detail-header">
-        <h1 className="rgd-detail-name">{String(rgdName)}</h1>
+        <div className="rgd-detail-header-row">
+          <StatusDot state={readyState.state} reason={readyState.reason} message={readyState.message} />
+          <h1 className="rgd-detail-name">{String(rgdName)}</h1>
+        </div>
+        {rgdKind && (
+          <span className="rgd-detail-kind">{rgdKind}</span>
+        )}
       </div>
 
       {/* Tab bar */}

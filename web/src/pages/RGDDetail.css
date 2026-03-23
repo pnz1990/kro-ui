@@ -39,11 +39,31 @@
   flex-shrink: 0;
 }
 
+/* Header first row: StatusDot + name on one line */
+.rgd-detail-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .rgd-detail-name {
   font-size: 20px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+/* Kind badge — mirrors .rgd-card__kind on the home card */
+.rgd-detail-kind {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-muted);
+  color: var(--color-primary-text);
+  margin-bottom: 12px;
 }
 
 /* ── Tab bar ──────────────────────────────────────────────────────────────── */
