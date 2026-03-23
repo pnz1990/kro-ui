@@ -5,7 +5,7 @@
 // The DAGGraph component is purely data-driven and has zero kro knowledge.
 
 import type { K8sObject } from '@/lib/api'
-import type { NodeLiveState } from '@/lib/instanceNodeState'
+import type { NodeLiveState, NodeStateMap } from '@/lib/instanceNodeState'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -610,6 +610,38 @@ export function liveStateClass(state: NodeLiveState | undefined): string {
     case 'error':       return 'dag-node-live--error'
     case 'not-found':   return 'dag-node-live--notfound'
   }
+}
+
+/**
+ * nodeStateForNode — derives the live state for a single DAG node from a
+ * NodeStateMap produced by buildNodeStateMap().
+ *
+ * Rules:
+ *   - Root CR (nodeType 'instance'): aggregate over all entries in stateMap.
+ *     Precedence: reconciling > error > alive > undefined.
+ *   - All other nodes: direct lookup by lowercase kind (node.kind || node.label).
+ *     Returns undefined when no matching child resource was found.
+ *
+ * Extracted from LiveDAG.tsx and DeepDAG.tsx to a single source of truth.
+ * Constitution §IX: shared graph helpers must live in @/lib/dag.ts — never
+ * copy-pasted across component files.
+ *
+ * @param node     - The DAG node to resolve state for
+ * @param stateMap - The NodeStateMap built from the live instance + children
+ */
+export function nodeStateForNode(
+  node: DAGNode,
+  stateMap: NodeStateMap,
+): NodeLiveState | undefined {
+  if (node.nodeType === 'instance') {
+    const states = Object.values(stateMap).map((e) => e.state)
+    if (states.includes('reconciling')) return 'reconciling'
+    if (states.includes('error')) return 'error'
+    if (states.length > 0) return 'alive'
+    return undefined
+  }
+  const kindKey = (node.kind || node.label).toLowerCase()
+  return stateMap[kindKey]?.state
 }
 
 // ── Chaining detection ────────────────────────────────────────────────────
