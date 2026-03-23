@@ -64,6 +64,20 @@ export interface DAGGraph {
   height: number
 }
 
+/**
+ * A group of sibling NodeTypeResource nodes that share the same apiVersion/kind
+ * and have structurally similar templates — candidates for forEach collapse.
+ * Produced by detectCollapseGroups().
+ */
+export interface CollapseGroup {
+  /** Shared apiVersion across all nodes in the group (empty string if absent in template). */
+  apiVersion: string
+  /** Shared kind across all nodes in the group. Never empty. */
+  kind: string
+  /** IDs of the qualifying NodeTypeResource nodes. Always length ≥ 2. */
+  nodeIds: string[]
+}
+
 // ── Layout constants ──────────────────────────────────────────────────────
 
 const NODE_WIDTH = 180
@@ -334,6 +348,140 @@ function layoutDAG(
   return { positions, width: totalWidth, height: totalHeight }
 }
 
+// ── Shared node-type classifier ───────────────────────────────────────────
+
+/**
+ * classifyResource — classify a single raw resource entry into a NodeType.
+ *
+ * Returns null for the synthetic root ('schema') or any entry that doesn't
+ * match a known resource shape.
+ *
+ * This is the SINGLE source of truth for node-type classification. Both
+ * buildDAGGraph and detectCollapseGroups call this function — never inline
+ * the classification rules elsewhere.
+ */
+function classifyResource(r: unknown): NodeType | null {
+  const res = asObject(r)
+  if (!res) return null
+
+  const externalRef = asObject(res.externalRef)
+  const template = asObject(res.template)
+  const forEach = typeof res.forEach === 'string' ? res.forEach : undefined
+
+  if (externalRef) {
+    const meta = asObject(externalRef.metadata)
+    return meta?.selector !== undefined ? 'externalCollection' : 'external'
+  }
+  if (template && forEach !== undefined) return 'collection'
+  return 'resource'
+}
+
+// ── Collapse detection ────────────────────────────────────────────────────
+
+/**
+ * Compute Jaccard similarity between two sets of string keys.
+ * Returns a value in [0, 1].
+ */
+function jaccardKeys(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return 1
+  let intersection = 0
+  for (const key of a) { if (b.has(key)) intersection++ }
+  const union = a.size + b.size - intersection
+  return union === 0 ? 1 : intersection / union
+}
+
+/**
+ * detectCollapseGroups — static analysis of a kro RGD spec to identify
+ * sibling NodeTypeResource nodes that share the same apiVersion/kind and
+ * have structurally similar templates.
+ *
+ * These groups are candidates for collapsing into a forEach collection.
+ *
+ * Returns an empty array for any invalid/absent input (never throws).
+ *
+ * Spec: .specify/specs/023-rgd-optimization-advisor/
+ */
+export function detectCollapseGroups(spec: unknown): CollapseGroup[] {
+  const specObj = asObject(spec)
+  if (!specObj) return []
+
+  const resources = Array.isArray(specObj.resources) ? specObj.resources : []
+  if (resources.length === 0) return []
+
+  // Collect qualifying resources: NodeTypeResource only, with a resolvable kind
+  interface Candidate {
+    id: string
+    apiVersion: string
+    kind: string
+    templateKeys: Set<string>
+  }
+
+  const candidates: Candidate[] = []
+  for (const r of resources) {
+    const res = asObject(r)
+    if (!res) continue
+
+    const nodeType = classifyResource(r)
+    if (nodeType !== 'resource') continue
+
+    // Must have a non-empty kind
+    const template = asObject(res.template)
+    const rawKind = template ? asString(template.kind) : ''
+    if (!rawKind) continue
+
+    const id = asString(res.id)
+    if (!id) continue
+
+    const apiVersion = template ? asString(template.apiVersion) : ''
+
+    // Top-level template keys (excluding apiVersion + kind used for grouping)
+    const templateKeys = new Set<string>(
+      template
+        ? Object.keys(template).filter((k) => k !== 'apiVersion' && k !== 'kind')
+        : [],
+    )
+
+    candidates.push({ id, apiVersion, kind: rawKind, templateKeys })
+  }
+
+  // Group by "apiVersion/kind"
+  const groups = new Map<string, Candidate[]>()
+  for (const c of candidates) {
+    const key = `${c.apiVersion}/${c.kind}`
+    if (!groups.has(key)) groups.set(key, [])
+    groups.get(key)!.push(c)
+  }
+
+  // Filter to qualifying groups
+  const result: CollapseGroup[] = []
+  for (const [, members] of groups) {
+    if (members.length < 2) continue
+
+    // Groups of ≥ 3 always qualify
+    if (members.length >= 3) {
+      result.push({
+        apiVersion: members[0].apiVersion,
+        kind: members[0].kind,
+        nodeIds: members.map((m) => m.id),
+      })
+      continue
+    }
+
+    // Groups of exactly 2: require ≥ 70% Jaccard similarity of template keys
+    const [a, b] = members
+    const sim = jaccardKeys(a.templateKeys, b.templateKeys)
+    if (sim >= 0.70) {
+      result.push({
+        apiVersion: a.apiVersion,
+        kind: a.kind,
+        nodeIds: [a.id, b.id],
+      })
+    }
+  }
+
+  return result
+}
+
 // ── Chaining detection ────────────────────────────────────────────────────
 
 /**
@@ -423,20 +571,7 @@ export function buildDAGGraph(spec: Record<string, unknown>): DAGGraph {
     const readyWhen = asStringArray(res.readyWhen)
 
     // ── Classify node type ───────────────────────────────────────────────
-    let nodeType: NodeType
-    if (externalRef) {
-      const meta = asObject(externalRef.metadata)
-      if (meta?.selector !== undefined) {
-        nodeType = 'externalCollection'
-      } else {
-        nodeType = 'external'
-      }
-    } else if (template && forEach !== undefined) {
-      nodeType = 'collection'
-    } else {
-      // Both "has template" and "no template/externalRef" (fallback) → 'resource'
-      nodeType = 'resource'
-    }
+    const nodeType: NodeType = classifyResource(r) ?? 'resource'
 
     // ── Extract kind ─────────────────────────────────────────────────────
     // Fallback chain: template.kind → externalRef.kind → nodeId.
