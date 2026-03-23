@@ -104,9 +104,17 @@
   background: var(--color-surface-2);
 }
 
-/* ── Grid ────────────────────────────────────────────────────────── */
+/* ── Virtual grid ────────────────────────────────────────────────── */
 
-.catalog__grid {
+.catalog__virtual-grid {
+  /* Fill viewport below catalog header + toolbar */
+  height: calc(100vh - 220px);
+  min-height: 300px;
+}
+
+/* ── Loading skeleton grid ───────────────────────────────────────── */
+
+.catalog__grid--loading {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;

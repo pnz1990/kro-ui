@@ -114,7 +114,9 @@ describe('Home', () => {
     })
   })
 
-  // ── Search filter tests (issue #69) ────────────────────────────────────
+  // ── Search filter tests ────────────────────────────────────────────────
+  // Note: search is debounced at 300ms; assertions use waitFor to allow the
+  // debounce to fire before checking the DOM.
 
   it('filters cards by name when typing in the search box', async () => {
     const user = userEvent.setup()
@@ -131,9 +133,11 @@ describe('Home', () => {
     const searchInput = screen.getByRole('searchbox')
     await user.type(searchInput, 'alp')
 
-    expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
-    expect(screen.queryByTestId('rgd-card-beta')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('rgd-card-gamma')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
+      expect(screen.queryByTestId('rgd-card-beta')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('rgd-card-gamma')).not.toBeInTheDocument()
+    })
   })
 
   it('filters cards by kind when typing in the search box', async () => {
@@ -151,8 +155,10 @@ describe('Home', () => {
     const searchInput = screen.getByRole('searchbox')
     await user.type(searchInput, 'workerpool')
 
-    expect(screen.queryByTestId('rgd-card-web-app')).not.toBeInTheDocument()
-    expect(screen.getByTestId('rgd-card-worker')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByTestId('rgd-card-web-app')).not.toBeInTheDocument()
+      expect(screen.getByTestId('rgd-card-worker')).toBeInTheDocument()
+    })
   })
 
   it('shows no-results message when search matches nothing', async () => {
@@ -170,8 +176,10 @@ describe('Home', () => {
     const searchInput = screen.getByRole('searchbox')
     await user.type(searchInput, 'zzznomatch')
 
-    expect(screen.queryByTestId('rgd-card-alpha')).not.toBeInTheDocument()
-    expect(screen.getByText(/No ResourceGraphDefinitions match/)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByTestId('rgd-card-alpha')).not.toBeInTheDocument()
+      expect(screen.getByText(/No ResourceGraphDefinitions match/)).toBeInTheDocument()
+    })
   })
 
   it('restores full grid when search is cleared via SearchBar clear button', async () => {
@@ -188,14 +196,19 @@ describe('Home', () => {
 
     const searchInput = screen.getByRole('searchbox')
     await user.type(searchInput, 'alp')
-    expect(screen.queryByTestId('rgd-card-beta')).not.toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('rgd-card-beta')).not.toBeInTheDocument()
+    })
 
     // Use the SearchBar's built-in clear button (aria-label "Clear search")
     const clearBtn = screen.getByRole('button', { name: 'Clear search' })
     await user.click(clearBtn)
 
-    expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
-    expect(screen.getByTestId('rgd-card-beta')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
+      expect(screen.getByTestId('rgd-card-beta')).toBeInTheDocument()
+    })
   })
 
   it('shows count indicator matching filtered results', async () => {
@@ -214,6 +227,8 @@ describe('Home', () => {
     const searchInput = screen.getByRole('searchbox')
     await user.type(searchInput, 'alp')
 
-    expect(screen.getByText('1 of 3')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('1 of 3')).toBeInTheDocument()
+    })
   })
 })

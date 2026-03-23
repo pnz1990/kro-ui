@@ -415,7 +415,7 @@ multiple clusters with the same short name):
 
 ### Scale requirements
 UI components must be designed for real-world scale:
-- Home page and Catalog: must function correctly at 100+ RGDs (search/filter required)
+- Home page and Catalog: must function correctly at 5,000+ RGDs (search/filter required, virtualized rendering — see spec `024-rgd-list-virtualization`)
 - Fleet matrix: must function at 10+ clusters × 50+ RGD kinds (sticky headers, scroll)
 - Instances table: must function at 500+ instances (virtual scroll or pagination)
 - Events stream: already capped at 200 (maintained)
@@ -435,4 +435,7 @@ Amendments:
 2. Bump the version number (MINOR for new principles, PATCH for clarifications)
 3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.3.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+**Version**: 1.4.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+
+**Amendment log**:
+- 1.4.0 (2026-03-22): §XIII Scale requirements updated from 100+ to 5,000+ RGDs for Home page and Catalog; virtualized rendering (spec `024-rgd-list-virtualization`) is now the required strategy.
