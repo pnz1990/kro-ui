@@ -15,27 +15,32 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 
 ## Features
 
-- **Home page** — RGD card grid with status dots, kind badges, resource count, age, chaining indicators, and debounced search filter; virtualized for 5,000+ RGDs
+- **Home page** — RGD card grid with status dots, kind badges, resource count, age, chaining indicators, debounced search filter, error count badges, and terminating instance badges; virtualized for 5,000+ RGDs
 - **RGD catalog** — searchable, filterable registry of all RGDs with chaining detection, per-RGD instance counts, and forEach collapse suggestions (optimization advisor)
 - **RGD static chaining graph** — detect and visualize chained RGD relationships; expand parent/child chains without a live cluster
-- **RGD detail** — six tabs: Graph · Instances · YAML · Validation · Access · Docs
-  - **Graph tab** — interactive DAG showing all managed resources, forEach collections, external refs, and `includeWhen` conditions; DAG nodes show `readyWhen` CEL expressions and `forEach` cardinality badges on hover
-  - **Instances tab** — table of all CR instances with namespace filter, readiness badges, and links to live detail
+- **RGD detail** — seven tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate
+  - **Graph tab** — interactive DAG with all managed resources, forEach collections, external refs, and `includeWhen` conditions; `readyWhen` CEL expressions and `forEach` cardinality badges on hover; instance overlay selector to visualize which nodes are active for a specific CR; "refreshed X ago" indicator
+  - **Instances tab** — table of all CR instances with namespace filter, 5-state health badges (Ready/Reconciling/Degraded/Error/Terminating), fully-clickable rows, "show only errored" filter, and links to live detail
+  - **Errors tab** — cross-instance error aggregation: failures grouped by resource node with affected instance count, percentage, most common error message, and drill-down to individual instances
   - **YAML tab** — syntax-highlighted RGD manifest with CEL expression highlighting and copy-to-clipboard
   - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
-  - **Access tab** — RBAC permission matrix for kro's service account against all managed resources, with kubectl fix suggestions
+  - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, and a copyable example manifest
-  - **Generate tab** — three-mode YAML generator: interactive instance form (per-field controls with type coercion), batch mode (one line = one manifest), and RGD authoring scaffolder (guided form to produce a `ResourceGraphDefinition` YAML skeleton)
-- **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error), node YAML inspection, spec/conditions/events panels
+  - **Generate tab** — three-mode YAML generator: interactive instance form (per-field controls with type coercion), batch mode (one line = one manifest), and RGD authoring scaffolder
+- **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error/terminating), node YAML inspection, spec/conditions/events/telemetry panels
+  - **Telemetry panel** — per-instance age, state duration, child resource health table, and reconcile health indicators
+  - **Deletion debugger** — when an instance has a `deletionTimestamp`, surfaces a Terminating banner showing elapsed time, active finalizers (with controller ownership), blocking child resources, and deletion-related events
   - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, cardinality badge (`N/M`), and individual resource YAML
   - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
-- **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), grouping by instance, and URL-param pre-filtering
+- **Instance health roll-up** — 5-state health badges (Ready/Reconciling/Pending/Error/Unknown) on all instance list rows and RGD cards; error count badges on home and catalog cards
+- **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), deletion event tagging, grouping by instance, and URL-param pre-filtering
 - **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix with abbreviated ARN context labels
 - **Controller metrics panel** — kro controller throughput and error rates exposed via the metrics proxy endpoint
 - **Context switcher** — switch kubeconfig contexts at runtime without restart
 - **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types)
 - **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly
-- **Dark/light theme** — dark default, full design token system
+- **First-time onboarding** — home page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
+- **Dark/light theme** — dark default, full design token system, SVG favicon
 
 ## Quickstart
 
@@ -78,12 +83,13 @@ All endpoints are read-only. No mutating k8s API calls are ever issued.
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/healthz` | GET | Health check (no cluster I/O) |
+| `/api/v1/version` | GET | Build-time version info (version, commit, buildDate) |
 | `/api/v1/contexts` | GET | List kubeconfig contexts + active |
 | `/api/v1/contexts/switch` | POST | Switch active context |
 | `/api/v1/rgds` | GET | List all RGDs |
 | `/api/v1/rgds/{name}` | GET | Get single RGD |
 | `/api/v1/rgds/{name}/instances` | GET | List instances of an RGD |
-| `/api/v1/rgds/{name}/access` | GET | RBAC permission check for kro's service account |
+| `/api/v1/rgds/{name}/access` | GET | RBAC permission check for kro's service account (`?saNamespace=&saName=` for manual override) |
 | `/api/v1/instances/{ns}/{name}` | GET | Get instance detail |
 | `/api/v1/instances/{ns}/{name}/events` | GET | Instance events |
 | `/api/v1/instances/{ns}/{name}/children` | GET | Instance child resources |

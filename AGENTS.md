@@ -59,6 +59,16 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `025-rgd-static-chain-graph` | #82 | RGD static chaining graph — detect, expand, navigate | Merged (PR #82) |
 | `021-readywhen-cel-dag` | #83 | Surface readyWhen CEL expressions on DAG nodes | Merged (PR #83) |
 | `009-rgd-graph-diff` | #13 | RGD graph revision diff | Blocked (needs kro KREP-013) |
+| `027-instance-telemetry-panel` | — | Per-instance telemetry panel (age, state, children health) | Merged (PR #134) |
+| `030-error-patterns-tab` | — | Cross-instance error aggregation — Errors tab on RGD detail | Merged (PR #135) |
+| `028-instance-health-rollup` | — | Instance health roll-up — 5-state badges, error count on cards | Merged (PR #136) |
+| `029-dag-instance-overlay` | — | Instance-contextual RGD DAG — overlay active/excluded nodes | Merged (PR #137) |
+| `035-global-footer` | #127 | Global footer with kro.run and GitHub links | Merged (PR #138) |
+| `033-first-time-onboarding` | #120 | First-time onboarding — footer, tagline, rich empty state, version API | Merged (PR #139) |
+| `031-deletion-debugger` | — | Instance deletion debugger — Terminating banner, finalizers, events | Merged (PR #142) |
+| `032-rbac-sa-autodetect` | #115 | RBAC SA auto-detection — replace hardcoded kro/kro with runtime discovery | Merged (PR #141) |
+| `036-rgd-detail-header` | #130 | RGD detail page header — Kind badge and status dot on all tabs | Merged (PR #140) |
+| `034-generate-form-polish` | #121 | Generate tab form polish — required field indicator, aria-required | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -354,18 +364,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 
 
 ## Active Technologies
-- Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps (026-rgd-yaml-generator)
-- N/A — all state is local React `useState`; no persistence (026-rgd-yaml-generator)
-- Go 1.25 (backend — no changes), TypeScript 5.x + React 19 (frontend) + React 19, React Router v7, Vite — no new dependencies (031-deletion-debugger)
-- N/A — read-only, live polling only (031-deletion-debugger)
-- Go 1.25 (backend — no changes) / TypeScript 5.x + React 19 + React Router v7, Vite — all already present; no new npm deps (030-error-patterns-tab)
-- TypeScript 5.x + React 19, Go 1.25 + React, React Router v7, Vite; no new npm deps (027-instance-telemetry-panel)
-- N/A — all data is in-memory React state (027-instance-telemetry-panel)
-- TypeScript 5.x + React 19 (frontend only; no backend changes) + React Router v7, existing `@/lib/format` utilities, existing `StatusDot` componen (036-rgd-detail-header)
-- Go 1.25 backend / TypeScript 5.x + React 19 + Vite (all already present) + `k8s.io/client-go/dynamic`, `github.com/go-chi/chi/v5`, React 19, React Router v7 — all already in use; no new dependencies (032-rbac-sa-autodetect)
-- TypeScript 5.x + React 19 + React Router v7, Vite (already present — no new deps) (035-global-footer)
-- N/A — purely presentational component, no persistence (035-global-footer)
-- TypeScript 5.x + React 19 (already in use) + React Router v7, Vite — no new npm deps (033-first-time-onboarding)
+- Go 1.25 backend + TypeScript 5.x + React 19 + React Router v7 + Vite — no new npm or Go dependencies introduced since v0.2.1
+- All state is local React `useState`; no persistence layer; no state management libraries
 
 ## Recent Changes
-- 026-rgd-yaml-generator: Added Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps
+- v0.3.0: instance telemetry panel, cross-instance error aggregation (Errors tab), instance health roll-up (5-state badges), DAG instance overlay, global footer, first-time onboarding + version API, deletion debugger, RBAC SA auto-detection, RGD detail header enrichment, 14 UX/bug fixes (catalog, fleet, events, schema parser, ARN disambiguation)
