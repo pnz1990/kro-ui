@@ -134,6 +134,17 @@ export default async function globalSetup() {
   ], { retries: 5 })
   console.log('[setup] test-instance reconciled')
 
+  // Apply the collection fixture (forEach node annotation test — spec 021)
+  console.log('[setup] Applying test-collection fixtures…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-rgd.yaml')])
+  execFile('kubectl', [
+    '--kubeconfig', KUBECONFIG_PATH,
+    'wait', 'rgd/test-collection',
+    '--for=condition=Ready', '--timeout=120s',
+  ], { retries: 3 })
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-instance.yaml')])
+  console.log('[setup] test-collection fixtures applied')
+
   // ── 6. Build kro-ui binary if needed ─────────────────────────────────────
   const binaryPath = process.env.KRO_UI_BINARY ?? join(ROOT_DIR, 'bin', 'kro-ui')
   if (!existsSync(binaryPath)) {

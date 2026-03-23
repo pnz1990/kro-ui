@@ -137,6 +137,17 @@
   text-anchor: middle;
 }
 
+/* forEach CEL expression annotation — collection nodes only */
+.live-dag-container .dag-node-foreach {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 400;
+  fill: var(--dag-foreach-color);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
 /* ── Badges ──────────────────────────────────────────────────────────────── */
 
 .live-dag-container .dag-node-badge {

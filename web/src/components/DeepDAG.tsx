@@ -14,7 +14,7 @@
 
 import { useState, useMemo, useCallback, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { buildDAGGraph, detectKroInstance } from '@/lib/dag'
+import { buildDAGGraph, detectKroInstance, nodeBadge, liveStateClass, forEachLabel } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
@@ -66,17 +66,7 @@ export interface DeepDAGProps {
   depth?: number
 }
 
-// ── Helpers (mirrors LiveDAG) ─────────────────────────────────────────────
-
-function liveStateClass(state: NodeLiveState | undefined): string {
-  if (!state) return 'dag-node-live--notfound'
-  switch (state) {
-    case 'alive':       return 'dag-node-live--alive'
-    case 'reconciling': return 'dag-node-live--reconciling'
-    case 'error':       return 'dag-node-live--error'
-    case 'not-found':   return 'dag-node-live--notfound'
-  }
-}
+// ── Helpers (shared helpers imported from @/lib/dag) ─────────────────────
 
 function nodeState(node: DAGNode, stateMap: NodeStateMap): NodeLiveState | undefined {
   if (node.nodeType === 'instance') {
@@ -100,16 +90,6 @@ function edgePath(
   const y2 = to.y
   const dy = Math.max((y2 - y1) * 0.4, 20)
   return `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`
-}
-
-function nodeBadge(node: DAGNode): string | null {
-  if (node.isConditional) return '?'
-  switch (node.nodeType) {
-    case 'collection':         return '∀'
-    case 'external':
-    case 'externalCollection': return '⬡'
-    default:                   return null
-  }
 }
 
 function standardNodeClassName(
@@ -399,8 +379,10 @@ export default function DeepDAG({
             // Standard nodes (identical to LiveDAG NodeGroup)
             const badge = nodeBadge(node)
             const cx = node.x + node.width / 2
-            const labelY = node.y + node.height / 2 - (node.kind ? 7 : 0)
-            const kindY = node.y + node.height / 2 + 8
+            // Fixed pixel offsets — safe for both 48px (resource) and 60px (collection) nodes.
+            const labelY = node.y + 17
+            const kindY = node.y + 32
+            const forEachY = node.y + 45
             const badgeX = node.x + node.width - 10
             const badgeY = node.y + 10
 
@@ -447,6 +429,18 @@ export default function DeepDAG({
                 {node.kind && (
                   <text className="dag-node-kind" x={cx} y={kindY}>
                     {node.kind}
+                  </text>
+                )}
+                {forEachLabel(node.forEach) && (
+                  <text
+                    data-testid={`dag-node-foreach-${node.id}`}
+                    className="dag-node-foreach"
+                    x={cx}
+                    y={forEachY}
+                    aria-label={`forEach: ${node.forEach}`}
+                  >
+                    <title>{node.forEach}</title>
+                    {forEachLabel(node.forEach)}
                   </text>
                 )}
                 {badge && (

@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { buildDAGGraph, detectKroInstance, detectCollapseGroups, findChainedRgdName, buildChainSubgraph } from './dag'
+import {
+  buildDAGGraph,
+  detectKroInstance,
+  detectCollapseGroups,
+  findChainedRgdName,
+  buildChainSubgraph,
+  forEachLabel,
+  nodeBadge,
+  COLLECTION_NODE_HEIGHT,
+  FOREACH_LABEL_MAX_CHARS,
+  type NodeType,
+  type DAGNode,
+} from './dag'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -687,5 +699,102 @@ describe('buildDAGGraph chain detection (spec 025)', () => {
     const nsNode = graph.nodes.find((n) => n.id === 'ns')
     expect(dbNode?.isChainable).toBe(true)
     expect(nsNode?.isChainable).toBe(false)
+  })
+})
+
+// ── forEachLabel ──────────────────────────────────────────────────────────
+
+describe('forEachLabel', () => {
+  it('returns empty string for undefined', () => {
+    expect(forEachLabel(undefined)).toBe('')
+  })
+  it('returns empty string for empty string', () => {
+    expect(forEachLabel('')).toBe('')
+  })
+  it('returns expression unchanged when at or below max chars', () => {
+    const expr = '${schema.spec.regions}'
+    expect(forEachLabel(expr)).toBe(expr)
+  })
+  it('returns expression unchanged when exactly at max chars', () => {
+    const expr = 'a'.repeat(FOREACH_LABEL_MAX_CHARS)
+    expect(forEachLabel(expr)).toBe(expr)
+  })
+  it('truncates expressions longer than max chars with ellipsis', () => {
+    const expr = 'a'.repeat(FOREACH_LABEL_MAX_CHARS + 5)
+    const result = forEachLabel(expr)
+    expect(result.length).toBe(FOREACH_LABEL_MAX_CHARS)
+    expect(result.endsWith('…')).toBe(true)
+  })
+})
+
+// ── nodeBadge ─────────────────────────────────────────────────────────────
+
+describe('nodeBadge', () => {
+  function makeNode(overrides: Partial<DAGNode>): DAGNode {
+    return {
+      id: 'test', label: 'test', nodeType: 'resource' as NodeType,
+      kind: 'ConfigMap', isConditional: false, hasReadyWhen: false,
+      isChainable: false, celExpressions: [], includeWhen: [], readyWhen: [],
+      x: 0, y: 0, width: 180, height: 48, ...overrides,
+    }
+  }
+  it('returns null for resource nodes', () => { expect(nodeBadge(makeNode({ nodeType: 'resource' }))).toBeNull() })
+  it('returns null for instance (root) nodes', () => { expect(nodeBadge(makeNode({ nodeType: 'instance' }))).toBeNull() })
+  it('returns ∀ for collection nodes', () => { expect(nodeBadge(makeNode({ nodeType: 'collection' }))).toBe('∀') })
+  it('returns ⬡ for external nodes', () => { expect(nodeBadge(makeNode({ nodeType: 'external' }))).toBe('⬡') })
+  it('returns ⬡ for externalCollection nodes', () => { expect(nodeBadge(makeNode({ nodeType: 'externalCollection' }))).toBe('⬡') })
+  it('returns ? for conditional nodes regardless of type', () => {
+    expect(nodeBadge(makeNode({ nodeType: 'collection', isConditional: true }))).toBe('?')
+    expect(nodeBadge(makeNode({ nodeType: 'resource', isConditional: true }))).toBe('?')
+  })
+})
+
+// ── COLLECTION_NODE_HEIGHT and forEach format ─────────────────────────────
+
+describe('buildDAGGraph — collection node height and forEach format', () => {
+  function minimalSpec(resources: unknown[] = []) {
+    return { schema: { kind: 'WebApp', apiVersion: 'v1alpha1', group: 'test.dev' }, resources }
+  }
+
+  it('assigns COLLECTION_NODE_HEIGHT to collection nodes (legacy string format)', () => {
+    const spec = minimalSpec([{
+      id: 'col', forEach: '${schema.spec.items}',
+      template: { apiVersion: 'v1', kind: 'Pod', metadata: { name: 'pod' } },
+    }])
+    const node = buildDAGGraph(spec).nodes.find((n) => n.id === 'col')
+    expect(node?.nodeType).toBe('collection')
+    expect(node?.height).toBe(COLLECTION_NODE_HEIGHT)
+    expect(COLLECTION_NODE_HEIGHT).toBeGreaterThan(48)
+  })
+
+  it('assigns COLLECTION_NODE_HEIGHT to collection nodes (kro v0.8.5+ array format)', () => {
+    const spec = minimalSpec([{
+      id: 'regionConfig',
+      forEach: [{ region: '${schema.spec.regions}' }],
+      template: { apiVersion: 'v1', kind: 'ConfigMap', metadata: { name: '${region}-cfg' } },
+    }])
+    const node = buildDAGGraph(spec).nodes.find((n) => n.id === 'regionConfig')
+    expect(node?.nodeType).toBe('collection')
+    expect(node?.height).toBe(COLLECTION_NODE_HEIGHT)
+    expect(node?.forEach).toBe('region: ${schema.spec.regions}')
+  })
+
+  it('assigns standard NODE_HEIGHT (48) to non-collection nodes', () => {
+    const spec = minimalSpec([{
+      id: 'ns', template: { apiVersion: 'v1', kind: 'Namespace', metadata: { name: 'x' } },
+    }])
+    const node = buildDAGGraph(spec).nodes.find((n) => n.id === 'ns')
+    expect(node?.height).toBe(48)
+  })
+
+  it('collection node is taller than resource node', () => {
+    const spec = minimalSpec([
+      { id: 'col', forEach: [{ r: '${schema.spec.x}' }],
+        template: { apiVersion: 'v1', kind: 'Pod', metadata: { name: 'p' } } },
+      { id: 'res', template: { apiVersion: 'v1', kind: 'ConfigMap', metadata: { name: 'c' } } },
+    ])
+    const g = buildDAGGraph(spec)
+    expect(g.nodes.find((n) => n.id === 'col')!.height)
+      .toBeGreaterThan(g.nodes.find((n) => n.id === 'res')!.height)
   })
 })

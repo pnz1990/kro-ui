@@ -10,6 +10,7 @@
 
 import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
+import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
@@ -36,16 +37,6 @@ interface LiveDAGProps {
 }
 
 // ── CSS class helper ───────────────────────────────────────────────────────
-
-function liveStateClass(state: NodeLiveState | undefined): string {
-  if (!state) return 'dag-node-live--notfound'
-  switch (state) {
-    case 'alive':       return 'dag-node-live--alive'
-    case 'reconciling': return 'dag-node-live--reconciling'
-    case 'error':       return 'dag-node-live--error'
-    case 'not-found':   return 'dag-node-live--notfound'
-  }
-}
 
 /** Look up the live state for a node by its kind (case-insensitive). */
 function nodeState(
@@ -82,17 +73,6 @@ function edgePath(
   return `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`
 }
 
-/** Badge character per node type. */
-function nodeBadge(node: DAGNode): string | null {
-  if (node.isConditional) return '?'
-  switch (node.nodeType) {
-    case 'collection':          return '∀'
-    case 'external':
-    case 'externalCollection':  return '⬡'
-    default:                    return null
-  }
-}
-
 /** CSS class for node group: base type + conditional + live state + selected. */
 function nodeClassName(
   node: DAGNode,
@@ -104,7 +84,7 @@ function nodeClassName(
     `dag-node--${node.nodeType}`,
   ]
   if (node.isConditional) parts.push('node-conditional')
-  if (state) parts.push(liveStateClass(state))
+  if (state) parts.push(liveStateClassHelper(state))
   if (isSelected) parts.push('dag-node--selected')
   return parts.join(' ')
 }
@@ -125,8 +105,10 @@ interface NodeGroupProps {
 function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, children }: NodeGroupProps) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
-  const labelY = node.y + node.height / 2 - (node.kind ? 7 : 0)
-  const kindY = node.y + node.height / 2 + 8
+  // Fixed pixel offsets — safe for both 48px (resource) and 60px (collection) nodes.
+  const labelY = node.y + 17
+  const kindY = node.y + 32
+  const forEachY = node.y + 45
   const badgeX = node.x + node.width - 10
   const badgeY = node.y + 10
 
@@ -176,6 +158,18 @@ function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, chil
       {node.kind && (
         <text className="dag-node-kind" x={cx} y={kindY}>
           {node.kind}
+        </text>
+      )}
+      {forEachLabel(node.forEach) && (
+        <text
+          data-testid={`dag-node-foreach-${node.id}`}
+          className="dag-node-foreach"
+          x={cx}
+          y={forEachY}
+          aria-label={`forEach: ${node.forEach}`}
+        >
+          <title>{node.forEach}</title>
+          {forEachLabel(node.forEach)}
         </text>
       )}
       {badge && (

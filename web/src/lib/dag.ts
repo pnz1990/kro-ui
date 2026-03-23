@@ -5,6 +5,7 @@
 // The DAGGraph component is purely data-driven and has zero kro knowledge.
 
 import type { K8sObject } from '@/lib/api'
+import type { NodeLiveState } from '@/lib/instanceNodeState'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,8 @@ export interface CollapseGroup {
 
 const NODE_WIDTH = 180
 const NODE_HEIGHT = 48
+/** Collection (forEach) nodes are taller to accommodate the forEach annotation row. */
+export const COLLECTION_NODE_HEIGHT = 60
 const ROOT_WIDTH = 200
 const ROOT_HEIGHT = 52
 const H_GAP = 40
@@ -260,6 +263,7 @@ function layoutDAG(
   nodeIds: string[],
   edges: Array<{ from: string; to: string }>,
   rootId: string,
+  nodeHeights?: Map<string, number>,
 ): LayoutResult {
   // Build adjacency maps
   const children = new Map<string, string[]>()
@@ -332,9 +336,8 @@ function layoutDAG(
 
   // Node dimensions
   function dims(id: string) {
-    return id === rootId
-      ? { w: ROOT_WIDTH, h: ROOT_HEIGHT }
-      : { w: NODE_WIDTH, h: NODE_HEIGHT }
+    if (id === rootId) return { w: ROOT_WIDTH, h: ROOT_HEIGHT }
+    return { w: NODE_WIDTH, h: nodeHeights?.get(id) ?? NODE_HEIGHT }
   }
 
   // Find widest layer
@@ -378,6 +381,34 @@ function layoutDAG(
 // ── Shared node-type classifier ───────────────────────────────────────────
 
 /**
+ * extractForEachDisplay — extracts a human-readable display string from the
+ * kro forEach field, handling both current and legacy formats.
+ *
+ * kro v0.8.5+ array-of-objects format: [{region: "${schema.spec.regions}"}]
+ * → "region: ${schema.spec.regions}"
+ *
+ * Legacy string format (pre-v0.8.5): "${schema.spec.regions}"
+ * → "${schema.spec.regions}"
+ *
+ * Returns undefined when the field is absent or in an unrecognised format.
+ */
+function extractForEachDisplay(raw: unknown): string | undefined {
+  if (Array.isArray(raw) && raw.length > 0) {
+    const parts: string[] = []
+    for (const entry of raw) {
+      if (entry !== null && typeof entry === 'object' && !Array.isArray(entry)) {
+        for (const [k, v] of Object.entries(entry as Record<string, unknown>)) {
+          if (typeof v === 'string') parts.push(`${k}: ${v}`)
+        }
+      }
+    }
+    return parts.length > 0 ? parts.join(', ') : undefined
+  }
+  if (typeof raw === 'string' && raw.length > 0) return raw
+  return undefined
+}
+
+/**
  * classifyResource — classify a single raw resource entry into a NodeType.
  *
  * Returns null for the synthetic root ('schema') or any entry that doesn't
@@ -393,7 +424,7 @@ function classifyResource(r: unknown): NodeType | null {
 
   const externalRef = asObject(res.externalRef)
   const template = asObject(res.template)
-  const forEach = typeof res.forEach === 'string' ? res.forEach : undefined
+  const forEach = extractForEachDisplay(res.forEach)
 
   if (externalRef) {
     const meta = asObject(externalRef.metadata)
@@ -545,6 +576,21 @@ export function forEachLabel(forEach: string | undefined): string {
   return forEach.slice(0, FOREACH_LABEL_MAX_CHARS - 1) + '…'
 }
 
+/**
+ * Maps a live node state to its CSS modifier class string.
+ * Defined here once; imported by LiveDAG, StaticChainDAG, and DeepDAG.
+ * Constitution §IX: shared helpers must not be copy-pasted across components.
+ */
+export function liveStateClass(state: NodeLiveState | undefined): string {
+  if (!state) return 'dag-node-live--notfound'
+  switch (state) {
+    case 'alive':       return 'dag-node-live--alive'
+    case 'reconciling': return 'dag-node-live--reconciling'
+    case 'error':       return 'dag-node-live--error'
+    case 'not-found':   return 'dag-node-live--notfound'
+  }
+}
+
 // ── Chaining detection ────────────────────────────────────────────────────
 
 /**
@@ -684,7 +730,7 @@ export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[])
 
     const template = asObject(res.template)
     const externalRef = asObject(res.externalRef)
-    const forEach = typeof res.forEach === 'string' ? res.forEach : undefined
+    const forEach = extractForEachDisplay(res.forEach)
     const includeWhen = asStringArray(res.includeWhen)
     const readyWhen = asStringArray(res.readyWhen)
 
@@ -750,7 +796,7 @@ export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[])
       x: 0,
       y: 0,
       width: NODE_WIDTH,
-      height: NODE_HEIGHT,
+      height: nodeType === 'collection' ? COLLECTION_NODE_HEIGHT : NODE_HEIGHT,
     }
     nodes.push(node)
   }
@@ -796,7 +842,8 @@ export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[])
 
   // ── Layout ────────────────────────────────────────────────────────────
   const nodeIds = nodes.map((n) => n.id)
-  const { positions, width, height } = layoutDAG(nodeIds, edges, 'schema')
+  const nodeHeights = new Map(nodes.map((n) => [n.id, n.height]))
+  const { positions, width, height } = layoutDAG(nodeIds, edges, 'schema', nodeHeights)
 
   for (const node of nodes) {
     const pos = positions.get(node.id)
@@ -804,7 +851,7 @@ export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[])
       node.x = pos.x
       node.y = pos.y
       node.width = pos.width
-      node.height = pos.height
+      // Preserve the node's own height (COLLECTION_NODE_HEIGHT for collection nodes).
     }
   }
 
