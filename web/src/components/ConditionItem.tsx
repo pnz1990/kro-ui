@@ -4,6 +4,9 @@
 // last transition time. Long messages (>200 chars) are truncated with a
 // "Show more" toggle.
 //
+// Issue #103: known kro internal error patterns are rewritten into plain-English
+// summaries; the raw Go error chain is available via a "Show raw" toggle.
+//
 // Spec: .specify/specs/017-rgd-validation-linting/ FR-002, FR-003
 
 import { useState } from 'react'
@@ -51,12 +54,58 @@ function formatTime(ts: string | undefined): string {
 }
 
 /**
+ * rewriteConditionMessage — translates known kro internal error strings into
+ * plain-English summaries. Returns null when no pattern matches (caller should
+ * show the raw message as-is). (Issue #103)
+ *
+ * Recognised patterns:
+ *   1. "cannot resolve group version kind ... schema not found"
+ *      → "Referenced kind X is not yet registered — check that the providing
+ *         RGD is Ready before applying this one."
+ *   2. "references unknown identifiers: [...]"
+ *      → "CEL expression references an unknown field or resource ID — check
+ *         forEach, includeWhen, and readyWhen expressions for typos."
+ *   3. "failed to build OpenAPI schema ... unknown type: array"
+ *      → "Schema uses 'type: array' which is not supported by this kro version —
+ *         use lists.range() with an integer field instead."
+ */
+function rewriteConditionMessage(reason: string, message: string): string | null {
+  if (message.includes('cannot resolve group version kind') && message.includes('schema not found')) {
+    // Extract "Kind=ChainChild" from within the GVK string.
+    // The message format is: ... "kro.run/v1alpha1, Kind=ChainChild" ...
+    const kindMatch = message.match(/Kind=([A-Za-z][A-Za-z0-9]*)/)
+    const kindName = kindMatch ? kindMatch[1] : 'the referenced kind'
+    return `Referenced kind "${kindName}" is not yet registered. ` +
+      `Ensure the ResourceGraphDefinition that provides this kind is Ready before applying.`
+  }
+
+  if (message.includes('references unknown identifiers')) {
+    const identMatch = message.match(/references unknown identifiers:\s*\[([^\]]+)\]/)
+    const identList = identMatch ? identMatch[1] : 'unknown fields'
+    return `CEL expression references unknown identifier(s): ${identList}. ` +
+      `Check forEach, includeWhen, and readyWhen expressions for typos or missing resource IDs.`
+  }
+
+  if (message.includes('unknown type: array') || (message.includes('field type') && message.includes('array'))) {
+    return `Schema field uses "type: array" which is not supported by this kro version. ` +
+      `Use an integer field with lists.range() in the forEach expression instead.`
+  }
+
+  if (reason === 'AwaitingReconciliation') {
+    return null // handled by the "Awaiting controller processing" hint already
+  }
+
+  return null // no known pattern — show raw
+}
+
+/**
  * ConditionItem — renders one row of the validation checklist.
  *
  * Spec: .specify/specs/017-rgd-validation-linting/ FR-002, FR-003
  */
 export default function ConditionItem({ condition, label, isAbsent }: ConditionItemProps) {
   const [expanded, setExpanded] = useState(false)
+  const [showRaw, setShowRaw] = useState(false)
 
   // Absent conditions (not emitted by this kro version) render as "Not reported"
   // with a neutral indicator — distinct from Unknown/Pending which means the
@@ -82,11 +131,17 @@ export default function ConditionItem({ condition, label, isAbsent }: ConditionI
   }
 
   const status = condition.status
-  const message = condition.message ?? ''
-  const isLong = message.length > MESSAGE_PREVIEW_LEN
-  const displayMessage = isLong && !expanded
-    ? message.slice(0, MESSAGE_PREVIEW_LEN) + '…'
-    : message
+  const rawMessage = condition.message ?? ''
+
+  // Issue #103: rewrite known kro internal error patterns to plain English.
+  // If no pattern matches, show raw message as-is (with optional truncation).
+  const rewritten = rawMessage ? rewriteConditionMessage(condition.reason ?? '', rawMessage) : null
+  const displayAsRewritten = rewritten !== null && !showRaw
+
+  const isLong = rawMessage.length > MESSAGE_PREVIEW_LEN
+  const displayRaw = isLong && !expanded
+    ? rawMessage.slice(0, MESSAGE_PREVIEW_LEN) + '…'
+    : rawMessage
 
   let statusClass: string
   let statusIcon: string
@@ -117,22 +172,46 @@ export default function ConditionItem({ condition, label, isAbsent }: ConditionI
         )}
       </div>
 
-      {message && (
+      {rawMessage && (
         <div className="condition-item__message">
-          <pre className="condition-item__message-pre">{displayMessage}</pre>
-          {isLong && (
-            <button
-              type="button"
-              className="condition-item__toggle"
-              onClick={() => setExpanded((e) => !e)}
-            >
-              {expanded ? 'Show less' : 'Show more'}
-            </button>
+          {displayAsRewritten ? (
+            <>
+              <p className="condition-item__message-rewritten">{rewritten}</p>
+              <button
+                type="button"
+                className="condition-item__toggle condition-item__toggle--raw"
+                onClick={() => setShowRaw(true)}
+              >
+                Show raw error
+              </button>
+            </>
+          ) : (
+            <>
+              <pre className="condition-item__message-pre">{displayRaw}</pre>
+              {isLong && (
+                <button
+                  type="button"
+                  className="condition-item__toggle"
+                  onClick={() => setExpanded((e) => !e)}
+                >
+                  {expanded ? 'Show less' : 'Show more'}
+                </button>
+              )}
+              {rewritten !== null && (
+                <button
+                  type="button"
+                  className="condition-item__toggle condition-item__toggle--raw"
+                  onClick={() => setShowRaw(false)}
+                >
+                  Show summary
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
 
-      {!message && status !== 'True' && (
+      {!rawMessage && status !== 'True' && (
         <div className="condition-item__message">
           <span className="condition-item__pending-hint">
             Awaiting controller processing

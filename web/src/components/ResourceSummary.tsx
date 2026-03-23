@@ -19,6 +19,7 @@ interface NodeCounts {
   managed: number
   collections: number
   externalRefs: number
+  stateNodes: number  // kro state: nodes — produce no Kubernetes objects (#96)
 }
 
 interface CELRef {
@@ -33,18 +34,22 @@ function computeSummary(spec: Record<string, unknown>): {
   const graph = buildDAGGraph(spec)
 
   // Count node types (exclude the root 'schema' / 'instance' node)
+  // State nodes (kro state: field) are counted separately — they produce no
+  // Kubernetes objects. Including them in the 'managed' count is misleading. (#96)
   let managed = 0
   let collections = 0
   let externalRefs = 0
+  let stateNodes = 0
 
   for (const node of graph.nodes) {
     if (node.nodeType === 'instance') continue // skip root
     if (node.nodeType === 'resource') managed++
     else if (node.nodeType === 'collection') collections++
     else if (node.nodeType === 'external' || node.nodeType === 'externalCollection') externalRefs++
+    else if (node.nodeType === 'state') stateNodes++
   }
 
-  const total = managed + collections + externalRefs
+  const total = managed + collections + externalRefs + stateNodes
 
   // CEL cross-references come from edges (dependency → dependent).
   // Exclude edges to/from the root 'schema' node that are implicit reachability
@@ -74,7 +79,7 @@ function computeSummary(spec: Record<string, unknown>): {
   }
 
   return {
-    counts: { total, managed, collections, externalRefs },
+    counts: { total, managed, collections, externalRefs, stateNodes },
     celRefs,
   }
 }
@@ -109,6 +114,11 @@ export default function ResourceSummary({ spec }: ResourceSummaryProps) {
           {counts.externalRefs > 0 && (
             <span className="resource-summary__type resource-summary__type--external">
               {counts.externalRefs} external ref{counts.externalRefs !== 1 ? 's' : ''}
+            </span>
+          )}
+          {counts.stateNodes > 0 && (
+            <span className="resource-summary__type resource-summary__type--state">
+              {counts.stateNodes} state node{counts.stateNodes !== 1 ? 's' : ''}
             </span>
           )}
           {counts.total === 0 && (
