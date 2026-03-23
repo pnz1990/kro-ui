@@ -37,7 +37,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FIXTURES_DIR="${ROOT_DIR}/test/e2e/fixtures"
 BINARY="${ROOT_DIR}/bin/kro-ui"
-KUBECONFIG_PATH="${KUBECONFIG:-${ROOT_DIR}/.demo-kubeconfig.yaml}"
+if [[ -n "${KUBECONFIG:-}" ]]; then
+  KUBECONFIG_PATH="${KUBECONFIG}"
+elif [[ -n "${DEMO_SKIP_KIND_CREATE:-}" ]]; then
+  KUBECONFIG_PATH="${HOME}/.kube/config"
+else
+  KUBECONFIG_PATH="${ROOT_DIR}/.demo-kubeconfig.yaml"
+fi
 FALLBACK_KRO_VERSION="0.8.5"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
@@ -121,6 +127,11 @@ info "Creating namespace '${NAMESPACE}'…"
   | "${KC[@]}" apply -f -
 
 # ── 4. Apply pre-requisite resources ─────────────────────────────────────────
+# The external-ref prereq fixture lives in namespace kro-ui-e2e (shared with E2E tests).
+info "Creating namespace 'kro-ui-e2e' for external-ref prereq…"
+"${KC[@]}" create namespace kro-ui-e2e --dry-run=client -o yaml \
+  | "${KC[@]}" apply -f -
+
 info "Applying external-ref pre-requisite ConfigMap…"
 "${KC[@]}" apply -f "${FIXTURES_DIR}/external-ref-prereq.yaml"
 
