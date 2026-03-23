@@ -36,6 +36,7 @@ import CollectionPanel from '@/components/CollectionPanel'
 import SpecPanel from '@/components/SpecPanel'
 import ConditionsPanel from '@/components/ConditionsPanel'
 import EventsPanel from '@/components/EventsPanel'
+import TelemetryPanel from '@/components/TelemetryPanel'
 import './InstanceDetail.css'
 
 // ── Poll result type ───────────────────────────────────────────────────────
@@ -341,35 +342,44 @@ export default function InstanceDetail() {
 
       {/* Main content — renders as soon as instance + events are available */}
       {!isLoading && fastData && (
-        <div className={`instance-detail-content${selectedNode ? ' instance-detail-content--with-panel' : ''}`}>
-          {/* DAG */}
-          <div className="instance-detail-dag-area">
-            {rgdLoading ? (
-              <div className="instance-detail-dag-empty">Loading graph…</div>
-            ) : dagGraph && dagGraph.nodes.length > 0 ? (
-              <DeepDAG
-                graph={dagGraph}
-                nodeStateMap={nodeStateMap}
-                onNodeClick={handleNodeClick}
-                selectedNodeId={selectedNodeId ?? undefined}
-                children={children}
-                rgds={allRGDs}
-                namespace={namespace ?? ''}
-              />
-            ) : (
-              <div className="instance-detail-dag-empty">
-                No managed resources defined in this RGD.
-              </div>
-            )}
-          </div>
+        <>
+          {/* Telemetry strip — age, time in state, children health, warnings (spec 027) */}
+          <TelemetryPanel
+            instance={fastData.instance}
+            nodeStateMap={nodeStateMap}
+            events={fastData.events}
+          />
 
-          {/* Below-DAG panels */}
-          <div className="instance-detail-panels">
-            <SpecPanel instance={fastData.instance} />
-            <ConditionsPanel instance={fastData.instance} />
-            <EventsPanel events={fastData.events} />
+          <div className={`instance-detail-content${selectedNode ? ' instance-detail-content--with-panel' : ''}`}>
+            {/* DAG */}
+            <div className="instance-detail-dag-area">
+              {rgdLoading ? (
+                <div className="instance-detail-dag-empty">Loading graph…</div>
+              ) : dagGraph && dagGraph.nodes.length > 0 ? (
+                <DeepDAG
+                  graph={dagGraph}
+                  nodeStateMap={nodeStateMap}
+                  onNodeClick={handleNodeClick}
+                  selectedNodeId={selectedNodeId ?? undefined}
+                  children={children}
+                  rgds={allRGDs}
+                  namespace={namespace ?? ''}
+                />
+              ) : (
+                <div className="instance-detail-dag-empty">
+                  No managed resources defined in this RGD.
+                </div>
+              )}
+            </div>
+
+            {/* Below-DAG panels */}
+            <div className="instance-detail-panels">
+              <SpecPanel instance={fastData.instance} />
+              <ConditionsPanel instance={fastData.instance} />
+              <EventsPanel events={fastData.events} />
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Node detail / collection side panel (FR-006, FR-008, spec 011) */}
