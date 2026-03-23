@@ -28,7 +28,7 @@ export interface ReadyStatus {
   message: string
 }
 
-// ── Instance health (5-state) ─────────────────────────────────────────
+// ── Type guard ───────────────────────────────────────────────────────
 
 /** Runtime type guard: narrows unknown to K8sCondition. */
 function isCondition(v: unknown): v is K8sCondition {
@@ -36,6 +36,8 @@ function isCondition(v: unknown): v is K8sCondition {
   const obj = v as Record<string, unknown>
   return typeof obj.type === 'string' && typeof obj.status === 'string'
 }
+
+// ── Instance health (5-state) ─────────────────────────────────────────
 
 /**
  * Five-state health enumeration for a kro instance.
