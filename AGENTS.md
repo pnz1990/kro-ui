@@ -345,3 +345,11 @@ The current branch name tells you which spec to read. For example, branch
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
 
+
+## Recent Changes
+- 025-rgd-static-chain-graph: Added TypeScript 5.9 + Go 1.25 + React 19, React Router v7, Vite 8, Bun (frontend); chi v5, zerolog, client-go dynamic (backend)
+- 025-rgd-static-chain-graph: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
+
+## Active Technologies
+- TypeScript 5.9 + Go 1.25 + React 19, React Router v7, Vite 8, Bun (frontend); chi v5, zerolog, client-go dynamic (backend) (025-rgd-static-chain-graph)
+- N/A — read-only, no persistence (025-rgd-static-chain-graph)

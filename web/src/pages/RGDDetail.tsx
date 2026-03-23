@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react"
-import { useParams, useSearchParams } from "react-router-dom"
-import { getRGD, listInstances } from "@/lib/api"
+import { useParams, useSearchParams, useLocation, Link } from "react-router-dom"
+import { getRGD, listRGDs, listInstances } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { toYaml } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
 import { usePageTitle } from "@/hooks/usePageTitle"
 import KroCodeBlock from "@/components/KroCodeBlock"
-import DAGGraph from "@/components/DAGGraph"
+import StaticChainDAG from "@/components/StaticChainDAG"
 import NodeDetailPanel from "@/components/NodeDetailPanel"
 import InstanceTable from "@/components/InstanceTable"
 import NamespaceFilter from "@/components/NamespaceFilter"
@@ -36,6 +36,10 @@ function isValidTab(t: string | null): t is TabId {
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+
+  // Breadcrumb: set when navigated via "View RGD →" from another RGD (spec 025)
+  const fromRgd = (location.state as { from?: string } | null)?.from || null
 
   const rawTab = searchParams.get("tab")
   const activeTab: TabId = isValidTab(rawTab) ? rawTab : "graph"
@@ -46,12 +50,21 @@ export default function RGDDetail() {
   const [loading, setLoading] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
+  // ── All RGDs for chain detection (spec 025) ───────────────────────────────
+  const [rgds, setRgds] = useState<K8sObject[]>([])
+
   useEffect(() => {
     if (!name) return
     setLoading(true)
-    getRGD(name)
-      .then((data) => {
+    // Fetch RGD detail and all RGDs in parallel; listRGDs failure is non-fatal
+    // (chain detection degrades to no chainable marking rather than an error page)
+    Promise.all([
+      getRGD(name),
+      listRGDs().catch(() => ({ metadata: {}, items: [] as K8sObject[] })),
+    ])
+      .then(([data, allRgds]) => {
         setRgd(data)
+        setRgds(allRgds.items)
         setError(null)
       })
       .catch((err: Error) => {
@@ -131,8 +144,8 @@ export default function RGDDetail() {
   // ── Memoised DAG ─────────────────────────────────────────────────────────
   const dagGraph = useMemo(() => {
     if (!rgd?.spec) return null
-    return buildDAGGraph(rgd.spec as Record<string, unknown>)
-  }, [rgd])
+    return buildDAGGraph(rgd.spec as Record<string, unknown>, rgds)
+  }, [rgd, rgds])
 
   // ── Collapse candidate groups (static analysis, no API call) ─────────────
   // spec: .specify/specs/023-rgd-optimization-advisor/
@@ -172,6 +185,15 @@ export default function RGDDetail() {
 
   return (
     <div className="rgd-detail">
+      {/* Breadcrumb — shown when navigated via "View RGD →" (spec 025) */}
+      {fromRgd && (
+        <div data-testid="rgd-breadcrumb" className="rgd-breadcrumb">
+          <Link data-testid="rgd-breadcrumb-link" to={`/rgds/${fromRgd}`}>
+            ← {fromRgd}
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="rgd-detail-header">
         <h1 className="rgd-detail-name">{String(rgdName)}</h1>
@@ -249,10 +271,12 @@ export default function RGDDetail() {
               className={`rgd-graph-area${selectedNode ? " rgd-graph-area--with-panel" : ""}`}
             >
               {dagGraph && dagGraph.nodes.length > 0 ? (
-                <DAGGraph
+                <StaticChainDAG
                   graph={dagGraph}
+                  rgds={rgds}
                   onNodeClick={(id) => setSelectedNodeId(id)}
                   selectedNodeId={selectedNodeId ?? undefined}
+                  rgdName={String(rgdName)}
                 />
               ) : (
                 <div className="rgd-graph-empty">

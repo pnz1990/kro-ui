@@ -68,6 +68,7 @@ function makeNode(nodeId: string, forEach = '${schema.spec.items}'): DAGNode {
     includeWhen: [],
     readyWhen: [],
     forEach,
+    isChainable: false,
     x: 0,
     y: 0,
     width: 180,
