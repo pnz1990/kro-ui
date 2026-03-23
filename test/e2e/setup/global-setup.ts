@@ -134,6 +134,16 @@ export default async function globalSetup() {
   ], { retries: 5 })
   console.log('[setup] test-instance reconciled')
 
+  // Apply the collection fixture (forEach node annotation test — spec 021).
+  // We only apply the RGD — not the instance — because kro's forEach CRD
+  // generation takes an unpredictable amount of time and the instance cannot
+  // be applied before the CRD is Established.
+  // Journey 010 Steps 1 & 2 (static DAG) only need the RGD to exist in the API;
+  // Steps 3 & 4 (live instance) are skipped in CI.
+  console.log('[setup] Applying test-collection RGD (static DAG only)…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-rgd.yaml')])
+  console.log('[setup] test-collection RGD applied')
+
   // ── 6. Build kro-ui binary if needed ─────────────────────────────────────
   const binaryPath = process.env.KRO_UI_BINARY ?? join(ROOT_DIR, 'bin', 'kro-ui')
   if (!existsSync(binaryPath)) {
