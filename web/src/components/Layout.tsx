@@ -1,4 +1,4 @@
-// Layout — top bar (context switcher) + outlet for pages.
+// Layout — top bar (context switcher) + outlet for pages + footer.
 // Keying <Outlet> on activeContext forces child routes to remount and refetch
 // their data after a context switch.
 
@@ -6,8 +6,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { listContexts } from '@/lib/api'
 import type { KubeContext } from '@/lib/api'
-import TopBar from './TopBar'
 import Footer from './Footer'
+import TopBar from './TopBar'
 import './Layout.css'
 
 export default function Layout() {

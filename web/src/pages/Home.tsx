@@ -101,11 +101,34 @@ export default function Home() {
         </button>
       </div>
     ) : (
-      <div className="home__empty">
-        <p>No ResourceGraphDefinitions found in this cluster.</p>
-        <a href="https://kro.run/docs" target="_blank" rel="noopener noreferrer">
-          Learn about kro
-        </a>
+      <div className="home__empty home__empty--onboarding">
+        <h2 className="home__empty-title">No ResourceGraphDefinitions found</h2>
+        <p className="home__empty-desc">
+          <strong>kro-ui</strong> is a read-only observability dashboard for{' '}
+          <a href="https://kro.run" target="_blank" rel="noopener noreferrer">
+            kro
+          </a>{' '}
+          — the Kubernetes Resource Orchestrator. A ResourceGraphDefinition (RGD)
+          declares a graph of Kubernetes resources to manage as a unit.
+        </p>
+        <div className="home__empty-actions">
+          <a
+            href="https://kro.run/docs/getting-started"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="home__empty-cta"
+          >
+            Get started with kro
+          </a>
+          <a
+            href="https://github.com/kubernetes-sigs/kro"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="home__empty-cta home__empty-cta--secondary"
+          >
+            kro on GitHub
+          </a>
+        </div>
       </div>
     )
 
