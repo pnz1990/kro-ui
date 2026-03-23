@@ -7,6 +7,7 @@ import { Outlet } from 'react-router-dom'
 import { listContexts } from '@/lib/api'
 import type { KubeContext } from '@/lib/api'
 import TopBar from './TopBar'
+import Footer from './Footer'
 import './Layout.css'
 
 export default function Layout() {
@@ -41,6 +42,7 @@ export default function Layout() {
         {/* Key on activeContext forces child routes to remount and refetch data */}
         <Outlet key={activeContext} />
       </main>
+      <Footer />
     </div>
   )
 }
