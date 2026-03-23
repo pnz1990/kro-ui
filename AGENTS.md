@@ -345,10 +345,3 @@ The current branch name tells you which spec to read. For example, branch
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
 
-
-## Active Technologies
-- TypeScript 5.9, React 19, Vitest 4 + React 19 + React Router v7 + Vite 8 (no new deps) (023-rgd-optimization-advisor)
-- N/A — all state is transient session state (`useState`) (023-rgd-optimization-advisor)
-
-## Recent Changes
-- 023-rgd-optimization-advisor: Added TypeScript 5.9, React 19, Vitest 4 + React 19 + React Router v7 + Vite 8 (no new deps)

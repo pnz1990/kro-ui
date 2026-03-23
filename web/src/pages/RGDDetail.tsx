@@ -261,7 +261,7 @@ export default function RGDDetail() {
               )}
             </div>
             <OptimizationAdvisor
-              key={String((rgd?.metadata as Record<string, unknown> | undefined)?.name ?? "")}
+              key={String(rgdName)}
               groups={collapseGroups}
             />
             {selectedNode && (

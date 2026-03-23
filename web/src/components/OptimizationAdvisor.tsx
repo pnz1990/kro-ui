@@ -23,6 +23,12 @@ interface OptimizationAdvisorProps {
  * Renders nothing when groups is empty or all suggestions are dismissed.
  * All state is session-only (no localStorage, no URL param).
  *
+ * State re-initialization: suggestion state is initialized once from the
+ * `groups` prop via the `useState` initializer. It does NOT re-sync when
+ * `groups` changes (intentional — avoids resetting dismissed state mid-session).
+ * The caller must remount this component (via `key` prop) when a new RGD is
+ * loaded to reset dismiss/expand state for the new context.
+ *
  * Spec: .specify/specs/023-rgd-optimization-advisor/
  */
 export default function OptimizationAdvisor({ groups }: OptimizationAdvisorProps) {
