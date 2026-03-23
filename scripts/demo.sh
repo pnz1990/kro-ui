@@ -16,8 +16,11 @@
 # demo.sh — spin up a local kro-ui demo environment.
 #
 # Usage:
-#   make demo                                            # create kind cluster + install kro + load fixtures
-#   DEMO_SKIP_KIND_CREATE=true KUBECONFIG=~/.kube/config make demo  # use existing cluster
+#   make demo                          # create kind cluster + install kro + load fixtures
+#   DEMO_SKIP_KIND_CREATE=true make demo  # reuse existing demo kind cluster (skips cluster creation)
+#
+# The demo ALWAYS uses .demo-kubeconfig.yaml in the repo root — it never
+# touches ~/.kube/config or any production cluster.
 #
 # Prerequisites (not installed automatically):
 #   - kind   https://kind.sigs.k8s.io/docs/user/quick-start/#installation
@@ -37,13 +40,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FIXTURES_DIR="${ROOT_DIR}/test/e2e/fixtures"
 BINARY="${ROOT_DIR}/bin/kro-ui"
-if [[ -n "${KUBECONFIG:-}" ]]; then
-  KUBECONFIG_PATH="${KUBECONFIG}"
-elif [[ -n "${DEMO_SKIP_KIND_CREATE:-}" ]]; then
-  KUBECONFIG_PATH="${HOME}/.kube/config"
-else
-  KUBECONFIG_PATH="${ROOT_DIR}/.demo-kubeconfig.yaml"
-fi
+KUBECONFIG_PATH="${ROOT_DIR}/.demo-kubeconfig.yaml"
 FALLBACK_KRO_VERSION="0.8.5"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
@@ -102,7 +99,13 @@ if [[ -z "${DEMO_SKIP_KIND_CREATE:-}" ]]; then
   kind create cluster --name "${CLUSTER_NAME}" --kubeconfig "${KUBECONFIG_PATH}" --wait 120s
   ok "Kind cluster ready"
 else
-  info "DEMO_SKIP_KIND_CREATE set — using existing cluster"
+  if [[ ! -f "${KUBECONFIG_PATH}" ]]; then
+    warn "DEMO_SKIP_KIND_CREATE is set but ${KUBECONFIG_PATH} does not exist."
+    warn "The demo cluster has not been created yet. Run without DEMO_SKIP_KIND_CREATE first:"
+    warn "  PATH=\"\$PATH:/Users/rrroizma/Applications\" make demo"
+    exit 1
+  fi
+  info "DEMO_SKIP_KIND_CREATE set — reusing existing demo cluster"
   export KUBECONFIG="${KUBECONFIG_PATH}"
 fi
 
