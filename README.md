@@ -25,6 +25,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
   - **Access tab** — RBAC permission matrix for kro's service account against all managed resources, with kubectl fix suggestions
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, and a copyable example manifest
+  - **Generate tab** — three-mode YAML generator: interactive instance form (per-field controls with type coercion), batch mode (one line = one manifest), and RGD authoring scaffolder (guided form to produce a `ResourceGraphDefinition` YAML skeleton)
 - **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error), node YAML inspection, spec/conditions/events panels
   - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, cardinality badge (`N/M`), and individual resource YAML
   - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
