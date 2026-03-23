@@ -16,6 +16,7 @@ import { useRef, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { DAGNode } from '@/lib/dag'
 import { nodeTypeLabel } from '@/lib/dag'
+import type { NodeLiveState } from '@/lib/instanceNodeState'
 import KroCodeBlock from './KroCodeBlock'
 import './DAGTooltip.css'
 
@@ -30,6 +31,14 @@ export interface DAGTooltipProps {
   nodeWidth: number
   /** Height of the hovered node rect (for bottom-side anchor calculation). */
   nodeHeight: number
+  /**
+   * Optional live state for the hovered node.
+   * When provided, a "State: <label>" line is shown in the tooltip.
+   * Also relaxes the early-return guard — tooltip renders even if readyWhen
+   * and includeWhen are both empty, so users can see state on any node.
+   * Spec: .specify/specs/029-dag-instance-overlay/
+   */
+  nodeState?: NodeLiveState
 }
 
 /**
@@ -50,6 +59,24 @@ function nonEmpty(exprs: string[]): string[] {
   return exprs.filter((s) => s.trim() !== '')
 }
 
+/** Maps NodeLiveState to the CSS modifier used in .dag-tooltip__state--* */
+function stateClass(state: NodeLiveState): string {
+  switch (state) {
+    case 'alive':       return 'alive'
+    case 'reconciling': return 'reconciling'
+    case 'error':       return 'error'
+    case 'not-found':   return 'notfound'
+  }
+}
+
+/** Human-readable label for a live state. */
+const STATE_LABEL: Record<NodeLiveState, string> = {
+  alive: 'Alive',
+  reconciling: 'Reconciling',
+  error: 'Error',
+  'not-found': 'Not found',
+}
+
 /**
  * DAGTooltip — portal-rendered, viewport-clamped hover tooltip.
  *
@@ -66,6 +93,7 @@ export default function DAGTooltip({
   anchorY,
   nodeWidth,
   nodeHeight,
+  nodeState,
 }: DAGTooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
@@ -122,7 +150,8 @@ export default function DAGTooltip({
   const includeWhenExprs = nonEmpty(node.includeWhen)
 
   // Nothing interesting to show — bail out
-  if (readyWhenExprs.length === 0 && includeWhenExprs.length === 0) return null
+  // Relaxed when nodeState is provided (overlay active): every node gets a tooltip
+  if (readyWhenExprs.length === 0 && includeWhenExprs.length === 0 && !nodeState) return null
 
   const readyWhenCode =
     'readyWhen:\n' + readyWhenExprs.map((e) => `  - ${e}`).join('\n')
@@ -149,6 +178,11 @@ export default function DAGTooltip({
         <span className="dag-tooltip-node-type">
           {nodeTypeLabel(node.nodeType)}
         </span>
+        {nodeState && (
+          <span className={`dag-tooltip__state dag-tooltip__state--${stateClass(nodeState)}`}>
+            {STATE_LABEL[nodeState]}
+          </span>
+        )}
       </div>
 
       {includeWhenExprs.length > 0 && (

@@ -1,0 +1,177 @@
+/* InstanceOverlayBar.css — Styles for the Graph tab instance overlay picker.
+ *
+ * All colors via tokens.css custom properties — no hardcoded hex or rgba().
+ * BEM naming: .instance-overlay-bar__element--modifier
+ *
+ * Spec: .specify/specs/029-dag-instance-overlay/
+ */
+
+/* ── Root container ──────────────────────────────────────────────────────── */
+
+.instance-overlay-bar {
+  padding: 6px 0 4px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: 8px;
+}
+
+/* ── Picker row ──────────────────────────────────────────────────────────── */
+
+.instance-overlay-bar__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.instance-overlay-bar__label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.instance-overlay-bar__select {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  cursor: pointer;
+  min-width: 220px;
+  max-width: 420px;
+}
+
+.instance-overlay-bar__select:hover {
+  border-color: var(--color-primary-border);
+}
+
+.instance-overlay-bar__select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* ── Loading state ───────────────────────────────────────────────────────── */
+
+.instance-overlay-bar__loading {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-faint);
+}
+
+/* ── Error state (picker fetch) ──────────────────────────────────────────── */
+
+.instance-overlay-bar__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+/* ── Empty state (no instances) ──────────────────────────────────────────── */
+
+.instance-overlay-bar__empty {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.instance-overlay-bar__code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: var(--color-surface-3);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+/* ── Retry button ────────────────────────────────────────────────────────── */
+
+.instance-overlay-bar__retry-btn {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-primary-text);
+  background: none;
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.instance-overlay-bar__retry-btn:hover {
+  background: var(--color-primary-subtle);
+}
+
+/* ── Summary bar ─────────────────────────────────────────────────────────── */
+
+.instance-overlay-bar__summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0 2px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+/* Readiness badge — dot + text */
+
+.instance-overlay-bar__badge {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.instance-overlay-bar__badge--ready {
+  color: var(--color-alive);
+}
+
+.instance-overlay-bar__badge--reconciling {
+  color: var(--color-reconciling);
+}
+
+.instance-overlay-bar__badge--error {
+  color: var(--color-error);
+}
+
+.instance-overlay-bar__badge--unknown {
+  color: var(--color-text-faint);
+}
+
+/* Instance namespace/name ref */
+
+.instance-overlay-bar__instance-ref {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* "Open instance →" navigation link */
+
+.instance-overlay-bar__open-link {
+  font-size: 12px;
+  color: var(--color-primary-text);
+  text-decoration: none;
+}
+
+.instance-overlay-bar__open-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Overlay status (loading / error during overlay fetch) ───────────────── */
+
+.instance-overlay-bar__overlay-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 2px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.instance-overlay-bar__overlay-status--error {
+  color: var(--color-error);
+}

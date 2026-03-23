@@ -22,11 +22,14 @@
 //
 // Spec: .specify/specs/025-rgd-static-chain-graph/
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { buildChainSubgraph, nodeBadge, forEachLabel } from '@/lib/dag'
+import { buildChainSubgraph, nodeBadge, forEachLabel, liveStateClass, nodeStateForNode } from '@/lib/dag'
+import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
+import DAGTooltip from './DAGTooltip'
+import type { DAGTooltipTarget } from './DAGTooltip'
 import './StaticChainDAG.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -49,6 +52,14 @@ export interface StaticChainDAGProps {
   depth?: number
   /** Name of the RGD being displayed (used to seed ancestorSet at top level). */
   rgdName: string
+  /**
+   * Optional live instance overlay. When provided, nodes receive live-state
+   * CSS classes (dag-node-live--alive, dag-node-live--reconciling, etc.).
+   * State nodes (nodeType 'state') are never overlaid.
+   * Nested subgraph renders do NOT receive this prop (overlay is top-level only).
+   * Spec: .specify/specs/029-dag-instance-overlay/
+   */
+  nodeStateMap?: NodeStateMap
 }
 
 // ── Layout constants ──────────────────────────────────────────────────────
@@ -80,10 +91,11 @@ function edgePath(
   return `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`
 }
 
-function nodeBaseClass(node: DAGNode, isSelected: boolean): string {
+function nodeBaseClass(node: DAGNode, isSelected: boolean, liveState?: NodeLiveState): string {
   const parts = [`dag-node dag-node--${node.nodeType}`]
   if (node.isConditional) parts.push('node-conditional')
   if (node.isChainable) parts.push('node-chainable')
+  if (liveState) parts.push(liveStateClass(liveState))
   if (isSelected) parts.push('dag-node--selected')
   return parts.join(' ')
 }
@@ -202,8 +214,11 @@ export default function StaticChainDAG({
   ancestorSet,
   depth = 0,
   rgdName,
+  nodeStateMap,
 }: StaticChainDAGProps) {
   const navigate = useNavigate()
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  const [hoveredTooltip, setHoveredTooltip] = useState<(DAGTooltipTarget & { nodeState?: NodeLiveState }) | null>(null)
 
   // ── Expansion state ────────────────────────────────────────────────────
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => new Set())
@@ -263,6 +278,7 @@ export default function StaticChainDAG({
   return (
     <div className="dag-graph-container static-chain-dag-container">
       <svg
+        ref={svgRef}
         data-testid="dag-svg"
         width={graph.width}
         height={svgHeight}
@@ -314,7 +330,11 @@ export default function StaticChainDAG({
             const forEachY = node.y + 45
             const badgeX = node.x + node.width - 10
             const badgeY = node.y + 10
-            const className = nodeBaseClass(node, isSelected)
+            // Overlay: resolve live state for this node (state nodes are never overlaid)
+            const liveState = nodeStateMap && node.nodeType !== 'state'
+              ? nodeStateForNode(node, nodeStateMap)
+              : undefined
+            const className = nodeBaseClass(node, isSelected, liveState)
 
             const isExpanded = expandedNodes.has(node.id)
             const canExpand = node.isChainable && depth < MAX_DEPTH
@@ -353,6 +373,19 @@ export default function StaticChainDAG({
                       onNodeClick?.(node.id)
                     }
                   }}
+                  onMouseEnter={() => {
+                    if (!svgRef.current) return
+                    const svgRect = svgRef.current.getBoundingClientRect()
+                    setHoveredTooltip({
+                      node,
+                      anchorX: svgRect.left + node.x + node.width / 2,
+                      anchorY: svgRect.top + node.y,
+                      nodeWidth: node.width,
+                      nodeHeight: node.height,
+                      nodeState: liveState,
+                    })
+                  }}
+                  onMouseLeave={() => setHoveredTooltip(null)}
                 >
                   <rect
                     className="dag-node-rect"
@@ -528,6 +561,14 @@ export default function StaticChainDAG({
           })}
         </g>
       </svg>
+      <DAGTooltip
+        node={hoveredTooltip?.node ?? null}
+        anchorX={hoveredTooltip?.anchorX ?? 0}
+        anchorY={hoveredTooltip?.anchorY ?? 0}
+        nodeWidth={hoveredTooltip?.nodeWidth ?? 0}
+        nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
+        nodeState={hoveredTooltip?.nodeState}
+      />
     </div>
   )
 }

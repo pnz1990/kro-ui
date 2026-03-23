@@ -317,3 +317,44 @@
   stroke-width: 1.5;
   opacity: 0.7;
 }
+
+/* ── Live instance overlay (spec 029-dag-instance-overlay) ───────────────── */
+/*
+ * These rules apply when a live instance is selected via the InstanceOverlayBar.
+ * Node states are derived from instanceNodeState.ts via nodeStateForNode().
+ * Colors match the LiveDAG.css live-state overlay rules.
+ * The reconciling-pulse keyframe is defined globally in tokens.css — no redefinition.
+ */
+
+/* alive — emerald: resource reconciled and ready */
+.static-chain-dag-container .dag-node-live--alive rect.dag-node-rect {
+  fill: var(--node-alive-bg);
+  stroke: var(--node-alive-border);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+/* reconciling — amber + pulse: kro actively working */
+.static-chain-dag-container .dag-node-live--reconciling rect.dag-node-rect {
+  fill: var(--node-reconciling-bg);
+  stroke: var(--node-reconciling-border);
+  stroke-width: 2;
+  stroke-dasharray: none;
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+}
+
+/* error — rose: Ready=False condition */
+.static-chain-dag-container .dag-node-live--error rect.dag-node-rect {
+  fill: var(--node-error-bg);
+  stroke: var(--node-error-border);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+/* not-found — gray dashed: resource absent from children list */
+.static-chain-dag-container .dag-node-live--notfound rect.dag-node-rect {
+  fill: var(--node-notfound-bg);
+  stroke: var(--node-notfound-border);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}

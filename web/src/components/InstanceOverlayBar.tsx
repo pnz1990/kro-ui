@@ -1,0 +1,231 @@
+// InstanceOverlayBar.tsx — Instance picker + summary bar for the Graph tab overlay.
+//
+// Renders:
+//   1. A label + <select> picker listing all live instances of the current RGD.
+//   2. A one-line summary bar showing the selected instance's readiness badge
+//      and a direct "Open instance →" navigation link.
+//
+// The component is purely controlled — all state lives in RGDDetail.tsx.
+// Graceful degradation:
+//   - pickerLoading: loading text
+//   - pickerError: inline error + Retry
+//   - items.length === 0 (not loading, no error): "No instances" message
+//   - overlayLoading: loading text in summary area
+//   - overlayError: inline error + Retry in summary area
+//
+// Spec: .specify/specs/029-dag-instance-overlay/
+
+import { Link } from 'react-router-dom'
+import type { K8sObject } from '@/lib/api'
+import './InstanceOverlayBar.css'
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+/** A single instance item for the overlay picker. */
+export interface PickerItem {
+  namespace: string
+  name: string
+}
+
+export interface InstanceOverlayBarProps {
+  /** Name of the current RGD — used to build "Open instance →" link. */
+  rgdName: string
+  /** Available instances. Empty = show "No instances" message. */
+  items: PickerItem[]
+  /** True while the picker item list is being fetched. */
+  pickerLoading: boolean
+  /** Non-null when picker fetch failed. */
+  pickerError: string | null
+  /** Currently selected overlay key "<namespace>/<name>", or null for "No overlay". */
+  selected: string | null
+  /** Raw instance K8sObject for the selected overlay — drives the summary bar. */
+  overlayInstance: K8sObject | null
+  /** True while the overlay instance + children are being fetched. */
+  overlayLoading: boolean
+  /** Non-null when overlay data fetch failed. */
+  overlayError: string | null
+  /** Called when user changes picker selection. null = "No overlay". */
+  onSelect: (key: string | null) => void
+  /** Called when user clicks Retry on picker fetch error. */
+  onPickerRetry: () => void
+  /** Called when user clicks Retry on overlay data fetch error. */
+  onOverlayRetry: () => void
+}
+
+// ── Readiness badge ────────────────────────────────────────────────────────
+
+type ReadinessState = 'ready' | 'reconciling' | 'error' | 'unknown'
+
+interface K8sCondition {
+  type: string
+  status: string
+}
+
+function deriveReadiness(instance: K8sObject | null): ReadinessState {
+  if (!instance) return 'unknown'
+  const status = instance.status as Record<string, unknown> | undefined
+  if (!status) return 'unknown'
+  const conditions = status.conditions
+  if (!Array.isArray(conditions)) return 'unknown'
+  const conds = conditions as K8sCondition[]
+  // Progressing=True takes precedence
+  if (conds.some((c) => c.type === 'Progressing' && c.status === 'True')) return 'reconciling'
+  // Ready=False → error
+  if (conds.some((c) => c.type === 'Ready' && c.status === 'False')) return 'error'
+  // Ready=True → ready
+  if (conds.some((c) => c.type === 'Ready' && c.status === 'True')) return 'ready'
+  return 'unknown'
+}
+
+const READINESS_LABEL: Record<ReadinessState, string> = {
+  ready: 'Ready',
+  reconciling: 'Reconciling',
+  error: 'Error',
+  unknown: 'Unknown',
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
+
+/**
+ * InstanceOverlayBar — picker + summary bar for the RGD Graph tab overlay.
+ *
+ * Renders between the tab bar and the DAG SVG when the Graph tab is active.
+ * Controlled component: all selection state lives in the parent (RGDDetail).
+ */
+export default function InstanceOverlayBar({
+  rgdName,
+  items,
+  pickerLoading,
+  pickerError,
+  selected,
+  overlayInstance,
+  overlayLoading,
+  overlayError,
+  onSelect,
+  onPickerRetry,
+  onOverlayRetry,
+}: InstanceOverlayBarProps) {
+  // ── Picker row ────────────────────────────────────────────────────────────
+
+  let pickerContent: React.ReactNode
+
+  if (pickerLoading) {
+    pickerContent = (
+      <span className="instance-overlay-bar__loading">Loading instances…</span>
+    )
+  } else if (pickerError) {
+    pickerContent = (
+      <span className="instance-overlay-bar__error">
+        <span>Could not load instances: {pickerError}</span>
+        <button
+          type="button"
+          className="instance-overlay-bar__retry-btn"
+          onClick={onPickerRetry}
+        >
+          Retry
+        </button>
+      </span>
+    )
+  } else if (items.length === 0) {
+    pickerContent = (
+      <span className="instance-overlay-bar__empty">
+        No instances — create one with{' '}
+        <code className="instance-overlay-bar__code">kubectl apply</code>
+      </span>
+    )
+  } else {
+    pickerContent = (
+      <>
+        <label htmlFor="instance-overlay-select" className="instance-overlay-bar__label">
+          Overlay:
+        </label>
+        <select
+          id="instance-overlay-select"
+          className="instance-overlay-bar__select"
+          value={selected ?? ''}
+          onChange={(e) => onSelect(e.target.value || null)}
+        >
+          <option value="">No overlay</option>
+          {items.map((item) => {
+            const value = item.namespace ? `${item.namespace}/${item.name}` : item.name
+            const label = item.namespace ? `${item.namespace}/${item.name}` : item.name
+            return (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            )
+          })}
+        </select>
+      </>
+    )
+  }
+
+  // ── Summary bar ──────────────────────────────────────────────────────────
+
+  // Parse selected key into namespace + name
+  let summaryNamespace = ''
+  let summaryName = ''
+  if (selected) {
+    const slashIdx = selected.indexOf('/')
+    if (slashIdx === -1) {
+      summaryName = selected
+    } else {
+      summaryNamespace = selected.slice(0, slashIdx)
+      summaryName = selected.slice(slashIdx + 1)
+    }
+  }
+
+  let summaryContent: React.ReactNode = null
+
+  if (selected !== null) {
+    if (overlayLoading) {
+      summaryContent = (
+        <div className="instance-overlay-bar__overlay-status">
+          Loading overlay…
+        </div>
+      )
+    } else if (overlayError) {
+      summaryContent = (
+        <div className="instance-overlay-bar__overlay-status instance-overlay-bar__overlay-status--error">
+          <span>Overlay failed: {overlayError}</span>
+          <button
+            type="button"
+            className="instance-overlay-bar__retry-btn"
+            onClick={onOverlayRetry}
+          >
+            Retry
+          </button>
+        </div>
+      )
+    } else if (overlayInstance !== null) {
+      const readiness = deriveReadiness(overlayInstance)
+      const displayRef = summaryNamespace
+        ? `${summaryNamespace}/${summaryName}`
+        : summaryName
+      const instancePath = summaryNamespace
+        ? `/rgds/${rgdName}/instances/${summaryNamespace}/${summaryName}`
+        : `/rgds/${rgdName}/instances/_/${summaryName}`
+
+      summaryContent = (
+        <div className="instance-overlay-bar__summary">
+          <span className={`instance-overlay-bar__badge instance-overlay-bar__badge--${readiness}`}>
+            ● {READINESS_LABEL[readiness]}
+          </span>
+          <span className="instance-overlay-bar__instance-ref">{displayRef}</span>
+          <Link to={instancePath} className="instance-overlay-bar__open-link">
+            Open instance →
+          </Link>
+        </div>
+      )
+    }
+  }
+
+  return (
+    <div className="instance-overlay-bar">
+      <div className="instance-overlay-bar__row">
+        {pickerContent}
+      </div>
+      {summaryContent}
+    </div>
+  )
+}
