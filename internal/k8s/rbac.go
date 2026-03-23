@@ -100,8 +100,8 @@ func ResolveKroServiceAccount(ctx context.Context, clients K8sClients) (namespac
 			}
 		}
 	}
-	log.Debug().Msg("could not detect kro service account; falling back to kro-system/kro")
-	return "kro-system", "kro", false
+	log.Debug().Msg("could not detect kro service account; manual specification required")
+	return "", "", false
 }
 
 // FetchEffectiveRules returns the flattened list of RBAC rules that apply to the
@@ -231,13 +231,27 @@ func ResolveKroClusterRole(ctx context.Context, clients K8sClients, saNamespace,
 	return ""
 }
 
-// ComputeAccessResult extracts all GVRs from the RGD's spec.resources, fetches kro's
-// service account, reads its effective RBAC rules, and returns the full permission matrix.
-func ComputeAccessResult(ctx context.Context, clients K8sClients, rgdObj map[string]any) (*AccessResult, error) {
+// ComputeAccessResult extracts all GVRs from the RGD's spec.resources, reads the
+// effective RBAC rules for the given service account (saNS/saName), and returns the
+// full permission matrix.
+//
+// saNS, saName, and saFound are provided by the caller — typically from
+// ResolveKroServiceAccount or from a user-supplied manual override. When saNS is
+// empty, ComputeAccessResult returns immediately with a not-found result (no matrix).
+func ComputeAccessResult(ctx context.Context, clients K8sClients, rgdObj map[string]any, saNS, saName string, saFound bool) (*AccessResult, error) {
 	log := zerolog.Ctx(ctx)
 
-	// ── Resolve kro service account ──────────────────────────────────────────
-	saNS, saName, saFound := ResolveKroServiceAccount(ctx, clients)
+	// ── Short-circuit when SA is unknown ─────────────────────────────────────
+	if saNS == "" {
+		log.Debug().Msg("kro service account not resolved; returning empty access result")
+		return &AccessResult{
+			ServiceAccount:      "",
+			ServiceAccountFound: false,
+			HasGaps:             false,
+			Permissions:         []ResourcePermission{},
+		}, nil
+	}
+
 	saDisplay := saNS + "/" + saName
 
 	// ── Fetch effective rules ────────────────────────────────────────────────

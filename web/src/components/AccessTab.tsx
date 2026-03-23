@@ -38,17 +38,22 @@ function resolvedClusterRoleName(data: AccessResponse): string {
  * AccessTab — permission matrix for the "Access" tab on the RGD detail page.
  *
  * Fetches GET /api/v1/rgds/{name}/access and renders:
- *  - Service account banner (with SA-not-found fallback)
+ *  - Service account banner (with SA-not-found fallback → manual override form)
  *  - Success banner (all permissions OK) or warning banner + gap count
  *  - Permission matrix table (GVRs × verbs)
  *  - Collapsible kubectl fix suggestions for each gap row
  *
- * Spec: .specify/specs/018-rbac-visualizer/
+ * Spec: .specify/specs/018-rbac-visualizer/ + .specify/specs/032-rbac-sa-autodetect/
  */
 export default function AccessTab({ rgdName }: AccessTabProps) {
   const [data, setData] = useState<AccessResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // Manual SA override form state (US1/US2)
+  const [manualNS, setManualNS] = useState("")
+  const [manualSAName, setManualSAName] = useState("")
+  const [overrideSource, setOverrideSource] = useState<"auto" | "manual" | null>(null)
 
   useEffect(() => {
     if (!rgdName) return
@@ -59,6 +64,7 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
       .then((d) => {
         setData(d)
         setError(null)
+        setOverrideSource(d.serviceAccountFound ? "auto" : null)
       })
       .catch((err: Error) => {
         setError(err.message)
@@ -66,6 +72,26 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
       })
       .finally(() => setLoading(false))
   }, [rgdName])
+
+  /** Called when the user submits the manual SA override form. */
+  function handleManualSubmit() {
+    const ns = manualNS.trim()
+    const name = manualSAName.trim()
+    if (!ns || !name) return
+    setLoading(true)
+    setError(null)
+    getRGDAccess(rgdName, { saNamespace: ns, saName: name })
+      .then((d) => {
+        setData(d)
+        setError(null)
+        setOverrideSource("manual")
+      })
+      .catch((err: Error) => {
+        setError(err.message)
+        setData(null)
+      })
+      .finally(() => setLoading(false))
+  }
 
   if (loading) {
     return <div className="access-tab-loading">Checking permissions…</div>
@@ -95,18 +121,96 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
 
   if (!data) return null
 
+  // ── SA not found: show manual override form ────────────────────────────────
+  if (!data.serviceAccountFound && data.serviceAccount === "") {
+    const canSubmit = manualNS.trim().length > 0 && manualSAName.trim().length > 0
+    return (
+      <div className="access-tab" data-testid="access-tab">
+        <div className="access-tab-sa-override-form" data-testid="access-tab-sa-override-form">
+          <p className="access-tab-sa-override-desc">
+            Could not auto-detect kro's service account. Enter it manually to check permissions:
+          </p>
+          <div className="access-tab-sa-override-inputs">
+            <label className="access-tab-sa-override-label">
+              Namespace
+              <input
+                type="text"
+                className="access-tab-sa-override-input"
+                value={manualNS}
+                onChange={(e) => setManualNS(e.target.value)}
+                placeholder="e.g. kro-system"
+                data-testid="access-tab-sa-ns-input"
+              />
+            </label>
+            <label className="access-tab-sa-override-label">
+              Service account name
+              <input
+                type="text"
+                className="access-tab-sa-override-input"
+                value={manualSAName}
+                onChange={(e) => setManualSAName(e.target.value)}
+                placeholder="e.g. kro-controller"
+                data-testid="access-tab-sa-name-input"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            className="access-tab-sa-override-btn"
+            disabled={!canSubmit}
+            onClick={handleManualSubmit}
+            data-testid="access-tab-sa-override-submit"
+          >
+            Check permissions
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal view: SA known (auto-detected or manually specified) ────────────
   const gapCount = data.permissions.filter(hasGap).length
+
+  // Parse namespace/name from the "namespace/name" serviceAccount string (US3)
+  const slashIdx = data.serviceAccount.indexOf("/")
+  const saBannerNS = slashIdx >= 0 ? data.serviceAccount.slice(0, slashIdx) : data.serviceAccount
+  const saBannerName = slashIdx >= 0 ? data.serviceAccount.slice(slashIdx + 1) : ""
+
+  const sourceLabel =
+    overrideSource === "manual"
+      ? "(manually specified)"
+      : overrideSource === "auto" || data.serviceAccountFound
+        ? "(auto-detected)"
+        : null
 
   return (
     <div className="access-tab" data-testid="access-tab">
-      {/* Service account info */}
-      <div className="access-tab-sa-banner" data-testid="access-tab-sa-banner">
-        <span className="access-tab-sa-label">Checking kro service account:</span>{" "}
-        <code className="access-tab-sa-name">{data.serviceAccount}</code>
-        {!data.serviceAccountFound && (
+      {/* Service account info — labeled format (US3) */}
+      <div
+        className="access-tab-sa-banner"
+        data-testid="access-tab-sa-banner"
+        title={data.serviceAccount}
+      >
+        <span className="access-tab-sa-label">Namespace:</span>{" "}
+        <code className="access-tab-sa-value" data-testid="access-tab-sa-namespace">
+          {saBannerNS}
+        </code>
+        {saBannerName && (
+          <>
+            <span className="access-tab-sa-sep" aria-hidden="true">·</span>
+            <span className="access-tab-sa-label">Service account:</span>{" "}
+            <code className="access-tab-sa-value" data-testid="access-tab-sa-name">
+              {saBannerName}
+            </code>
+          </>
+        )}
+        {sourceLabel && (
+          <span className="access-tab-sa-source">{sourceLabel}</span>
+        )}
+        {!data.serviceAccountFound && !sourceLabel && (
           <span className="access-tab-sa-note">
             {" "}
-            (detected automatically — could not verify service account exists)
+            (could not verify service account exists)
           </span>
         )}
       </div>
