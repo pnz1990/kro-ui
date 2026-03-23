@@ -13,9 +13,15 @@ import './RGDCard.css'
 
 interface RGDCardProps {
   rgd: K8sObject
+  /**
+   * Number of instances of this RGD that are currently Terminating.
+   * Optional — absent or 0 means no badge is shown (AC-015).
+   * Spec: .specify/specs/031-deletion-debugger/ FR-007
+   */
+  terminatingCount?: number
 }
 
-export default function RGDCard({ rgd }: RGDCardProps) {
+export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
   const name = extractRGDName(rgd)
   const kind = extractRGDKind(rgd)
   const resourceCount = extractResourceCount(rgd)
@@ -43,6 +49,16 @@ export default function RGDCard({ rgd }: RGDCardProps) {
           {kind && (
             <span className="rgd-card__kind" data-testid="rgd-kind">
               {kind}
+            </span>
+          )}
+          {/* FR-007: Terminating badge — only when count > 0 (AC-015) */}
+          {terminatingCount != null && terminatingCount > 0 && (
+            <span
+              className="rgd-card__terminating-badge"
+              title={`${terminatingCount} instance(s) terminating`}
+              data-testid="rgd-terminating-badge"
+            >
+              ⊗ {terminatingCount}
             </span>
           )}
           <span className="rgd-card__resources">

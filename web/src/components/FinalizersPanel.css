@@ -1,0 +1,67 @@
+/* FinalizersPanel.css — collapsible finalizer badge list panel.
+ * All colour values use named tokens from tokens.css (no raw hex or rgba).
+ * Spec: .specify/specs/031-deletion-debugger/ FR-002, FR-006
+ */
+
+.finalizers-panel {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.finalizers-panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: left;
+  line-height: 1.4;
+}
+
+.finalizers-panel-toggle:hover {
+  background: var(--color-surface-2);
+}
+
+.finalizers-panel-toggle-chevron {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: auto;
+  flex-shrink: 0;
+  /* Use character rotation to indicate open/closed */
+  transition: transform 0.15s ease;
+}
+
+.finalizers-panel-toggle-chevron--open {
+  transform: rotate(180deg);
+}
+
+.finalizer-badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 16px 12px;
+}
+
+.finalizer-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  word-break: break-all;
+}
+
+/* kro.run/* finalizers get a primary-coloured border to highlight them */
+.finalizer-badge--kro {
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}

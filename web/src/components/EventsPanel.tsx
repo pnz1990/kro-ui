@@ -1,8 +1,11 @@
 // EventsPanel.tsx — Kubernetes events for a CR instance, newest-first.
 //
 // Updates on every poll cycle via props.
+// Deletion-related events (FR-004, spec 031-deletion-debugger) are tagged
+// with a ⊘ marker and a rose left-border accent.
 
-import type { K8sList } from '@/lib/api'
+import type { K8sList, K8sObject } from '@/lib/api'
+import { isDeletionEvent } from '@/lib/k8s'
 import './EventsPanel.css'
 
 interface EventsPanelProps {
@@ -72,9 +75,13 @@ export default function EventsPanel({ events }: EventsPanelProps) {
             const meta = ev.metadata as Record<string, unknown> | undefined
             const key = (meta?.name as string | undefined) ?? String(i)
             const time = getEventTime(ev)
+            const isDeletion = isDeletionEvent(ev as K8sObject)
             return (
-              <div key={key} className="event-row">
+              <div key={key} className={`event-row${isDeletion ? ' event-row--deletion' : ''}`}>
                 <div className="event-header">
+                  {isDeletion && (
+                    <span className="event-deletion-tag" aria-label="deletion event">⊘</span>
+                  )}
                   {ev.type && (
                     <span className={`event-type ${typeClass(ev.type)}`}>
                       {ev.type}

@@ -356,6 +356,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 ## Active Technologies
 - Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps (026-rgd-yaml-generator)
 - N/A — all state is local React `useState`; no persistence (026-rgd-yaml-generator)
+- Go 1.25 (backend — no changes), TypeScript 5.x + React 19 (frontend) + React 19, React Router v7, Vite — no new dependencies (031-deletion-debugger)
+- N/A — read-only, live polling only (031-deletion-debugger)
 
 ## Recent Changes
 - 026-rgd-yaml-generator: Added Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps

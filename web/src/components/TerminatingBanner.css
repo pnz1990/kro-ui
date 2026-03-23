@@ -1,0 +1,28 @@
+/* TerminatingBanner.css — styles for the Terminating state banner.
+ * All colour values use named tokens from tokens.css (no raw hex or rgba).
+ * Spec: .specify/specs/031-deletion-debugger/ FR-001
+ */
+
+.terminating-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--node-error-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-error);
+}
+
+.terminating-banner-icon {
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.terminating-banner-text {
+  flex: 1;
+  min-width: 0;
+}

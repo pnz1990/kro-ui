@@ -30,12 +30,15 @@ import { buildDAGGraph } from '@/lib/dag'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
 import { usePolling } from '@/hooks/usePolling'
+import { isTerminating, getDeletionTimestamp, getFinalizers } from '@/lib/k8s'
 import DeepDAG from '@/components/DeepDAG'
 import LiveNodeDetailPanel from '@/components/LiveNodeDetailPanel'
 import CollectionPanel from '@/components/CollectionPanel'
 import SpecPanel from '@/components/SpecPanel'
 import ConditionsPanel from '@/components/ConditionsPanel'
 import EventsPanel from '@/components/EventsPanel'
+import TerminatingBanner from '@/components/TerminatingBanner'
+import FinalizersPanel from '@/components/FinalizersPanel'
 import './InstanceDetail.css'
 
 // ── Poll result type ───────────────────────────────────────────────────────
@@ -174,6 +177,13 @@ export default function InstanceDetail() {
     { intervalMs: 5000 },
   )
 
+  // ── Poll tick counter — increments on each successful poll ───────────────
+  // Used by TerminatingBanner to recompute relative time without setInterval.
+  const [pollTick, setPollTick] = useState(0)
+  useEffect(() => {
+    if (lastRefresh) setPollTick((t) => t + 1)
+  }, [lastRefresh])
+
   // ── Selected node panel (survives poll refreshes — FR-008) ───────────────
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<DAGNode | null>(null)
@@ -303,8 +313,16 @@ export default function InstanceDetail() {
         </div>
       </div>
 
-      {/* Reconciling banner (FR-003) */}
-      {fastData && isReconciling(fastData.instance) && (
+      {/* Terminating banner (FR-001) — takes precedence over Reconciling */}
+      {fastData && isTerminating(fastData.instance) && (
+        <TerminatingBanner
+          deletionTimestamp={getDeletionTimestamp(fastData.instance) ?? ''}
+          tick={pollTick}
+        />
+      )}
+
+      {/* Reconciling banner (FR-003) — only when NOT terminating */}
+      {fastData && !isTerminating(fastData.instance) && isReconciling(fastData.instance) && (
         <div className="reconciling-banner" role="status" aria-live="polite">
           <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
           kro is reconciling this instance
@@ -367,6 +385,10 @@ export default function InstanceDetail() {
           <div className="instance-detail-panels">
             <SpecPanel instance={fastData.instance} />
             <ConditionsPanel instance={fastData.instance} />
+            <FinalizersPanel
+              finalizers={getFinalizers(fastData.instance)}
+              defaultExpanded={isTerminating(fastData.instance)}
+            />
             <EventsPanel events={fastData.events} />
           </div>
         </div>

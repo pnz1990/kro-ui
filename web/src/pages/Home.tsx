@@ -1,12 +1,14 @@
 // Home — RGD cards grid. Fetches GET /api/v1/rgds on mount.
 // Uses VirtualGrid for windowed rendering at 5,000+ RGDs.
 // Search input is debounced (300ms) to avoid per-keystroke filter churn.
+// FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
-import { listRGDs } from '@/lib/api'
+import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
 import { matchesSearch } from '@/lib/catalog'
+import { isTerminating } from '@/lib/k8s'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import MetricsStrip from '@/components/MetricsStrip'
@@ -27,12 +29,37 @@ export default function Home() {
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query, 300)
 
+  // FR-007: Map from rgdName → terminating instance count.
+  // Fetched in the background after the RGD list loads; absent = not yet fetched.
+  const [terminatingCounts, setTerminatingCounts] = useState<Map<string, number>>(new Map())
+
   const fetchRGDs = useCallback(() => {
     setIsLoading(true)
     setError(null)
     listRGDs()
       .then((res) => {
         setItems(res.items)
+        // FR-007: fire-and-forget background fetch of terminating counts.
+        // Each RGD gets one listInstances call. Errors are silently ignored —
+        // absent count = no badge (graceful degradation).
+        const rgdNames = res.items.map(extractRGDName).filter(Boolean)
+        Promise.allSettled(
+          rgdNames.map((name) =>
+            listInstances(name).then((list) => ({
+              name,
+              count: list.items.filter(isTerminating).length,
+            }))
+          )
+        ).then((results) => {
+          const counts = new Map<string, number>()
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              counts.set(result.value.name, result.value.count)
+            }
+          }
+          setTerminatingCounts(counts)
+        })
+        // allSettled never rejects — no .catch needed
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err))
@@ -112,7 +139,16 @@ export default function Home() {
         <VirtualGrid
           items={filteredItems}
           itemHeight={RGD_CARD_HEIGHT}
-          renderItem={(rgd) => <RGDCard key={extractRGDName(rgd)} rgd={rgd} />}
+          renderItem={(rgd) => {
+            const name = extractRGDName(rgd)
+            return (
+              <RGDCard
+                key={name}
+                rgd={rgd}
+                terminatingCount={terminatingCounts.get(name)}
+              />
+            )
+          }}
           emptyState={emptyState}
           className="home__virtual-grid"
         />

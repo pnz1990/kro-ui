@@ -145,3 +145,18 @@
   font-style: italic;
   color: var(--color-text-muted);
 }
+
+/* ── Terminating row (spec 031-deletion-debugger FR-006) ──────────────────── */
+
+/* Shown at the top of the panel body when the resource has deletionTimestamp set. */
+.live-panel-terminating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-error);
+  background: var(--node-error-bg);
+  border-bottom: 1px solid var(--node-error-border);
+}
