@@ -1,0 +1,173 @@
+/* StaticChainDAG.css — Styles for the RGD static chaining graph (spec 025).
+ *
+ * All colors via tokens.css custom properties — no hardcoded hex or rgba().
+ * Spec: .specify/specs/025-rgd-static-chain-graph/
+ *
+ * Visual distinction matrix (must hold at all times):
+ *   - Live expand toggle (spec 012): .deep-dag-expand-toggle  fill: --color-text-muted (grey)
+ *   - Static expand toggle (025):    .static-chain-expand-toggle fill: --color-chain-text (teal)
+ *   - "View RGD →" link (025):       .static-chain-view-link  color: --color-primary (blue)
+ *   - Chainable ring (025):          .node-chainable            outline: --color-chain-border (teal)
+ */
+
+/* ── Chainable node ring indicator ──────────────────────────────────────── */
+
+/* Applied to the outer <g data-testid="dag-node-*"> wrapper group.
+ * The teal ring is rendered as a second stroke on the node rect via CSS outline
+ * equivalent — we add a secondary rect overlay via the .node-chainable class
+ * by targeting its child .dag-node-rect with a colored stroke.
+ */
+.dag-node.node-chainable .dag-node-rect {
+  /* Teal secondary stroke — stacks on top of the base node type border */
+  stroke: var(--color-chain-border);
+  stroke-width: 2;
+  /* Preserve corner radius */
+}
+
+/* Hover: brighten the ring */
+.dag-node.node-chainable:hover .dag-node-rect,
+.dag-node.node-chainable:focus-visible .dag-node-rect {
+  stroke: var(--color-chain);
+}
+
+/* Stacking with conditional modifier (dashed border + ? badge):
+ * .node-conditional from DAGGraph.css sets stroke-dasharray on .dag-node-rect.
+ * .node-chainable sets stroke color — both apply simultaneously.
+ * No override needed: the teal ring color + dashed pattern coexist naturally.
+ */
+
+/* ── Static expand toggle (▸/▾) ──────────────────────────────────────────
+ * MUST be visually distinct from .deep-dag-expand-toggle in DeepDAG.css:
+ *   - .deep-dag-expand-toggle:  fill: var(--color-text-muted) — grey
+ *   - .static-chain-expand-toggle: fill: var(--color-chain-text) — teal  ← this spec
+ */
+.static-chain-expand-toggle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--color-chain-text);  /* teal — NOT --color-text-muted */
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+  transition: fill var(--transition-fast);
+}
+
+/* Hover on the parent <g> brightens the toggle */
+[data-testid^="static-chain-toggle-"]:hover .static-chain-expand-toggle,
+[data-testid^="static-chain-toggle-"]:focus-visible .static-chain-expand-toggle {
+  fill: var(--color-chain);
+}
+
+/* ── Max depth inline indicator ─────────────────────────────────────────── */
+
+.static-chain-maxdepth-inline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--color-text-faint);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+/* ── Cycle inline indicator ─────────────────────────────────────────────── */
+
+.static-chain-cycle-inline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--color-status-warning);
+  pointer-events: none;
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+/* ── "View RGD →" navigation button ─────────────────────────────────────
+ * Rendered inside SVG foreignObject.
+ * MUST be visually distinct from .static-chain-expand-toggle (teal text icon).
+ * Uses --color-primary (blue) — standard link color.
+ */
+.static-chain-view-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+  text-decoration: none;
+}
+
+.static-chain-view-link:hover,
+.static-chain-view-link:focus-visible {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* ── Nested subgraph container ───────────────────────────────────────────
+ * foreignObject wrapper div — contains the nested StaticChainDAG.
+ * Visually distinct from DeepDAG's .deep-dag-nested-container:
+ *   - DeepDAG uses --color-surface-2 / --color-border (neutral grey)
+ *   - StaticChain uses --node-chain-subgraph-bg / --node-chain-subgraph-border (teal tint)
+ */
+.static-chain-nested-container {
+  width: 100%;
+  height: 100%;
+  background: var(--node-chain-subgraph-bg);
+  border: 1px solid var(--node-chain-subgraph-border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Nested header label */
+.static-chain-nested-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--node-chain-subgraph-border);
+  background: var(--color-surface);
+}
+
+.static-chain-nested-header-kind {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-chain-text);   /* teal — distinct from DeepDAG's --color-primary */
+}
+
+/* Status indicators inside nested container */
+.static-chain-cycle-indicator,
+.static-chain-maxdepth,
+.static-chain-not-found {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding: 8px 16px;
+}
+
+.static-chain-cycle-indicator {
+  color: var(--color-status-warning);
+}
+
+.static-chain-not-found {
+  color: var(--color-text-faint);
+  font-style: italic;
+}
+
+/* The nested StaticChainDAG itself — no extra scroll */
+.static-chain-nested-container .dag-graph-container,
+.static-chain-nested-container .static-chain-dag-container {
+  overflow: visible;
+  min-height: unset;
+}

@@ -100,6 +100,15 @@
   --color-advisor-border: rgba(245, 158, 11, 0.25);
   --color-advisor-icon:   #f59e0b;
 
+  /* RGD static chaining tokens (spec 025) */
+  --color-chain:                #0ea5e9;   /* Teal/sky — 5.9:1 on --color-bg, distinct from all other semantic tokens */
+  --color-chain-hover:          #0284c7;   /* Darker teal for hover states */
+  --color-chain-muted:          rgba(14, 165, 233, 0.12);  /* Low-opacity tint */
+  --color-chain-border:         rgba(14, 165, 233, 0.40);  /* Ring border for chainable nodes */
+  --color-chain-text:           #7dd3fc;   /* Readable teal text on dark bg */
+  --node-chain-subgraph-bg:     rgba(14, 165, 233, 0.04);  /* Static subgraph container background */
+  --node-chain-subgraph-border: rgba(14, 165, 233, 0.25);  /* Static subgraph container border */
+
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-tooltip:  0 4px 16px rgba(0, 0, 0, 0.4);
@@ -180,6 +189,15 @@
   --color-advisor-bg:     rgba(217, 119, 6, 0.06);
   --color-advisor-border: rgba(217, 119, 6, 0.25);
   --color-advisor-icon:   #d97706;
+
+  /* RGD static chaining tokens (spec 025) — light mode */
+  --color-chain:                #0284c7;   /* Darker teal for light bg contrast */
+  --color-chain-hover:          #0369a1;
+  --color-chain-muted:          rgba(2, 132, 199, 0.08);
+  --color-chain-border:         rgba(2, 132, 199, 0.35);
+  --color-chain-text:           #0284c7;
+  --node-chain-subgraph-bg:     rgba(2, 132, 199, 0.03);
+  --node-chain-subgraph-border: rgba(2, 132, 199, 0.20);
 
   /* Shadows */
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.12);

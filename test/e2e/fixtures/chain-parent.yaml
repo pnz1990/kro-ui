@@ -1,0 +1,41 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# chain-parent RGD — E2E fixture for spec 025 (RGD static chaining graph).
+#
+# Contains a resource whose kind is ChainChild, which matches chain-child RGD's
+# spec.schema.kind. This makes the node "chainable" and enables testing of:
+#   - Chain detection (node-chainable class applied)
+#   - Expand toggle (▸ shows teal, not grey)
+#   - "View RGD →" navigation link
+#
+# Intentionally minimal — only the fields needed for chain detection testing.
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: chain-parent
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: ChainParent
+    group: e2e.kro-ui.dev
+    spec:
+      name: string | default=chain-test
+  resources:
+    - id: myChild
+      template:
+        apiVersion: kro.run/v1alpha1
+        kind: ChainChild
+        metadata:
+          name: ${schema.spec.name}-child

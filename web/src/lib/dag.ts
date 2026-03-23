@@ -43,6 +43,11 @@ export interface DAGNode {
   schemaSpec?: Record<string, unknown>   // root node only
   schemaStatus?: Record<string, unknown> // root node only
 
+  // Static chaining fields (spec 025)
+  // Set by buildDAGGraph when rgds list is provided.
+  isChainable: boolean          // true when kind matches another RGD's spec.schema.kind
+  chainedRgdName?: string       // present iff isChainable=true — the metadata.name of the chained RGD
+
   // Layout coordinates (assigned by layout algorithm)
   x: number
   y: number
@@ -482,6 +487,42 @@ export function detectCollapseGroups(spec: unknown): CollapseGroup[] {
   return result
 }
 
+// ── Shared DAG rendering helpers ──────────────────────────────────────────
+
+/**
+ * Returns the badge character for a DAG node, or null if none applies.
+ * The conditional modifier (?) overrides the node-type badge (∀, ⬡).
+ * Defined here once; imported by DAGGraph, StaticChainDAG, LiveDAG, DeepDAG.
+ * Constitution §IX: shared helpers must not be copy-pasted across components.
+ */
+export function nodeBadge(node: DAGNode): string | null {
+  if (node.isConditional) return '?'
+  switch (node.nodeType) {
+    case 'collection':          return '∀'
+    case 'external':
+    case 'externalCollection':  return '⬡'
+    default:                    return null
+  }
+}
+
+/**
+ * Maximum visible character count for the forEach annotation on a DAG node.
+ * Based on NODE_WIDTH=180 with 10px padding each side at 9px monospace (~5.4px/char).
+ */
+export const FOREACH_LABEL_MAX_CHARS = 28
+
+/**
+ * Returns a display string for the forEach CEL expression on a DAG node.
+ * - Returns '' for absent or empty input (no annotation rendered).
+ * - Truncates to 27 chars + '…' when longer than FOREACH_LABEL_MAX_CHARS.
+ * Defined here once; imported by all DAG renderer components.
+ */
+export function forEachLabel(forEach: string | undefined): string {
+  if (!forEach) return ''
+  if (forEach.length <= FOREACH_LABEL_MAX_CHARS) return forEach
+  return forEach.slice(0, FOREACH_LABEL_MAX_CHARS - 1) + '…'
+}
+
 // ── Chaining detection ────────────────────────────────────────────────────
 
 /**
@@ -507,6 +548,56 @@ export function detectKroInstance(kind: string, rgds: K8sObject[]): boolean {
   return false
 }
 
+/**
+ * findChainedRgdName — returns the metadata.name of the RGD whose
+ * spec.schema.kind === kind.  Returns undefined when no match or kind is empty.
+ *
+ * Pure function — no side effects, never throws.
+ *
+ * Spec 025 FR-001, FR-013.
+ */
+export function findChainedRgdName(kind: string, rgds: K8sObject[]): string | undefined {
+  if (!kind) return undefined
+  for (const rgd of rgds) {
+    const spec = rgd.spec
+    if (typeof spec !== 'object' || spec === null) continue
+    const schema = (spec as Record<string, unknown>).schema
+    if (typeof schema !== 'object' || schema === null) continue
+    const schemaKind = (schema as Record<string, unknown>).kind
+    if (typeof schemaKind !== 'string' || schemaKind !== kind) continue
+    const meta = rgd.metadata
+    if (typeof meta !== 'object' || meta === null) continue
+    const name = (meta as Record<string, unknown>).name
+    if (typeof name === 'string' && name) return name
+  }
+  return undefined
+}
+
+/**
+ * buildChainSubgraph — builds a DAGGraph for a chained RGD by name.
+ *
+ * Looks up the RGD in rgds by metadata.name, then calls buildDAGGraph on its
+ * spec — passing rgds back so nested chains are also detected recursively.
+ *
+ * Returns null (not throws) when the named RGD is not found.
+ *
+ * Pure function — no side effects, never throws.
+ *
+ * Spec 025 FR-004.
+ */
+export function buildChainSubgraph(rgdName: string, rgds: K8sObject[]): DAGGraph | null {
+  for (const rgd of rgds) {
+    const meta = rgd.metadata
+    if (typeof meta !== 'object' || meta === null) continue
+    const name = (meta as Record<string, unknown>).name
+    if (name !== rgdName) continue
+    const spec = asObject(rgd.spec as unknown)
+    if (!spec) return null
+    return buildDAGGraph(spec, rgds)
+  }
+  return null
+}
+
 // ── Main export ───────────────────────────────────────────────────────────
 
 /**
@@ -516,8 +607,12 @@ export function detectKroInstance(kind: string, rgds: K8sObject[]): boolean {
  * accepts the output and renders it without any kro knowledge.
  *
  * @param spec - The `spec` property of a kro RGD object (rgd.spec)
+ * @param rgds - Optional: all known RGDs from the cluster.
+ *               When provided, detects chainable nodes and populates
+ *               isChainable / chainedRgdName on each non-root node.
+ *               When absent, all nodes have isChainable=false (backward compat).
  */
-export function buildDAGGraph(spec: Record<string, unknown>): DAGGraph {
+export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[]): DAGGraph {
   const schema = asObject(spec.schema)
   const resources = Array.isArray(spec.resources) ? spec.resources : []
 
@@ -547,6 +642,7 @@ export function buildDAGGraph(spec: Record<string, unknown>): DAGGraph {
     readyWhen: [],
     schemaSpec: asObject(schema?.spec),
     schemaStatus: schemaStatus,
+    isChainable: false,   // root node is never chainable (spec 025 FR-001)
     x: 0,
     y: 0,
     width: ROOT_WIDTH,
@@ -609,6 +705,11 @@ export function buildDAGGraph(spec: Record<string, unknown>): DAGGraph {
       }
     }
 
+    // ── Static chain detection (spec 025) ────────────────────────────────
+    // Only when rgds list is provided; root node is never chainable.
+    const chainedRgdName = rgds ? findChainedRgdName(kind, rgds) : undefined
+    const isChainable = chainedRgdName !== undefined
+
     const node: DAGNode = {
       id,
       label: id,
@@ -622,6 +723,8 @@ export function buildDAGGraph(spec: Record<string, unknown>): DAGGraph {
       forEach,
       template,
       externalRef,
+      isChainable,
+      chainedRgdName,
       x: 0,
       y: 0,
       width: NODE_WIDTH,

@@ -2,6 +2,7 @@
  *
  * All colors from tokens.css custom properties.
  * Spec: .specify/specs/003-rgd-detail-dag/
+ *       .specify/specs/025-rgd-static-chain-graph/ (breadcrumb)
  */
 
 /* ── Page layout ──────────────────────────────────────────────────────────── */
@@ -11,6 +12,24 @@
   flex-direction: column;
   height: calc(100vh - 48px); /* full height minus TopBar */
   overflow: hidden;
+}
+
+/* ── Breadcrumb (spec 025) ─────────────────────────────────────────────────── */
+
+.rgd-breadcrumb {
+  padding: 8px 32px 0;
+  flex-shrink: 0;
+}
+
+.rgd-breadcrumb a {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.rgd-breadcrumb a:hover {
+  color: var(--color-primary);
 }
 
 /* ── Page header ──────────────────────────────────────────────────────────── */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildDAGGraph, detectKroInstance, detectCollapseGroups } from './dag'
+import { buildDAGGraph, detectKroInstance, detectCollapseGroups, findChainedRgdName, buildChainSubgraph } from './dag'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -528,5 +528,164 @@ describe('detectCollapseGroups', () => {
     expect(groups[0].nodeIds).not.toContain('d1')
     expect(groups[0].nodeIds).toContain('d2')
     expect(groups[0].nodeIds).toContain('d3')
+  })
+})
+
+// ── T006: findChainedRgdName ──────────────────────────────────────────────
+
+describe('findChainedRgdName (spec 025)', () => {
+  const rgds = [
+    { metadata: { name: 'database-rgd' }, spec: { schema: { kind: 'Database' }, resources: [] } },
+    { metadata: { name: 'cache-rgd' }, spec: { schema: { kind: 'Cache' }, resources: [] } },
+  ]
+
+  it('returns undefined for empty kind', () => {
+    expect(findChainedRgdName('', rgds)).toBeUndefined()
+  })
+
+  it('returns undefined for empty rgds list', () => {
+    expect(findChainedRgdName('Database', [])).toBeUndefined()
+  })
+
+  it('returns RGD metadata.name on exact kind match', () => {
+    expect(findChainedRgdName('Database', rgds)).toBe('database-rgd')
+    expect(findChainedRgdName('Cache', rgds)).toBe('cache-rgd')
+  })
+
+  it('returns undefined when kind does not match any RGD', () => {
+    expect(findChainedRgdName('Deployment', rgds)).toBeUndefined()
+    expect(findChainedRgdName('database', rgds)).toBeUndefined() // case-sensitive
+  })
+
+  it('returns first match when multiple RGDs share the same schema kind', () => {
+    const dupeRgds = [
+      { metadata: { name: 'first-rgd' }, spec: { schema: { kind: 'Database' }, resources: [] } },
+      { metadata: { name: 'second-rgd' }, spec: { schema: { kind: 'Database' }, resources: [] } },
+    ]
+    expect(findChainedRgdName('Database', dupeRgds)).toBe('first-rgd')
+  })
+
+  it('never throws for malformed RGD objects (missing metadata, spec, schema)', () => {
+    const malformed = [
+      {},
+      { metadata: null },
+      { metadata: { name: 'x' }, spec: null },
+      { metadata: { name: 'y' }, spec: { schema: null } },
+      { metadata: { name: 'z' }, spec: { schema: { kind: 42 } } }, // kind not a string
+    ]
+    expect(() => findChainedRgdName('Anything', malformed)).not.toThrow()
+    expect(findChainedRgdName('Anything', malformed)).toBeUndefined()
+  })
+})
+
+// ── T007: buildChainSubgraph ──────────────────────────────────────────────
+
+describe('buildChainSubgraph (spec 025)', () => {
+  const childRgdSpec = {
+    schema: { kind: 'ChainChild', apiVersion: 'v1alpha1' },
+    resources: [
+      { id: 'configMap', template: { apiVersion: 'v1', kind: 'ConfigMap', metadata: { name: 'cm' } } },
+      { id: 'serviceAccount', template: { apiVersion: 'v1', kind: 'ServiceAccount', metadata: { name: 'sa' } } },
+    ],
+  }
+  const rgds = [
+    { metadata: { name: 'chain-child' }, spec: childRgdSpec },
+  ]
+
+  it('returns null when rgdName is not found', () => {
+    expect(buildChainSubgraph('nonexistent', rgds)).toBeNull()
+    expect(buildChainSubgraph('', rgds)).toBeNull()
+    expect(buildChainSubgraph('chain-child', [])).toBeNull()
+  })
+
+  it('returns a valid DAGGraph with root instance node when found', () => {
+    const graph = buildChainSubgraph('chain-child', rgds)
+    expect(graph).not.toBeNull()
+    expect(graph!.nodes[0].nodeType).toBe('instance')
+    expect(graph!.nodes[0].id).toBe('schema')
+  })
+
+  it('returns graph with correct number of nodes (root + 2 resources)', () => {
+    const graph = buildChainSubgraph('chain-child', rgds)
+    expect(graph!.nodes).toHaveLength(3)
+  })
+
+  it('detects nested chainable nodes recursively when rgds is passed back', () => {
+    // chain-child has a resource of kind Database, and there is a database-rgd
+    const nestedRgdSpec = {
+      schema: { kind: 'ChainChild', apiVersion: 'v1alpha1' },
+      resources: [
+        { id: 'db', template: { apiVersion: 'v1', kind: 'Database', metadata: { name: 'db' } } },
+      ],
+    }
+    const nestedRgds = [
+      { metadata: { name: 'chain-child-nested' }, spec: nestedRgdSpec },
+      { metadata: { name: 'database-rgd' }, spec: { schema: { kind: 'Database' }, resources: [] } },
+    ]
+    const graph = buildChainSubgraph('chain-child-nested', nestedRgds)
+    expect(graph).not.toBeNull()
+    const dbNode = graph!.nodes.find((n) => n.id === 'db')
+    expect(dbNode?.isChainable).toBe(true)
+    expect(dbNode?.chainedRgdName).toBe('database-rgd')
+  })
+})
+
+// ── T008: buildDAGGraph with rgds (chain detection) ───────────────────────
+
+describe('buildDAGGraph chain detection (spec 025)', () => {
+  const rgds = [
+    { metadata: { name: 'database-rgd' }, spec: { schema: { kind: 'Database' }, resources: [] } },
+  ]
+
+  it('root node always has isChainable=false even when its kind matches an RGD', () => {
+    // Edge case: a Database RGD has root kind Database — root is still never chainable
+    const spec = { schema: { kind: 'Database', apiVersion: 'v1alpha1' }, resources: [] }
+    const graph = buildDAGGraph(spec, rgds)
+    const root = graph.nodes.find((n) => n.id === 'schema')
+    expect(root?.isChainable).toBe(false)
+    expect(root?.chainedRgdName).toBeUndefined()
+  })
+
+  it('non-root node whose kind matches an RGD gets isChainable=true and correct chainedRgdName', () => {
+    const spec = minimalSpec([
+      { id: 'db', template: { apiVersion: 'v1', kind: 'Database', metadata: { name: 'db' } } },
+    ])
+    const graph = buildDAGGraph(spec, rgds)
+    const node = graph.nodes.find((n) => n.id === 'db')
+    expect(node?.isChainable).toBe(true)
+    expect(node?.chainedRgdName).toBe('database-rgd')
+  })
+
+  it('non-root node with no matching RGD has isChainable=false', () => {
+    const spec = minimalSpec([
+      { id: 'ns', template: { apiVersion: 'v1', kind: 'Namespace', metadata: { name: 'ns' } } },
+    ])
+    const graph = buildDAGGraph(spec, rgds)
+    const node = graph.nodes.find((n) => n.id === 'ns')
+    expect(node?.isChainable).toBe(false)
+    expect(node?.chainedRgdName).toBeUndefined()
+  })
+
+  it('all nodes have isChainable=false when called without rgds (backward compat)', () => {
+    const spec = minimalSpec([
+      { id: 'db', template: { apiVersion: 'v1', kind: 'Database', metadata: { name: 'db' } } },
+    ])
+    const graph = buildDAGGraph(spec) // no rgds
+    for (const node of graph.nodes) {
+      expect(node.isChainable).toBe(false)
+      expect(node.chainedRgdName).toBeUndefined()
+    }
+  })
+
+  it('multiple chainable and non-chainable nodes are correctly classified', () => {
+    const spec = minimalSpec([
+      { id: 'db', template: { apiVersion: 'v1', kind: 'Database', metadata: { name: 'db' } } },
+      { id: 'ns', template: { apiVersion: 'v1', kind: 'Namespace', metadata: { name: 'ns' } } },
+    ])
+    const graph = buildDAGGraph(spec, rgds)
+    const dbNode = graph.nodes.find((n) => n.id === 'db')
+    const nsNode = graph.nodes.find((n) => n.id === 'ns')
+    expect(dbNode?.isChainable).toBe(true)
+    expect(nsNode?.isChainable).toBe(false)
   })
 })

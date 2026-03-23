@@ -16,6 +16,7 @@ function makeNode(overrides: Partial<DAGNode>): DAGNode {
     celExpressions: [],
     includeWhen: [],
     readyWhen: [],
+    isChainable: false,
     x: 0,
     y: 0,
     width: 180,

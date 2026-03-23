@@ -4,11 +4,13 @@ import RGDDetail from './RGDDetail'
 
 vi.mock('@/lib/api', () => ({
   getRGD: vi.fn(),
+  listRGDs: vi.fn(),
   listInstances: vi.fn(),
 }))
 
-import { getRGD, listInstances } from '@/lib/api'
+import { getRGD, listRGDs, listInstances } from '@/lib/api'
 const mockedGetRGD = vi.mocked(getRGD)
+const mockedListRGDs = vi.mocked(listRGDs)
 const mockedListInstances = vi.mocked(listInstances)
 
 /** Minimal RGD object with one NodeTypeResource. */
@@ -67,7 +69,9 @@ describe('RGDDetail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedGetRGD.mockResolvedValue(makeRGD())
-    // Default: empty list (overridden in specific tests)
+    // Default: empty RGD list (chain detection returns no chainable nodes)
+    mockedListRGDs.mockResolvedValue({ metadata: {}, items: [] })
+    // Default: empty instance list (overridden in specific tests)
     mockedListInstances.mockResolvedValue(makeInstanceList([]))
   })
 
@@ -199,5 +203,66 @@ describe('RGDDetail', () => {
     expect(
       (screen.getByTestId('namespace-filter') as HTMLSelectElement).value,
     ).toBe('default')
+  })
+})
+
+// ── T028: Breadcrumb rendering (spec 025) ─────────────────────────────────
+
+/**
+ * Render RGDDetail with optional router state (for breadcrumb testing).
+ */
+function renderDetailWithState(routerState?: Record<string, unknown>) {
+  return render(
+    <MemoryRouter
+      initialEntries={[{ pathname: '/rgds/test-app', state: routerState }]}
+    >
+      <Routes>
+        <Route path="/rgds/:name" element={<RGDDetail />} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+describe('RGDDetail breadcrumb (spec 025 T028)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedGetRGD.mockResolvedValue(makeRGD())
+    mockedListRGDs.mockResolvedValue({ metadata: {}, items: [] })
+    mockedListInstances.mockResolvedValue(makeInstanceList([]))
+  })
+
+  it('shows breadcrumb when location.state.from is set', async () => {
+    renderDetailWithState({ from: 'chain-parent' })
+    await waitFor(() =>
+      expect(screen.getByTestId('rgd-breadcrumb')).toBeInTheDocument(),
+    )
+    const link = screen.getByTestId('rgd-breadcrumb-link')
+    expect(link).toBeInTheDocument()
+    expect(link.textContent).toContain('chain-parent')
+  })
+
+  it('breadcrumb link points to the originating RGD', async () => {
+    renderDetailWithState({ from: 'chain-parent' })
+    await waitFor(() =>
+      expect(screen.getByTestId('rgd-breadcrumb-link')).toBeInTheDocument(),
+    )
+    const link = screen.getByTestId('rgd-breadcrumb-link') as HTMLAnchorElement
+    expect(link.getAttribute('href')).toBe('/rgds/chain-parent')
+  })
+
+  it('breadcrumb is absent when location.state is null', async () => {
+    renderDetailWithState(undefined)
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-graph')).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('rgd-breadcrumb')).toBeNull()
+  })
+
+  it('breadcrumb is absent when location.state.from is empty string', async () => {
+    renderDetailWithState({ from: '' })
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-graph')).toBeInTheDocument(),
+    )
+    expect(screen.queryByTestId('rgd-breadcrumb')).toBeNull()
   })
 })
