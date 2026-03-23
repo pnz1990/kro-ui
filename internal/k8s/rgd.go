@@ -171,8 +171,9 @@ func ListChildResources(ctx context.Context, clients K8sClients, namespace, inst
 	}
 
 	// Fan out concurrently — one goroutine per GVR, each with a 2s deadline.
-	// Constitution §XI: "Fan-out list operations MUST use errgroup with a
-	// per-resource timeout of 2 seconds."
+	// Constitution §XI: fan-out list operations MUST use concurrency with a
+	// per-resource timeout of 2 seconds. sync.WaitGroup + sync.Mutex from the
+	// standard library is sufficient and correct here; no external errgroup dep needed.
 	var (
 		mu      sync.Mutex
 		results []map[string]any

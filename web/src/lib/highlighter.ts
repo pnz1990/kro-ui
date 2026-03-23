@@ -263,34 +263,33 @@ function extractWord(line: string, pos: number): string {
 // ── Public API ─────────────────────────────────────────────────────────
 
 /**
- * tokenClass — maps a TokenType to its CSS class name.
+ * tokenClass — maps a TokenType to its CSS class name for the kro code block.
  *
- * Defined here (alongside TokenType) so every consumer — KroCodeBlock,
- * DAGTooltip, or any future component — imports from a single source.
- * Never duplicate this function in component files. (AGENTS.md anti-pattern #77)
+ * Defined here (alongside TokenType) so every consumer imports from a single
+ * source. Never duplicate this function in component files. (AGENTS.md anti-pattern #77)
  *
- * The DAGTooltip uses `dag-tooltip-token--*` classes; the code block uses
- * `token-*` classes. The two sets serve different stylesheets, so this
- * helper accepts an optional `prefix` parameter (default: `"token-"`).
+ * `KroCodeBlock` is the only consumer; all classes are in the `token-*` namespace.
+ * If a future component needs different class names it should wrap or extend rather
+ * than forking this function.
  */
-export function tokenClass(type: TokenType, prefix = "token-"): string {
+export function tokenClass(type: TokenType): string {
   switch (type) {
     case "celExpression":
-      return prefix === "token-" ? "token-cel-expression token-cel" : `${prefix}cel`
+      return "token-cel-expression token-cel"
     case "kroKeyword":
-      return `${prefix}kro-keyword`
+      return "token-kro-keyword"
     case "yamlKey":
-      return `${prefix}yaml-key`
+      return "token-yaml-key"
     case "schemaType":
-      return `${prefix}schema-type`
+      return "token-schema-type"
     case "schemaPipe":
-      return `${prefix}schema-pipe`
+      return "token-schema-pipe"
     case "schemaKeyword":
-      return `${prefix}schema-keyword`
+      return "token-schema-keyword"
     case "schemaValue":
-      return `${prefix}schema-value`
+      return "token-schema-value"
     case "comment":
-      return `${prefix}comment`
+      return "token-comment"
     case "plain":
       return ""
   }
