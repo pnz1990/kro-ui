@@ -1,0 +1,95 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# cel-functions RGD — E2E fixture for CEL syntax highlighting tests.
+#
+# Adapted from kubernetes-sigs/kro examples/kubernetes/cel-functions/rg.yaml
+#
+# Purpose: exercises the full breadth of CEL token types in the kro-ui highlighter:
+#   - String method calls: .split(), .slice(), .join()
+#   - Extension functions: json.marshal(), json.unmarshal(), quantity()
+#   - Arithmetic on status fields: availableReplicas * 10
+#   - Ternary expressions: condition ? "a" : "b"
+#   - size() function
+#
+# Note: random.seededString() is omitted — it requires CEL extension initialisation
+# that is slow on CI runners and causes the RGD Ready condition to time out.
+# The token types it exercises (function calls) are already covered by json.marshal.
+#
+# These token forms are asserted in journey 006 steps 6-8.
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: cel-functions
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: CelFunctionsApp
+    group: e2e.kro-ui.dev
+    spec:
+      name: string
+      fullDNSName: string | default=kro.ui.e2e.example.com
+    status:
+      availableReplicas: ${appDeployment.status.availableReplicas}
+      scaledReplicas: ${appDeployment.status.availableReplicas * 10}
+  resources:
+    - id: appDeployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.name}-cel
+          namespace: kro-ui-e2e
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${schema.spec.name}-cel
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.name}-cel
+            spec:
+              containers:
+                - name: app
+                  image: nginx:stable-alpine
+                  env:
+                    - name: DNS_FIRST_PART
+                      value: ${schema.spec.fullDNSName.split('.')[0]}
+                    - name: DNS_PARTIALS
+                      value: ${schema.spec.fullDNSName.split('.').slice(0, 2).join('.')}
+                    - name: JSON_MARSHAL
+                      value: "${json.marshal({\"name\": schema.spec.name})}"
+                    - name: QUANTITY_CHECK
+                      value: "${quantity(\"256Mi\").isLessThan(quantity(\"1Gi\")) ? \"small\" : \"large\"}"
+                    - name: NAME_LEN
+                      value: "${string(size(schema.spec.name))}"
+
+    - id: appService
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.name}-cel-svc
+          namespace: kro-ui-e2e
+          labels:
+            dns: ${schema.spec.fullDNSName}
+            first_part: ${schema.spec.fullDNSName.split('.')[0]}
+        spec:
+          selector:
+            app: ${schema.spec.name}-cel
+          ports:
+            - protocol: TCP
+              port: 80
+              targetPort: 80

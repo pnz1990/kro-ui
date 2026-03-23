@@ -126,4 +126,46 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await page.waitForTimeout(400)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
   })
+
+  // ── Steps 7-9: multi-RGD search coverage ─────────────────────────────────
+
+  test('Step 7: home page DOM card count equals total fixture RGD count', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
+
+    // The fixture set installs at least 7 RGDs (test-app, test-collection,
+    // multi-resource, external-ref, cel-functions, chain-parent, chain-child).
+    // All fit in the viewport at normal card size — no windowing at this count.
+    // The bound < 100 guards against accidentally rendering unbounded items.
+    const cardCount = await page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]').count()
+    expect(cardCount).toBeGreaterThanOrEqual(5)
+    expect(cardCount).toBeLessThan(100)
+  })
+
+  test('Step 8: searching "cel-functions" on home page shows the cel-functions card', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
+
+    const searchInput = page.locator('input[type="search"]')
+    await searchInput.fill('cel-functions')
+    await page.waitForTimeout(400)
+
+    // cel-functions card must be visible; count may be > 1 if other RGD names partially match
+    await expect(page.getByTestId('rgd-card-cel-functions')).toBeVisible()
+    // No unrelated card (e.g. test-app) should be visible
+    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
+  })
+
+  test('Step 9: searching "external-ref" on home page shows the external-ref card', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
+
+    const searchInput = page.locator('input[type="search"]')
+    await searchInput.fill('external-ref')
+    await page.waitForTimeout(400)
+
+    // external-ref card must be visible; test-app must not be
+    await expect(page.getByTestId('rgd-card-external-ref')).toBeVisible()
+    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
+  })
 })

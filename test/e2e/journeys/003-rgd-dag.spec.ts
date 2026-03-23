@@ -163,4 +163,92 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     )
     await expect(page.getByTestId('kro-code-block')).toBeVisible()
   })
+
+  // ── Steps 8-10: multi-resource RGD (5-node DAG with HPA and edge) ────────
+
+  test('Step 8: multi-resource DAG renders all 5 nodes', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // schema (root) + appConfig + appService + appDeployment + appAutoscaler = 5
+    const nodes = page.locator('[data-testid^="dag-node-"]')
+    await expect(nodes).toHaveCount(5)
+    await expect(page.getByTestId('dag-node-appAutoscaler')).toBeVisible()
+  })
+
+  test('Step 9: multi-resource DAG has at least one dependency edge', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // Edges use the dag-edge CSS class on SVG path/line elements
+    const edges = page.locator('[class*="dag-edge"]')
+    const edgeCount = await edges.count()
+    expect(edgeCount).toBeGreaterThan(0)
+  })
+
+  test('Step 10: clicking appAutoscaler node shows HorizontalPodAutoscaler kind', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/multi-resource`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    await page.getByTestId('dag-node-appAutoscaler').click()
+    await expect(page.getByTestId('node-detail-panel')).toBeVisible()
+    await expect(page.getByTestId('node-detail-kind')).toHaveText('HorizontalPodAutoscaler')
+  })
+
+  // ── Steps 11-13: external-ref RGD (NodeTypeExternal) ─────────────────────
+
+  test('Step 11: external-ref DAG contains a NodeTypeExternal node', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // Node class follows the pattern dag-node--{nodeType}
+    const externalNode = page.locator('[class*="dag-node--external"]')
+    await expect(externalNode).toBeVisible()
+  })
+
+  test('Step 12: clicking the externalRef node shows External ref type badge', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    await page.getByTestId('dag-node-inputConfig').click()
+    await expect(page.getByTestId('node-detail-panel')).toBeVisible()
+
+    // Type badge class: node-type-badge--external
+    const typeBadge = page.locator('[class*="node-type-badge--external"]')
+    await expect(typeBadge).toBeVisible()
+  })
+
+  test('Step 13: external-ref YAML tab contains orValue CEL expression', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref?tab=yaml`)
+    await expect(page.getByTestId('kro-code-block')).toBeVisible()
+
+    // orValue is part of the optional-chaining CEL expression in external-ref-rgd.yaml
+    const celSpans = page.locator('[data-testid="kro-code-block"] span.token-cel-expression')
+    const texts = await celSpans.allTextContents()
+    const hasOrValue = texts.some(t => t.includes('orValue'))
+    expect(hasOrValue).toBe(true)
+  })
+
+  // ── Steps 14-15: test-collection RGD (NodeTypeCollection) ────────────────
+
+  test('Step 14: test-collection DAG contains a NodeTypeCollection node', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/test-collection`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // Node class follows the pattern dag-node--{nodeType}
+    const collectionNode = page.locator('[class*="dag-node--collection"]')
+    await expect(collectionNode).toBeVisible()
+  })
+
+  test('Step 15: clicking the collection node shows collection type badge', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/test-collection`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    await page.getByTestId('dag-node-regionConfig').click()
+    await expect(page.getByTestId('node-detail-panel')).toBeVisible()
+
+    // Type badge class: node-type-badge--collection
+    const typeBadge = page.locator('[class*="node-type-badge--collection"]')
+    await expect(typeBadge).toBeVisible()
+  })
 })

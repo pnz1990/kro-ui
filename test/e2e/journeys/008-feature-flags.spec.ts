@@ -22,6 +22,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
@@ -81,6 +82,44 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     // No GraphRevision tab should appear (kind cluster has no GraphRevision CRD).
     const revisionsTab = page.locator('text=Revisions')
     await expect(revisionsTab).toHaveCount(0)
+  })
+
+  test('Step 3: hasForEach and hasExternalRef are true given fixture RGDs applied successfully', async ({ request }) => {
+    // Only assert true if both RGDs became Ready — otherwise just verify they're boolean
+    const res = await request.get(`${BASE}/api/v1/kro/capabilities`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as {
+      schema: { hasForEach: boolean; hasExternalRef: boolean }
+    }
+
+    if (fixtureState.collectionReady) {
+      expect(body.schema.hasForEach).toBe(true)
+    } else {
+      expect(typeof body.schema.hasForEach).toBe('boolean')
+    }
+    if (fixtureState.externalRefReady) {
+      expect(body.schema.hasExternalRef).toBe(true)
+    } else {
+      expect(typeof body.schema.hasExternalRef).toBe('boolean')
+    }
+  })
+
+  test('Step 4: external-ref DAG renders externalRef node (not gated off)', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/external-ref`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // Node class follows dag-node--{nodeType}; externalRef nodes are dag-node--external
+    const externalNode = page.locator('[class*="dag-node--external"]')
+    await expect(externalNode).toBeVisible()
+  })
+
+  test('Step 5: test-collection DAG renders forEach collection node (not gated off)', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/test-collection`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible()
+
+    // Collection nodes are dag-node--collection
+    const collectionNode = page.locator('[class*="dag-node--collection"]')
+    await expect(collectionNode).toBeVisible()
   })
 
 })

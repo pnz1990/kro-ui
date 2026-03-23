@@ -3,7 +3,8 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev
 COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 
 .PHONY: all build web go run docker dev-web typecheck tidy clean \
-        test-web test-web-watch test-e2e test-e2e-install test-e2e-report
+        test-web test-web-watch test-e2e test-e2e-install test-e2e-report \
+        demo demo-clean
 
 ## Build everything (frontend + Go binary)
 all: build
@@ -85,3 +86,21 @@ test-e2e: build
 ## Open the last Playwright HTML report
 test-e2e-report:
 	cd test/e2e && bunx playwright show-report
+
+## Start a local kro-ui demo cluster with all fixtures loaded.
+## Prerequisites: kind, helm, and kubectl must be in PATH.
+## Creates a kind cluster named kro-ui-demo, installs the latest kro release
+## via Helm, applies all fixture RGDs and instances, builds the binary, and
+## starts the server at http://localhost:40107.
+##
+## To skip cluster creation and use an existing cluster instead:
+##   DEMO_SKIP_KIND_CREATE=true KUBECONFIG=~/.kube/config make demo
+##
+## To stop: press Ctrl+C. The cluster is left running for further exploration.
+## To delete it: make demo-clean
+demo: build
+	@scripts/demo.sh
+
+## Delete the demo kind cluster created by `make demo`.
+demo-clean:
+	kind delete cluster --name kro-ui-demo

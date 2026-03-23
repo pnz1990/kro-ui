@@ -1,0 +1,120 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# multi-resource RGD — E2E fixture covering a 4-resource DAG with dependency
+# edges and inter-resource CEL references.
+#
+# Adapted from kubernetes-sigs/kro test/e2e/chainsaw/check-multi-resource-rgd/rgd.yaml
+#
+# Node types exercised:
+#   - NodeTypeInstance: root AutoscaledApp CR (variable: schema)
+#   - NodeTypeResource: appConfig (ConfigMap)
+#   - NodeTypeResource: appService (Service)
+#   - NodeTypeResource: appDeployment (Deployment, refs appConfig)
+#   - NodeTypeResource: appAutoscaler (HPA, refs appDeployment)
+#
+# CEL expressions used:
+#   - ${schema.spec.appName}           — schema spec reference
+#   - ${schema.spec.image}             — image override
+#   - ${schema.spec.minReplicas}       — default marker
+#   - ${appDeployment.metadata.name}   — inter-resource reference (creates edge)
+#
+# All names are fixed so Playwright assertions can use literals.
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: multi-resource
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: AutoscaledApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=kro-ui-multi
+      image: string | default=nginx:stable-alpine
+      minReplicas: integer | default=1
+      maxReplicas: integer | default=3
+      targetCPUUtilization: integer | default=80
+    status:
+      deploymentName: ${appDeployment.metadata.name}
+  resources:
+    - id: appConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-config
+          namespace: kro-ui-e2e
+        data:
+          app: ${schema.spec.appName}
+          image: ${schema.spec.image}
+
+    - id: appService
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.appName}-svc
+          namespace: kro-ui-e2e
+        spec:
+          selector:
+            app: ${schema.spec.appName}
+          ports:
+            - port: 80
+              targetPort: 8080
+              protocol: TCP
+
+    - id: appDeployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-deploy
+          namespace: kro-ui-e2e
+        spec:
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}
+            spec:
+              containers:
+                - name: app
+                  image: ${schema.spec.image}
+                  ports:
+                    - containerPort: 8080
+
+    - id: appAutoscaler
+      template:
+        apiVersion: autoscaling/v2
+        kind: HorizontalPodAutoscaler
+        metadata:
+          name: ${schema.spec.appName}-hpa
+          namespace: kro-ui-e2e
+        spec:
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: ${appDeployment.metadata.name}
+          minReplicas: ${schema.spec.minReplicas}
+          maxReplicas: ${schema.spec.maxReplicas}
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: ${schema.spec.targetCPUUtilization}

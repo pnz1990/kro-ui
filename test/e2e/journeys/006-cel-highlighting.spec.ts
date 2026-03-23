@@ -96,4 +96,51 @@ test.describe('Journey 006 — CEL syntax highlighting', () => {
     expect(clipboardText.length).toBeGreaterThan(100)
   })
 
+  // ── Steps 6-8: cel-functions RGD — broader CEL token coverage ────────────
+
+  test('Step 6: cel-functions YAML tab shows token-cel-expression spans with .split( call', async ({ page }) => {
+    await page.goto('/rgds/cel-functions?tab=yaml')
+    await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
+
+    const celSpans = page.locator('[data-testid="kro-code-block"] span.token-cel-expression')
+    await expect(celSpans.first()).toBeVisible()
+
+    const texts = await celSpans.allTextContents()
+    const hasSplit = texts.some(t => t.includes('.split('))
+    expect(hasSplit).toBe(true)
+  })
+
+  test('Step 7: cel-functions YAML tab contains json.marshal CEL expression token', async ({ page }) => {
+    await page.goto('/rgds/cel-functions?tab=yaml')
+    await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
+
+    const celSpans = page.locator('[data-testid="kro-code-block"] span.token-cel-expression')
+    const texts = await celSpans.allTextContents()
+    const hasJsonMarshal = texts.some(t => t.includes('json.marshal'))
+    expect(hasJsonMarshal).toBe(true)
+  })
+
+  test('Step 8: cel-functions YAML tab has YAML key tokens visible', async ({ page }) => {
+    await page.goto('/rgds/cel-functions?tab=yaml')
+    await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
+
+    // token-yaml-key is the standard kro highlighter token for YAML keys
+    const keySpans = page.locator('[data-testid="kro-code-block"] span.token-yaml-key')
+    await expect(keySpans.first()).toBeVisible()
+  })
+
+  // ── Step 9: external-ref RGD — optional chaining token ───────────────────
+
+  test('Step 9: external-ref YAML tab contains orValue in a CEL expression token', async ({ page }) => {
+    await page.goto('/rgds/external-ref?tab=yaml')
+    await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
+
+    const celSpans = page.locator('[data-testid="kro-code-block"] span.token-cel-expression')
+    await expect(celSpans.first()).toBeVisible()
+
+    const texts = await celSpans.allTextContents()
+    const hasOrValue = texts.some(t => t.includes('orValue'))
+    expect(hasOrValue).toBe(true)
+  })
+
 })

@@ -181,4 +181,27 @@ test.describe('Journey 007 — Context Switcher', () => {
     // RGD list should still show the test-app card
     await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
   })
+
+  test('Step 7: all fixture RGD cards visible after switching context and back', async ({ page }) => {
+    await page.goto(BASE)
+
+    // Switch to alt context
+    await page.getByTestId('context-switcher-btn').click()
+    await page.getByTestId('context-dropdown')
+      .locator('[role="option"]', { hasText: ALT_CONTEXT })
+      .click()
+    await expect(page.getByTestId('context-dropdown')).not.toBeVisible()
+
+    // Switch back to primary
+    await page.getByTestId('context-switcher-btn').click()
+    await page.getByTestId('context-dropdown')
+      .locator('[role="option"]', { hasText: PRIMARY_CONTEXT })
+      .click()
+    await expect(page.getByTestId('context-dropdown')).not.toBeVisible()
+
+    // All 5 fixture cards must still be visible — guards against cache partial-clear
+    for (const name of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
+      await expect(page.getByTestId(`rgd-card-${name}`)).toBeVisible()
+    }
+  })
 })
