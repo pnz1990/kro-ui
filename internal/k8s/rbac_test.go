@@ -463,3 +463,7 @@ type stubK8sClientsIface struct {
 
 func (s *stubK8sClientsIface) Dynamic() dynamic.Interface              { return s.dyn }
 func (s *stubK8sClientsIface) Discovery() discovery.DiscoveryInterface { return s.disc }
+func (s *stubK8sClientsIface) CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error) {
+	_, lists, err := s.disc.ServerGroupsAndResources()
+	return lists, err
+}

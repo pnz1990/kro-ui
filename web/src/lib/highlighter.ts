@@ -263,6 +263,39 @@ function extractWord(line: string, pos: number): string {
 // ── Public API ─────────────────────────────────────────────────────────
 
 /**
+ * tokenClass — maps a TokenType to its CSS class name for the kro code block.
+ *
+ * Defined here (alongside TokenType) so every consumer imports from a single
+ * source. Never duplicate this function in component files. (AGENTS.md anti-pattern #77)
+ *
+ * `KroCodeBlock` is the only consumer; all classes are in the `token-*` namespace.
+ * If a future component needs different class names it should wrap or extend rather
+ * than forking this function.
+ */
+export function tokenClass(type: TokenType): string {
+  switch (type) {
+    case "celExpression":
+      return "token-cel-expression token-cel"
+    case "kroKeyword":
+      return "token-kro-keyword"
+    case "yamlKey":
+      return "token-yaml-key"
+    case "schemaType":
+      return "token-schema-type"
+    case "schemaPipe":
+      return "token-schema-pipe"
+    case "schemaKeyword":
+      return "token-schema-keyword"
+    case "schemaValue":
+      return "token-schema-value"
+    case "comment":
+      return "token-comment"
+    case "plain":
+      return ""
+  }
+}
+
+/**
  * Tokenize kro-flavored YAML into an ordered array of typed tokens.
  *
  * Invariants:

@@ -52,7 +52,10 @@ function generateSpecLines(specFields: ParsedField[]): string[] {
         ? `map[${pt.key}]${pt.value}`
         : (pt?.type ?? 'string')
 
-    const hasDefault = pt?.default !== undefined
+    // Use key existence (not `!== undefined`) so falsy defaults like
+    // default=0, default=false, default="" are correctly detected as present.
+    // See: https://github.com/pnz1990/kro-ui/issues/106 (AGENTS.md anti-pattern #61)
+    const hasDefault = pt != null && 'default' in pt
     const defaultVal = pt?.default === '' ? '""' : (pt?.default ?? '')
 
     if (hasDefault) {

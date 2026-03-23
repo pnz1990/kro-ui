@@ -17,6 +17,7 @@ package k8s
 import (
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
@@ -24,9 +25,12 @@ import (
 
 // ContextClients holds ephemeral dynamic and discovery clients for a single
 // kubeconfig context. It is created by BuildContextClient and is not shared.
+// It carries its own per-instance apiResourceCache so fleet fan-out calls
+// also benefit from the discovery cache (Constitution §XI).
 type ContextClients struct {
-	dyn  dynamic.Interface
-	disc discovery.DiscoveryInterface
+	dyn       dynamic.Interface
+	disc      discovery.DiscoveryInterface
+	discCache apiResourceCache
 }
 
 // Dynamic returns the dynamic client.
@@ -34,6 +38,21 @@ func (c *ContextClients) Dynamic() dynamic.Interface { return c.dyn }
 
 // Discovery returns the discovery client.
 func (c *ContextClients) Discovery() discovery.DiscoveryInterface { return c.disc }
+
+// CachedServerGroupsAndResources returns all API resource lists, using a
+// ≥30-second in-memory cache to avoid hammering the API server on every request.
+// Implements K8sClients (Constitution §XI).
+func (c *ContextClients) CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error) {
+	if cached, ok := c.discCache.get(); ok {
+		return cached, nil
+	}
+	_, lists, err := c.disc.ServerGroupsAndResources()
+	if err != nil {
+		return nil, fmt.Errorf("server groups and resources: %w", err)
+	}
+	c.discCache.set(lists)
+	return lists, nil
+}
 
 // BuildContextClient creates an ephemeral pair of dynamic + discovery clients
 // for the given kubeconfig context. It does NOT mutate the shared ClientFactory.

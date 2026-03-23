@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 
@@ -32,6 +33,9 @@ import (
 type k8sClients interface {
 	Dynamic() dynamic.Interface
 	Discovery() discovery.DiscoveryInterface
+	// CachedServerGroupsAndResources returns all API resource lists from a
+	// ≥30-second cache. Required by k8s.K8sClients (Constitution §XI).
+	CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error)
 }
 
 // Handler holds shared dependencies for all route handlers.

@@ -44,6 +44,10 @@ type stubK8sClients struct {
 
 func (s *stubK8sClients) Dynamic() dynamic.Interface              { return s.dyn }
 func (s *stubK8sClients) Discovery() discovery.DiscoveryInterface { return s.disc }
+func (s *stubK8sClients) CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error) {
+	_, lists, err := s.disc.ServerGroupsAndResources()
+	return lists, err
+}
 
 // stubDynamic implements dynamic.Interface.
 type stubDynamic struct {
@@ -540,6 +544,133 @@ func TestDiscoverPlural(t *testing.T) {
 			clients, group, version, kind := tt.build(t)
 			plural, err := DiscoverPlural(clients, group, version, kind)
 			tt.check(t, plural, err)
+		})
+	}
+}
+
+func TestListChildResources(t *testing.T) {
+	tests := []struct {
+		name  string
+		build func(t *testing.T) (K8sClients, string, string)
+		check func(t *testing.T, results []map[string]any, err error)
+	}{
+		{
+			name: "returns matching resources from two GVRs",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+					GroupVersion: "kro.run/v1alpha1",
+					APIResources: []metav1.APIResource{
+						{Name: "webapps", Kind: "WebApp", Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				disc.resources["apps/v1"] = &metav1.APIResourceList{
+					GroupVersion: "apps/v1",
+					APIResources: []metav1.APIResource{
+						{Name: "deployments", Kind: "Deployment", Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+
+				dyn := newStubDynamic()
+				selector := "kro.run/instance-name=my-app"
+				// webapp resource in the kro GVR
+				webappGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "webapps"}
+				dyn.resources[webappGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"default": {
+							labelItems: map[string][]unstructured.Unstructured{
+								selector: {
+									{Object: map[string]any{"kind": "WebApp", "metadata": map[string]any{"name": "my-app"}}},
+								},
+							},
+						},
+					},
+				}
+				// deployment resource in apps/v1
+				deployGVR := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+				dyn.resources[deployGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"default": {
+							labelItems: map[string][]unstructured.Unstructured{
+								selector: {
+									{Object: map[string]any{"kind": "Deployment", "metadata": map[string]any{"name": "my-app-deploy"}}},
+								},
+							},
+						},
+					},
+				}
+
+				return &stubK8sClients{dyn: dyn, disc: disc}, "default", "my-app"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				assert.Len(t, results, 2)
+			},
+		},
+		{
+			name: "returns empty slice when no resources match label",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["apps/v1"] = &metav1.APIResourceList{
+					GroupVersion: "apps/v1",
+					APIResources: []metav1.APIResource{
+						{Name: "deployments", Kind: "Deployment", Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				dyn := newStubDynamic()
+				// No label match set up — list returns empty
+				return &stubK8sClients{dyn: dyn, disc: disc}, "default", "no-match"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				assert.Empty(t, results)
+			},
+		},
+		{
+			name: "returns error when discovery fails",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.err = fmt.Errorf("discovery unavailable")
+				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "default", "my-app"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "discovery")
+			},
+		},
+		{
+			name: "skips subresources",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["apps/v1"] = &metav1.APIResourceList{
+					GroupVersion: "apps/v1",
+					APIResources: []metav1.APIResource{
+						{Name: "deployments", Kind: "Deployment", Verbs: metav1.Verbs{"list", "get"}},
+						{Name: "deployments/status", Kind: "Deployment", Verbs: metav1.Verbs{"get"}}, // subresource
+					},
+				}
+				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "default", "my-app"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				// No panic, no error — subresource is skipped
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, namespace, instanceName := tt.build(t)
+			results, err := ListChildResources(context.Background(), clients, namespace, instanceName)
+			tt.check(t, results, err)
 		})
 	}
 }

@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react"
-import { tokenize } from "@/lib/highlighter"
-import type { TokenType } from "@/lib/highlighter"
+import { tokenize, tokenClass } from "@/lib/highlighter"
 import { useCapabilities } from "@/lib/features"
 import "./KroCodeBlock.css"
 
@@ -9,30 +8,6 @@ interface KroCodeBlockProps {
   /** Reserved for future multi-language support. Currently only "yaml". */
   language?: "yaml"
   title?: string
-}
-
-/** Map TokenType to CSS class name. */
-function tokenClass(type: TokenType): string {
-  switch (type) {
-    case "celExpression":
-      return "token-cel-expression token-cel"
-    case "kroKeyword":
-      return "token-kro-keyword"
-    case "yamlKey":
-      return "token-yaml-key"
-    case "schemaType":
-      return "token-schema-type"
-    case "schemaPipe":
-      return "token-schema-pipe"
-    case "schemaKeyword":
-      return "token-schema-keyword"
-    case "schemaValue":
-      return "token-schema-value"
-    case "comment":
-      return "token-comment"
-    case "plain":
-      return "token-plain"
-  }
 }
 
 /** Inline SVG: copy icon (16x16). */
