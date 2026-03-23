@@ -71,6 +71,8 @@
   --node-collection-border:    var(--color-primary);
   --node-external-bg:          rgba(139, 92, 246, 0.08); /* NodeTypeExternal / NodeTypeExternalCollection */
   --node-external-border:      var(--color-pending);
+  --node-state-bg:             rgba(245, 158, 11, 0.08); /* NodeTypeState (kro state: store) — warm amber */
+  --node-state-border:         rgba(245, 158, 11, 0.45);
 
   /* CEL / schema highlighter tokens */
   --hl-yaml-key:           #a8a29e;
@@ -186,6 +188,8 @@
   --node-collection-border:    var(--color-primary);
   --node-external-bg:          rgba(124, 58, 237, 0.06);
   --node-external-border:      var(--color-pending);
+  --node-state-bg:             rgba(217, 119, 6, 0.07);  /* NodeTypeState — warm amber, light mode */
+  --node-state-border:         rgba(217, 119, 6, 0.40);
 
   /* CEL highlighter */
   --hl-yaml-key:           #6b7280;

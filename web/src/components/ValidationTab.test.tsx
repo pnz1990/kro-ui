@@ -211,4 +211,89 @@ describe('ValidationTab', () => {
     renderValidationTab(makeRGD([]))
     expect(screen.getByTestId('validation-tab')).toBeInTheDocument()
   })
+
+  // ── ResourceSummary: state nodes counted separately (issue #96) ──────────
+
+  it('counts state nodes separately from managed resources in Resource Summary', () => {
+    const resources = [
+      {
+        id: 'appNamespace',
+        template: { apiVersion: 'v1', kind: 'Namespace', metadata: { name: 'test' } },
+      },
+      {
+        id: 'dungeonInit',
+        state: {
+          fields: { heroHP: '${200}' },
+          storeName: 'game',
+        },
+      },
+      {
+        id: 'combatResolve',
+        state: {
+          fields: { bossHP: '${100}' },
+          storeName: 'game',
+        },
+      },
+    ]
+    renderValidationTab(makeRGD(allTrueConditions, resources))
+
+    const summary = screen.getByTestId('resource-summary')
+    // 3 total: 1 managed + 2 state nodes
+    expect(summary).toHaveTextContent('3 resources')
+    expect(summary).toHaveTextContent('1 managed')
+    expect(summary).toHaveTextContent('2 state nodes')
+    // State nodes must NOT appear in the managed count
+    expect(summary).not.toHaveTextContent('3 managed')
+  })
+
+  // ── ConditionItem: known error pattern rewriting (issue #103) ────────────
+
+  it('rewrites GVK resolution error to plain-English summary', () => {
+    const rgd = makeRGD([{
+      type: 'ResourceGraphAccepted',
+      status: 'False',
+      reason: 'InvalidResourceGraph',
+      message: 'failed to build resource "myChild": failed to get schema for resource myChild: cannot resolve group version kind "kro.run/v1alpha1, Kind=ChainChild": schema not found',
+    }])
+    renderValidationTab(rgd)
+
+    // Should show plain-English summary containing the extracted kind name
+    expect(screen.getByText(/Referenced kind/)).toBeInTheDocument()
+    expect(screen.getByText(/ChainChild/)).toBeInTheDocument()
+    expect(screen.getByText(/is not yet registered/)).toBeInTheDocument()
+    // Raw error is hidden behind a toggle
+    expect(screen.queryByText(/cannot resolve group version kind/)).not.toBeInTheDocument()
+    // "Show raw error" toggle is available
+    expect(screen.getByRole('button', { name: 'Show raw error' })).toBeInTheDocument()
+  })
+
+  it('shows raw error on "Show raw error" click, then "Show summary" to go back', () => {
+    const rgd = makeRGD([{
+      type: 'ResourceGraphAccepted',
+      status: 'False',
+      reason: 'InvalidResourceGraph',
+      message: 'failed to build resource "myChild": cannot resolve group version kind "kro.run/v1alpha1, Kind=ChainChild": schema not found',
+    }])
+    renderValidationTab(rgd)
+
+    // Click "Show raw error"
+    fireEvent.click(screen.getByRole('button', { name: 'Show raw error' }))
+    // Raw message now visible
+    expect(screen.getByText(/cannot resolve group version kind/)).toBeInTheDocument()
+    // "Show summary" toggle available
+    expect(screen.getByRole('button', { name: 'Show summary' })).toBeInTheDocument()
+  })
+
+  it('rewrites unknown-identifiers CEL error to plain-English summary', () => {
+    const rgd = makeRGD([{
+      type: 'ResourceGraphAccepted',
+      status: 'False',
+      reason: 'InvalidResourceGraph',
+      message: 'failed to build dependency graph: failed to extract dependencies: references unknown identifiers: [json]',
+    }])
+    renderValidationTab(rgd)
+
+    expect(screen.getByText(/CEL expression references unknown identifier/)).toBeInTheDocument()
+    expect(screen.getByText(/json/)).toBeInTheDocument()
+  })
 })

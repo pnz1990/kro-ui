@@ -82,7 +82,10 @@ describe('MetricsStrip', () => {
     setPollingState({ data: null, error: 'metrics source unreachable: connection refused', loading: false })
     const { container } = render(<MetricsStrip />)
 
-    expect(screen.getByText('Controller metrics unavailable')).toBeInTheDocument()
+    // The degraded message now includes actionable context (issue #97).
+    // "connection refused" → default branch → "--metrics-url" hint.
+    expect(screen.getByText(/Controller metrics unavailable/)).toBeInTheDocument()
+    expect(screen.getByText(/--metrics-url/)).toBeInTheDocument()
     expect(container.querySelectorAll('.metrics-strip__cell').length).toBe(0)
   })
 
