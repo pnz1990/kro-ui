@@ -191,9 +191,9 @@ export type SortOption = 'name' | 'kind' | 'instances' | 'resources' | 'newest'
  * Returns a new sorted array — does not mutate the input.
  */
 export function sortCatalog(
-  entries: Array<{ rgd: K8sObject; instanceCount: number | null }>,
+  entries: Array<{ rgd: K8sObject; instanceCount: number | null | undefined }>,
   option: SortOption,
-): Array<{ rgd: K8sObject; instanceCount: number | null }> {
+): Array<{ rgd: K8sObject; instanceCount: number | null | undefined }> {
   const sorted = [...entries]
   sorted.sort((a, b) => {
     switch (option) {
@@ -202,7 +202,7 @@ export function sortCatalog(
       case 'kind':
         return extractSchemaKind(a.rgd).localeCompare(extractSchemaKind(b.rgd))
       case 'instances': {
-        // null counts (failed fetch) sort last
+        // undefined (loading) and null (failed) sort last; use -1 as sentinel
         const ai = a.instanceCount ?? -1
         const bi = b.instanceCount ?? -1
         return bi - ai

@@ -294,6 +294,8 @@ describe('ValidationTab', () => {
     renderValidationTab(rgd)
 
     expect(screen.getByText(/CEL expression references unknown identifier/)).toBeInTheDocument()
-    expect(screen.getByText(/json/)).toBeInTheDocument()
+    // "json" appears in both the rewritten message and in the kubectl hint for absent conditions;
+    // use getAllByText and verify at least one match contains the rewritten text.
+    expect(screen.getAllByText(/json/).length).toBeGreaterThan(0)
   })
 })

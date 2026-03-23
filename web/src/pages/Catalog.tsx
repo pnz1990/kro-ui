@@ -1,6 +1,7 @@
 // Catalog — searchable RGD registry with filtering, sorting, and chaining detection.
 // Fetches all RGDs on mount, then fires parallel instance-count requests.
 // All search/filter/sort is client-side — no API call per keystroke.
+// Issue #116: instanceCounts uses undefined="loading", null="failed", number="resolved".
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
@@ -39,8 +40,11 @@ export default function Catalog() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // instanceCounts maps rgdName → count | null (null = fetch failed)
-  const [instanceCounts, setInstanceCounts] = useState<Map<string, number | null>>(new Map())
+  // instanceCounts maps rgdName → undefined (loading) | null (failed) | number (resolved).
+  // undefined means "fetch in-flight" — card shows a loading indicator.
+  // null means "fetch failed" — card shows em-dash.
+  // Issue #116: was always null before fetch resolved, so count never appeared to load.
+  const [instanceCounts, setInstanceCounts] = useState<Map<string, number | null | undefined>>(new Map())
 
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 300)
@@ -55,6 +59,13 @@ export default function Catalog() {
     listRGDs()
       .then((res) => {
         setItems(res.items)
+        // Mark all RGDs as loading (undefined) before firing requests
+        const loadingMap = new Map<string, number | null | undefined>()
+        for (const rgd of res.items) {
+          const name = extractRGDName(rgd)
+          if (name) loadingMap.set(name, undefined)
+        }
+        setInstanceCounts(loadingMap)
         // Fire parallel instance-count requests — failures are per-RGD
         for (const rgd of res.items) {
           const name = extractRGDName(rgd)
@@ -64,7 +75,7 @@ export default function Catalog() {
               setInstanceCounts((prev) => new Map(prev).set(name, list.items.length))
             })
             .catch(() => {
-              // Mark as null (unknown), never block the page
+              // Mark as null (failed), never block the page
               setInstanceCounts((prev) => new Map(prev).set(name, null))
             })
         }
@@ -88,11 +99,12 @@ export default function Catalog() {
   const allLabels = useMemo(() => collectAllLabels(items), [items])
 
   // Build entries with instance counts
+  // undefined = still loading, null = failed, number = resolved
   const entries = useMemo(
     () =>
       items.map((rgd) => {
         const name = extractRGDName(rgd)
-        const instanceCount = instanceCounts.has(name) ? (instanceCounts.get(name) ?? null) : null
+        const instanceCount = instanceCounts.has(name) ? instanceCounts.get(name) : undefined
         return { rgd, instanceCount }
       }),
     [items, instanceCounts],

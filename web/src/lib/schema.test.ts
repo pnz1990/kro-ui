@@ -232,9 +232,46 @@ describe('parseSimpleSchema', () => {
 
   it('strips trailing space-separated enum from default — no pipe separator', () => {
     // Actual format from live cluster: `string | default="normal" enum=easy,normal,hard`
+    // Issue #114: also strips surrounding JSON double-quotes from string defaults.
     expect(parseSimpleSchema('string | default="normal" enum=easy,normal,hard')).toEqual({
       type: 'string',
-      default: '"normal"',
+      default: 'normal',
+    })
+  })
+
+  // ── #114: JSON double-quoted string defaults ───────────────────────────────
+  // kro stores string defaults with JSON quoting: default="warrior" → raw '"warrior"'.
+  // The parser must strip surrounding double-quotes so the YAML serializer does
+  // not double-encode them (e.g. difficulty: "\"normal\"" is wrong).
+
+  it('strips surrounding JSON double-quotes from string default — issue #114', () => {
+    expect(parseSimpleSchema('string | default="normal"')).toEqual({
+      type: 'string',
+      default: 'normal',
+    })
+  })
+
+  it('strips surrounding double-quotes from string default with enum — issue #114', () => {
+    expect(parseSimpleSchema('string | default="warrior" | enum=warrior,mage,rogue')).toEqual({
+      type: 'string',
+      default: 'warrior',
+      enum: 'warrior,mage,rogue',
+    })
+  })
+
+  it('preserves empty string default (double-quoted) — issue #114', () => {
+    // default="" → should strip outer quotes and produce empty string
+    expect(parseSimpleSchema('string | default=""')).toEqual({
+      type: 'string',
+      default: '',
+    })
+  })
+
+  it('does not strip internal double-quotes — only surrounding pair — issue #114', () => {
+    // default=say "hello" — not surrounded by quotes, so do NOT strip
+    expect(parseSimpleSchema('string | default=say "hello"')).toEqual({
+      type: 'string',
+      default: 'say "hello"',
     })
   })
 

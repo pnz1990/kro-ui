@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth, formatAge, extractCreationTimestamp } from '@/lib/format'
 import { isTerminating } from '@/lib/k8s'
@@ -65,6 +65,7 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
  *
  * Issue #71: adds clickable column headers with sort indicators.
  * Issue #109: add pagination for 500+ instances (Constitution §XIII).
+ * Issue #119: entire row is clickable — navigates to instance detail.
  * Spec: .specify/specs/004-instance-list/spec.md
  */
 export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
@@ -72,6 +73,7 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>('ready')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
+  const navigate = useNavigate()
 
   // FR-005: Terminating-only filter
   const [showTerminatingOnly, setShowTerminatingOnly] = useState(false)
@@ -193,6 +195,21 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
                 key={`${namespace}/${name}`}
                 className="instance-table__row"
                 data-testid={`instance-row-${name}`}
+                onClick={() =>
+                  navigate(
+                    `/rgds/${encodeURIComponent(rgdName)}/instances/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+                  )
+                }
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    navigate(
+                      `/rgds/${encodeURIComponent(rgdName)}/instances/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
+                    )
+                  }
+                }}
+                aria-label={`Open instance ${name}`}
               >
                 <td
                   className="instance-table__td instance-table__td--name"

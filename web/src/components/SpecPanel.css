@@ -62,3 +62,8 @@
   color: var(--color-text);
   word-break: break-all;
 }
+
+/* Issue #122: empty string and null values rendered as em-dash (§XII). */
+.spec-value--empty {
+  color: var(--color-text-faint);
+}

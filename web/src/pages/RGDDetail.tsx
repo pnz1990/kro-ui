@@ -58,6 +58,14 @@ export default function RGDDetail() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  // Issue #129: track when the RGD was last fetched for the "refreshed X ago" indicator.
+  const [rgdLastFetched, setRgdLastFetched] = useState<Date | null>(null)
+  // Issue #129: tick every 1s so the elapsed label stays current (same pattern as Fleet).
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   // ── All RGDs for chain detection (spec 025) ───────────────────────────────
   const [rgds, setRgds] = useState<K8sObject[]>([])
@@ -74,6 +82,7 @@ export default function RGDDetail() {
       .then(([data, allRgds]) => {
         setRgd(data)
         setRgds(allRgds.items)
+        setRgdLastFetched(new Date())
         setError(null)
       })
       .catch((err: Error) => {
@@ -427,6 +436,12 @@ export default function RGDDetail() {
       <div className="rgd-tab-content">
         {activeTab === "graph" && (
           <>
+            {/* Issue #129: "refreshed X ago" indicator (constitution §XIII) */}
+            {rgdLastFetched && (
+              <div className="rgd-graph-refresh-hint" aria-live="polite">
+                refreshed {formatAgo(rgdLastFetched)}
+              </div>
+            )}
             <div
               className={`rgd-graph-area${selectedNode ? " rgd-graph-area--with-panel" : ""}`}
             >
@@ -573,4 +588,14 @@ export default function RGDDetail() {
       </div>
     </div>
   )
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+
+/** Format a Date as "Xs ago" / "Xm ago" / "just now". Issue #129. */
+function formatAgo(date: Date): string {
+  const s = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+  if (s < 5) return 'just now'
+  if (s < 60) return `${s}s ago`
+  return `${Math.floor(s / 60)}m ago`
 }

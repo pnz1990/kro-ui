@@ -7,6 +7,8 @@ bin/
 *.exe
 *.test
 *.out
+# TypeScript incremental build cache — never needed in Docker, can cause stale errors
+web/tsconfig.tsbuildinfo
 
 # ── Frontend node_modules (rebuilt in Docker) ─────────────────────────
 web/node_modules/

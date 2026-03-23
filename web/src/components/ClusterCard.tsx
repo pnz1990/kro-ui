@@ -67,6 +67,13 @@ export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
               {healthLabel(health, degradedInstances)}
             </span>
           )}
+          {/* Issue #124: auth-failed needs actionable guidance */}
+          {health === 'auth-failed' && (
+            <span className="cluster-card__status-hint">
+              Credentials may be expired or the cluster endpoint is unreachable.
+              Run: <code>kubectl cluster-info --context={context}</code>
+            </span>
+          )}
         </div>
       </div>
     </button>

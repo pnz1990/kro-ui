@@ -291,7 +291,22 @@ export default function Events() {
       {/* ── Empty state ── */}
       {isEmpty && (
         <div className="events-page__empty" data-testid="events-empty">
-          No kro-related events found
+          <p className="events-page__empty-title">No kro-related events found</p>
+          <p className="events-page__empty-hint">
+            Events appear when kro resources are created, updated, or reconciled.
+            Apply an RGD instance to start seeing events:
+          </p>
+          <code className="events-page__empty-cmd">kubectl apply -f my-instance.yaml</code>
+          {hasFilters && (
+            <p className="events-page__empty-hint">
+              Active filters may be hiding results — try clearing them.
+            </p>
+          )}
+          {lastRefresh && (
+            <p className="events-page__empty-polling">
+              Polling every 5s — last checked {formatSecondsAgo(lastRefresh)}
+            </p>
+          )}
         </div>
       )}
 

@@ -1,4 +1,4 @@
-/* InstanceTable — live CR instance rows. Issue #71: sortable headers. Issue #109: pagination. */
+/* InstanceTable — live CR instance rows. Issue #71: sortable headers. Issue #109: pagination. Issue #119: clickable rows. */
 
 .instance-table-container {
   display: flex;
@@ -53,11 +53,17 @@
 }
 
 .instance-table__row {
+  cursor: pointer;
   transition: background var(--transition-fast);
 }
 
 .instance-table__row:hover {
   background: var(--color-surface-2);
+}
+
+.instance-table__row:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
 }
 
 .instance-table__td {

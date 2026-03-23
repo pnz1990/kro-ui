@@ -39,12 +39,13 @@ describe('truncateContextName', () => {
     expect(truncateContextName('a'.repeat(40))).toBe('a'.repeat(40))
   })
 
-  it('abbreviates AWS EKS ARNs to accountPrefix…/clusterName', () => {
+  it('abbreviates AWS EKS ARNs to accountPrefix…accountSuffix/clusterName (issue #117)', () => {
     const arn1 = 'arn:aws:eks:us-west-2:319279230668:cluster/krombat'
-    expect(truncateContextName(arn1)).toBe('319279\u2026/krombat')
+    // first6…last3/clusterName format for unambiguous display
+    expect(truncateContextName(arn1)).toBe('319279\u2026668/krombat')
 
     const arn2 = 'arn:aws:eks:us-west-2:569190534191:cluster/krombat'
-    expect(truncateContextName(arn2)).toBe('569190\u2026/krombat')
+    expect(truncateContextName(arn2)).toBe('569190\u2026191/krombat')
 
     // The two ARNs that both used to truncate to "…/krombat" are now distinct
     expect(truncateContextName(arn1)).not.toBe(truncateContextName(arn2))

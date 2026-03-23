@@ -21,7 +21,9 @@
   margin-bottom: 4px;
 }
 
+/* Issue #128: <span> instead of <p> — but ensure block display to not wrap with heading */
 .fleet__subheading {
+  display: block;
   font-size: 0.875rem;
   color: var(--color-text-muted);
   margin: 0;

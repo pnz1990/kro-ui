@@ -169,6 +169,21 @@
   font-style: italic;
 }
 
+/* Issue #126: inline code inside condition hint messages */
+.condition-item__inline-code {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 6px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-style: normal;
+  word-break: break-all;
+}
+
 .condition-item__toggle {
   align-self: flex-start;
   background: transparent;

@@ -148,8 +148,16 @@ export function parseSimpleSchema(typeStr: string): ParsedType {
       //   `default=3 minimum=1 maximum=10`
       // Strip any trailing `keyword=...` tokens so they don't leak into the
       // default value. See issue #87 / anti-pattern #60.
+      //
+      // Additionally, kro stores string defaults with JSON quoting, e.g.
+      //   `default="normal"` → raw = `"normal"`
+      // The YAML serializer then detects the leading `"` and double-encodes it.
+      // Strip surrounding double-quotes from string defaults. See issue #114.
       const raw = trimmed.slice('default='.length)
-      parsed.default = stripTrailingConstraints(raw)
+      const stripped = stripTrailingConstraints(raw)
+      parsed.default = stripped.startsWith('"') && stripped.endsWith('"') && stripped.length >= 2
+        ? stripped.slice(1, -1)
+        : stripped
     } else if (trimmed.startsWith('enum=')) {
       parsed.enum = trimmed.slice('enum='.length)
     } else if (trimmed.startsWith('minimum=')) {

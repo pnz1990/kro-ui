@@ -8,6 +8,7 @@ import {
   readyStateLabel,
   extractInstanceHealth,
   aggregateHealth,
+  abbreviateContext,
 } from './format'
 
 // ── formatAge ────────────────────────────────────────────────────────
@@ -366,5 +367,46 @@ describe('aggregateHealth', () => {
     expect(summary.total).toBe(2)
     expect(summary.ready).toBe(2)
     expect(summary.error).toBe(0)
+  })
+})
+
+// ── abbreviateContext (issue #117/#123) ────────────────────────────────────
+
+describe('abbreviateContext', () => {
+  it('returns short context names as-is', () => {
+    expect(abbreviateContext('prod')).toBe('prod')
+    expect(abbreviateContext('dev-cluster')).toBe('dev-cluster')
+  })
+
+  it('returns empty string for empty input', () => {
+    expect(abbreviateContext('')).toBe('')
+  })
+
+  it('abbreviates EKS ARN to first6…last3/clusterName format', () => {
+    const arn = 'arn:aws:eks:us-east-1:319279230668:cluster/krombat'
+    expect(abbreviateContext(arn)).toBe('319279\u2026668/krombat')
+  })
+
+  it('disambiguates same cluster name in different accounts', () => {
+    const arn1 = 'arn:aws:eks:us-west-2:319279230668:cluster/my-cluster'
+    const arn2 = 'arn:aws:eks:us-west-2:569190534191:cluster/my-cluster'
+    const label1 = abbreviateContext(arn1)
+    const label2 = abbreviateContext(arn2)
+    // Both should produce different labels for the same cluster name
+    expect(label1).not.toBe(label2)
+    // Both should contain the cluster name
+    expect(label1).toContain('/my-cluster')
+    expect(label2).toContain('/my-cluster')
+  })
+
+  it('returns short account IDs without ellipsis', () => {
+    // Account ID short enough to show fully
+    const arn = 'arn:aws:eks:us-east-1:12345678:cluster/test'
+    expect(abbreviateContext(arn)).toBe('12345678/test')
+  })
+
+  it('returns non-EKS ARN-format contexts as-is (no guessing)', () => {
+    const oidcCtx = 'kubernetes-admin@my.cluster.example.com'
+    expect(abbreviateContext(oidcCtx)).toBe(oidcCtx)
   })
 })

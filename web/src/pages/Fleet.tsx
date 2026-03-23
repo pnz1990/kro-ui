@@ -133,7 +133,8 @@ export default function Fleet() {
       <div className="fleet__title-row">
         <div>
           <h1 className="fleet__heading">Fleet Overview</h1>
-          <p className="fleet__subheading">All kubeconfig contexts</p>
+          {/* Issue #128: use <span> not <p> to avoid block-level margin inflation */}
+          <span className="fleet__subheading">All kubeconfig contexts</span>
         </div>
         <div className="fleet__refresh-area">
           {lastRefresh && !isLoading && (

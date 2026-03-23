@@ -1,9 +1,11 @@
 // ContextSwitcher — dropdown to switch kubeconfig contexts at runtime.
 // Implements an accessible ARIA listbox pattern per spec 007-context-switcher.
 // Fix #63: ARN truncation now shows account-ID fragment + cluster name for disambiguation.
+// Fix #117: use first6…last3/clusterName format to disambiguate same-named clusters.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { switchContext } from '@/lib/api'
 import type { KubeContext } from '@/lib/api'
+import { abbreviateContext } from '@/lib/format'
 import './ContextSwitcher.css'
 
 const MAX_DISPLAY_LENGTH = 40
@@ -12,38 +14,33 @@ const SWITCH_TIMEOUT_MS = 10_000
 /**
  * Return a display-friendly label for a context name that may be ambiguous.
  *
+ * Delegates to `abbreviateContext` from @/lib/format for EKS ARN handling
+ * (consistent with FleetMatrix and ClusterCard), then applies a character limit.
+ *
  * Rules (in order):
- *  1. If ≤40 chars: return as-is.
- *  2. If it looks like an AWS EKS ARN
- *     (`arn:aws:eks:<region>:<accountId>:cluster/<clusterName>`):
- *     return `<accountPrefix>…/<clusterName>` where accountPrefix is the
- *     first 6 digits of the account ID — enough to disambiguate.
- *  3. If it contains '/' (other long paths): `<account_or_prefix>…/<lastName>`.
+ *  1. If it looks like an AWS EKS ARN: uses `abbreviateContext` which produces
+ *     `{first6}…{last3}/{clusterName}` — unambiguous across accounts. See #117.
+ *  2. If ≤40 chars after abbreviation: return as-is.
+ *  3. If it contains '/' (other long paths): `<prefix>…/<lastName>`.
  *  4. Fallback: truncate at 40 with '…'.
  *
  * The full name is always exposed via `title` attribute.
  */
 export function truncateContextName(name: string): string {
-  if (name.length <= MAX_DISPLAY_LENGTH) return name
+  // Apply EKS ARN abbreviation first (consistent with abbreviateContext in format.ts)
+  const abbreviated = abbreviateContext(name)
 
-  // AWS EKS ARN: arn:aws:eks:region:accountId:cluster/clusterName
-  const eksMatch = /^arn:aws:eks:[^:]+:(\d+):cluster\/(.+)$/.exec(name)
-  if (eksMatch) {
-    const accountPrefix = eksMatch[1].slice(0, 6)
-    const clusterName = eksMatch[2]
-    return `${accountPrefix}\u2026/${clusterName}`
-  }
+  if (abbreviated.length <= MAX_DISPLAY_LENGTH) return abbreviated
 
   // Generic long path with slashes: keep last segment + prefix hint
-  const slashIdx = name.lastIndexOf('/')
+  const slashIdx = abbreviated.lastIndexOf('/')
   if (slashIdx !== -1) {
-    const lastName = name.slice(slashIdx + 1)
-    // Include a short prefix hint so two paths with same basename differ
-    const prefix = name.slice(0, Math.min(6, slashIdx))
+    const lastName = abbreviated.slice(slashIdx + 1)
+    const prefix = abbreviated.slice(0, Math.min(6, slashIdx))
     return `${prefix}\u2026/${lastName}`
   }
 
-  return name.slice(0, MAX_DISPLAY_LENGTH) + '\u2026'
+  return abbreviated.slice(0, MAX_DISPLAY_LENGTH) + '\u2026'
 }
 
 interface ContextSwitcherProps {
