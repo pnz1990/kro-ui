@@ -1,0 +1,42 @@
+/* DAGLegend.css — Compact badge legend below the DAG SVG.
+ * All colors via tokens.css custom properties — no hardcoded hex or rgba().
+ * Spec: .specify/specs/034-generate-form-polish/ FR-006–FR-009
+ * Issue: #118 */
+
+.dag-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 6px 8px 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.dag-legend__entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.dag-legend__badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Mirror the fill colors from StaticChainDAG.css badge classes,
+ * but as `color` (HTML element, not SVG). */
+.dag-legend__badge--conditional {
+  color: var(--color-text-muted);
+}
+
+.dag-legend__badge--collection {
+  color: var(--node-collection-border);
+}
+
+.dag-legend__badge--external {
+  color: var(--node-external-border);
+}
