@@ -1,0 +1,89 @@
+/* GenerateTab.css — Two-column layout + mode switcher pill group.
+   All colors via tokens.css — no inline hex/rgba. */
+
+.generate-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+/* ── Mode switcher ───────────────────────────────────────────────────────── */
+
+.generate-tab__mode-bar {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  align-self: flex-start;
+}
+
+.generate-tab__mode-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: none;
+  border-right: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.generate-tab__mode-btn:last-child {
+  border-right: none;
+}
+
+.generate-tab__mode-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-3);
+}
+
+.generate-tab__mode-btn--active {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.generate-tab__mode-btn--active:hover {
+  background: var(--color-primary-hover);
+  color: var(--color-on-primary);
+}
+
+.generate-tab__mode-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+/* ── Body: two-column split ─────────────────────────────────────────────── */
+
+.generate-tab__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+}
+
+.generate-tab__input-pane {
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.generate-tab__preview-pane {
+  min-width: 0;
+  position: sticky;
+  top: 0;
+}
+
+/* ── Responsive: stack on narrow viewports ──────────────────────────────── */
+
+@media (max-width: 768px) {
+  .generate-tab__body {
+    grid-template-columns: 1fr;
+  }
+
+  .generate-tab__preview-pane {
+    position: static;
+  }
+}

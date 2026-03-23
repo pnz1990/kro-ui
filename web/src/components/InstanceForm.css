@@ -1,0 +1,177 @@
+/* InstanceForm.css — Field row layout, type badges, required indicator.
+   Mirrors FieldTable token patterns. All colors via tokens.css — no hex/rgba. */
+
+.instance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Field row ─────────────────────────────────────────────────────────── */
+
+.instance-form__row {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.instance-form__row:last-child {
+  border-bottom: none;
+}
+
+/* ── Label cell ─────────────────────────────────────────────────────────── */
+
+.instance-form__label-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.instance-form__field-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Type badge — mirrors .field-table__type-badge */
+.instance-form__type-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-primary-text);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+/* Required / optional dot — mirrors .field-table__required-dot */
+.instance-form__required-dot {
+  font-size: 8px;
+  flex-shrink: 0;
+}
+
+.instance-form__required-dot--required {
+  color: var(--color-error);
+}
+
+.instance-form__required-dot--optional {
+  color: var(--color-text-faint);
+}
+
+/* ── Control cell ────────────────────────────────────────────────────────── */
+
+.instance-form__control-cell {
+  min-width: 0;
+}
+
+/* Shared input / select / textarea base */
+.instance-form__input,
+.instance-form__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.instance-form__input:hover,
+.instance-form__textarea:hover {
+  border-color: var(--color-primary);
+}
+
+.instance-form__input:focus-visible,
+.instance-form__textarea:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.instance-form__input--array {
+  width: auto;
+  flex: 1;
+}
+
+.instance-form__checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* ── Array editor ────────────────────────────────────────────────────────── */
+
+.instance-form__array-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.instance-form__array-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.instance-form__array-remove {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  padding: 0;
+}
+
+.instance-form__array-remove:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.instance-form__array-add {
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.instance-form__array-add:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.instance-form__empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 16px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+  margin: 0;
+}
