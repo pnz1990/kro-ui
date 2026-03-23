@@ -13,14 +13,15 @@ import NamespaceFilter from "@/components/NamespaceFilter"
 import ValidationTab from "@/components/ValidationTab"
 import AccessTab from "@/components/AccessTab"
 import DocsTab from "@/components/DocsTab"
+import GenerateTab from "@/components/GenerateTab"
 import OptimizationAdvisor from "@/components/OptimizationAdvisor"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
-type TabId = "graph" | "instances" | "yaml" | "validation" | "access" | "docs"
+type TabId = "graph" | "instances" | "yaml" | "validation" | "access" | "docs" | "generate"
 
 function isValidTab(t: string | null): t is TabId {
-  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "access" || t === "docs"
+  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "access" || t === "docs" || t === "generate"
 }
 
 /**
@@ -261,6 +262,16 @@ export default function RGDDetail() {
         >
           Docs
         </button>
+        <button
+          data-testid="tab-generate"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "generate"}
+          onClick={() => setTab("generate")}
+          type="button"
+        >
+          Generate
+        </button>
       </div>
 
       {/* Tab content */}
@@ -379,6 +390,12 @@ export default function RGDDetail() {
         {activeTab === "docs" && (
           <div className="rgd-tab-panel">
             <DocsTab rgd={rgd} />
+          </div>
+        )}
+
+        {activeTab === "generate" && (
+          <div className="rgd-tab-panel">
+            <GenerateTab rgd={rgd} />
           </div>
         )}
       </div>

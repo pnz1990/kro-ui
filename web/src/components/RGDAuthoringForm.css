@@ -1,0 +1,165 @@
+/* RGDAuthoringForm.css — Section layout, repeatable row styling.
+   Section titles match docs-tab__section-title pattern.
+   All colors via tokens.css — no inline hex/rgba. */
+
+.rgd-authoring-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Section ─────────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Matches docs-tab__section-title pattern */
+.rgd-authoring-form__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 4px;
+}
+
+/* ── Metadata grid ────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__meta-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 6px 12px;
+  align-items: center;
+}
+
+.rgd-authoring-form__label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__input,
+.rgd-authoring-form__select {
+  padding: 5px 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+  min-width: 0;
+}
+
+.rgd-authoring-form__input:hover,
+.rgd-authoring-form__select:hover {
+  border-color: var(--color-primary);
+}
+
+.rgd-authoring-form__input:focus-visible,
+.rgd-authoring-form__select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.rgd-authoring-form__input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rgd-authoring-form__input--name {
+  flex: 2;
+}
+
+.rgd-authoring-form__input--default {
+  flex: 1.5;
+}
+
+.rgd-authoring-form__input--id {
+  flex: 1;
+}
+
+/* ── Field row ────────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__field-row,
+.rgd-authoring-form__resource-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rgd-authoring-form__field-row .rgd-authoring-form__select {
+  flex: 1.5;
+}
+
+.rgd-authoring-form__field-row .rgd-authoring-form__input,
+.rgd-authoring-form__resource-row .rgd-authoring-form__input {
+  flex: 1;
+}
+
+/* ── Required checkbox label ──────────────────────────────────────────────── */
+
+.rgd-authoring-form__required-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* ── Remove button ────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__remove-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  padding: 0;
+}
+
+.rgd-authoring-form__remove-btn:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* ── Add button ───────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__add-btn {
+  align-self: flex-start;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.rgd-authoring-form__add-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.rgd-authoring-form__add-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}

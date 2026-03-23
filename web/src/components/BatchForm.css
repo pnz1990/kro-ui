@@ -1,0 +1,98 @@
+/* BatchForm.css — Batch textarea and error list styling.
+   All colors via tokens.css — no inline hex/rgba. */
+
+.batch-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Header row ──────────────────────────────────────────────────────────── */
+
+.batch-form__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.batch-form__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.batch-form__hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--color-surface-3);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.batch-form__badge {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+/* ── Textarea ────────────────────────────────────────────────────────────── */
+
+.batch-form__textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.batch-form__textarea:hover {
+  border-color: var(--color-primary);
+}
+
+.batch-form__textarea:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+
+.batch-form__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 16px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius);
+}
+
+/* ── Error list ──────────────────────────────────────────────────────────── */
+
+.batch-form__errors {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.batch-form__error-item {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-error);
+}
