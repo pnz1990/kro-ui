@@ -84,6 +84,32 @@ export interface SchemaDoc {
 // ── Parsing ───────────────────────────────────────────────────────────────
 
 /**
+ * Strip trailing space-separated constraint tokens from a raw default value.
+ *
+ * kro sometimes writes constraints without a pipe separator, e.g.:
+ *   `default="normal" enum=easy,normal,hard`  →  `"normal"`
+ *   `default=3 minimum=1 maximum=10`          →  `3`
+ *
+ * A token is a constraint if it starts with one of the known keywords followed
+ * by `=`. We scan from right to left and drop any such trailing tokens.
+ */
+const CONSTRAINT_PREFIXES = ['enum=', 'minimum=', 'maximum=', 'required']
+
+function stripTrailingConstraints(value: string): string {
+  const tokens = value.split(' ')
+  let end = tokens.length
+  while (end > 1) {
+    const last = tokens[end - 1]
+    if (CONSTRAINT_PREFIXES.some((p) => last === p || last.startsWith(p))) {
+      end--
+    } else {
+      break
+    }
+  }
+  return tokens.slice(0, end).join(' ')
+}
+
+/**
  * Parse a kro SimpleSchema type string into a structured ParsedType.
  *
  * Supported formats:
@@ -113,8 +139,15 @@ export function parseSimpleSchema(typeStr: string): ParsedType {
     if (trimmed === 'required') {
       parsed.required = true
     } else if (trimmed.startsWith('default=')) {
-      // Everything after 'default=' is the default value (may be empty string)
-      parsed.default = trimmed.slice('default='.length)
+      // Extract the value after 'default='.
+      // kro sometimes emits space-separated constraints within the same segment
+      // instead of using pipe separators, e.g.:
+      //   `default="normal" enum=easy,normal,hard`
+      //   `default=3 minimum=1 maximum=10`
+      // Strip any trailing `keyword=...` tokens so they don't leak into the
+      // default value. See issue #87 / anti-pattern #60.
+      const raw = trimmed.slice('default='.length)
+      parsed.default = stripTrailingConstraints(raw)
     } else if (trimmed.startsWith('enum=')) {
       parsed.enum = trimmed.slice('enum='.length)
     } else if (trimmed.startsWith('minimum=')) {

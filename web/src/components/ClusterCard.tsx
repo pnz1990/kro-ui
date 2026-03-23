@@ -1,4 +1,5 @@
 import type { ClusterSummary, ClusterHealth } from '@/lib/api'
+import { abbreviateContext } from '@/lib/format'
 import './ClusterCard.css'
 
 interface ClusterCardProps {
@@ -28,7 +29,10 @@ export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
     >
       <div className="cluster-card__header">
         <div className="cluster-card__titles">
-          <span className="cluster-card__context">{context}</span>
+          {/* Show abbreviated label; full context name on hover via title (§XIII) */}
+          <span className="cluster-card__context" title={context}>
+            {abbreviateContext(context)}
+          </span>
           {cluster && cluster !== context && (
             <span className="cluster-card__cluster">{cluster}</span>
           )}

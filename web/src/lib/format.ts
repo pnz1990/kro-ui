@@ -175,3 +175,36 @@ export function extractCreationTimestamp(obj: K8sObject): string {
   const ts = (meta as Record<string, unknown>).creationTimestamp
   return typeof ts === 'string' ? ts : ''
 }
+
+// ── Context name abbreviation ─────────────────────────────────────────
+
+/**
+ * Abbreviate a kubeconfig context name for display.
+ *
+ * - AWS EKS ARNs (`arn:aws:eks:…:cluster/name`) → `accountId/clusterName`
+ * - Short aliases (no `:`) → returned as-is
+ * - Other long names → last segment after `/`
+ *
+ * The full value is always accessible via a `title` attribute on the element.
+ * See §XIII (Context/cluster disambiguation) and AGENTS.md anti-pattern #63.
+ *
+ * @param ctx Full kubeconfig context name
+ * @returns Human-readable abbreviated label, always non-empty
+ */
+export function abbreviateContext(ctx: string): string {
+  if (!ctx) return ctx
+
+  // AWS EKS ARN: arn:aws:eks:<region>:<accountId>:cluster/<clusterName>
+  const eksMatch = ctx.match(/^arn:aws:eks:[^:]+:([^:]+):cluster\/(.+)$/)
+  if (eksMatch) {
+    return `${eksMatch[1]}/${eksMatch[2]}`
+  }
+
+  // Any other ARN-like string with colons — take last colon-segment
+  if (ctx.includes(':')) {
+    return ctx.split(':').pop() || ctx
+  }
+
+  // Short alias or plain name — use as-is
+  return ctx
+}

@@ -119,7 +119,9 @@ function NodeGroup({
       <text className="dag-node-label" x={cx} y={labelY}>
         {node.label}
       </text>
-      {node.kind && (
+      {/* §XII / fix #86: suppress kind when it fell back to the nodeId (state nodes
+          with no template). Showing the same string twice adds no information. */}
+      {node.kind && node.kind !== node.id && (
         <text className="dag-node-kind" x={cx} y={kindY}>
           {node.kind}
         </text>
