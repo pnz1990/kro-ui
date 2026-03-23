@@ -2,6 +2,8 @@
 //
 // Renders type, status, reason, message, last transition time.
 // Updates on every poll cycle via props.
+//
+// spec 028: "Not reported" empty state, summary header, absent-field omission.
 
 import type { K8sObject } from '@/lib/api'
 import './ConditionsPanel.css'
@@ -52,39 +54,59 @@ function statusClass(status: string): string {
 /**
  * ConditionsPanel — renders all status.conditions fields.
  *
- * Spec: .specify/specs/005-instance-detail-live/ US3 acceptance 2
+ * Empty state: "Not reported" (constitution §XII — absent data is "not reported",
+ * never "No conditions." which implies the data was checked and found empty).
+ *
+ * Summary header: "{trueCount} / {total} conditions healthy"
+ *
+ * Absent optional fields (reason, message, lastTransitionTime) are omitted
+ * entirely — never rendered as empty strings, undefined, or placeholders.
+ *
+ * Spec: .specify/specs/028-instance-health-rollup/ US4 FR-009, FR-010
  */
 export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
   const conditions = extractConditions(instance)
 
+  if (conditions.length === 0) {
+    return (
+      <div data-testid="conditions-panel" className="conditions-panel">
+        <div className="panel-heading">Conditions</div>
+        <div data-testid="conditions-panel-empty" className="panel-empty">Not reported</div>
+      </div>
+    )
+  }
+
+  const trueCount = conditions.filter((c) => c.status === 'True').length
+
   return (
     <div data-testid="conditions-panel" className="conditions-panel">
       <div className="panel-heading">Conditions</div>
-      {conditions.length === 0 ? (
-        <div className="panel-empty">No conditions.</div>
-      ) : (
-        <div className="conditions-list">
-          {conditions.map((c, i) => (
-            <div key={`${c.type}-${i}`} className="condition-row">
-              <div className="condition-header">
-                <span className="condition-type">{c.type}</span>
-                <span className={`condition-status ${statusClass(c.status)}`}>
-                  {c.status}
-                </span>
-                {c.reason && (
-                  <span className="condition-reason">{c.reason}</span>
-                )}
-              </div>
-              {c.message && (
-                <div className="condition-message">{c.message}</div>
+      <div className="conditions-summary">
+        {trueCount} / {conditions.length} conditions healthy
+      </div>
+      <div className="conditions-list">
+        {conditions.map((c, i) => (
+          <div key={`${c.type}-${i}`} className="condition-row">
+            <div className="condition-header">
+              <span className="condition-type">{c.type}</span>
+              <span className={`condition-status ${statusClass(c.status)}`}>
+                {c.status}
+              </span>
+              {c.reason && c.reason !== '' && (
+                <span className="condition-reason">{c.reason}</span>
               )}
+            </div>
+            {c.message && c.message !== '' && (
+              <div className="condition-message">{c.message}</div>
+            )}
+            {c.lastTransitionTime && (
               <div className="condition-time">
                 Last transition: {formatTime(c.lastTransitionTime)}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
