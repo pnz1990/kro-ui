@@ -153,6 +153,9 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | SVG viewBox not fitted to content after layout | #64 | Measure bounding box after Dagre runs; set height accordingly |
 | Resource cards with only small text links as navigation | #65 | Wrap entire card in `<Link>` |
 | Filter UI that only works via URL params (no input fields) | #66 | Provide actual input controls; URL params are a bonus |
+| Hardcoded `rgba()` / hex in component CSS (e.g. `box-shadow`) | #77 review | Define a named token in `tokens.css` (`--shadow-tooltip`, etc.) and reference via `var()` |
+| Portal tooltip without viewport boundary clamping | #77 review | Measure bounding box with `getBoundingClientRect()` in `useEffect`; flip left/top when tooltip overflows right or bottom edge. Apply to ALL portal tooltip components |
+| Duplicating `nodeTypeLabel` / `tokenClass` across component files | #77 review | Define once in `@/lib/dag.ts` (or appropriate `@/lib/` module) and import — never copy-paste graph helpers |
 
 ### Upstream kro node types (5 real types, from `pkg/graph/node.go`)
 

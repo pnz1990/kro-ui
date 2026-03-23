@@ -273,7 +273,17 @@ That spec is the authoritative source — this section is a summary only.
 **Key rules:**
 
 - **Color tokens**: all colors are defined in `web/src/tokens.css` as CSS custom
-  properties. No hardcoded hex values anywhere in component code.
+  properties. No hardcoded hex values or `rgba()` literals anywhere in component
+  code. This applies to `box-shadow`, `border`, `background`, and every other CSS
+  property — if a color value is needed, it must first be defined as a named token
+  in `tokens.css` and referenced via `var(--token-name)`.
+- **Shadow tokens**: `box-shadow` values that contain color (e.g. `rgba(0,0,0,0.4)`)
+  MUST be defined as named tokens in `tokens.css` (e.g. `--shadow-tooltip`,
+  `--shadow-dropdown`) and referenced via `var()`. Never write `rgba()` inline in
+  component CSS.
+- **`color-mix()` in component CSS**: acceptable (wide browser support) but only
+  if the resulting combination is also added as a named token in `tokens.css` first.
+  Inline `color-mix()` that has no corresponding token is a nit, not a blocker.
 - **Primary**: `#5b8ef0` (dark) / `#3b6fd4` (light) — refined from kro.run for
   higher contrast in interactive UI contexts
 - **Semantic colors**: `--color-alive` (emerald), `--color-reconciling` (amber),
@@ -289,6 +299,13 @@ That spec is the authoritative source — this section is a summary only.
   Semantic state colors MUST be paired with shape/icon/text — never color alone.
 - **No CSS frameworks**: Tailwind, Bootstrap, MUI are prohibited. Plain CSS
   using `tokens.css` custom properties only.
+- **Shared rendering helpers**: utility functions used across more than one
+  component (e.g. `nodeTypeLabel`, `tokenClass`, node-type-to-string mappers)
+  MUST be defined once in an appropriate shared module (`@/lib/dag.ts` for
+  graph-related helpers, a dedicated `@/lib/` module otherwise) and imported
+  where needed. Copy-pasting the same function into multiple component files is
+  prohibited — divergence is guaranteed when new node types or token types are
+  added upstream.
 
 ---
 
@@ -379,6 +396,13 @@ must never need to hunt for a small link inside a card to navigate.
 ### Tooltips on complex elements
 - DAG nodes MUST show a tooltip on hover with: node ID, kind, node type, and
   any `includeWhen` CEL expression
+- DAG tooltips MUST be rendered via `createPortal(…, document.body)` to avoid
+  SVG clipping. The portal element MUST clamp its position within the viewport:
+  measure the rendered bounding box with `getBoundingClientRect()` in a
+  `useEffect` and flip left/top when the tooltip would overflow the right or
+  bottom edge. This must be applied consistently to every tooltip component —
+  not just the static DAG tooltip but also the live DAG tooltip and any future
+  portal-based overlays.
 - Truncated text (context names, ARNs, long labels) MUST show the full value
   in a `title` attribute or tooltip
 
@@ -411,4 +435,4 @@ Amendments:
 2. Bump the version number (MINOR for new principles, PATCH for clarifications)
 3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.2.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+**Version**: 1.3.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
