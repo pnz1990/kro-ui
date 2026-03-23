@@ -2,9 +2,9 @@ import './Footer.css'
 
 export default function Footer() {
   return (
-    <footer className="footer">
+    <footer className="footer" role="contentinfo">
       <div className="footer__left">kro-ui</div>
-      <div className="footer__right">
+      <nav className="footer__links" aria-label="External resources">
         <a href="https://kro.run" target="_blank" rel="noopener noreferrer">
           kro.run
         </a>
@@ -22,7 +22,7 @@ export default function Footer() {
         >
           License
         </a>
-      </div>
+      </nav>
     </footer>
   )
 }

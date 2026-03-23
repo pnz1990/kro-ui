@@ -12,7 +12,7 @@
   flex-shrink: 0;
 }
 
-.footer__right {
+.footer__links {
   display: flex;
   align-items: center;
   gap: 16px;
