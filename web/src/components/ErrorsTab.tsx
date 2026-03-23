@@ -8,7 +8,7 @@
 //
 // Spec: .specify/specs/030-error-patterns-tab/
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listInstances } from '@/lib/api'
 import type { K8sObject } from '@/lib/api'
@@ -153,7 +153,7 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
 
   // ── Data fetch ───────────────────────────────────────────────────────────
 
-  function fetchInstances() {
+  const fetchInstances = useCallback(() => {
     setLoading(true)
     setError(null)
     listInstances(rgdName, namespace)
@@ -166,12 +166,11 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
         setInstances(null)
       })
       .finally(() => setLoading(false))
-  }
+  }, [rgdName, namespace])
 
   useEffect(() => {
     fetchInstances()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rgdName, namespace])
+  }, [fetchInstances])
 
   // ── Aggregation ──────────────────────────────────────────────────────────
 
@@ -201,6 +200,8 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
+
+  const totalAffected = groups.reduce((s, g) => s + g.count, 0)
 
   return (
     <div className="errors-tab" data-testid="errors-tab">
@@ -254,8 +255,7 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
           {/* Summary */}
           <div className="errors-tab__summary">
             {groups.length} error {groups.length === 1 ? 'pattern' : 'patterns'} across{' '}
-            {groups.reduce((s, g) => s + g.count, 0)}{' '}
-            {groups.reduce((s, g) => s + g.count, 0) === 1 ? 'instance' : 'instances'}
+            {totalAffected} {totalAffected === 1 ? 'instance' : 'instances'}
           </div>
 
           <div className="errors-tab__groups">
