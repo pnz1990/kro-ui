@@ -58,5 +58,5 @@ The E2E fixture set only exercises `NodeTypeResource` and `NodeTypeInstance`. `N
 
 ### Phase 5 — Verify
 
-- [ ] `cd web && bun run tsc --noEmit`
-- [ ] `go vet ./...`
+- [x] `cd web && bun run tsc --noEmit`
+- [x] `go vet ./...`

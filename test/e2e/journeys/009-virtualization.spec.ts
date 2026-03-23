@@ -133,8 +133,10 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await page.goto(BASE)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
 
-    // With 5 fixture RGDs + chain-parent + chain-child = 7 visible RGDs
-    // All fit in viewport at normal card size (no windowing needed at small counts)
+    // The fixture set installs at least 7 RGDs (test-app, test-collection,
+    // multi-resource, external-ref, cel-functions, chain-parent, chain-child).
+    // All fit in the viewport at normal card size — no windowing at this count.
+    // The bound < 100 guards against accidentally rendering unbounded items.
     const cardCount = await page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(5)
     expect(cardCount).toBeLessThan(100)
