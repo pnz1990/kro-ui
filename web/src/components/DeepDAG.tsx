@@ -23,16 +23,9 @@ import CollectionBadge from './CollectionBadge'
 import ExpandableNode from './ExpandableNode'
 import type { ExpandedNodeData } from './ExpandableNode'
 import DAGTooltip from './DAGTooltip'
+import type { DAGTooltipTarget } from './DAGTooltip'
 import './LiveDAG.css'
 import './DeepDAG.css'
-
-interface TooltipTarget {
-  node: DAGNode
-  anchorX: number
-  anchorY: number
-  nodeWidth: number
-  nodeHeight: number
-}
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -159,7 +152,7 @@ export default function DeepDAG({
   )
 
   // ── Hover tooltip state ────────────────────────────────────────────────────
-  const [hoveredTooltip, setHoveredTooltip] = useState<TooltipTarget | null>(null)
+  const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
   // ── Node → RGD name index ─────────────────────────────────────────────────
