@@ -29,7 +29,14 @@
   white-space: nowrap;
 }
 
-.home__grid {
+/* VirtualGrid container — fills viewport below header */
+.home__virtual-grid {
+  height: calc(100vh - 180px);
+  min-height: 300px;
+}
+
+/* Loading skeleton grid — flat, only shown briefly while fetching */
+.home__skeleton-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;

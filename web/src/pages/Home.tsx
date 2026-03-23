@@ -1,14 +1,22 @@
 // Home — RGD cards grid. Fetches GET /api/v1/rgds on mount.
+// Uses VirtualGrid for windowed rendering at 5,000+ RGDs.
+// Search input is debounced (300ms) to avoid per-keystroke filter churn.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs } from '@/lib/api'
-import { extractRGDKind, extractRGDName } from '@/lib/format'
+import { extractRGDName } from '@/lib/format'
+import { matchesSearch } from '@/lib/catalog'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { useDebounce } from '@/hooks/useDebounce'
 import RGDCard from '@/components/RGDCard'
 import SearchBar from '@/components/SearchBar'
 import SkeletonCard from '@/components/SkeletonCard'
+import VirtualGrid from '@/components/VirtualGrid'
 import './Home.css'
+
+// RGDCard renders at a fixed ~130px height (header + meta + actions, no-wrap text).
+const RGD_CARD_HEIGHT = 130
 
 export default function Home() {
   usePageTitle('')
@@ -16,6 +24,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const debouncedQuery = useDebounce(query, 300)
 
   const fetchRGDs = useCallback(() => {
     setIsLoading(true)
@@ -36,36 +45,52 @@ export default function Home() {
     fetchRGDs()
   }, [fetchRGDs])
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return items
-    const q = query.trim().toLowerCase()
-    return items.filter(
-      (rgd) =>
-        extractRGDName(rgd).toLowerCase().includes(q) ||
-        extractRGDKind(rgd).toLowerCase().includes(q),
+  // Client-side filter — reuses matchesSearch from catalog lib (no reimplementation).
+  // Runs only after the debounce fires, not on every keystroke.
+  const filteredItems = useMemo(
+    () => items.filter((rgd) => matchesSearch(rgd, debouncedQuery)),
+    [items, debouncedQuery],
+  )
+
+  const emptyState =
+    debouncedQuery.trim() !== '' ? (
+      <div className="home__empty">
+        <p>No ResourceGraphDefinitions match &ldquo;{debouncedQuery}&rdquo;.</p>
+        <button className="home__clear-search" onClick={() => setQuery('')}>
+          Clear search
+        </button>
+      </div>
+    ) : (
+      <div className="home__empty">
+        <p>No ResourceGraphDefinitions found in this cluster.</p>
+        <a href="https://kro.run/docs" target="_blank" rel="noopener noreferrer">
+          Learn about kro
+        </a>
+      </div>
     )
-  }, [items, query])
 
   return (
     <div className="home">
       <div className="home__header">
         <h1 className="home__heading">ResourceGraphDefinitions</h1>
-        {!isLoading && error === null && items.length > 0 && (
+        {!isLoading && error === null && (
           <div className="home__toolbar">
             <SearchBar
               value={query}
               onSearch={setQuery}
               placeholder="Search by name or kind…"
             />
-            <span className="home__count">
-              {filtered.length} of {items.length}
-            </span>
+            {items.length > 0 && (
+              <span className="home__count">
+                {filteredItems.length} of {items.length}
+              </span>
+            )}
           </div>
         )}
       </div>
 
       {isLoading && (
-        <div className="home__grid">
+        <div className="home__skeleton-grid" aria-busy="true">
           <SkeletonCard />
           <SkeletonCard />
           <SkeletonCard />
@@ -81,34 +106,14 @@ export default function Home() {
         </div>
       )}
 
-      {!isLoading && error === null && items.length === 0 && (
-        <div className="home__empty">
-          <p>No ResourceGraphDefinitions found in this cluster.</p>
-          <a
-            href="https://kro.run/docs"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn about kro
-          </a>
-        </div>
-      )}
-
-      {!isLoading && error === null && items.length > 0 && filtered.length === 0 && (
-        <div className="home__empty">
-          <p>No ResourceGraphDefinitions match &ldquo;{query}&rdquo;.</p>
-          <button className="home__clear-search" onClick={() => setQuery('')}>
-            Clear search
-          </button>
-        </div>
-      )}
-
-      {!isLoading && error === null && filtered.length > 0 && (
-        <div className="home__grid">
-          {filtered.map((rgd) => (
-            <RGDCard key={extractRGDName(rgd)} rgd={rgd} />
-          ))}
-        </div>
+      {!isLoading && error === null && (
+        <VirtualGrid
+          items={filteredItems}
+          itemHeight={RGD_CARD_HEIGHT}
+          renderItem={(rgd) => <RGDCard key={extractRGDName(rgd)} rgd={rgd} />}
+          emptyState={emptyState}
+          className="home__virtual-grid"
+        />
       )}
     </div>
   )

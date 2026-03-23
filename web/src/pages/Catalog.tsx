@@ -15,10 +15,15 @@ import {
   sortCatalog,
 } from '@/lib/catalog'
 import type { SortOption } from '@/lib/catalog'
+import { useDebounce } from '@/hooks/useDebounce'
 import CatalogCard from '@/components/CatalogCard'
 import SearchBar from '@/components/SearchBar'
 import LabelFilter from '@/components/LabelFilter'
+import VirtualGrid from '@/components/VirtualGrid'
 import './Catalog.css'
+
+// CatalogCard is normalized to 160px height (min-height/max-height in CatalogCard.css).
+const CATALOG_CARD_HEIGHT = 160
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'name', label: 'Name A–Z' },
@@ -38,6 +43,7 @@ export default function Catalog() {
   const [instanceCounts, setInstanceCounts] = useState<Map<string, number | null>>(new Map())
 
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedQuery = useDebounce(searchQuery, 300)
   const [activeLabels, setActiveLabels] = useState<string[]>([])
   const [sortOption, setSortOption] = useState<SortOption>('name')
 
@@ -92,14 +98,16 @@ export default function Catalog() {
     [items, instanceCounts],
   )
 
-  // Apply search + label filter
+  // Apply search + label filter.
+  // searchQuery is debounced: the filter only runs after the user pauses typing.
+  // activeLabels are NOT debounced — label toggles are discrete clicks, not streams.
   const filtered = useMemo(
     () =>
       entries.filter(
         ({ rgd }) =>
-          matchesSearch(rgd, searchQuery) && matchesLabelFilter(rgd, activeLabels),
+          matchesSearch(rgd, debouncedQuery) && matchesLabelFilter(rgd, activeLabels),
       ),
-    [entries, searchQuery, activeLabels],
+    [entries, debouncedQuery, activeLabels],
   )
 
   // Apply sort
@@ -154,7 +162,7 @@ export default function Catalog() {
       </div>
 
       {isLoading && (
-        <div className="catalog__grid catalog__grid--loading" aria-busy="true">
+        <div className="catalog__grid--loading" aria-busy="true">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="catalog__skeleton" aria-hidden="true" />
           ))}
@@ -170,32 +178,11 @@ export default function Catalog() {
         </div>
       )}
 
-      {!isLoading && error === null && sorted.length === 0 && (
-        <div className="catalog__empty" data-testid="catalog-empty">
-          {items.length === 0 ? (
-            <>
-              <p>No ResourceGraphDefinitions found in this cluster.</p>
-              <p className="catalog__empty-hint">
-                Create one with{' '}
-                <code>kubectl apply -f your-rgd.yaml</code>
-              </p>
-            </>
-          ) : (
-            <>
-              <p>No RGDs match your search.</p>
-              {hasFilters && (
-                <button className="catalog__clear-filters-btn" onClick={clearFilters}>
-                  Clear filters
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {!isLoading && error === null && sorted.length > 0 && (
-        <div className="catalog__grid" data-testid="catalog-grid">
-          {sorted.map(({ rgd, instanceCount }) => {
+      {!isLoading && error === null && (
+        <VirtualGrid
+          items={sorted}
+          itemHeight={CATALOG_CARD_HEIGHT}
+          renderItem={({ rgd, instanceCount }) => {
             const name = extractRGDName(rgd)
             return (
               <CatalogCard
@@ -210,8 +197,31 @@ export default function Catalog() {
                 }
               />
             )
-          })}
-        </div>
+          }}
+          emptyState={
+            <div className="catalog__empty" data-testid="catalog-empty">
+              {items.length === 0 ? (
+                <>
+                  <p>No ResourceGraphDefinitions found in this cluster.</p>
+                  <p className="catalog__empty-hint">
+                    Create one with{' '}
+                    <code>kubectl apply -f your-rgd.yaml</code>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>No RGDs match your search.</p>
+                  {hasFilters && (
+                    <button className="catalog__clear-filters-btn" onClick={clearFilters}>
+                      Clear filters
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          }
+          className="catalog__virtual-grid"
+        />
       )}
     </div>
   )

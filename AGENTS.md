@@ -345,3 +345,10 @@ The current branch name tells you which spec to read. For example, branch
 Always read the spec before writing code. Always run `go vet ./...` and
 `tsc --noEmit` before committing.
 
+
+## Active Technologies
+- TypeScript 5.9 + React 19, Go 1.25 (backend unchanged) + React 19, React Router v7, Vite 8 — no new npm packages (024-rgd-list-virtualization)
+- N/A — client-side in-memory list derived from a single API call (024-rgd-list-virtualization)
+
+## Recent Changes
+- 024-rgd-list-virtualization: Added TypeScript 5.9 + React 19, Go 1.25 (backend unchanged) + React 19, React Router v7, Vite 8 — no new npm packages

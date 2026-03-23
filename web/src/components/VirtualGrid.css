@@ -1,0 +1,37 @@
+/* VirtualGrid — scroll container and windowed grid layout */
+
+/* Outer scroll container */
+.virtual-grid {
+  overflow-y: auto;
+  position: relative;
+  /* Height set by caller via className; e.g. .home__virtual-grid */
+}
+
+/* Top / bottom spacer divs that hold the scrollable height */
+.virtual-grid__spacer {
+  flex-shrink: 0;
+}
+
+/* The actual CSS grid that holds only the visible cards */
+.virtual-grid__items {
+  display: grid;
+  grid-template-columns: repeat(var(--vg-cols, 3), 1fr);
+  gap: 16px;
+}
+
+/* Default empty-state wrapper */
+.virtual-grid__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.virtual-grid__empty p {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-text-muted);
+  margin: 0;
+}

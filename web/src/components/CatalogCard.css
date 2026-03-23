@@ -7,6 +7,11 @@
   flex-direction: column;
   gap: 10px;
   transition: border-color var(--transition);
+  /* Fixed height for VirtualGrid row math — matches skeleton height (160px).
+     Cards with many label pills clip their overflow so all rows stay uniform. */
+  min-height: 160px;
+  max-height: 160px;
+  overflow: hidden;
 }
 
 .catalog-card:hover {

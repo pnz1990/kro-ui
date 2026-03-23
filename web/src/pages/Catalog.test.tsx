@@ -212,7 +212,7 @@ describe('Catalog', () => {
     await user.selectOptions(sortSelect, 'instances')
 
     await waitFor(() => {
-      const grid = screen.getByTestId('catalog-grid')
+      const grid = screen.getByTestId('virtual-grid-items')
       const cards = within(grid).getAllByRole('article')
       expect(cards[0]).toHaveAttribute('data-testid', 'catalog-card-beta')
       expect(cards[1]).toHaveAttribute('data-testid', 'catalog-card-gamma')
