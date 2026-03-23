@@ -17,6 +17,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -33,7 +34,9 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/pnz1990/kro-ui/internal/api/handlers"
+	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
+	"github.com/pnz1990/kro-ui/internal/version"
 	"github.com/pnz1990/kro-ui/web"
 )
 
@@ -65,6 +68,18 @@ func NewRouter(factory *k8sclient.ClientFactory, metricsURL string) (chi.Router,
 		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("ok"))
+		})
+
+		// Version — always available regardless of cluster connectivity.
+		r.Get("/version", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			v := types.VersionResponse{
+				Version:   version.Version,
+				Commit:    version.Commit,
+				BuildDate: version.BuildDate,
+			}
+			_ = json.NewEncoder(w).Encode(v)
 		})
 
 		// Only wire handler routes when a factory is available.

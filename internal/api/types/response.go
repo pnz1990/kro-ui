@@ -17,6 +17,13 @@ package types
 
 import k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 
+// VersionResponse is the response payload for GET /api/v1/version.
+type VersionResponse struct {
+	Version   string `json:"version"`
+	Commit    string `json:"commit"`
+	BuildDate string `json:"buildDate"`
+}
+
 // ContextsResponse is the response payload for GET /api/v1/contexts.
 type ContextsResponse struct {
 	Contexts []k8sclient.Context `json:"contexts"`

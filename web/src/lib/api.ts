@@ -169,3 +169,13 @@ export interface ControllerMetrics {
 }
 
 export const getControllerMetrics = () => get<ControllerMetrics>('/kro/metrics')
+
+// ── Version ───────────────────────────────────────────────────────────
+
+export interface VersionResponse {
+  version: string
+  commit?: string
+  buildDate?: string
+}
+
+export const getVersion = () => get<VersionResponse>('/version')

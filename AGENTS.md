@@ -365,6 +365,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Go 1.25 backend / TypeScript 5.x + React 19 + Vite (all already present) + `k8s.io/client-go/dynamic`, `github.com/go-chi/chi/v5`, React 19, React Router v7 — all already in use; no new dependencies (032-rbac-sa-autodetect)
 - TypeScript 5.x + React 19 + React Router v7, Vite (already present — no new deps) (035-global-footer)
 - N/A — purely presentational component, no persistence (035-global-footer)
+- TypeScript 5.x + React 19 (already in use) + React Router v7, Vite — no new npm deps (033-first-time-onboarding)
 
 ## Recent Changes
 - 026-rgd-yaml-generator: Added Go 1.25 (backend, no changes needed) / TypeScript 5.x + React 19 + React 19, React Router v7, Vite (all already present); no new npm deps
