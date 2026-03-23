@@ -1,0 +1,231 @@
+/* ErrorsTab.css — Styles for the Errors tab on the RGD detail page.
+ *
+ * All color values use var(--token) references from tokens.css.
+ * No hardcoded hex, rgb(), or rgba() values.
+ *
+ * Spec: .specify/specs/030-error-patterns-tab/
+ */
+
+/* ── Root container ──────────────────────────────────────────────────────── */
+.errors-tab {
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Loading state ───────────────────────────────────────────────────────── */
+.errors-tab__loading {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 8px 0;
+}
+
+/* ── API error banner ────────────────────────────────────────────────────── */
+.errors-tab__api-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--node-error-border);
+  border-radius: var(--radius);
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+.errors-tab__api-error-msg {
+  flex: 1;
+}
+
+.errors-tab__retry-btn {
+  padding: 4px 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.errors-tab__retry-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ── Empty state (no instances yet) ─────────────────────────────────────── */
+.errors-tab__empty {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 8px 0;
+}
+
+/* ── All-healthy state ───────────────────────────────────────────────────── */
+.errors-tab__all-healthy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-alive);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  padding: 8px 0;
+}
+
+.errors-tab__healthy-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* ── Summary line ────────────────────────────────────────────────────────── */
+.errors-tab__summary {
+  color: var(--color-error);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* ── Error group list ────────────────────────────────────────────────────── */
+.errors-tab__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Individual error group card ─────────────────────────────────────────── */
+.error-group {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+/* ── Group header ────────────────────────────────────────────────────────── */
+.error-group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--node-error-bg);
+  border-bottom: 1px solid var(--node-error-border);
+  flex-wrap: wrap;
+}
+
+.error-group__type {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+.error-group__separator {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.error-group__reason {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.error-group__count {
+  margin-left: auto;
+  padding: 2px 8px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-error);
+  white-space: nowrap;
+}
+
+/* ── Message area ────────────────────────────────────────────────────────── */
+.error-group__message {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-group__message--rewritten {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.error-group__message--raw {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.error-group__toggle {
+  align-self: flex-start;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.error-group__toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ── Instance list ───────────────────────────────────────────────────────── */
+.error-group__instances {
+  list-style: none;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.error-group__instance-item {
+  font-size: 0.8125rem;
+}
+
+.error-group__instance-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.error-group__instance-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* ── Overflow prose ──────────────────────────────────────────────────────── */
+.error-group__overflow {
+  padding: 0 16px 10px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.error-group__show-more-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  transition: color var(--transition-fast);
+}
+
+.error-group__show-more-btn:hover {
+  color: var(--color-primary-hover);
+}

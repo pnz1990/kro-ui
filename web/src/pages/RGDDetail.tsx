@@ -11,6 +11,7 @@ import NodeDetailPanel from "@/components/NodeDetailPanel"
 import InstanceTable from "@/components/InstanceTable"
 import NamespaceFilter from "@/components/NamespaceFilter"
 import ValidationTab from "@/components/ValidationTab"
+import ErrorsTab from "@/components/ErrorsTab"
 import AccessTab from "@/components/AccessTab"
 import DocsTab from "@/components/DocsTab"
 import GenerateTab from "@/components/GenerateTab"
@@ -18,21 +19,21 @@ import OptimizationAdvisor from "@/components/OptimizationAdvisor"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
-type TabId = "graph" | "instances" | "yaml" | "validation" | "access" | "docs" | "generate"
+type TabId = "graph" | "instances" | "yaml" | "validation" | "errors" | "access" | "docs" | "generate"
 
 function isValidTab(t: string | null): t is TabId {
-  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "access" || t === "docs" || t === "generate"
+  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "errors" || t === "access" || t === "docs" || t === "generate"
 }
 
 /**
- * RGDDetail — RGD detail page with six tabs: Graph, Instances, YAML, Validation, Access, Docs.
+ * RGDDetail — RGD detail page with eight tabs: Graph, Instances, YAML, Validation, Errors, Access, Docs, Generate.
  *
  * Active tab is reflected in and restored from `?tab=` URL query parameter.
  * Default tab is "graph".
  *
  * Spec: .specify/specs/003-rgd-detail-dag/, .specify/specs/004-instance-list/,
  *       .specify/specs/017-rgd-validation-linting/, .specify/specs/018-rbac-visualizer/,
- *       .specify/specs/020-schema-doc-generator/
+ *       .specify/specs/020-schema-doc-generator/, .specify/specs/030-error-patterns-tab/
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
@@ -243,6 +244,16 @@ export default function RGDDetail() {
           Validation
         </button>
         <button
+          data-testid="tab-errors"
+          className="rgd-tab-btn"
+          role="tab"
+          aria-selected={activeTab === "errors"}
+          onClick={() => setTab("errors")}
+          type="button"
+        >
+          Errors
+        </button>
+        <button
           data-testid="tab-access"
           className="rgd-tab-btn"
           role="tab"
@@ -378,6 +389,15 @@ export default function RGDDetail() {
         {activeTab === "validation" && (
           <div className="rgd-tab-panel">
             <ValidationTab rgd={rgd} />
+          </div>
+        )}
+
+        {activeTab === "errors" && (
+          <div className="rgd-tab-panel">
+            <ErrorsTab
+              rgdName={String(rgdName)}
+              namespace={namespaceParam || undefined}
+            />
           </div>
         )}
 
