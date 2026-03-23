@@ -107,8 +107,8 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     await page.goto(`${BASE}/rgds/external-ref`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    // When hasExternalRef is true the UI must render the node, not hide it
-    const externalNode = page.locator('.node-type--external')
+    // Node class follows dag-node--{nodeType}; externalRef nodes are dag-node--external
+    const externalNode = page.locator('[class*="dag-node--external"]')
     await expect(externalNode).toBeVisible()
   })
 
@@ -116,8 +116,8 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     await page.goto(`${BASE}/rgds/test-collection`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    // When hasForEach is true the UI must render the collection node
-    const collectionNode = page.locator('.node-type--collection')
+    // Collection nodes are dag-node--collection
+    const collectionNode = page.locator('[class*="dag-node--collection"]')
     await expect(collectionNode).toBeVisible()
   })
 

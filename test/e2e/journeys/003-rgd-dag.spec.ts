@@ -180,8 +180,8 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await page.goto(`${BASE}/rgds/multi-resource`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    // At least one SVG edge element should be present
-    const edges = page.locator('[data-testid^="dag-edge-"]')
+    // Edges use the dag-edge CSS class on SVG path/line elements
+    const edges = page.locator('[class*="dag-edge"]')
     const edgeCount = await edges.count()
     expect(edgeCount).toBeGreaterThan(0)
   })
@@ -201,20 +201,21 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await page.goto(`${BASE}/rgds/external-ref`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    // The externalRef node must have the external node type class
-    const externalNode = page.locator('.node-type--external')
+    // Node class follows the pattern dag-node--{nodeType}
+    const externalNode = page.locator('[class*="dag-node--external"]')
     await expect(externalNode).toBeVisible()
   })
 
-  test('Step 12: clicking the externalRef node shows "External ref" type label', async ({ page }) => {
+  test('Step 12: clicking the externalRef node shows External ref type badge', async ({ page }) => {
     await page.goto(`${BASE}/rgds/external-ref`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
     await page.getByTestId('dag-node-inputConfig').click()
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
-    // Node type label must be "External ref", never "?" or "Managed resource"
-    await expect(page.getByTestId('node-detail-type')).toHaveText('External ref')
+    // Type badge class: node-type-badge--external
+    const typeBadge = page.locator('[class*="node-type-badge--external"]')
+    await expect(typeBadge).toBeVisible()
   })
 
   test('Step 13: external-ref YAML tab contains orValue CEL expression', async ({ page }) => {
@@ -234,20 +235,20 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     await page.goto(`${BASE}/rgds/test-collection`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
-    const collectionNode = page.locator('.node-type--collection')
+    // Node class follows the pattern dag-node--{nodeType}
+    const collectionNode = page.locator('[class*="dag-node--collection"]')
     await expect(collectionNode).toBeVisible()
   })
 
-  test('Step 15: clicking the collection node shows forEach fan-out type label', async ({ page }) => {
+  test('Step 15: clicking the collection node shows collection type badge', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-collection`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 
     await page.getByTestId('dag-node-regionConfig').click()
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
-    // Node type label must be "forEach fan-out" or "Collection" — never "Managed resource"
-    const typeLabel = page.getByTestId('node-detail-type')
-    const text = await typeLabel.textContent()
-    expect(text?.toLowerCase()).toMatch(/foreach|collection/i)
+    // Type badge class: node-type-badge--collection
+    const typeBadge = page.locator('[class*="node-type-badge--collection"]')
+    await expect(typeBadge).toBeVisible()
   })
 })

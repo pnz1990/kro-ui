@@ -108,7 +108,7 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 8: /api/v1/rgds/multi-resource/instances returns multi-resource-instance', async ({ request }) => {
-    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
+    test.skip(process.env.KRO_MULTI_READY !== 'true', 'multi-resource RGD did not become Ready in setup')
     const res = await request.get(`${BASE}/api/v1/rgds/multi-resource/instances`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { items: Array<{ metadata: { name: string } }> }
@@ -117,7 +117,8 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 9: instance detail endpoint returns spec and metadata fields', async ({ request }) => {
-    const res = await request.get(`${BASE}/api/v1/rgds/test-app/instances/kro-ui-e2e/test-instance`)
+    // Route: /api/v1/instances/{namespace}/{name}  (RGD name is not in path)
+    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/test-instance`)
     expect(res.status()).toBe(200)
     const body = await res.json() as Record<string, unknown>
     expect(body.spec).toBeDefined()
@@ -125,15 +126,17 @@ test.describe('Journey 001 — Server health and API connectivity', () => {
   })
 
   test('Step 10: instance events endpoint returns valid JSON with items key', async ({ request }) => {
-    const res = await request.get(`${BASE}/api/v1/rgds/test-app/instances/kro-ui-e2e/test-instance/events`)
+    // Route: /api/v1/instances/{namespace}/{name}/events
+    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/test-instance/events`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { items: unknown[] }
     expect(Array.isArray(body.items)).toBe(true)
   })
 
   test('Step 11: external-ref instance detail endpoint responds without error', async ({ request }) => {
-    if (process.env.KRO_EXTERNAL_REF_READY !== 'true') test.skip()
-    const res = await request.get(`${BASE}/api/v1/rgds/external-ref/instances/kro-ui-e2e/external-ref-instance`)
+    test.skip(process.env.KRO_EXTERNAL_REF_READY !== 'true', 'external-ref RGD did not become Ready in setup')
+    // Route: /api/v1/instances/{namespace}/{name}
+    const res = await request.get(`${BASE}/api/v1/instances/kro-ui-e2e/external-ref-instance`)
     expect(res.status()).toBe(200)
     const body = await res.json() as { metadata: { name: string } }
     expect(body.metadata.name).toBe('external-ref-instance')

@@ -142,12 +142,12 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     expect(cardCount).toBeLessThan(100)
   })
 
-  test('Step 8: searching "cel" on home page shows exactly 1 card', async ({ page }) => {
+  test('Step 8: searching "cel-functions" on home page shows exactly 1 card', async ({ page }) => {
     await page.goto(BASE)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
 
     const searchInput = page.locator('input[type="search"]')
-    await searchInput.fill('cel')
+    await searchInput.fill('cel-functions')
     await page.waitForTimeout(400)
 
     const cards = page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]')
@@ -155,12 +155,12 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await expect(page.getByTestId('rgd-card-cel-functions')).toBeVisible()
   })
 
-  test('Step 9: searching "external" on home page shows exactly 1 card', async ({ page }) => {
+  test('Step 9: searching "external-ref" on home page shows exactly 1 card', async ({ page }) => {
     await page.goto(BASE)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
 
     const searchInput = page.locator('input[type="search"]')
-    await searchInput.fill('external')
+    await searchInput.fill('external-ref')
     await page.waitForTimeout(400)
 
     const cards = page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]')

@@ -143,7 +143,7 @@ test.describe('004: Instance List', () => {
   // ── Steps 6-10: new fixture instances ────────────────────────────────────
 
   test('Step 6: multi-resource-instance appears in the instance table', async ({ page }) => {
-    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
+    test.skip(process.env.KRO_MULTI_READY !== 'true', 'multi-resource RGD did not become Ready in setup')
     await page.goto(`${BASE}/rgds/multi-resource?tab=instances`)
     await expect(page.getByTestId('instance-table')).toBeVisible()
 
@@ -153,7 +153,7 @@ test.describe('004: Instance List', () => {
   })
 
   test('Step 7: multi-resource-instance readiness badge is not in error state', async ({ page }) => {
-    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
+    test.skip(process.env.KRO_MULTI_READY !== 'true', 'multi-resource RGD did not become Ready in setup')
     await page.goto(`${BASE}/rgds/multi-resource?tab=instances&namespace=kro-ui-e2e`)
     await expect(page.getByTestId('instance-table')).toBeVisible()
 
@@ -167,7 +167,7 @@ test.describe('004: Instance List', () => {
   })
 
   test('Step 8: external-ref-instance appears in the instance table', async ({ page }) => {
-    if (process.env.KRO_EXTERNAL_REF_READY !== 'true') test.skip()
+    test.skip(process.env.KRO_EXTERNAL_REF_READY !== 'true', 'external-ref RGD did not become Ready in setup')
     await page.goto(`${BASE}/rgds/external-ref?tab=instances`)
     await expect(page.getByTestId('instance-table')).toBeVisible()
 
@@ -177,7 +177,7 @@ test.describe('004: Instance List', () => {
   })
 
   test('Step 9: namespace filter on multi-resource instances — kro-ui-e2e shows instance, default does not', async ({ page }) => {
-    if (process.env.KRO_MULTI_READY !== 'true') test.skip()
+    test.skip(process.env.KRO_MULTI_READY !== 'true', 'multi-resource RGD did not become Ready in setup')
     await page.goto(`${BASE}/rgds/multi-resource?tab=instances`)
     await expect(page.getByTestId('instance-table')).toBeVisible()
 
