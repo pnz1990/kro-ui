@@ -1,7 +1,7 @@
 /* ConditionsPanel.css — Conditions list panel.
  *
  * All colors from tokens.css custom properties.
- * Spec: .specify/specs/005-instance-detail-live/
+ * Spec: .specify/specs/028-instance-health-rollup/
  */
 
 .conditions-panel {
@@ -9,6 +9,14 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   overflow: hidden;
+}
+
+/* Summary header: "N / M conditions healthy" */
+.conditions-summary {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .conditions-list {

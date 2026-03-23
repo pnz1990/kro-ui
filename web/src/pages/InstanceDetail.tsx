@@ -29,6 +29,7 @@ import type { NodeLiveState } from '@/lib/instanceNodeState'
 import { buildDAGGraph } from '@/lib/dag'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
+import { extractInstanceHealth } from '@/lib/format'
 import { usePolling } from '@/hooks/usePolling'
 import DeepDAG from '@/components/DeepDAG'
 import LiveNodeDetailPanel from '@/components/LiveNodeDetailPanel'
@@ -37,6 +38,7 @@ import SpecPanel from '@/components/SpecPanel'
 import ConditionsPanel from '@/components/ConditionsPanel'
 import EventsPanel from '@/components/EventsPanel'
 import TelemetryPanel from '@/components/TelemetryPanel'
+import HealthPill from '@/components/HealthPill'
 import './InstanceDetail.css'
 
 // ── Poll result type ───────────────────────────────────────────────────────
@@ -298,6 +300,7 @@ export default function InstanceDetail() {
       {/* Header */}
       <div className="instance-detail-header">
         <h1 className="instance-detail-name">{displayName}</h1>
+        <HealthPill health={fastData ? extractInstanceHealth(fastData.instance) : null} />
         <div className="instance-detail-meta">
           {namespace && <span className="instance-detail-ns">{namespace}</span>}
           <RefreshIndicator lastRefresh={lastRefresh} error={instanceGone ? null : (pollError && !pollLoading ? pollError : null)} />

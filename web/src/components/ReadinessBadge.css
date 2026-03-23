@@ -1,5 +1,6 @@
 /* ReadinessBadge — colored pill badge for instance readiness state.
- * Only CSS custom properties from tokens.css are used; no hardcoded hex. */
+ * Only CSS custom properties from tokens.css are used; no hardcoded hex.
+ * Extended from 3 states to 5 by spec 028-instance-health-rollup. */
 
 .readiness-badge {
   display: inline-flex;
@@ -33,4 +34,18 @@
   color: var(--color-status-unknown);
   background: var(--node-notfound-bg);
   border: 1px solid var(--color-not-found);
+}
+
+/* Progressing=True — amber */
+.readiness-badge--reconciling {
+  color: var(--color-status-reconciling);
+  background: var(--node-reconciling-bg);
+  border: 1px solid var(--color-reconciling);
+}
+
+/* All conditions Unknown — violet */
+.readiness-badge--pending {
+  color: var(--color-status-pending);
+  background: var(--node-pending-bg);
+  border: 1px solid var(--color-pending);
 }
