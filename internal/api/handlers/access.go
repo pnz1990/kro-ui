@@ -16,6 +16,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
@@ -29,7 +30,11 @@ import (
 // GetRGDAccess computes the permission matrix for kro's service account
 // vs all resources managed by the named RGD.
 //
-// GET /api/v1/rgds/{name}/access
+// GET /api/v1/rgds/{name}/access[?saNamespace=<ns>&saName=<name>]
+//
+// Optional query parameters allow the caller to override the auto-detected
+// service account. When both saNamespace and saName are non-empty, auto-detection
+// is skipped and the provided values are used directly.
 func (h *Handler) GetRGDAccess(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
 	name := chi.URLParam(r, "name")
@@ -47,8 +52,28 @@ func (h *Handler) GetRGDAccess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve kro's service account — either from caller-supplied query params
+	// (manual override) or by auto-detecting from the cluster.
+	saNamespace := strings.TrimSpace(r.URL.Query().Get("saNamespace"))
+	saName := strings.TrimSpace(r.URL.Query().Get("saName"))
+
+	var saNS, saNameVal string
+	var saFound bool
+
+	if saNamespace != "" && saName != "" {
+		// Manual override: trust what the caller provided.
+		saNS, saNameVal, saFound = saNamespace, saName, true
+		log.Debug().
+			Str("saNamespace", saNamespace).
+			Str("saName", saName).
+			Msg("using manual SA override for access check")
+	} else {
+		// Auto-detect: inspect the cluster's kro Deployment.
+		saNS, saNameVal, saFound = k8sclient.ResolveKroServiceAccount(r.Context(), h.factory)
+	}
+
 	// Compute the full permission matrix.
-	result, err := k8sclient.ComputeAccessResult(r.Context(), h.factory, rgd.Object)
+	result, err := k8sclient.ComputeAccessResult(r.Context(), h.factory, rgd.Object, saNS, saNameVal, saFound)
 	if err != nil {
 		log.Error().Err(err).Str("rgd", name).Msg("failed to compute access result")
 		respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())

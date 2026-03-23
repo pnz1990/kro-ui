@@ -119,8 +119,16 @@ export interface AccessResponse {
   permissions: GVRPermission[]
 }
 
-export const getRGDAccess = (rgdName: string) =>
-  get<AccessResponse>(`/rgds/${encodeURIComponent(rgdName)}/access`)
+export const getRGDAccess = (
+  rgdName: string,
+  opts?: { saNamespace?: string; saName?: string },
+) => {
+  const params = new URLSearchParams()
+  if (opts?.saNamespace) params.set('saNamespace', opts.saNamespace)
+  if (opts?.saName) params.set('saName', opts.saName)
+  const query = params.toString() ? `?${params.toString()}` : ''
+  return get<AccessResponse>(`/rgds/${encodeURIComponent(rgdName)}/access${query}`)
+}
 
 // ── Fleet ─────────────────────────────────────────────────────────────
 
