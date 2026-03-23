@@ -136,6 +136,10 @@
   color: var(--color-error);
 }
 
+.instance-overlay-bar__badge--pending {
+  color: var(--color-pending);
+}
+
 .instance-overlay-bar__badge--unknown {
   color: var(--color-text-faint);
 }

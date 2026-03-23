@@ -17,6 +17,8 @@
 
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
+import { extractInstanceHealth } from '@/lib/format'
+import type { InstanceHealthState } from '@/lib/format'
 import './InstanceOverlayBar.css'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -54,33 +56,11 @@ export interface InstanceOverlayBarProps {
 
 // ── Readiness badge ────────────────────────────────────────────────────────
 
-type ReadinessState = 'ready' | 'reconciling' | 'error' | 'unknown'
-
-interface K8sCondition {
-  type: string
-  status: string
-}
-
-function deriveReadiness(instance: K8sObject | null): ReadinessState {
-  if (!instance) return 'unknown'
-  const status = instance.status as Record<string, unknown> | undefined
-  if (!status) return 'unknown'
-  const conditions = status.conditions
-  if (!Array.isArray(conditions)) return 'unknown'
-  const conds = conditions as K8sCondition[]
-  // Progressing=True takes precedence
-  if (conds.some((c) => c.type === 'Progressing' && c.status === 'True')) return 'reconciling'
-  // Ready=False → error
-  if (conds.some((c) => c.type === 'Ready' && c.status === 'False')) return 'error'
-  // Ready=True → ready
-  if (conds.some((c) => c.type === 'Ready' && c.status === 'True')) return 'ready'
-  return 'unknown'
-}
-
-const READINESS_LABEL: Record<ReadinessState, string> = {
+const READINESS_LABEL: Record<InstanceHealthState, string> = {
   ready: 'Ready',
   reconciling: 'Reconciling',
   error: 'Error',
+  pending: 'Pending',
   unknown: 'Unknown',
 }
 
@@ -198,10 +178,15 @@ export default function InstanceOverlayBar({
         </div>
       )
     } else if (overlayInstance !== null) {
-      const readiness = deriveReadiness(overlayInstance)
+      const { state: readiness } = extractInstanceHealth(overlayInstance)
       const displayRef = summaryNamespace
         ? `${summaryNamespace}/${summaryName}`
         : summaryName
+      // Router convention (main.tsx): /rgds/:rgdName/instances/:namespace/:instanceName
+      // Cluster-scoped CRs have no namespace; the backend accepts any string for the
+      // {namespace} segment and passes it to the dynamic client, which ignores namespace
+      // for cluster-scoped resources. "_" is used as a non-empty placeholder so the
+      // two-segment path shape is preserved and React Router can always match the route.
       const instancePath = summaryNamespace
         ? `/rgds/${rgdName}/instances/${summaryNamespace}/${summaryName}`
         : `/rgds/${rgdName}/instances/_/${summaryName}`

@@ -166,6 +166,8 @@ export default function RGDDetail() {
   const [overlayNodeStateMap, setOverlayNodeStateMap] = useState<NodeStateMap | null>(null)
   const [overlayLoading, setOverlayLoading] = useState(false)
   const [overlayError, setOverlayError] = useState<string | null>(null)
+  // Retry counter — incrementing re-triggers the overlay fetch effect
+  const [overlayRetry, setOverlayRetry] = useState(0)
 
   // Fetch picker items once when the Graph tab first becomes active.
   // Mirrors the lazy fetch pattern used for the Instances tab.
@@ -194,7 +196,7 @@ export default function RGDDetail() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, name])
 
-  // Fetch overlay data when the selected instance key changes.
+  // Fetch overlay data when the selected instance key changes (or on retry).
   useEffect(() => {
     if (!overlayKey || !name) {
       // Key cleared → reset overlay state immediately
@@ -228,7 +230,7 @@ export default function RGDDetail() {
       })
       .finally(() => setOverlayLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayKey, name])
+  }, [overlayKey, name, overlayRetry])
 
   function handleOverlaySelect(key: string | null) {
     setOverlayKey(key)
@@ -267,11 +269,7 @@ export default function RGDDetail() {
   function handleOverlayRetry() {
     if (!overlayKey) return
     setOverlayError(null)
-    // Re-trigger the overlay effect by toggling and re-setting the key
-    const current = overlayKey
-    setOverlayKey(null)
-    // Use setTimeout to allow React to flush the null state before re-setting
-    setTimeout(() => setOverlayKey(current), 0)
+    setOverlayRetry((c) => c + 1)
   }
 
   // ── Memoised DAG ─────────────────────────────────────────────────────────
