@@ -22,7 +22,7 @@ import './Home.css'
 const RGD_CARD_HEIGHT = 130
 
 export default function Home() {
-  usePageTitle('')
+  usePageTitle('RGDs')
   const [items, setItems] = useState<K8sObject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -136,7 +136,12 @@ export default function Home() {
     <div className="home">
       <MetricsStrip />
       <div className="home__header">
-        <h1 className="home__heading">ResourceGraphDefinitions</h1>
+        <div className="home__heading-group">
+          <h1 className="home__heading">RGDs</h1>
+          <p className="home__tagline">
+            ResourceGraphDefinitions — kro observability dashboard
+          </p>
+        </div>
         {!isLoading && error === null && (
           <div className="home__toolbar">
             <SearchBar

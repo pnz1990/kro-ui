@@ -76,6 +76,29 @@
   /* inherits from meta */
 }
 
+/* Inline shimmer for loading instance count (issue #168).
+   Uses the same gradient + keyframe as SkeletonCard. */
+@keyframes catalog-count-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.catalog-card__count-skeleton {
+  display: inline-block;
+  width: 48px;
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-border-subtle) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: catalog-count-shimmer 1.5s ease-in-out infinite;
+  vertical-align: middle;
+}
+
 .catalog-card__age {
   margin-left: auto;
   /* inherits from meta */

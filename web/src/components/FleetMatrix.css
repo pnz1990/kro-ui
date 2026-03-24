@@ -93,3 +93,10 @@
 
 .fleet-matrix__dot--present  { background: var(--color-alive); }
 .fleet-matrix__dot--degraded { background: var(--color-reconciling); }
+
+/* Issue #170: muted en-dash for RGD kinds not deployed in a cluster. */
+.fleet-matrix__absent-dash {
+  color: var(--color-border);
+  font-size: 14px;
+  line-height: 1;
+}

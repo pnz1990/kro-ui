@@ -43,11 +43,12 @@ export default function CatalogCard({
   const encodedName = encodeURIComponent(name)
 
   // §XII: never render '?' for absent data.
-  // undefined = loading (show …), null = failed (show —), number = count.
+  // undefined = loading (show shimmer), null = failed (show —), number = count.
+  // Issue #168: replace '…' literal with a shimmer element so users see progress.
   const instanceDisplay =
-    instanceCount === undefined ? '…' :
     instanceCount === null ? '—' :
-    String(instanceCount)
+    typeof instanceCount === 'number' ? String(instanceCount) :
+    null  // undefined → render shimmer element below
   // Use 1 for plural check when undefined or null (avoid "1 instances")
   const instanceCountForPlural = typeof instanceCount === 'number' ? instanceCount : 2
 
@@ -77,8 +78,12 @@ export default function CatalogCard({
             {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
           </span>
           <span className="catalog-card__stat" data-testid="catalog-card-instances">
-            {instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}
-          </span>
+              {instanceCount === undefined ? (
+                <span className="catalog-card__count-skeleton" aria-label="Loading instance count" />
+              ) : (
+                <>{instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}</>
+              )}
+            </span>
           <span className="catalog-card__age">{formatAge(createdAt)}</span>
         </div>
       </Link>

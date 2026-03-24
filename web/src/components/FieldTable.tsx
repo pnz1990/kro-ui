@@ -102,8 +102,12 @@ export default function FieldTable({ fields, variant }: FieldTableProps) {
             // default=0, default=false, default="" are correctly detected as present.
             // See: https://github.com/pnz1990/kro-ui/issues/61
             const hasDefault = field.parsedType != null && 'default' in field.parsedType
-            // A field is considered "required" when there's no default and no | required modifier
-            const required = !hasDefault && !field.parsedType?.required
+            // A field is optional when it has a default value.
+            // A field is required when there is no default OR when the '| required' modifier
+            // is explicitly present. Note: previously this read `&& !field.parsedType?.required`
+            // which made `| required` fields appear optional (inverted logic).
+            // Fix: https://github.com/pnz1990/kro-ui/issues/164
+            const required = field.parsedType?.required === true || !hasDefault
 
             const pt = field.parsedType
             const constraints: string[] = []

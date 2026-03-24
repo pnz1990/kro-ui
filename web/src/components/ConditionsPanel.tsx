@@ -4,6 +4,10 @@
 // Updates on every poll cycle via props.
 //
 // spec 028: "Not reported" empty state, summary header, absent-field omission.
+//
+// Issue #159: ReconciliationSuspended=False is healthy (Kubernetes inversion convention).
+// For suspension-type conditions, False = not suspended = healthy. This is tracked in
+// HEALTHY_WHEN_FALSE and used in isHealthyCondition() / statusClass().
 
 import type { K8sObject } from '@/lib/api'
 import './ConditionsPanel.css'
@@ -43,12 +47,31 @@ function formatTime(ts: string | undefined): string {
   }
 }
 
-function statusClass(status: string): string {
-  switch (status) {
-    case 'True':    return 'condition-status--true'
-    case 'False':   return 'condition-status--false'
-    default:        return 'condition-status--unknown'
-  }
+/**
+ * Condition types where False is the healthy value (Kubernetes inversion convention).
+ *
+ * For these conditions, False means "not suspended / not in error state" → healthy.
+ * True would mean the condition is active, which IS the problem state.
+ *
+ * Issue #159: ReconciliationSuspended=False means reconciliation is active → healthy.
+ */
+const HEALTHY_WHEN_FALSE = new Set(['ReconciliationSuspended'])
+
+/**
+ * Returns true when the condition should be counted as healthy.
+ *
+ * For normal conditions: healthy when status='True'.
+ * For inverted conditions (HEALTHY_WHEN_FALSE): healthy when status='False'.
+ */
+export function isHealthyCondition(type: string, status: string): boolean {
+  if (HEALTHY_WHEN_FALSE.has(type)) return status === 'False'
+  return status === 'True'
+}
+
+function statusClass(type: string, status: string): string {
+  if (isHealthyCondition(type, status)) return 'condition-status--true'
+  if (status === 'Unknown') return 'condition-status--unknown'
+  return 'condition-status--false'
 }
 
 /**
@@ -76,7 +99,7 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
     )
   }
 
-  const trueCount = conditions.filter((c) => c.status === 'True').length
+  const trueCount = conditions.filter((c) => isHealthyCondition(c.type, c.status)).length
 
   return (
     <div data-testid="conditions-panel" className="conditions-panel">
@@ -89,7 +112,7 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
           <div key={`${c.type}-${i}`} className="condition-row">
             <div className="condition-header">
               <span className="condition-type">{c.type}</span>
-              <span className={`condition-status ${statusClass(c.status)}`}>
+              <span className={`condition-status ${statusClass(c.type, c.status)}`}>
                 {c.status}
               </span>
               {c.reason && c.reason !== '' && (

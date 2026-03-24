@@ -267,6 +267,35 @@ describe('parseSimpleSchema', () => {
     })
   })
 
+  // ── #164: colon-space syntax for default values ──────────────────────────
+  // kro occasionally emits `default: X` (colon-space) instead of `default=X`.
+  // These must produce the same result as the equals-sign variant.
+
+  it("parses 'integer | default: 0' — colon-space syntax", () => {
+    const pt = parseSimpleSchema('integer | default: 0')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('0')
+  })
+
+  it("parses 'string | default: warrior' — colon-space syntax", () => {
+    expect(parseSimpleSchema('string | default: warrior')).toEqual({
+      type: 'string',
+      default: 'warrior',
+    })
+  })
+
+  it("parses 'boolean | default: false' — colon-space syntax", () => {
+    const pt = parseSimpleSchema('boolean | default: false')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('false')
+  })
+
+  it("parses 'integer | default: 0' — zero default is present (falsy check)", () => {
+    const pt = parseSimpleSchema('integer | default: 0')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('0')
+  })
+
   it('does not strip internal double-quotes — only surrounding pair — issue #114', () => {
     // default=say "hello" — not surrounded by quotes, so do NOT strip
     expect(parseSimpleSchema('string | default=say "hello"')).toEqual({
