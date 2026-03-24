@@ -61,8 +61,9 @@ test.describe('Journey 015 — RGD Catalog', () => {
     const card = page.getByTestId('catalog-card-test-app')
     await expect(card).toBeVisible({ timeout: 10000 })
 
-    // Wait for the count cell to resolve — starts as "…", becomes "N instances" or "—" (failed)
-    await expect(card.getByTestId('catalog-card-instances')).not.toHaveText('…', { timeout: 15000 })
+    // Wait for the count cell to resolve — starts as "…", becomes "N instances" or "—"
+    // toContainText matches a substring, unlike toHaveText which is exact.
+    await expect(card.getByTestId('catalog-card-instances')).not.toContainText('…', { timeout: 15000 })
     const instancesText = await card.getByTestId('catalog-card-instances').textContent()
     // Valid outcomes: "N instance", "N instances", "— instances" (failed fetch)
     expect(instancesText).toMatch(/(\d+|—) instance/)
