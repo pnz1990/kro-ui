@@ -368,5 +368,6 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 
 ## Recent Changes
+- v0.3.2: Docker image now includes aws CLI v2 for EKS exec credential plugin; mount `~/.aws` alongside `~/.kube/config`
 - v0.3.1: DAG legend component, required-field a11y improvements, overlay crash fix, expand accordion fix, demo environment hardening (idempotent kind cluster, safe kubeconfig fallback, non-fatal CEL/collection waits)
 - v0.3.0: instance telemetry panel, cross-instance error aggregation (Errors tab), instance health roll-up (5-state badges), DAG instance overlay, global footer, first-time onboarding + version API, deletion debugger, RBAC SA auto-detection, RGD detail header enrichment, 14 UX/bug fixes (catalog, fleet, events, schema parser, ARN disambiguation)
