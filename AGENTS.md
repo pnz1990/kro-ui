@@ -68,7 +68,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `031-deletion-debugger` | — | Instance deletion debugger — Terminating banner, finalizers, events | Merged (PR #142) |
 | `032-rbac-sa-autodetect` | #115 | RBAC SA auto-detection — replace hardcoded kro/kro with runtime discovery | Merged (PR #141) |
 | `036-rgd-detail-header` | #130 | RGD detail page header — Kind badge and status dot on all tabs | Merged (PR #140) |
-| `034-generate-form-polish` | #121 | Generate tab form polish — required field indicator, aria-required | In progress |
+| `034-generate-form-polish` | #121 | Generate tab form polish — required field indicator, aria-required | Merged (PR #144) |
 
 ### Worktrunk (required workflow)
 
@@ -368,4 +368,5 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 
 ## Recent Changes
+- v0.3.1: DAG legend component, required-field a11y improvements, overlay crash fix, expand accordion fix, demo environment hardening (idempotent kind cluster, safe kubeconfig fallback, non-fatal CEL/collection waits)
 - v0.3.0: instance telemetry panel, cross-instance error aggregation (Errors tab), instance health roll-up (5-state badges), DAG instance overlay, global footer, first-time onboarding + version API, deletion debugger, RBAC SA auto-detection, RGD detail header enrichment, 14 UX/bug fixes (catalog, fleet, events, schema parser, ARN disambiguation)
