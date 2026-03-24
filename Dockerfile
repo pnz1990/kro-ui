@@ -30,24 +30,17 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -X github.com/pnz1990/kro-ui/internal/version.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
   -o /kro-ui ./cmd/kro-ui
 
-# ── Stage 3: extract aws CLI v2 binary ──────────────────────────────
-# aws-cli v2 ships a self-contained installer with bundled Python runtime.
-# We copy only the installed tree so the final image stays small and
-# does not require an Alpine/glibc base.
-FROM public.ecr.aws/aws-cli/aws-cli:2 AS aws-cli
-
-# ── Stage 4: minimal runtime image ──────────────────────────────────
-# distroless/base (glibc) instead of distroless/static because the aws CLI
-# v2 bundled runtime links against glibc.
+# ── Stage 3: minimal runtime image ──────────────────────────────────
+# alpine so we can install aws-cli v2 for EKS exec credential plugin support.
 # Mount ~/.aws (read-only) alongside ~/.kube/config for EKS clusters:
 #   docker run ... \
 #     -v ~/.kube/config:/home/nonroot/.kube/config:ro \
 #     -v ~/.aws:/home/nonroot/.aws:ro \
 #     ghcr.io/pnz1990/kro-ui:latest
-FROM gcr.io/distroless/base:nonroot
-COPY --from=aws-cli /usr/local/aws-cli /usr/local/aws-cli
-# Symlink so client-go can exec "aws" from PATH
+FROM alpine:3.21
+RUN apk add --no-cache aws-cli ca-certificates && \
+    adduser -D -u 65532 nonroot
 COPY --from=go-builder /kro-ui /kro-ui
-ENV PATH="/usr/local/aws-cli/v2/current/bin:${PATH}"
 EXPOSE 40107
+USER nonroot
 ENTRYPOINT ["/kro-ui", "serve"]
