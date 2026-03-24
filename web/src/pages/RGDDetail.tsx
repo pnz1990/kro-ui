@@ -342,7 +342,7 @@ export default function RGDDetail() {
           <h1 className="rgd-detail-name">{String(rgdName)}</h1>
         </div>
         {rgdKind && (
-          <span className="rgd-detail-kind">{rgdKind}</span>
+          <span className="rgd-detail-kind" data-testid="rgd-detail-kind">{rgdKind}</span>
         )}
       </div>
 
