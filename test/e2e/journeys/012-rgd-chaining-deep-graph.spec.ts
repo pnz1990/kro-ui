@@ -45,7 +45,9 @@ test.describe('Journey 012 — RGD Chaining Deep Graph', () => {
 
   test('Step 2: instance detail page renders with Deep DAG', async ({ page }) => {
     await page.goto(`${BASE}/rgds/chain-parent/instances/kro-ui-e2e/chain-parent-instance`)
-    const pageVisible = await page.getByTestId('instance-detail-page').isVisible({ timeout: 10000 }).catch(() => false)
+    // chain-parent-instance CR may not be applied in all CI runs (optional fixture).
+    // Use a short 5s timeout — if the page doesn't load in 5s, skip gracefully.
+    const pageVisible = await page.getByTestId('instance-detail-page').isVisible({ timeout: 5000 }).catch(() => false)
     if (!pageVisible) return
 
     // DAG SVG should be rendered
@@ -54,7 +56,7 @@ test.describe('Journey 012 — RGD Chaining Deep Graph', () => {
 
   test('Step 3: chain-child node is expandable in deep DAG', async ({ page }) => {
     await page.goto(`${BASE}/rgds/chain-parent/instances/kro-ui-e2e/chain-parent-instance`)
-    const dagVisible = await page.getByTestId('dag-svg').isVisible({ timeout: 15000 }).catch(() => false)
+    const dagVisible = await page.getByTestId('dag-svg').isVisible({ timeout: 5000 }).catch(() => false)
     if (!dagVisible) return
 
     // ExpandableNode.tsx uses className="expandable-node__toggle" (no data-testid).

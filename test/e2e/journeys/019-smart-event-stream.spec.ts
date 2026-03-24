@@ -78,9 +78,12 @@ test.describe('Journey 019 — Smart Event Stream', () => {
 
     const rgdInput = page.getByTestId('rgd-filter-input')
     await rgdInput.fill('test-app')
+    // Events.tsx commits the filter to URL params on Enter (onKeyDown → commitRgd).
+    // hasFilters checks the URL param, not the input value — Enter is required.
+    await rgdInput.press('Enter')
     await expect(rgdInput).toHaveValue('test-app')
 
-    // clear-filters-btn is only rendered when hasFilters=true (after input)
+    // After Enter, hasFilters=true and the clear button renders
     const clearBtn = page.getByTestId('clear-filters-btn')
     await expect(clearBtn).toBeVisible({ timeout: 3000 })
     await clearBtn.click()

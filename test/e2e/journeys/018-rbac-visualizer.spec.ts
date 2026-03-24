@@ -83,17 +83,23 @@ test.describe('Journey 018 — RBAC Visualizer', () => {
     await expect(page.locator('[data-testid="access-tab-row"]').first()).toBeVisible({ timeout: 10000 })
   })
 
-  test('Step 5: SA override form is present', async ({ page }) => {
+  test('Step 5: access tab shows permission banner after SA detection', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-app?tab=access`)
 
     const errorEl = page.getByTestId('access-tab-error')
     if (await errorEl.isVisible({ timeout: 5000 }).catch(() => false)) return
 
-    // Wait for SA detection to complete before checking the override form
+    // Wait for SA detection to complete — banner appears after the async fetch
     await expect(page.getByTestId('access-tab-sa-banner')).toBeVisible({ timeout: 15000 })
 
-    await expect(page.getByTestId('access-tab-sa-override-form')).toBeVisible({ timeout: 5000 })
-    await expect(page.getByTestId('access-tab-sa-ns-input')).toBeVisible()
-    await expect(page.getByTestId('access-tab-sa-name-input')).toBeVisible()
+    // After SA detection, either success or warning banner is shown.
+    // The SA-not-found override form (access-tab-sa-override-form) only renders
+    // when the SA cannot be found — on a properly installed kro cluster this is absent.
+    const successBanner = page.getByTestId('access-tab-success-banner')
+    const warningBanner = page.getByTestId('access-tab-warning-banner')
+    const hasSuccess = await successBanner.isVisible().catch(() => false)
+    const hasWarning = await warningBanner.isVisible().catch(() => false)
+    // At least one of the banners should be present
+    expect(hasSuccess || hasWarning).toBe(true)
   })
 })
