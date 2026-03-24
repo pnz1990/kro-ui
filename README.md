@@ -62,9 +62,13 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
+  -v ~/.aws:/home/nonroot/.aws:ro \
   ghcr.io/pnz1990/kro-ui:latest
 # open http://localhost:40107
 ```
+
+> The `-v ~/.aws` mount is only required for EKS clusters that use the `aws` exec
+> credential plugin. Omit it for non-EKS clusters.
 
 ### In-cluster (Helm)
 
