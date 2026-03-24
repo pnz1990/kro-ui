@@ -94,7 +94,13 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
           </span>
           <span className="rgd-card__age">{formatAge(createdAt)}</span>
         </div>
-        <HealthChip summary={chipSummary} loading={chipLoading} />
+        {/* Health chip wrapper — fixed height so cards are uniform regardless
+            of chip state (loading / null / "no instances" / "N ready").
+            Without this, cards where the fetch returns null render shorter
+            than their neighbours in the same grid row. */}
+        <div className="rgd-card__chip-row">
+          <HealthChip summary={chipSummary} loading={chipLoading} />
+        </div>
       </Link>
       <div className="rgd-card__actions">
         <Link
