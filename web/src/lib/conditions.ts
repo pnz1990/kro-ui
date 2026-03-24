@@ -12,9 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// conditions.ts — shared helpers for interpreting kro condition messages.
+// conditions.ts — shared helpers for interpreting kro condition messages and polarity.
 //
 // Spec: .specify/specs/030-error-patterns-tab/contracts/ui-contracts.md
+//       Issue #159: condition polarity inversion (ReconciliationSuspended=False → healthy)
+
+/**
+ * Condition types where False is the healthy value (Kubernetes inversion convention).
+ *
+ * For these conditions, False means "not suspended / not in error state" → healthy.
+ * True would mean the undesirable state is active.
+ *
+ * Issue #159: ReconciliationSuspended=False means reconciliation is active → healthy.
+ * True means reconciliation is paused → worth flagging.
+ */
+export const HEALTHY_WHEN_FALSE = new Set<string>(['ReconciliationSuspended'])
+
+/**
+ * Returns true when the condition should be counted as healthy.
+ *
+ * For normal conditions: healthy when status='True'.
+ * For inverted conditions (HEALTHY_WHEN_FALSE): healthy when status='False'.
+ *
+ * Issue #159: must be used at every aggregation site that computes a health
+ * count or filters for error conditions (ConditionsPanel, ErrorsTab).
+ */
+export function isHealthyCondition(type: string, status: string): boolean {
+  if (HEALTHY_WHEN_FALSE.has(type)) return status === 'False'
+  return status === 'True'
+}
 
 /**
  * rewriteConditionMessage — translates known kro internal error strings into

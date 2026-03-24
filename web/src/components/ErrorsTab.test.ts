@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { groupErrorPatterns } from './ErrorsTab'
-import { isHealthyCondition } from './ConditionsPanel'
+import { isHealthyCondition } from '@/lib/conditions'
 import type { K8sObject } from '@/lib/api'
 
 // ── Helpers ────────────────────────────────────────────────────────────────

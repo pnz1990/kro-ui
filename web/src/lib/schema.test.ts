@@ -290,10 +290,16 @@ describe('parseSimpleSchema', () => {
     expect(pt.default).toBe('false')
   })
 
-  it("parses 'integer | default: 0' — zero default is present (falsy check)", () => {
+  it("parses 'integer | default: 0' — zero default is present despite falsy value (colon-space)", () => {
     const pt = parseSimpleSchema('integer | default: 0')
     expect('default' in pt).toBe(true)
     expect(pt.default).toBe('0')
+  })
+
+  it("parses 'integer | default: -1' — negative value colon-space syntax", () => {
+    const pt = parseSimpleSchema('integer | default: -1')
+    expect('default' in pt).toBe(true)
+    expect(pt.default).toBe('-1')
   })
 
   it('does not strip internal double-quotes — only surrounding pair — issue #114', () => {

@@ -15,8 +15,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listInstances } from '@/lib/api'
 import type { K8sObject } from '@/lib/api'
-import { rewriteConditionMessage } from '@/lib/conditions'
-import { isHealthyCondition } from '@/components/ConditionsPanel'
+import { rewriteConditionMessage, isHealthyCondition } from '@/lib/conditions'
 import './ErrorsTab.css'
 
 // ── Internal types ────────────────────────────────────────────────────────

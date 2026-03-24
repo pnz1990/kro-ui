@@ -6,10 +6,10 @@
 // spec 028: "Not reported" empty state, summary header, absent-field omission.
 //
 // Issue #159: ReconciliationSuspended=False is healthy (Kubernetes inversion convention).
-// For suspension-type conditions, False = not suspended = healthy. This is tracked in
-// HEALTHY_WHEN_FALSE and used in isHealthyCondition() / statusClass().
+// isHealthyCondition() lives in @/lib/conditions and is reused here and in ErrorsTab.
 
 import type { K8sObject } from '@/lib/api'
+import { isHealthyCondition } from '@/lib/conditions'
 import './ConditionsPanel.css'
 
 interface ConditionsPanelProps {
@@ -45,27 +45,6 @@ function formatTime(ts: string | undefined): string {
   } catch {
     return ts
   }
-}
-
-/**
- * Condition types where False is the healthy value (Kubernetes inversion convention).
- *
- * For these conditions, False means "not suspended / not in error state" → healthy.
- * True would mean the condition is active, which IS the problem state.
- *
- * Issue #159: ReconciliationSuspended=False means reconciliation is active → healthy.
- */
-const HEALTHY_WHEN_FALSE = new Set(['ReconciliationSuspended'])
-
-/**
- * Returns true when the condition should be counted as healthy.
- *
- * For normal conditions: healthy when status='True'.
- * For inverted conditions (HEALTHY_WHEN_FALSE): healthy when status='False'.
- */
-export function isHealthyCondition(type: string, status: string): boolean {
-  if (HEALTHY_WHEN_FALSE.has(type)) return status === 'False'
-  return status === 'True'
 }
 
 function statusClass(type: string, status: string): string {

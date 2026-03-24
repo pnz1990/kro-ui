@@ -78,12 +78,12 @@ export default function CatalogCard({
             {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
           </span>
           <span className="catalog-card__stat" data-testid="catalog-card-instances">
-              {instanceCount === undefined ? (
-                <span className="catalog-card__count-skeleton" aria-label="Loading instance count" />
-              ) : (
-                <>{instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}</>
-              )}
-            </span>
+            {instanceCount === undefined ? (
+              <span className="catalog-card__count-skeleton" aria-label="Loading instance count" />
+            ) : (
+              <>{instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}</>
+            )}
+          </span>
           <span className="catalog-card__age">{formatAge(createdAt)}</span>
         </div>
       </Link>
