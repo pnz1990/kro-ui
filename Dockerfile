@@ -34,7 +34,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
 # aws-cli v2 ships a self-contained installer with bundled Python runtime.
 # We copy only the installed tree so the final image stays small and
 # does not require an Alpine/glibc base.
-FROM amazon/aws-cli:2 AS aws-cli
+FROM public.ecr.aws/aws-cli/aws-cli:2 AS aws-cli
 
 # ── Stage 4: minimal runtime image ──────────────────────────────────
 # distroless/base (glibc) instead of distroless/static because the aws CLI
