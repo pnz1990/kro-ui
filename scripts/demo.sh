@@ -16,8 +16,8 @@
 # demo.sh — spin up a local kro-ui demo environment.
 #
 # Usage:
-#   make demo                          # create kind cluster + install kro + load fixtures
-#   DEMO_SKIP_KIND_CREATE=true make demo  # reuse existing demo kind cluster (skips cluster creation)
+#   make demo          # idempotent — creates the kind cluster if needed, reuses it if it exists
+#   SKIP_KIND_DELETE=true make demo  # keep the cluster after the demo server exits
 #
 # The demo ALWAYS uses .demo-kubeconfig.yaml in the repo root — it never
 # touches ~/.kube/config or any production cluster.
@@ -94,19 +94,14 @@ detect_kro_version() {
 KRO_VERSION="${KRO_CHART_VERSION:-$(detect_kro_version)}"
 
 # ── 1. Create kind cluster ────────────────────────────────────────────────────
-if [[ -z "${DEMO_SKIP_KIND_CREATE:-}" ]]; then
+if kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME}"; then
+  info "Kind cluster '${CLUSTER_NAME}' already exists — reusing"
+  # Ensure the kubeconfig is up to date (no-op if already written)
+  kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "${KUBECONFIG_PATH}" 2>/dev/null || true
+else
   info "Creating kind cluster '${CLUSTER_NAME}'…"
   kind create cluster --name "${CLUSTER_NAME}" --kubeconfig "${KUBECONFIG_PATH}" --wait 120s
   ok "Kind cluster ready"
-else
-  if [[ ! -f "${KUBECONFIG_PATH}" ]]; then
-    warn "DEMO_SKIP_KIND_CREATE is set but ${KUBECONFIG_PATH} does not exist."
-    warn "The demo cluster has not been created yet. Run without DEMO_SKIP_KIND_CREATE first:"
-    warn "  PATH=\"\$PATH:/Users/rrroizma/Applications\" make demo"
-    exit 1
-  fi
-  info "DEMO_SKIP_KIND_CREATE set — reusing existing demo cluster"
-  export KUBECONFIG="${KUBECONFIG_PATH}"
 fi
 
 KC=(kubectl --kubeconfig "${KUBECONFIG_PATH}")
