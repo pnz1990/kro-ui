@@ -47,7 +47,7 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
     const ac = new AbortController()
     listInstances(name, undefined, { signal: ac.signal })
       .then((list) => {
-        setChipSummary(aggregateHealth(list.items))
+        setChipSummary(aggregateHealth(list.items ?? []))
       })
       .catch(() => {
         // Silently swallow — chip simply absent on any error (constitution §XII)

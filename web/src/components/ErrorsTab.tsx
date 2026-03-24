@@ -158,7 +158,7 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
     setError(null)
     listInstances(rgdName, namespace)
       .then((data) => {
-        setInstances(data.items)
+        setInstances(data.items ?? [])
         setError(null)
       })
       .catch((err: Error) => {

@@ -131,8 +131,14 @@ func ResolveInstanceGVR(ctx context.Context, clients K8sClients, rgdName string)
 	return schema.GroupVersionResource{Group: group, Version: version, Resource: plural}, nil
 }
 
-// ListChildResources finds all resources in the given namespace that carry the
+// ListChildResources finds all resources across all namespaces that carry the
 // kro.run/instance-name label matching the instance name.
+//
+// Issue #146: kro creates managed resources in per-instance namespaces (e.g.
+// instance "carrlos" may place its children in a namespace also named "carrlos").
+// Scoping the search to the instance's own namespace returns nothing in that case.
+// We therefore search cluster-wide (empty namespace = all namespaces) and rely
+// on the label selector to narrow results correctly.
 //
 // Uses cached discovery to enumerate all resource types (cache TTL ≥30s),
 // then fans out label-selector List calls concurrently with a 2s per-resource
@@ -141,7 +147,7 @@ func ResolveInstanceGVR(ctx context.Context, clients K8sClients, rgdName string)
 //
 // Constitution §XI: no sequential API loops; discovery must be cached;
 // fan-out via goroutines with per-resource deadline.
-func ListChildResources(ctx context.Context, clients K8sClients, namespace, instanceName string) ([]map[string]any, error) {
+func ListChildResources(ctx context.Context, clients K8sClients, instanceName string) ([]map[string]any, error) {
 	log := zerolog.Ctx(ctx)
 	labelSelector := fmt.Sprintf("kro.run/instance-name=%s", instanceName)
 
@@ -171,9 +177,9 @@ func ListChildResources(ctx context.Context, clients K8sClients, namespace, inst
 	}
 
 	// Fan out concurrently — one goroutine per GVR, each with a 2s deadline.
-	// Constitution §XI: fan-out list operations MUST use concurrency with a
-	// per-resource timeout of 2 seconds. sync.WaitGroup + sync.Mutex from the
-	// standard library is sufficient and correct here; no external errgroup dep needed.
+	// Search cluster-wide (empty namespace) so children in per-instance namespaces
+	// are included. Constitution §XI: fan-out list operations MUST use concurrency
+	// with a per-resource timeout of 2 seconds.
 	var (
 		mu      sync.Mutex
 		results []map[string]any
@@ -191,7 +197,9 @@ func ListChildResources(ctx context.Context, clients K8sClients, namespace, inst
 			rctx, cancel := context.WithTimeout(ctx, perResourceTimeout)
 			defer cancel()
 
-			raw, err := dyn.Resource(gvr).Namespace(namespace).List(
+			// Empty namespace = cluster-wide list. kro creates child resources in
+			// per-instance namespaces, so we must search all namespaces.
+			raw, err := dyn.Resource(gvr).Namespace("").List(
 				rctx, metav1.ListOptions{LabelSelector: labelSelector},
 			)
 			if err != nil || raw == nil {

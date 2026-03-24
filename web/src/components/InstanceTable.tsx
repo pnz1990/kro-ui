@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth, formatAge, extractCreationTimestamp } from '@/lib/format'
@@ -77,17 +77,6 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
 
   // FR-005: Terminating-only filter
   const [showTerminatingOnly, setShowTerminatingOnly] = useState(false)
-
-  // FR-005: Update document title when filter is active
-  useEffect(() => {
-    if (showTerminatingOnly) {
-      document.title = `${rgdName} — Instances (Terminating) — kro-ui`
-    } else {
-      document.title = `${rgdName} — kro-ui`
-    }
-    // Restore to rgdName-only on unmount
-    return () => { document.title = `${rgdName} — kro-ui` }
-  }, [showTerminatingOnly, rgdName])
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {

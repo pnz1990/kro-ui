@@ -58,21 +58,21 @@ export default function Catalog() {
     setInstanceCounts(new Map())
     listRGDs()
       .then((res) => {
-        setItems(res.items)
+        setItems(res.items ?? [])
         // Mark all RGDs as loading (undefined) before firing requests
         const loadingMap = new Map<string, number | null | undefined>()
-        for (const rgd of res.items) {
+        for (const rgd of res.items ?? []) {
           const name = extractRGDName(rgd)
           if (name) loadingMap.set(name, undefined)
         }
         setInstanceCounts(loadingMap)
         // Fire parallel instance-count requests — failures are per-RGD
-        for (const rgd of res.items) {
+        for (const rgd of res.items ?? []) {
           const name = extractRGDName(rgd)
           if (!name) continue
           listInstances(name)
             .then((list) => {
-              setInstanceCounts((prev) => new Map(prev).set(name, list.items.length))
+              setInstanceCounts((prev) => new Map(prev).set(name, (list.items ?? []).length))
             })
             .catch(() => {
               // Mark as null (failed), never block the page

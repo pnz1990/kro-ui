@@ -5,6 +5,9 @@ import Home from './Home'
 
 vi.mock('@/lib/api', () => ({
   listRGDs: vi.fn(),
+  // listInstances is called fire-and-forget for terminating counts (FR-007).
+  // Return empty items so tests don't depend on count badge rendering.
+  listInstances: vi.fn(() => Promise.resolve({ items: [], metadata: {} })),
   getControllerMetrics: vi.fn(() => Promise.resolve({
     watchCount: null,
     gvrCount: null,
@@ -70,9 +73,9 @@ describe('Home', () => {
         screen.getByText(/No ResourceGraphDefinitions found/),
       ).toBeInTheDocument()
     })
-    expect(screen.getByText('Learn about kro')).toHaveAttribute(
+    expect(screen.getByText('Get started with kro')).toHaveAttribute(
       'href',
-      'https://kro.run/docs',
+      'https://kro.run/docs/getting-started',
     )
   })
 

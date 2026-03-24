@@ -563,6 +563,23 @@ export function detectCollapseGroups(spec: unknown): CollapseGroup[] {
 // ── Shared DAG rendering helpers ──────────────────────────────────────────
 
 /**
+ * fittedWidth — returns the actual content width from node bounding boxes.
+ *
+ * Analogous to fittedHeight: measures the rightmost edge of any node
+ * (node.x + node.width) and adds a small padding to ensure the SVG
+ * viewBox is never narrower than the content. Fixes issue #149 where
+ * the layout algorithm's totalWidth could be incorrect when nodes are
+ * offset due to centering in narrow layers.
+ *
+ * Falls back to graph.width if the graph has no nodes.
+ */
+export function fittedWidth(graph: DAGGraph): number {
+  if (graph.nodes.length === 0) return graph.width
+  const maxRight = Math.max(...graph.nodes.map((n) => n.x + n.width))
+  return maxRight + 32 // 32px right-padding (matches PADDING constant)
+}
+
+/**
  * Returns the badge character for a DAG node, or null if none applies.
  * The conditional modifier (?) overrides the node-type badge (∀, ⬡).
  * Defined here once; imported by DAGGraph, StaticChainDAG, LiveDAG, DeepDAG.

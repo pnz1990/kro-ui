@@ -47,16 +47,16 @@ export default function Home() {
     listRGDs()
       .then((res) => {
         if (ac.signal.aborted) return
-        setItems(res.items)
+        setItems(res.items ?? [])
         // FR-007: fire-and-forget background fetch of terminating counts.
         // Each RGD gets one listInstances call. Errors are silently ignored —
         // absent count = no badge (graceful degradation).
-        const rgdNames = res.items.map(extractRGDName).filter(Boolean)
+        const rgdNames = (res.items ?? []).map(extractRGDName).filter(Boolean)
         Promise.allSettled(
           rgdNames.map((name) =>
             listInstances(name, undefined, { signal: ac.signal }).then((list) => ({
               name,
-              count: list.items.filter(isTerminating).length,
+              count: (list.items ?? []).filter(isTerminating).length,
             }))
           )
         ).then((results) => {

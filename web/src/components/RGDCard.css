@@ -6,6 +6,11 @@
   transition: border-color var(--transition);
   display: flex;
   flex-direction: column;
+  /* Issue #151: ensure all cards in a row have uniform minimum height
+     regardless of whether optional rows (error badges, health chips) appear.
+     Cards that have more content will expand and CSS grid stretch equalises
+     them within each row. */
+  min-height: 120px;
 }
 
 .rgd-card:hover {
