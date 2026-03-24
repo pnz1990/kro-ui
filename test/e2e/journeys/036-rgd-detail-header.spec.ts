@@ -37,10 +37,9 @@ test.describe('Journey 036 — RGD Detail Header', () => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
-    // The kind badge must be visible on the detail page header
-    const kindBadge = page.locator('[data-testid="rgd-kind-badge"], .rgd-kind-badge, [class*="kind-badge"]')
-    await expect(kindBadge).toBeVisible({ timeout: 10000 })
-    await expect(kindBadge).toContainText('WebApp')
+    // The kind badge: <span className="rgd-detail-kind" data-testid="rgd-detail-kind">
+    await expect(page.getByTestId('rgd-detail-kind')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-detail-kind')).toContainText('WebApp')
   })
 
   test('Step 2: status dot is visible on graph tab', async ({ page }) => {
@@ -57,27 +56,24 @@ test.describe('Journey 036 — RGD Detail Header', () => {
     await page.goto(`${BASE}/rgds/test-app?tab=instances`)
     await expect(page.getByTestId('tab-instances')).toHaveAttribute('aria-selected', 'true')
 
-    const kindBadge = page.locator('[data-testid="rgd-kind-badge"], .rgd-kind-badge, [class*="kind-badge"]')
-    await expect(kindBadge).toBeVisible({ timeout: 10000 })
-    await expect(kindBadge).toContainText('WebApp')
+    await expect(page.getByTestId('rgd-detail-kind')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-detail-kind')).toContainText('WebApp')
   })
 
   test('Step 4: kind badge persists on YAML tab', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-app?tab=yaml`)
     await expect(page.getByTestId('tab-yaml')).toHaveAttribute('aria-selected', 'true')
 
-    const kindBadge = page.locator('[data-testid="rgd-kind-badge"], .rgd-kind-badge, [class*="kind-badge"]')
-    await expect(kindBadge).toBeVisible({ timeout: 10000 })
-    await expect(kindBadge).toContainText('WebApp')
+    await expect(page.getByTestId('rgd-detail-kind')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-detail-kind')).toContainText('WebApp')
   })
 
   test('Step 5: kind badge does not show "?" for a valid RGD', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
-    const kindBadge = page.locator('[data-testid="rgd-kind-badge"], .rgd-kind-badge, [class*="kind-badge"]')
-    await expect(kindBadge).toBeVisible({ timeout: 10000 })
-    const text = await kindBadge.textContent()
+    await expect(page.getByTestId('rgd-detail-kind')).toBeVisible({ timeout: 10000 })
+    const text = await page.getByTestId('rgd-detail-kind').textContent()
     expect(text?.trim()).not.toBe('?')
     expect(text?.trim()).not.toBe('')
   })

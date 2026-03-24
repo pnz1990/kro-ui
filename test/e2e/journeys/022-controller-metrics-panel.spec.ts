@@ -41,10 +41,9 @@ test.describe('Journey 022 — Controller Metrics Panel', () => {
     await page.goto(BASE)
     await expect(page.getByTestId('telemetry-panel')).toBeVisible({ timeout: 10000 })
 
-    // At least one telemetry cell should be present
-    const cells = page.locator('[data-testid="telemetry-cell"]')
-    const count = await cells.count()
-    expect(count).toBeGreaterThan(0)
+    // TelemetryPanel uses named testids for each cell (telemetry-cell-age, etc.)
+    await expect(page.getByTestId('telemetry-cell-age')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('telemetry-cell-children')).toBeVisible()
   })
 
   test('Step 3: metrics cells show a value or dash (graceful degradation)', async ({ page }) => {
@@ -54,13 +53,14 @@ test.describe('Journey 022 — Controller Metrics Panel', () => {
     // Wait for any async fetch to resolve
     await page.waitForTimeout(3000)
 
-    const cells = page.locator('[data-testid="telemetry-cell"]')
-    const count = await cells.count()
-    for (let i = 0; i < count; i++) {
-      const text = await cells.nth(i).textContent()
-      // Must not render "undefined", "null", or "[object Object]"
-      expect(text).not.toContain('undefined')
-      expect(text).not.toContain('[object Object]')
+    // Check each named cell for correct content (no "undefined" / "[object Object]")
+    for (const testId of ['telemetry-cell-age', 'telemetry-cell-children', 'telemetry-cell-time-in-state', 'telemetry-cell-warnings']) {
+      const el = page.getByTestId(testId)
+      if (await el.isVisible().catch(() => false)) {
+        const text = await el.textContent()
+        expect(text).not.toContain('undefined')
+        expect(text).not.toContain('[object Object]')
+      }
     }
   })
 

@@ -80,17 +80,31 @@ test.describe('Journey 019 — Smart Event Stream', () => {
     await rgdInput.fill('test-app')
     await expect(rgdInput).toHaveValue('test-app')
 
-    // Clear button may not be visible until there is input
+    // clear-filters-btn is only rendered when hasFilters=true (after input)
     const clearBtn = page.getByTestId('clear-filters-btn')
-    await expect(clearBtn).toBeVisible()
+    await expect(clearBtn).toBeVisible({ timeout: 3000 })
     await clearBtn.click()
     await expect(rgdInput).toHaveValue('')
   })
 
-  test('Step 6: anomaly banners container is present', async ({ page }) => {
+  test('Step 6: anomaly banners are conditional — page does not crash without them', async ({ page }) => {
     await page.goto(`${BASE}/events`)
     await expect(page.getByTestId('events-page')).toBeVisible({ timeout: 10000 })
-    // Anomaly banners container is always rendered (may be empty)
-    await expect(page.getByTestId('anomaly-banners')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('events-loading')).not.toBeVisible({ timeout: 15000 })
+
+    // anomaly-banners is only rendered when anomalies.length > 0 (Events.tsx:266).
+    // On a fresh kind cluster there are typically no anomalies — the absence is correct.
+    const anomalyContainer = page.getByTestId('anomaly-banners')
+    const hasAnomalies = await anomalyContainer.isVisible().catch(() => false)
+
+    if (hasAnomalies) {
+      // If anomalies DO exist, each banner must have content
+      const banners = page.getByTestId('anomaly-banner')
+      const count = await banners.count()
+      expect(count).toBeGreaterThan(0)
+    }
+    // If no anomalies — verify the page still loaded correctly (no crash)
+    const pageOk = await page.getByTestId('events-page').isVisible()
+    expect(pageOk).toBe(true)
   })
 })

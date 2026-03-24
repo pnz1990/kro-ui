@@ -36,17 +36,18 @@ test.describe('Journey 029 — DAG Instance Overlay', () => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
-    // InstanceOverlayBar is rendered when instances exist
-    await expect(page.locator('.instance-overlay-bar, [class*="overlay-bar"]')).toBeVisible({ timeout: 10000 })
+    // InstanceOverlayBar root div has className="instance-overlay-bar" (no data-testid)
+    await expect(page.locator('.instance-overlay-bar')).toBeVisible({ timeout: 10000 })
   })
 
   test('Step 2: overlay picker shows test-instance in the dropdown', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
-    const overlaySelect = page.locator('.instance-overlay-bar select, [class*="overlay-bar"] select')
-    const isVisible = await overlaySelect.isVisible({ timeout: 5000 }).catch(() => false)
-    if (!isVisible) return // Overlay bar may use different UI — skip
+    // The select has id="instance-overlay-select" and class="instance-overlay-bar__select"
+    const overlaySelect = page.locator('#instance-overlay-select')
+    const isVisible = await overlaySelect.isVisible({ timeout: 8000 }).catch(() => false)
+    if (!isVisible) return // instances may not have loaded yet — skip
 
     const options = await overlaySelect.locator('option').allTextContents()
     const hasInstance = options.some((o) => o.includes('test-instance'))
@@ -57,14 +58,16 @@ test.describe('Journey 029 — DAG Instance Overlay', () => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
-    const overlaySelect = page.locator('.instance-overlay-bar select, [class*="overlay-bar"] select')
-    if (!await overlaySelect.isVisible({ timeout: 5000 }).catch(() => false)) return
+    const overlaySelect = page.locator('#instance-overlay-select')
+    if (!await overlaySelect.isVisible({ timeout: 8000 }).catch(() => false)) return
 
-    // Select test-instance
+    // Select test-instance — value is "kro-ui-e2e/test-instance"
     await overlaySelect.selectOption({ label: 'kro-ui-e2e/test-instance' })
-    await page.waitForTimeout(2000) // allow overlay fetch
+    await page.waitForTimeout(3000) // allow overlay fetch to complete
 
-    // After selection, DAG nodes should have live-state modifier classes
+    // After selection, DAG nodes should have live-state modifier classes.
+    // liveStateClass() in dag.ts emits: dag-node-live--alive, dag-node-live--reconciling,
+    // dag-node-live--error, dag-node-live--notfound (from dag.ts:623-628)
     const liveNodes = page.locator('[class*="dag-node-live--"]')
     const count = await liveNodes.count()
     expect(count).toBeGreaterThan(0)
@@ -74,17 +77,17 @@ test.describe('Journey 029 — DAG Instance Overlay', () => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
-    const overlaySelect = page.locator('.instance-overlay-bar select, [class*="overlay-bar"] select')
-    if (!await overlaySelect.isVisible({ timeout: 5000 }).catch(() => false)) return
+    const overlaySelect = page.locator('#instance-overlay-select')
+    if (!await overlaySelect.isVisible({ timeout: 8000 }).catch(() => false)) return
 
     await overlaySelect.selectOption({ label: 'kro-ui-e2e/test-instance' })
-    await page.waitForTimeout(2000)
+    await page.waitForTimeout(3000)
 
-    // Clear by selecting the empty/placeholder option
+    // Clear by selecting the empty/placeholder option (value="")
     await overlaySelect.selectOption('')
     await page.waitForTimeout(500)
 
-    // Live-state nodes should be gone (or count drops to 0)
+    // All live-state overlay classes must be removed
     const liveNodes = page.locator('[class*="dag-node-live--alive"], [class*="dag-node-live--reconciling"]')
     const count = await liveNodes.count()
     expect(count).toBe(0)

@@ -70,7 +70,9 @@ test.describe('Journey 033 — First-Time Onboarding', () => {
 
   test('Step 5: 404 page renders for unknown routes', async ({ page }) => {
     await page.goto(`${BASE}/this-route-does-not-exist-9999`)
-    // The NotFound component must render (constitution §XIII: 404 catch-all required)
-    await expect(page.locator('.not-found, [class*="not-found"]')).toBeVisible({ timeout: 5000 })
+    // NotFound.tsx renders: <div className="not-found" data-testid="not-found-page">
+    //                         <h1 className="not-found__heading">Page not found</h1>
+    await expect(page.getByTestId('not-found-page')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.not-found__heading')).toHaveText('Page not found')
   })
 })

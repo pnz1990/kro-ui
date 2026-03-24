@@ -77,7 +77,9 @@ test.describe('Journey 032 — RBAC SA Auto-Detection', () => {
     const errorEl = page.getByTestId('access-tab-error')
     if (await errorEl.isVisible({ timeout: 5000 }).catch(() => false)) return
 
-    await expect(page.getByTestId('access-tab-sa-override-form')).toBeVisible({ timeout: 10000 })
+    // Wait for SA detection to complete — override form only renders after SA banner appears
+    await expect(page.getByTestId('access-tab-sa-banner')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('access-tab-sa-override-form')).toBeVisible({ timeout: 5000 })
 
     // Fill in override values and submit
     await page.getByTestId('access-tab-sa-ns-input').fill('kro-system')

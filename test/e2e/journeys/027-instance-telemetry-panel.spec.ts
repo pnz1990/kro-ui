@@ -43,9 +43,10 @@ test.describe('Journey 027 — Instance Telemetry Panel', () => {
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('telemetry-panel')).toBeVisible({ timeout: 10000 })
 
-    const cells = page.locator('[data-testid="telemetry-cell"]')
-    const count = await cells.count()
-    expect(count).toBeGreaterThan(0)
+    // TelemetryPanel uses named testids: telemetry-cell-age, telemetry-cell-children,
+    // telemetry-cell-time-in-state, telemetry-cell-warnings
+    await expect(page.getByTestId('telemetry-cell-age')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByTestId('telemetry-cell-children')).toBeVisible()
   })
 
   test('Step 3: telemetry cells show resolved values (no "undefined")', async ({ page }) => {
@@ -60,19 +61,10 @@ test.describe('Journey 027 — Instance Telemetry Panel', () => {
 
   test('Step 4: age cell shows a non-empty value', async ({ page }) => {
     await page.goto(INSTANCE_URL)
-    await expect(page.getByTestId('telemetry-panel')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('telemetry-cell-age')).toBeVisible({ timeout: 10000 })
 
-    // Look for the age telemetry cell specifically
-    const ageCells = page.locator('[data-testid="telemetry-cell"]:has-text("age"), [data-testid="telemetry-cell"]:has-text("Age")')
-    const hasAge = await ageCells.count().then((c) => c > 0)
-    if (hasAge) {
-      const ageText = await ageCells.first().textContent()
-      expect(ageText?.trim()).toBeTruthy()
-    }
-    // If no labelled age cell, just verify the panel has some numeric/time content
-    else {
-      const panelText = await page.getByTestId('telemetry-panel').textContent()
-      expect(panelText?.trim().length).toBeGreaterThan(0)
-    }
+    const ageText = await page.getByTestId('telemetry-cell-age').textContent()
+    expect(ageText?.trim()).toBeTruthy()
+    expect(ageText?.trim()).not.toBe('')
   })
 })

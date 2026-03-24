@@ -89,7 +89,10 @@ test.describe('Journey 018 — RBAC Visualizer', () => {
     const errorEl = page.getByTestId('access-tab-error')
     if (await errorEl.isVisible({ timeout: 5000 }).catch(() => false)) return
 
-    await expect(page.getByTestId('access-tab-sa-override-form')).toBeVisible({ timeout: 10000 })
+    // Wait for SA detection to complete before checking the override form
+    await expect(page.getByTestId('access-tab-sa-banner')).toBeVisible({ timeout: 15000 })
+
+    await expect(page.getByTestId('access-tab-sa-override-form')).toBeVisible({ timeout: 5000 })
     await expect(page.getByTestId('access-tab-sa-ns-input')).toBeVisible()
     await expect(page.getByTestId('access-tab-sa-name-input')).toBeVisible()
   })

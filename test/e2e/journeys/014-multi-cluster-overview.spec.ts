@@ -52,18 +52,22 @@ test.describe('Journey 014 — Fleet Overview', () => {
   test('Step 3: fleet matrix table renders with at least one cluster column', async ({ page }) => {
     await page.goto(`${BASE}/fleet`)
 
-    // Wait for matrix to appear (may be inside fleet grid)
+    // Wait for data to resolve first
+    await expect(page.locator('.fleet__grid, .fleet-matrix, .fleet__error, .fleet__empty')).toBeVisible({ timeout: 15000 })
+
+    // Matrix is only rendered when there are ≥2 contexts (fleet spec).
+    // On a single-context CI kind cluster it may show empty state — both are valid.
     const matrixRegion = page.locator('[aria-label="RGD presence matrix"]')
     const matrixVisible = await matrixRegion.isVisible().catch(() => false)
     if (!matrixVisible) {
-      // Fleet might show empty state if only one context — skip assertion
-      const emptyEl = page.locator('.fleet__empty, .fleet-matrix--empty')
-      const isEmpty = await emptyEl.isVisible().catch(() => false)
-      if (isEmpty) return // acceptable empty state
+      // Single context or no RGDs across contexts — fleet shows empty/single-cluster view
+      const emptyEl = page.locator('.fleet__empty, .fleet-matrix--empty, .fleet__grid')
+      await expect(emptyEl.first()).toBeVisible()
+      return
     }
 
-    // If matrix is visible, table must have at least one column header
-    const headers = matrixRegion.locator('th')
+    // Matrix is visible — must have header cells (th with scope="col")
+    const headers = matrixRegion.locator('th[scope="col"]')
     const count = await headers.count()
     expect(count).toBeGreaterThan(0)
   })
