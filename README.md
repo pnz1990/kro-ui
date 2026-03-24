@@ -62,13 +62,43 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  -v ~/.aws:/home/nonroot/.aws:ro \
   ghcr.io/pnz1990/kro-ui:latest
 # open http://localhost:40107
 ```
 
-> The `-v ~/.aws` mount is only required for EKS clusters that use the `aws` exec
-> credential plugin. Omit it for non-EKS clusters.
+**EKS clusters** use the `aws` exec credential plugin. Mount your AWS config and
+set the profile:
+
+```bash
+docker run -p 40107:40107 \
+  -v ~/.kube/config:/home/nonroot/.kube/config:ro \
+  -v ~/.aws:/home/nonroot/.aws:ro \
+  -e AWS_PROFILE=<your-aws-profile> \
+  ghcr.io/pnz1990/kro-ui:latest
+# open http://localhost:40107
+```
+
+**Controller metrics panel** requires the kro metrics endpoint to be reachable.
+Port-forward it from the cluster, then pass the URL:
+
+```bash
+# Terminal 1 — expose kro metrics
+kubectl port-forward -n kro-system deployment/kro 8080:8080
+
+# Terminal 2 — run kro-ui pointing at the forwarded metrics
+# Note: use host.docker.internal, not localhost (localhost = the container)
+docker run -p 40107:40107 \
+  -v ~/.kube/config:/home/nonroot/.kube/config:ro \
+  -v ~/.aws:/home/nonroot/.aws:ro \
+  -e AWS_PROFILE=<your-aws-profile> \
+  ghcr.io/pnz1990/kro-ui:latest \
+  serve --metrics-url http://host.docker.internal:8080/metrics
+# open http://localhost:40107
+```
+
+> `host.docker.internal` is Docker Desktop's hostname for the host machine.
+> On Linux without Docker Desktop, use `--add-host host.docker.internal:host-gateway`
+> in the `docker run` command.
 
 ### In-cluster (Helm)
 
