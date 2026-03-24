@@ -30,6 +30,7 @@ import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
+import DAGLegend from './DAGLegend'
 import './StaticChainDAG.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -223,16 +224,13 @@ export default function StaticChainDAG({
   // ── Expansion state ────────────────────────────────────────────────────
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => new Set())
 
+  // Accordion: only one subgraph open at a time — prevents layout overlap.
+  // Clicking an already-open node collapses it; clicking a different node
+  // closes the previously-open one and opens the new one.
   function handleToggle(nodeId: string) {
-    setExpandedNodes((prev) => {
-      const next = new Set(prev)
-      if (next.has(nodeId)) {
-        next.delete(nodeId)
-      } else {
-        next.add(nodeId)
-      }
-      return next
-    })
+    setExpandedNodes((prev) =>
+      prev.has(nodeId) ? new Set() : new Set([nodeId])
+    )
   }
 
   // ── Effective ancestor set — seed with current rgdName at top level ───
@@ -561,6 +559,8 @@ export default function StaticChainDAG({
           })}
         </g>
       </svg>
+      {/* Badge legend — only at top level (depth 0), not inside nested subgraphs */}
+      {depth === 0 && <DAGLegend />}
       <DAGTooltip
         node={hoveredTooltip?.node ?? null}
         anchorX={hoveredTooltip?.anchorX ?? 0}

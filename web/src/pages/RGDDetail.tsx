@@ -229,7 +229,7 @@ export default function RGDDetail() {
     ])
       .then(([instance, childrenRes]) => {
         setOverlayInstance(instance)
-        setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items))
+        setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items ?? []))
         setOverlayError(null)
       })
       .catch((err: Error) => {

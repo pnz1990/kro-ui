@@ -7,6 +7,19 @@
   gap: 2px;
 }
 
+/* ── Required/optional legend ────────────────────────────────────────────── */
+
+.instance-form__legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 6px 0 10px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: 4px;
+}
+
 /* ── Field row ─────────────────────────────────────────────────────────── */
 
 .instance-form__row {

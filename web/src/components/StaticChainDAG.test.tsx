@@ -179,6 +179,46 @@ describe('StaticChainDAG — expand/collapse affordances (T022)', () => {
   })
 })
 
+// ── T008: Accordion expand — only one subgraph open at a time ────────────
+
+describe('StaticChainDAG — accordion expand behavior (T008)', () => {
+  const childRgdA = makeRGDObject('alpha-rgd', 'Alpha', ['ConfigMap'])
+  const childRgdB = makeRGDObject('beta-rgd', 'Beta', ['ConfigMap'])
+
+  it('expanding node B while node A is expanded collapses node A', () => {
+    const nodeA = makeChainableNode('nodeA', 'Alpha', 'alpha-rgd')
+    const nodeB = makeChainableNode('nodeB', 'Beta', 'beta-rgd')
+    const graph = makeGraph([nodeA, nodeB])
+
+    renderComponent(graph, [childRgdA, childRgdB], { depth: 0 })
+
+    // Expand A
+    fireEvent.click(screen.getByTestId('static-chain-toggle-nodeA'))
+    expect(screen.getByTestId('static-chain-nested-nodeA')).toBeInTheDocument()
+    expect(screen.queryByTestId('static-chain-nested-nodeB')).toBeNull()
+
+    // Expand B — A should collapse
+    fireEvent.click(screen.getByTestId('static-chain-toggle-nodeB'))
+    expect(screen.queryByTestId('static-chain-nested-nodeA')).toBeNull()
+    expect(screen.getByTestId('static-chain-nested-nodeB')).toBeInTheDocument()
+  })
+
+  it('collapsing B leaves no subgraphs open', () => {
+    const nodeA = makeChainableNode('nodeA', 'Alpha', 'alpha-rgd')
+    const nodeB = makeChainableNode('nodeB', 'Beta', 'beta-rgd')
+    const graph = makeGraph([nodeA, nodeB])
+
+    renderComponent(graph, [childRgdA, childRgdB], { depth: 0 })
+
+    // Expand B, then collapse B
+    fireEvent.click(screen.getByTestId('static-chain-toggle-nodeB'))
+    expect(screen.getByTestId('static-chain-nested-nodeB')).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('static-chain-toggle-nodeB'))
+    expect(screen.queryByTestId('static-chain-nested-nodeB')).toBeNull()
+    expect(screen.queryByTestId('static-chain-nested-nodeA')).toBeNull()
+  })
+})
+
 // ── T027: "View RGD →" link presence rules ────────────────────────────────
 
 describe('StaticChainDAG — View RGD → link (T027)', () => {

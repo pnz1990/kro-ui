@@ -193,7 +193,7 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
                 onChange={(e) => updateField(field.id, { required: e.target.checked })}
                 aria-label="Required"
               />
-              req
+              Required
             </label>
             <button
               type="button"

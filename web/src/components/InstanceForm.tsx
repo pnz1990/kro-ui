@@ -69,6 +69,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         value={fv.value}
         onChange={(e) => onChange({ value: e.target.value })}
         aria-label={fv.name}
+        aria-required={isRequired}
       >
         {options.map((opt) => (
           <option key={opt} value={opt}>
@@ -85,6 +86,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         checked={fv.value === 'true'}
         onChange={(e) => onChange({ value: e.target.checked ? 'true' : 'false' })}
         aria-label={fv.name}
+        aria-required={isRequired}
       />
     )
   } else if (type === 'integer' || type === 'number') {
@@ -96,6 +98,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         step={type === 'integer' ? 1 : undefined}
         onChange={(e) => onChange({ value: e.target.value })}
         aria-label={fv.name}
+        aria-required={isRequired}
       />
     )
   } else if (fv.isArray) {
@@ -113,6 +116,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
                 onChange({ items: newItems })
               }}
               aria-label={`${fv.name} item ${idx + 1}`}
+              aria-required={isRequired && idx === 0}
             />
             <button
               type="button"
@@ -145,6 +149,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         rows={3}
         onChange={(e) => onChange({ value: e.target.value })}
         aria-label={fv.name}
+        aria-required={isRequired}
         placeholder="# YAML value"
       />
     )
@@ -156,6 +161,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         value={fv.value}
         onChange={(e) => onChange({ value: e.target.value })}
         aria-label={fv.name}
+        aria-required={isRequired}
       />
     )
   }
@@ -167,7 +173,7 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
         <span className="instance-form__type-badge">{typeName}</span>
         <span
           className={`instance-form__required-dot instance-form__required-dot--${isRequired ? 'required' : 'optional'}`}
-          title={isRequired ? 'required' : 'optional'}
+          title={isRequired ? 'Required field' : 'Optional field'}
           aria-hidden="true"
         >
           ●
@@ -188,6 +194,12 @@ function FieldRow({ fv, schema, onChange }: FieldRowProps) {
  * All onChange calls update state synchronously.
  */
 export default function InstanceForm({ schema, state, onChange }: InstanceFormProps) {
+  // True when at least one spec field is required — controls legend visibility.
+  // Mirrors the isRequired logic in FieldRow: required flag OR no default defined.
+  const hasRequiredField = schema.specFields.some((f) => {
+    const pt = f.parsedType
+    return pt?.required === true || !('default' in (pt ?? {}))
+  })
   return (
     <div className="instance-form" data-testid="instance-form">
       {/* metadata.name row — always first */}
@@ -203,9 +215,32 @@ export default function InstanceForm({ schema, state, onChange }: InstanceFormPr
             value={state.metadataName}
             onChange={(e) => onChange(updateMetadataName(state, e.target.value))}
             aria-label="metadata.name"
+            aria-required="true"
           />
         </div>
       </div>
+
+      {/* Required/optional legend — shown only when at least one required field exists */}
+      {hasRequiredField && (
+        <div className="instance-form__legend">
+          <span>
+            <span
+              className="instance-form__required-dot instance-form__required-dot--required"
+              title="Required field"
+              aria-hidden="true"
+            >●</span>
+            {' '}required
+          </span>
+          <span>
+            <span
+              className="instance-form__required-dot instance-form__required-dot--optional"
+              title="Optional field"
+              aria-hidden="true"
+            >●</span>
+            {' '}optional
+          </span>
+        </div>
+      )}
 
       {/* Spec fields */}
       {state.fields.length === 0 ? (
