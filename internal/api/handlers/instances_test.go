@@ -295,7 +295,9 @@ func TestGetInstanceChildren(t *testing.T) {
 				dyn := newStubDynamic()
 				dyn.resources[configMapGVR] = &stubNamespaceableResource{
 					nsResources: map[string]*stubResourceClient{
-						"kro-ui-e2e": {
+						// Empty string = cluster-wide (all-namespace) lookup.
+						// ListChildResources now searches all namespaces (fix #146).
+						"": {
 							labelItems: map[string][]unstructured.Unstructured{
 								"kro.run/instance-name=test-instance": {configMap},
 							},

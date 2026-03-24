@@ -81,7 +81,7 @@ export default function RGDDetail() {
     ])
       .then(([data, allRgds]) => {
         setRgd(data)
-        setRgds(allRgds.items)
+        setRgds(allRgds.items ?? [])
         setRgdLastFetched(new Date())
         setError(null)
       })
@@ -145,7 +145,7 @@ export default function RGDDetail() {
     const source = allInstances ?? instanceList
     if (!source) return []
     const seen = new Set<string>()
-    for (const item of source.items) {
+    for (const item of source.items ?? []) {
       const meta = item.metadata as Record<string, unknown> | undefined
       const ns = typeof meta?.namespace === 'string' ? meta.namespace : ''
       if (ns) seen.add(ns)
@@ -186,9 +186,9 @@ export default function RGDDetail() {
     if (pickerItems.length > 0 || pickerLoading || pickerError) return
     setPickerLoading(true)
     setPickerError(null)
-    listInstances(name)
+     listInstances(name)
       .then((data) => {
-        const items: PickerItem[] = data.items.map((item) => {
+        const items: PickerItem[] = (data.items ?? []).map((item) => {
           const meta = item.metadata as Record<string, unknown> | undefined
           return {
             namespace: typeof meta?.namespace === 'string' ? meta.namespace : '',
@@ -204,8 +204,6 @@ export default function RGDDetail() {
       .finally(() => setPickerLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, name])
-
-  // Fetch overlay data when the selected instance key changes (or on retry).
   useEffect(() => {
     if (!overlayKey || !name) {
       // Key cleared → reset overlay state immediately
@@ -261,7 +259,7 @@ export default function RGDDetail() {
     setPickerLoading(true)
     listInstances(name)
       .then((data) => {
-        const items: PickerItem[] = data.items.map((item) => {
+        const items: PickerItem[] = (data.items ?? []).map((item) => {
           const meta = item.metadata as Record<string, unknown> | undefined
           return {
             namespace: typeof meta?.namespace === 'string' ? meta.namespace : '',
@@ -529,7 +527,7 @@ export default function RGDDetail() {
             )}
 
             {!instancesLoading && !instancesError && instanceList && (
-              instanceList.items.length === 0 ? (
+              (instanceList.items ?? []).length === 0 ? (
                 <div
                   className="rgd-instances-empty"
                   data-testid="instance-empty-state"
@@ -539,7 +537,7 @@ export default function RGDDetail() {
                 </div>
               ) : (
                 <InstanceTable
-                  items={instanceList.items}
+                  items={instanceList.items ?? []}
                   rgdName={String(rgdName)}
                 />
               )

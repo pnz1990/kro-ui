@@ -9,7 +9,7 @@
 
 import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { nodeBadge, forEachLabel } from '@/lib/dag'
+import { nodeBadge, forEachLabel, fittedWidth } from '@/lib/dag'
 import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import './DAGGraph.css'
@@ -178,6 +178,7 @@ export default function DAGGraph({
 }: DAGGraphProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
   const svgHeight = fittedHeight(graph)
+  const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
@@ -186,9 +187,9 @@ export default function DAGGraph({
       <svg
         ref={svgRef}
         data-testid="dag-svg"
-        width={graph.width}
+        width={svgWidth}
         height={svgHeight}
-        viewBox={`0 0 ${graph.width} ${svgHeight}`}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Resource dependency graph"
         role="img"

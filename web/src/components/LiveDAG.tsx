@@ -10,7 +10,7 @@
 
 import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel, nodeStateForNode } from '@/lib/dag'
+import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel, nodeStateForNode, fittedWidth } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
@@ -133,7 +133,9 @@ function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, chil
       <text className="dag-node-label" x={cx} y={labelY}>
         {node.label}
       </text>
-      {node.kind && (
+      {/* §XII / fix #147: suppress kind when it fell back to the nodeId (state nodes
+          with no template). Showing the same string twice adds no information. */}
+      {node.kind && node.kind !== node.id && (
         <text className="dag-node-kind" x={cx} y={kindY}>
           {node.kind}
         </text>
@@ -206,6 +208,7 @@ export default function LiveDAG({
 }: LiveDAGProps) {
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]))
   const svgHeight = fittedHeight(graph)
+  const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
@@ -214,9 +217,9 @@ export default function LiveDAG({
       <svg
         ref={svgRef}
         data-testid="dag-svg"
-        width={graph.width}
+        width={svgWidth}
         height={svgHeight}
-        viewBox={`0 0 ${graph.width} ${svgHeight}`}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Live resource dependency graph"
         role="img"

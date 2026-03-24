@@ -46,7 +46,10 @@ export const switchContext = (context: string) => post<{ active: string }>('/con
 // Unstructured k8s object — we keep it generic so the frontend adapts to
 // any kro version without code changes.
 export type K8sObject = Record<string, unknown>
-export type K8sList = { items: K8sObject[]; metadata: Record<string, unknown> }
+// items may be null when the Kubernetes API server returns an empty UnstructuredList
+// (some kro versions serialise an absent items array as JSON null rather than []).
+// All callers must use `list.items ?? []` for safe iteration.
+export type K8sList = { items: K8sObject[] | null; metadata: Record<string, unknown> }
 
 export const listRGDs = () => get<K8sList>('/rgds')
 export const getRGD = (name: string) => get<K8sObject>(`/rgds/${name}`)

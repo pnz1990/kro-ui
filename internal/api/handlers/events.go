@@ -15,7 +15,10 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,6 +27,11 @@ import (
 )
 
 var eventsGVR = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
+
+// perRGDTimeout is the per-RGD deadline for the instance-list fan-out in
+// buildRelevantUIDs. Constitution §XI: fan-out list operations must use a
+// per-resource timeout of 2 seconds.
+const perRGDTimeout = 2 * time.Second
 
 // ListEvents returns Kubernetes Events filtered to kro-relevant objects.
 //
@@ -92,6 +100,10 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 // resource types, causing 75+ second response times on large clusters (e.g. EKS
 // with 200+ controllers). RGD + instance CR UIDs capture the most operationally
 // relevant events. See: https://github.com/pnz1990/kro-ui/issues/57
+//
+// The per-RGD instance-list fan-out is parallelized (issue #153): each RGD gets
+// its own goroutine with a 2s deadline. Constitution §XI: no sequential API calls
+// in a loop when concurrent fan-out is possible.
 func (h *Handler) buildRelevantUIDs(r *http.Request, namespace, rgdFilter string) (map[string]bool, error) {
 	relevant := make(map[string]bool)
 
@@ -119,44 +131,62 @@ func (h *Handler) buildRelevantUIDs(r *http.Request, namespace, rgdFilter string
 		rgdsToQuery = append(rgdsToQuery, &rgdList.Items[i])
 	}
 
-	// 3. For each RGD, list its instances and add their UIDs.
+	// 3. Fan out — one goroutine per RGD, each with a 2s deadline.
+	//    Constitution §XI: no sequential API calls in a loop.
+	var (
+		mu sync.Mutex
+		wg sync.WaitGroup
+	)
+	wg.Add(len(rgdsToQuery))
+
 	for _, rgd := range rgdsToQuery {
-		gvr, err := h.resolveInstanceGVR(r.Context(), rgd.GetName())
-		if err != nil {
-			// Skip RGDs whose instance GVR cannot be resolved — not a fatal error.
-			zerolog.Ctx(r.Context()).Debug().
-				Err(err).
-				Str("rgd", rgd.GetName()).
-				Msg("skipping RGD: cannot resolve instance GVR")
-			continue
-		}
+		rgd := rgd // capture loop variable
+		go func() {
+			defer wg.Done()
 
-		var instanceList *unstructured.UnstructuredList
-		if namespace != "" {
-			instanceList, err = h.factory.Dynamic().Resource(gvr).Namespace(namespace).List(
-				r.Context(), metav1.ListOptions{},
-			)
-		} else {
-			instanceList, err = h.factory.Dynamic().Resource(gvr).List(
-				r.Context(), metav1.ListOptions{},
-			)
-		}
-		if err != nil {
-			zerolog.Ctx(r.Context()).Debug().
-				Err(err).
-				Str("rgd", rgd.GetName()).
-				Msg("skipping RGD instances: list failed")
-			continue
-		}
+			rctx, cancel := context.WithTimeout(r.Context(), perRGDTimeout)
+			defer cancel()
 
-		for i := range instanceList.Items {
-			uid := string(instanceList.Items[i].GetUID())
-			if uid != "" {
-				relevant[uid] = true
+			gvr, err := h.resolveInstanceGVR(rctx, rgd.GetName())
+			if err != nil {
+				// Skip RGDs whose instance GVR cannot be resolved — not a fatal error.
+				zerolog.Ctx(r.Context()).Debug().
+					Err(err).
+					Str("rgd", rgd.GetName()).
+					Msg("skipping RGD: cannot resolve instance GVR")
+				return
 			}
-		}
+
+			var instanceList *unstructured.UnstructuredList
+			if namespace != "" {
+				instanceList, err = h.factory.Dynamic().Resource(gvr).Namespace(namespace).List(
+					rctx, metav1.ListOptions{},
+				)
+			} else {
+				instanceList, err = h.factory.Dynamic().Resource(gvr).List(
+					rctx, metav1.ListOptions{},
+				)
+			}
+			if err != nil {
+				zerolog.Ctx(r.Context()).Debug().
+					Err(err).
+					Str("rgd", rgd.GetName()).
+					Msg("skipping RGD instances: list failed")
+				return
+			}
+
+			mu.Lock()
+			for i := range instanceList.Items {
+				uid := string(instanceList.Items[i].GetUID())
+				if uid != "" {
+					relevant[uid] = true
+				}
+			}
+			mu.Unlock()
+		}()
 	}
 
+	wg.Wait()
 	return relevant, nil
 }
 

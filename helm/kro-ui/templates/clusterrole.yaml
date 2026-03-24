@@ -12,15 +12,19 @@ rules:
   # CRD discovery — needed to find the generated CRD for each RGD
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
-    verbs: ["get", "list"]
-  # All resources read-only — kro creates CRs of any kind
+    verbs: ["get", "list", "watch"]
+  # All resources read-only — kro creates CRs of any kind.
+  # watch is included for consistency with the kro resources rule above;
+  # the backend is polling-based and does not call Watch() today, but
+  # the constitution allows get/list/watch (§III) and omitting it from
+  # this wildcard rule while granting it above was inconsistent (#154).
   - apiGroups: ["*"]
     resources: ["*"]
-    verbs: ["get", "list"]
+    verbs: ["get", "list", "watch"]
   # Events and namespaces
   - apiGroups: [""]
     resources: ["events", "namespaces"]
-    verbs: ["get", "list"]
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

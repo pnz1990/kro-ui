@@ -72,13 +72,15 @@ func (h *Handler) GetInstanceEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetInstanceChildren returns child resources owned by the instance.
-// Uses the kro.run/instance-name label to find all child resources across any kind.
+// Uses the kro.run/instance-name label to find all child resources across all
+// namespaces — kro creates managed resources in per-instance namespaces which
+// may differ from the instance's own namespace (issue #146).
 func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
 	namespace := chi.URLParam(r, "namespace")
 	name := chi.URLParam(r, "name")
 
-	children, err := h.listChildResources(r.Context(), namespace, name)
+	children, err := h.listChildResources(r.Context(), name)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

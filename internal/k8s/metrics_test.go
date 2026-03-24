@@ -222,6 +222,8 @@ func TestScrapeMetrics_ConcurrentSafe(t *testing.T) {
 	wg.Wait()
 
 	for i, err := range errs {
+		// assert (non-fatal) rather than require so all goroutine errors are
+		// reported in one run — each index tells us which concurrent call failed.
 		assert.NoError(t, err, "goroutine %d returned error", i)
 	}
 }

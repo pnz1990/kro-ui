@@ -551,12 +551,12 @@ func TestDiscoverPlural(t *testing.T) {
 func TestListChildResources(t *testing.T) {
 	tests := []struct {
 		name  string
-		build func(t *testing.T) (K8sClients, string, string)
+		build func(t *testing.T) (K8sClients, string)
 		check func(t *testing.T, results []map[string]any, err error)
 	}{
 		{
-			name: "returns matching resources from two GVRs",
-			build: func(t *testing.T) (K8sClients, string, string) {
+			name: "returns matching resources from two GVRs — cluster-wide search",
+			build: func(t *testing.T) (K8sClients, string) {
 				t.Helper()
 				disc := newStubDiscovery()
 				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
@@ -574,11 +574,12 @@ func TestListChildResources(t *testing.T) {
 
 				dyn := newStubDynamic()
 				selector := "kro.run/instance-name=my-app"
-				// webapp resource in the kro GVR
+				// webapp resource in the kro GVR — uses per-instance namespace (fix #146)
 				webappGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "webapps"}
 				dyn.resources[webappGVR] = &stubNamespaceableResource{
 					nsResources: map[string]*stubResourceClient{
-						"default": {
+						// Empty string = cluster-wide (all-namespace) lookup
+						"": {
 							labelItems: map[string][]unstructured.Unstructured{
 								selector: {
 									{Object: map[string]any{"kind": "WebApp", "metadata": map[string]any{"name": "my-app"}}},
@@ -591,7 +592,7 @@ func TestListChildResources(t *testing.T) {
 				deployGVR := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 				dyn.resources[deployGVR] = &stubNamespaceableResource{
 					nsResources: map[string]*stubResourceClient{
-						"default": {
+						"": {
 							labelItems: map[string][]unstructured.Unstructured{
 								selector: {
 									{Object: map[string]any{"kind": "Deployment", "metadata": map[string]any{"name": "my-app-deploy"}}},
@@ -601,7 +602,7 @@ func TestListChildResources(t *testing.T) {
 					},
 				}
 
-				return &stubK8sClients{dyn: dyn, disc: disc}, "default", "my-app"
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-app"
 			},
 			check: func(t *testing.T, results []map[string]any, err error) {
 				t.Helper()
@@ -611,7 +612,7 @@ func TestListChildResources(t *testing.T) {
 		},
 		{
 			name: "returns empty slice when no resources match label",
-			build: func(t *testing.T) (K8sClients, string, string) {
+			build: func(t *testing.T) (K8sClients, string) {
 				t.Helper()
 				disc := newStubDiscovery()
 				disc.resources["apps/v1"] = &metav1.APIResourceList{
@@ -622,7 +623,7 @@ func TestListChildResources(t *testing.T) {
 				}
 				dyn := newStubDynamic()
 				// No label match set up — list returns empty
-				return &stubK8sClients{dyn: dyn, disc: disc}, "default", "no-match"
+				return &stubK8sClients{dyn: dyn, disc: disc}, "no-match"
 			},
 			check: func(t *testing.T, results []map[string]any, err error) {
 				t.Helper()
@@ -632,11 +633,11 @@ func TestListChildResources(t *testing.T) {
 		},
 		{
 			name: "returns error when discovery fails",
-			build: func(t *testing.T) (K8sClients, string, string) {
+			build: func(t *testing.T) (K8sClients, string) {
 				t.Helper()
 				disc := newStubDiscovery()
 				disc.err = fmt.Errorf("discovery unavailable")
-				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "default", "my-app"
+				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "my-app"
 			},
 			check: func(t *testing.T, results []map[string]any, err error) {
 				t.Helper()
@@ -646,7 +647,7 @@ func TestListChildResources(t *testing.T) {
 		},
 		{
 			name: "skips subresources",
-			build: func(t *testing.T) (K8sClients, string, string) {
+			build: func(t *testing.T) (K8sClients, string) {
 				t.Helper()
 				disc := newStubDiscovery()
 				disc.resources["apps/v1"] = &metav1.APIResourceList{
@@ -656,7 +657,7 @@ func TestListChildResources(t *testing.T) {
 						{Name: "deployments/status", Kind: "Deployment", Verbs: metav1.Verbs{"get"}}, // subresource
 					},
 				}
-				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "default", "my-app"
+				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "my-app"
 			},
 			check: func(t *testing.T, results []map[string]any, err error) {
 				t.Helper()
@@ -668,8 +669,8 @@ func TestListChildResources(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			clients, namespace, instanceName := tt.build(t)
-			results, err := ListChildResources(context.Background(), clients, namespace, instanceName)
+			clients, instanceName := tt.build(t)
+			results, err := ListChildResources(context.Background(), clients, instanceName)
 			tt.check(t, results, err)
 		})
 	}

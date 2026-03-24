@@ -28,9 +28,11 @@ func (h *Handler) resolveInstanceGVR(ctx context.Context, rgdName string) (schem
 	return k8sclient.ResolveInstanceGVR(ctx, h.factory, rgdName)
 }
 
-// listChildResources finds all resources in the given namespace that carry the
-// kro.run/instance-name label matching the instance name.
+// listChildResources finds all child resources across all namespaces that carry
+// the kro.run/instance-name label matching the instance name.
 // Thin wrapper that delegates to k8s.ListChildResources.
-func (h *Handler) listChildResources(ctx context.Context, namespace, instanceName string) ([]map[string]any, error) {
-	return k8sclient.ListChildResources(ctx, h.factory, namespace, instanceName)
+// The namespace param has been removed (issue #146): kro creates child resources
+// in per-instance namespaces, so we must search cluster-wide.
+func (h *Handler) listChildResources(ctx context.Context, instanceName string) ([]map[string]any, error) {
+	return k8sclient.ListChildResources(ctx, h.factory, instanceName)
 }
