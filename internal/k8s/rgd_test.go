@@ -75,6 +75,8 @@ type stubNamespaceableResource struct {
 	listErr     error
 	getErr      error
 	nsResources map[string]*stubResourceClient
+	// labelItems is used by cluster-scoped List() calls (no .Namespace() wrapper). Issue #202.
+	labelItems map[string][]unstructured.Unstructured
 }
 
 func (s *stubNamespaceableResource) Namespace(ns string) dynamic.ResourceInterface {
@@ -91,9 +93,16 @@ func (s *stubNamespaceableResource) Namespace(ns string) dynamic.ResourceInterfa
 	}
 }
 
-func (s *stubNamespaceableResource) List(_ context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+func (s *stubNamespaceableResource) List(_ context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	if s.listErr != nil {
 		return nil, s.listErr
+	}
+	// Support label-selector filtering for cluster-scoped List() calls. Issue #202.
+	if opts.LabelSelector != "" && s.labelItems != nil {
+		if items, ok := s.labelItems[opts.LabelSelector]; ok {
+			return &unstructured.UnstructuredList{Items: items}, nil
+		}
+		return &unstructured.UnstructuredList{}, nil
 	}
 	return &unstructured.UnstructuredList{Items: s.items}, nil
 }
@@ -562,13 +571,13 @@ func TestListChildResources(t *testing.T) {
 				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
 					GroupVersion: "kro.run/v1alpha1",
 					APIResources: []metav1.APIResource{
-						{Name: "webapps", Kind: "WebApp", Verbs: metav1.Verbs{"list", "get"}},
+						{Name: "webapps", Kind: "WebApp", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
 					},
 				}
 				disc.resources["apps/v1"] = &metav1.APIResourceList{
 					GroupVersion: "apps/v1",
 					APIResources: []metav1.APIResource{
-						{Name: "deployments", Kind: "Deployment", Verbs: metav1.Verbs{"list", "get"}},
+						{Name: "deployments", Kind: "Deployment", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
 					},
 				}
 
@@ -653,8 +662,8 @@ func TestListChildResources(t *testing.T) {
 				disc.resources["apps/v1"] = &metav1.APIResourceList{
 					GroupVersion: "apps/v1",
 					APIResources: []metav1.APIResource{
-						{Name: "deployments", Kind: "Deployment", Verbs: metav1.Verbs{"list", "get"}},
-						{Name: "deployments/status", Kind: "Deployment", Verbs: metav1.Verbs{"get"}}, // subresource
+						{Name: "deployments", Kind: "Deployment", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
+						{Name: "deployments/status", Kind: "Deployment", Namespaced: true, Verbs: metav1.Verbs{"get"}}, // subresource
 					},
 				}
 				return &stubK8sClients{dyn: newStubDynamic(), disc: disc}, "my-app"
@@ -663,6 +672,40 @@ func TestListChildResources(t *testing.T) {
 				t.Helper()
 				// No panic, no error — subresource is skipped
 				require.NoError(t, err)
+			},
+		},
+		{
+			name: "returns cluster-scoped resources via direct List() — not .Namespace().List()",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						// Namespaced: false = cluster-scoped (e.g. Namespace resource). Issue #202.
+						{Name: "namespaces", Kind: "Namespace", Namespaced: false, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+
+				dyn := newStubDynamic()
+				selector := "kro.run/instance-name=my-app"
+				nsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}
+				// Cluster-scoped: items are on the top-level stub, not in nsResources[""].
+				dyn.resources[nsGVR] = &stubNamespaceableResource{
+					labelItems: map[string][]unstructured.Unstructured{
+						selector: {
+							{Object: map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "kro-ui-test"}}},
+						},
+					},
+				}
+
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-app"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				assert.Len(t, results, 1)
+				assert.Equal(t, "Namespace", results[0]["kind"])
 			},
 		},
 	}

@@ -16,10 +16,9 @@ vi.mock('@/lib/api', () => ({
   getRGD: vi.fn(),
   getInstance: vi.fn(),
   getInstanceChildren: vi.fn(),
-  listInstances: vi.fn(),
 }))
 
-import { getRGD, getInstance, getInstanceChildren, listInstances } from '@/lib/api'
+import { getRGD, getInstance, getInstanceChildren } from '@/lib/api'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -136,15 +135,18 @@ describe('DeepDAG', () => {
     // Set up API mocks
     const childRGD = makeRGD('Database', 'database')
     const childInstance = makeInstance('my-database', 'default')
-    const childInstanceList = {
-      items: [childInstance],
-      metadata: {},
-    }
 
     vi.mocked(getRGD).mockResolvedValue(childRGD)
-    vi.mocked(listInstances).mockResolvedValue(childInstanceList)
     vi.mocked(getInstance).mockResolvedValue(childInstance)
     vi.mocked(getInstanceChildren).mockResolvedValue({ items: [] })
+
+    // Pass the child resource in the children prop — the new lookup path (issue #189).
+    // listInstances is no longer called; the name is resolved from children.
+    const childResource = {
+      kind: 'Database',
+      apiVersion: 'kro.run/v1alpha1',
+      metadata: { name: 'my-database', namespace: 'default' },
+    } as unknown as import('@/lib/api').K8sObject
 
     render(
       <DeepDAG
@@ -152,6 +154,7 @@ describe('DeepDAG', () => {
         nodeStateMap={emptyStateMap}
         rgds={rgds}
         namespace="default"
+        children={[childResource]}
       />
     )
 
@@ -174,9 +177,9 @@ describe('DeepDAG', () => {
     // Toggle now shows ▾ (collapsed indicator)
     expect(screen.getByTestId('deep-dag-toggle-db').textContent).toContain('▾')
 
-    // API calls made correctly
+    // API calls made correctly — listInstances is no longer called
     expect(getRGD).toHaveBeenCalledWith('database')
-    expect(listInstances).toHaveBeenCalledWith('database', 'default')
+    expect(getInstance).toHaveBeenCalledWith('default', 'my-database', 'database')
   })
 
   // ── T004: Caps recursion at 4 levels ─────────────────────────────────────
@@ -212,9 +215,14 @@ describe('DeepDAG', () => {
     const childRGD = makeRGD('Database', 'database')
     const childInstance = makeInstance('my-database', 'default')
     vi.mocked(getRGD).mockResolvedValue(childRGD)
-    vi.mocked(listInstances).mockResolvedValue({ items: [childInstance], metadata: {} })
     vi.mocked(getInstance).mockResolvedValue(childInstance)
     vi.mocked(getInstanceChildren).mockResolvedValue({ items: [] })
+
+    const childResource = {
+      kind: 'Database',
+      apiVersion: 'kro.run/v1alpha1',
+      metadata: { name: 'my-database', namespace: 'default' },
+    } as unknown as import('@/lib/api').K8sObject
 
     render(
       <DeepDAG
@@ -222,6 +230,7 @@ describe('DeepDAG', () => {
         nodeStateMap={emptyStateMap}
         rgds={rgds}
         namespace="default"
+        children={[childResource]}
       />
     )
 

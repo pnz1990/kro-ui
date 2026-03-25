@@ -18,7 +18,7 @@ import { buildDAGGraph, detectKroInstance, nodeBadge, liveStateClass, forEachLab
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
-import { getRGD, getInstance, getInstanceChildren, listInstances } from '@/lib/api'
+import { getRGD, getInstance, getInstanceChildren } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
 import ExpandableNode from './ExpandableNode'
 import type { ExpandedNodeData } from './ExpandableNode'
@@ -166,7 +166,8 @@ export default function DeepDAG({
     return map
   }, [rgds])
 
-  // ── Toggle expansion for a node ────────────────────────────────────────────
+  // ── Toggle expansion for a node (accordion — one open at a time) ─────────
+  // Using accordion to prevent multiple panels from staggering/overlapping. Issue #189.
   const handleToggle = useCallback((node: DAGNode) => {
     const current = expansionMap.get(node.id)
 
@@ -180,55 +181,72 @@ export default function DeepDAG({
       return
     }
 
+    // Accordion: close all other expanded nodes before opening this one.
+    // This prevents multiple panels from rendering at the same Y position. Issue #189.
     if (current?.data) {
       // Already have data — just expand without fetching again
       setExpansionMap((prev) => {
-        const next = new Map(prev)
-        next.set(node.id, { ...current, isExpanded: true })
+        const next = new Map<string, NodeExpansionState>()
+        for (const [id, state] of prev) {
+          next.set(id, id === node.id ? { ...state, isExpanded: true } : { ...state, isExpanded: false })
+        }
         return next
       })
       return
     }
 
-    // Fetch child data
+    // Fetch child data — first collapse all others.
     const rgdName = kindToRGDName.get(node.kind)
     if (!rgdName) return
 
-    // Set loading state
+    // Set loading state, close all others
     setExpansionMap((prev) => {
-      const next = new Map(prev)
+      const next = new Map<string, NodeExpansionState>()
+      for (const [id, state] of prev) {
+        next.set(id, { ...state, isExpanded: false })
+      }
       next.set(node.id, { isExpanded: true, loading: true, error: null, data: null })
       return next
     })
 
-    // Find the child instance name via listInstances, then fetch details
+    // Look up the child instance name from the parent's children list.
+    // This is correct and efficient: the parent already fetched its children;
+    // calling listInstances() separately would return all instances of that kind
+    // (not just the one owned by this instance) and is unreliable. Issue #189.
+    const childResource = children?.find((c) => {
+      const kind = typeof c.kind === 'string' ? c.kind.toLowerCase() : ''
+      return kind === node.kind.toLowerCase()
+    })
+    if (!childResource) {
+      setExpansionMap((prev) => {
+        const next = new Map(prev)
+        next.set(node.id, {
+          isExpanded: true,
+          loading: false,
+          error: `No ${node.kind} resource found in this instance's children — it may not have been created yet`,
+          data: null,
+        })
+        return next
+      })
+      return
+    }
+    const childMeta = childResource.metadata as Record<string, unknown> | undefined
+    const instName = typeof childMeta?.name === 'string' ? childMeta.name : ''
+    const instNs = typeof childMeta?.namespace === 'string' ? childMeta.namespace : namespace
+    if (!instName) {
+      setExpansionMap((prev) => {
+        const next = new Map(prev)
+        next.set(node.id, { isExpanded: true, loading: false, error: 'Child resource has no name', data: null })
+        return next
+      })
+      return
+    }
+
     Promise.all([
       getRGD(rgdName),
-      listInstances(rgdName, namespace),
+      getInstance(instNs, instName, rgdName),
+      getInstanceChildren(instNs, instName, rgdName),
     ])
-      .then(([childRGD, instanceList]) => {
-        // Find the instance whose kind matches and name can be found from children
-        const instances = instanceList.items ?? []
-        // The child instance name is typically in the parent children list
-        // keyed by kind. We use the first matching instance found.
-        const matchingInstance = instances.find((inst) => {
-          const meta = inst.metadata as Record<string, unknown> | undefined
-          return meta !== undefined
-        })
-        if (!matchingInstance) {
-          throw new Error(`No ${node.kind} instance found in namespace ${namespace}`)
-        }
-        const meta = matchingInstance.metadata as Record<string, unknown>
-        const instName = typeof meta.name === 'string' ? meta.name : ''
-        const instNs = typeof meta.namespace === 'string' ? meta.namespace : namespace
-        if (!instName) throw new Error('Instance has no name')
-
-        return Promise.all([
-          Promise.resolve(childRGD),
-          getInstance(instNs, instName, rgdName),
-          getInstanceChildren(instNs, instName, rgdName),
-        ])
-      })
       .then(([childRGD, childInstance, childrenResp]) => {
         const childSpec = childRGD.spec as Record<string, unknown> | undefined
         if (!childSpec) throw new Error('Child RGD has no spec')
@@ -259,7 +277,7 @@ export default function DeepDAG({
           return next
         })
       })
-  }, [expansionMap, kindToRGDName, namespace])
+  }, [expansionMap, kindToRGDName, namespace, children])
 
   // ── Build node map for edge rendering ─────────────────────────────────────
   const nodeMap = useMemo(
@@ -267,27 +285,20 @@ export default function DeepDAG({
     [graph.nodes],
   )
 
-  // ── Compute expanded node heights (for SVG viewBox) ───────────────────────
-  // We need to extend the SVG height to accommodate expanded subgraphs.
-  // For each expanded node, add its nested height below it.
+  // Sum expanded panel heights rather than taking the max — accordion ensures
+  // only one panel is open at a time, so this effectively equals nestedHeight + 8
+  // for a single open panel. Summing is correct if we ever allow multiple. Issue #189.
   const expandedHeightAdditions = useMemo(() => {
     let extra = 0
-    for (const [nodeId, expState] of expansionMap) {
+    for (const [, expState] of expansionMap) {
       if (!expState.isExpanded) continue
       const nestedHeight = expState.data
         ? expState.data.childGraph.height + 32 + 8 + 8  // header + padding
         : 60 + 32 + 8                                    // loading/error
-      const node = nodeMap.get(nodeId)
-      if (node) {
-        // How much extra space below this node's bottom?
-        const nodeBottom = node.y + node.height
-        const graphBottom = graph.height
-        const alreadyHas = Math.max(0, graphBottom - nodeBottom)
-        extra = Math.max(extra, nestedHeight + 8 - alreadyHas)
-      }
+      extra += nestedHeight + 8
     }
     return extra
-  }, [expansionMap, nodeMap, graph.height])
+  }, [expansionMap])
 
   const svgHeight = graph.height + Math.max(0, expandedHeightAdditions)
 
@@ -382,6 +393,7 @@ export default function DeepDAG({
                   expandedData={expandedNodeData}
                   childLoading={expState?.loading}
                   childError={expState?.error ?? undefined}
+                  svgWidth={graph.width}
                 />
               )
             }

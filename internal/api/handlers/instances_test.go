@@ -309,7 +309,7 @@ func TestGetInstanceChildren(t *testing.T) {
 				disc.resources["v1"] = &metav1.APIResourceList{
 					GroupVersion: "v1",
 					APIResources: []metav1.APIResource{
-						{Name: "configmaps", Kind: "ConfigMap", Verbs: metav1.Verbs{"get", "list", "watch"}},
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"get", "list", "watch"}},
 					},
 				}
 
@@ -405,7 +405,7 @@ func TestGetInstanceChildren(t *testing.T) {
 				disc.resources["v1"] = &metav1.APIResourceList{
 					GroupVersion: "v1",
 					APIResources: []metav1.APIResource{
-						{Name: "configmaps", Kind: "ConfigMap", Verbs: metav1.Verbs{"get", "list"}},
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"get", "list"}},
 					},
 				}
 
@@ -526,7 +526,7 @@ func TestGetResource(t *testing.T) {
 				disc.resources["v1"] = &metav1.APIResourceList{
 					GroupVersion: "v1",
 					APIResources: []metav1.APIResource{
-						{Name: "configmaps", Kind: "ConfigMap", Verbs: metav1.Verbs{"get", "list"}},
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"get", "list"}},
 					},
 				}
 

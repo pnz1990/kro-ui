@@ -183,8 +183,15 @@ func ListChildResources(ctx context.Context, clients K8sClients, instanceName st
 		return nil, fmt.Errorf("discovery: %w", err)
 	}
 
-	// Collect all listable GVRs.
-	var gvrs []schema.GroupVersionResource
+	// Collect all listable GVRs, carrying the Namespaced flag.
+	// Cluster-scoped resources (Namespace, ClusterRole, PV, etc.) must be listed
+	// without .Namespace() — using .Namespace("") on a cluster-scoped resource
+	// routes through the wrong API path and produces intermittent failures. Issue #202.
+	type gvrEntry struct {
+		gvr        schema.GroupVersionResource
+		namespaced bool
+	}
+	var gvrs []gvrEntry
 	for _, apiList := range apiLists {
 		gv, err := schema.ParseGroupVersion(apiList.GroupVersion)
 		if err != nil {
@@ -194,10 +201,13 @@ func ListChildResources(ctx context.Context, clients K8sClients, instanceName st
 			if !IsListable(res) {
 				continue
 			}
-			gvrs = append(gvrs, schema.GroupVersionResource{
-				Group:    gv.Group,
-				Version:  gv.Version,
-				Resource: res.Name,
+			gvrs = append(gvrs, gvrEntry{
+				gvr: schema.GroupVersionResource{
+					Group:    gv.Group,
+					Version:  gv.Version,
+					Resource: res.Name,
+				},
+				namespaced: res.Namespaced,
 			})
 		}
 	}
@@ -215,30 +225,46 @@ func ListChildResources(ctx context.Context, clients K8sClients, instanceName st
 	var wg sync.WaitGroup
 	wg.Add(len(gvrs))
 
-	for _, gvr := range gvrs {
-		gvr := gvr // capture loop variable
+	for _, entry := range gvrs {
+		entry := entry // capture loop variable
 		go func() {
 			defer wg.Done()
 
 			rctx, cancel := context.WithTimeout(ctx, perResourceTimeout)
 			defer cancel()
 
-			// Empty namespace = cluster-wide list. kro creates child resources in
-			// per-instance namespaces, so we must search all namespaces.
-			raw, err := dyn.Resource(gvr).Namespace("").List(
-				rctx, metav1.ListOptions{LabelSelector: labelSelector},
-			)
-			if err != nil || raw == nil {
-				log.Debug().Err(err).Str("gvr", gvr.String()).Msg("skipped resource during child listing")
-				return
+			// Use the correct client-go path based on whether the resource is namespaced.
+			// Cluster-scoped resources (Namespace, ClusterRole, PV, etc.) must NOT use
+			// .Namespace("") — that constructs a namespaced API path which fails for
+			// cluster-scoped types. Issue #202.
+			ri := dyn.Resource(entry.gvr)
+
+			opts := metav1.ListOptions{LabelSelector: labelSelector}
+			var items []map[string]any
+			if entry.namespaced {
+				raw, err := ri.Namespace("").List(rctx, opts)
+				if err != nil || raw == nil {
+					log.Debug().Err(err).Str("gvr", entry.gvr.String()).Msg("skipped namespaced resource during child listing")
+					return
+				}
+				for i := range raw.Items {
+					items = append(items, raw.Items[i].Object)
+				}
+			} else {
+				raw, err := ri.List(rctx, opts)
+				if err != nil || raw == nil {
+					log.Debug().Err(err).Str("gvr", entry.gvr.String()).Msg("skipped cluster-scoped resource during child listing")
+					return
+				}
+				for i := range raw.Items {
+					items = append(items, raw.Items[i].Object)
+				}
 			}
-			if len(raw.Items) == 0 {
+			if len(items) == 0 {
 				return
 			}
 			mu.Lock()
-			for _, item := range raw.Items {
-				results = append(results, item.Object)
-			}
+			results = append(results, items...)
 			mu.Unlock()
 		}()
 	}
