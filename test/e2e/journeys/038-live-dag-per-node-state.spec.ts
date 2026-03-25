@@ -59,11 +59,14 @@ test.describe('Journey 038 — Live DAG per-node state', () => {
     await expect(firstRow).toBeVisible({ timeout: 10_000 })
     await firstRow.click()
 
+    // Wait for ANY live-state node to appear (confirms polling completed).
     await page.waitForSelector('[class*="dag-node-live--"]', { timeout: 15_000 })
 
-    // The schema node (root CR) has nodeType 'instance' and should be coloured.
+    // The schema node (root CR) has nodeType 'instance'. Its live-state class
+    // is derived from status.conditions — wait for it to appear explicitly.
     const schemaNode = page.locator('[data-testid="dag-node-schema"]')
-    const className = await schemaNode.getAttribute('class') ?? ''
-    expect(className).toMatch(/dag-node-live--/)
+    await expect(schemaNode).toBeVisible({ timeout: 5_000 })
+    // Wait for the live-state class to be applied to this specific node.
+    await expect(schemaNode).toHaveClass(/dag-node-live--/, { timeout: 10_000 })
   })
 })
