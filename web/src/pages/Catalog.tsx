@@ -4,6 +4,7 @@
 // Issue #116: instanceCounts uses undefined="loading", null="failed", number="resolved".
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
@@ -218,6 +219,10 @@ export default function Catalog() {
                   <p className="catalog__empty-hint">
                     Create one with{' '}
                     <code>kubectl apply -f your-rgd.yaml</code>
+                    {' '}or use the{' '}
+                    <Link to="/author" data-testid="catalog-new-rgd-link">
+                      in-app authoring tool
+                    </Link>.
                   </p>
                 </>
               ) : (

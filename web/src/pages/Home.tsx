@@ -4,6 +4,7 @@
 // FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
@@ -128,6 +129,13 @@ export default function Home() {
           >
             kro on GitHub
           </a>
+          <Link
+            to="/author"
+            className="home__empty-cta"
+            data-testid="home-new-rgd-link"
+          >
+            New RGD
+          </Link>
         </div>
       </div>
     )

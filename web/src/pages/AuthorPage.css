@@ -1,0 +1,71 @@
+/* AuthorPage.css — Layout for the standalone /author route.
+ *
+ * Mirrors the two-column layout used by GenerateTab for the "New RGD" mode.
+ * All values use tokens.css custom properties — no hardcoded hex or rgba.
+ *
+ * Spec: .specify/specs/039-rgd-authoring-entrypoint/
+ */
+
+.author-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.author-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-page__title {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.author-page__subtitle {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.author-page__subtitle code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-text);
+  background: var(--color-surface-3);
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Body — two-column form + preview ───────────────────────────────── */
+
+.author-page__body {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+  /* Stack vertically on narrow viewports */
+  flex-wrap: wrap;
+}
+
+.author-page__form-pane {
+  flex: 1 1 380px;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.author-page__preview-pane {
+  flex: 1 1 420px;
+  min-width: 0;
+  overflow-y: auto;
+}

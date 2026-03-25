@@ -11,6 +11,7 @@ import Fleet from './pages/Fleet'
 import RGDDetail from './pages/RGDDetail'
 import InstanceDetail from './pages/InstanceDetail'
 import Events from './pages/Events'
+import AuthorPage from './pages/AuthorPage'
 import NotFound from './pages/NotFound'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/fleet" element={<Fleet />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/author" element={<AuthorPage />} />
           <Route path="/rgds/:name" element={<RGDDetail />} />
           <Route path="/rgds/:rgdName/instances/:namespace/:instanceName" element={<InstanceDetail />} />
           <Route path="*" element={<NotFound />} />
