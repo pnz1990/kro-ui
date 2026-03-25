@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import ContextSwitcher from './ContextSwitcher'
 import type { KubeContext } from '@/lib/api'
 import './TopBar.css'
@@ -51,6 +51,13 @@ export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProp
           Events
         </NavLink>
       </nav>
+      <Link
+        to="/author"
+        className="top-bar__new-rgd-btn"
+        data-testid="topbar-new-rgd"
+      >
+        + New RGD
+      </Link>
       <ContextSwitcher
         contexts={contexts}
         active={activeContext}
