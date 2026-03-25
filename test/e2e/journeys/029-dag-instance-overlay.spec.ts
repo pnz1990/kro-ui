@@ -54,7 +54,7 @@ test.describe('Journey 029 — DAG Instance Overlay', () => {
     expect(hasInstance).toBe(true)
   })
 
-  test('Step 3: selecting an instance applies overlay (soft — may be slow on CI)', async ({ page }) => {
+  test('Step 3: selecting an instance applies live-state CSS classes to all non-state DAG nodes', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-app`)
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
 
@@ -64,29 +64,15 @@ test.describe('Journey 029 — DAG Instance Overlay', () => {
     // Select test-instance — value is "kro-ui-e2e/test-instance"
     await overlaySelect.selectOption({ label: 'kro-ui-e2e/test-instance' })
 
-    // The overlay loads via Promise.all([getInstance, getInstanceChildren]).
-    // getInstanceChildren does a cluster-wide label search (many API calls) which
-    // is subject to client-side throttling on CI. This makes the overlay load
-    // unpredictably slow — sometimes <3s, sometimes >15s.
-    // liveStateClass() in dag.ts: dag-node-live--alive, --reconciling, --error, --notfound
-    //
-    // Soft assertion: if live-state classes don't appear within 20s, verify the
-    // UI didn't crash (DAG still visible) and skip the count assertion.
-    // The primary value of this test is verifying the selector + fetch integration
-    // doesn't throw, not asserting millisecond-level timing.
-    const appeared = await page.waitForFunction(
-      () => document.querySelectorAll('[class*="dag-node-live--"]').length > 0,
-      { timeout: 20000 },
-    ).catch(() => null)
+    // Hard assertion: all non-state DAG nodes must receive a live-state class.
+    // test-app has 3 managed resource nodes + 1 root CR = 4 expected nodes.
+    // Fixes GH #165: previously only the root CR node was colored; child nodes
+    // got no live-state class because buildNodeStateMap only keyed observed
+    // children (Bug 2) and nodeBaseClass dropped undefined states (Bug 1).
+    await expect(page.locator('[class*="dag-node-live--"]')).toHaveCount(4, { timeout: 15000 })
 
-    // Always verify the page is still functional (no crash)
+    // Also verify the page hasn't crashed
     await expect(page.getByTestId('dag-svg')).toBeVisible()
-
-    if (appeared) {
-      const liveNodes = page.locator('[class*="dag-node-live--"]')
-      expect(await liveNodes.count()).toBeGreaterThan(0)
-    }
-    // If not appeared: overlay fetch is still in-flight or throttled — not a test failure
   })
 
   test('Step 4: clearing overlay selection removes live-state classes', async ({ page }) => {

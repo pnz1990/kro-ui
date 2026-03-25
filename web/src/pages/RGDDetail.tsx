@@ -227,7 +227,7 @@ export default function RGDDetail() {
     ])
       .then(([instance, childrenRes]) => {
         setOverlayInstance(instance)
-        setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items ?? []))
+        setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items ?? [], dagGraph?.nodes ?? []))
         setOverlayError(null)
       })
       .catch((err: Error) => {

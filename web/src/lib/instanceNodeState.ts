@@ -5,6 +5,7 @@
 
 import type { K8sObject } from './api'
 import { isTerminating, getFinalizers, getDeletionTimestamp } from './k8s'
+import type { DAGNode } from './dag'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -82,15 +83,18 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
  *    - Progressing=True  → all present nodes are 'reconciling'
  *    - Ready=False        → all present nodes are 'error'
  *    - Otherwise          → present nodes are 'alive'
- * 2. For each child resource, create an entry keyed by kind (lowercase).
- * 3. Nodes not represented in children remain 'not-found'.
+ * 2. Build a presence map from children, keyed by lowercase kind.
+ * 3. Enumerate every non-state, non-instance RGD node and emit an explicit
+ *    entry: the child's derived state if present, or 'not-found' if absent.
  *
- * The caller (LiveDAG) maps node IDs to entries by resolving kind from the
- * DAGNode.kind field.
+ * The `rgdNodes` parameter (GH #165 fix) ensures every DAG node has an entry
+ * so that absent nodes receive the dag-node-live--notfound CSS class rather
+ * than being silently unstyled. Pass `dagGraph.nodes` from the call site.
  */
 export function buildNodeStateMap(
   instance: K8sObject,
   children: K8sObject[],
+  rgdNodes: DAGNode[],
 ): NodeStateMap {
   const conditions = getConditions(instance)
 
@@ -107,42 +111,68 @@ export function buildNodeStateMap(
 
   const result: NodeStateMap = {}
 
+  // ── Step 2: build result from observed children ───────────────────────────
+  // Key by lowercase kind; first child of each kind wins.
   for (const child of children) {
     const meta = child.metadata as Record<string, unknown> | undefined
     if (!meta) continue
 
-    const kind = typeof child.kind === 'string' ? child.kind : ''
+    // Prefer the top-level .kind field; fall back to resource-id label (kro ≤0.2 quirk)
+    const kindRaw =
+      typeof child.kind === 'string' && child.kind
+        ? child.kind
+        : typeof (meta.labels as Record<string, unknown> | undefined)?.[
+            'kro.run/resource-id'
+          ] === 'string'
+        ? String((meta.labels as Record<string, unknown>)['kro.run/resource-id'])
+        : ''
+
+    if (!kindRaw) continue
+
+    const key = kindRaw.toLowerCase()
+    if (key in result) continue // first child of each kind wins
+
     const name = typeof meta.name === 'string' ? meta.name : ''
     const namespace = typeof meta.namespace === 'string' ? meta.namespace : ''
     const { group, version } = parseApiVersion(child.apiVersion)
 
-    if (!kind) continue
-
-    // Deletion state — check before deriving the node state
-    // FR-003: terminating children override state to 'error'
     const childTerminating = isTerminating(child)
     const childFinalizers = getFinalizers(child)
     const childDeletionTimestamp = getDeletionTimestamp(child)
 
-    // When a child is terminating, force error state so the DAG ring turns rose.
-    // This takes precedence over the global presentState derived from conditions.
+    // Terminating children force error state over global presentState.
     const nodeState: NodeLiveState = childTerminating ? 'error' : presentState
 
-    // Key by lowercase kind — allows case-insensitive lookup from DAGNode.kind
-    const key = kind.toLowerCase()
-    // If multiple children of same kind, first one wins (ordered by API response)
-    if (!(key in result)) {
-      result[key] = {
-        state: nodeState,
-        kind,
-        name,
-        namespace,
-        group,
-        version,
-        terminating: childTerminating || undefined,
-        finalizers: childFinalizers.length > 0 ? childFinalizers : undefined,
-        deletionTimestamp: childDeletionTimestamp,
-      }
+    result[key] = {
+      state: nodeState,
+      kind: kindRaw,
+      name,
+      namespace,
+      group,
+      version,
+      terminating: childTerminating || undefined,
+      finalizers: childFinalizers.length > 0 ? childFinalizers : undefined,
+      deletionTimestamp: childDeletionTimestamp,
+    }
+  }
+
+  // ── Step 3: enumerate every non-state, non-instance RGD node ─────────────
+  // Emit 'not-found' for nodes absent from the children result.
+  // This guarantees every DAG node has an entry when the overlay is active,
+  // so dag-node-live--notfound is applied (GH #165 fix).
+  for (const node of rgdNodes) {
+    if (node.nodeType === 'instance' || node.nodeType === 'state') continue
+    const kindKey = (node.kind || node.label || '').toLowerCase()
+    if (!kindKey) continue
+    if (kindKey in result) continue // already set by an observed child
+
+    result[kindKey] = {
+      state: 'not-found',
+      kind: node.kind || node.label || kindKey,
+      name: '',
+      namespace: '',
+      group: '',
+      version: '',
     }
   }
 
