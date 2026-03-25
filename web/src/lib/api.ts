@@ -173,6 +173,14 @@ export interface ControllerMetrics {
 
 export const getControllerMetrics = () => get<ControllerMetrics>('/kro/metrics')
 
+/**
+ * Fetches controller metrics for a specific kubeconfig context.
+ * Use this for Fleet-page per-cluster fan-out. Returns null fields when the
+ * kro pod is not found in that context (graceful degradation — not an error).
+ */
+export const getControllerMetricsForContext = (context: string): Promise<ControllerMetrics> =>
+  get<ControllerMetrics>(`/kro/metrics?context=${encodeURIComponent(context)}`)
+
 // ── Version ───────────────────────────────────────────────────────────
 
 export interface VersionResponse {

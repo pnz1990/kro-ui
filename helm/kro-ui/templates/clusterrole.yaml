@@ -25,6 +25,10 @@ rules:
   - apiGroups: [""]
     resources: ["events", "namespaces"]
     verbs: ["get", "list", "watch"]
+  # Pod proxy — required for per-context kro controller metrics scraping (spec 040)
+  - apiGroups: [""]
+    resources: ["pods/proxy"]
+    verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

@@ -3,11 +3,16 @@
 // Cluster card clicks switch context and navigate to home (FR-004).
 // Issue #72: adds manual refresh button + last-refreshed timestamp.
 // Issue #62: deduplicates clusters pointing to the same server URL.
+// Spec 040: per-cluster metrics fan-out via ?context= param.
 
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFleetSummary, switchContext } from '@/lib/api'
-import type { ClusterSummary } from '@/lib/api'
+import {
+  getFleetSummary,
+  switchContext,
+  getControllerMetricsForContext,
+} from '@/lib/api'
+import type { ClusterSummary, ControllerMetrics } from '@/lib/api'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import ClusterCard from '@/components/ClusterCard'
 import FleetMatrix from '@/components/FleetMatrix'
@@ -62,6 +67,31 @@ function formatAgo(date: Date): string {
   return `${Math.floor(s / 60)}m ago`
 }
 
+/** Render a single metrics cell for the Fleet cluster table. */
+function MetricsCell({ metrics }: { metrics: ControllerMetrics | null | undefined }) {
+  // undefined = not yet fetched; null = fetched but unavailable (kro not installed)
+  if (metrics === undefined) {
+    return <span className="fleet-metrics__loading" aria-label="Loading metrics">—</span>
+  }
+  if (metrics === null || (metrics.watchCount === null && metrics.queueDepth === null)) {
+    return <span className="fleet-metrics__unavailable">—</span>
+  }
+  return (
+    <span className="fleet-metrics__value">
+      {metrics.watchCount !== null && (
+        <span className="fleet-metrics__item" title="Active watches">
+          Watches: {metrics.watchCount.toLocaleString()}
+        </span>
+      )}
+      {metrics.queueDepth !== null && (
+        <span className="fleet-metrics__item" title="kro queue depth">
+          Queue: {metrics.queueDepth.toLocaleString()}
+        </span>
+      )}
+    </span>
+  )
+}
+
 export default function Fleet() {
   usePageTitle('Fleet')
   const [clusters, setClusters] = useState<ClusterSummary[]>([])
@@ -69,6 +99,9 @@ export default function Fleet() {
   const [error, setError] = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [, setTick] = useState(0)
+  // Spec 040 FR-005: per-cluster metrics map populated after fleet summary loads.
+  // Key = context name, value = metrics (null = kro not found / unavailable).
+  const [metricsMap, setMetricsMap] = useState<Map<string, ControllerMetrics | null>>(new Map())
   const navigate = useNavigate()
 
   // Re-render every 15s to update the "refreshed N ago" counter
@@ -84,6 +117,32 @@ export default function Fleet() {
       .then((res) => {
         setClusters(res.clusters)
         setLastRefresh(new Date())
+
+        // Spec 040 FR-005: Fan-out metrics requests for reachable clusters in parallel.
+        // Promise.allSettled ensures a failure in one cluster does not block others —
+        // mirrors the Go backend's sync.WaitGroup pattern in fleet.go.
+        const reachable = res.clusters.filter(
+          (c) => c.health === 'healthy' || c.health === 'degraded',
+        )
+        if (reachable.length === 0) return
+
+        Promise.allSettled(
+          reachable.map((c) =>
+            getControllerMetricsForContext(c.context).then(
+              (m): [string, ControllerMetrics | null] => [c.context, m],
+            ),
+          ),
+        ).then((results) => {
+          const map = new Map<string, ControllerMetrics | null>()
+          for (const r of results) {
+            if (r.status === 'fulfilled') {
+              const [ctx, m] = r.value
+              map.set(ctx, m)
+            }
+            // Rejected: leave entry absent from map → cell renders "—" via undefined branch
+          }
+          setMetricsMap(map)
+        })
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err))
@@ -127,6 +186,14 @@ export default function Fleet() {
       }))
     }
   }
+
+  // Show the Metrics column only when at least one cluster has non-null metrics
+  // (avoids rendering a column of "—" when no kro instances are present).
+  const showMetricsColumn =
+    metricsMap.size > 0 &&
+    [...metricsMap.values()].some(
+      (m) => m !== null && (m.watchCount !== null || m.queueDepth !== null),
+    )
 
   return (
     <div className="fleet">
@@ -184,6 +251,35 @@ export default function Fleet() {
               <ClusterCard key={c.context} summary={c} onSwitch={handleSwitch} />
             ))}
           </div>
+
+          {showMetricsColumn && (
+            <section className="fleet__metrics-section" aria-labelledby="fleet-metrics-heading">
+              <h2 id="fleet-metrics-heading" className="fleet__section-heading">
+                Controller Metrics
+              </h2>
+              <p className="fleet__section-subheading">
+                kro controller counters per cluster — scraped via pod proxy
+              </p>
+              <table className="fleet-metrics__table">
+                <thead>
+                  <tr>
+                    <th className="fleet-metrics__col-cluster">Cluster</th>
+                    <th className="fleet-metrics__col-metrics">Metrics</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deduped.map((c) => (
+                    <tr key={c.context}>
+                      <td className="fleet-metrics__col-cluster">{c.context}</td>
+                      <td className="fleet-metrics__col-metrics">
+                        <MetricsCell metrics={metricsMap.get(c.context)} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
           <section className="fleet__matrix-section" aria-labelledby="fleet-matrix-heading">
             <h2 id="fleet-matrix-heading" className="fleet__section-heading">

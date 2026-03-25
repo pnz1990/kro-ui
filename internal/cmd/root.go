@@ -29,7 +29,6 @@ var (
 	port       int
 	kubeconfig string
 	context    string
-	metricsURL string
 )
 
 var rootCmd = &cobra.Command{
@@ -52,7 +51,6 @@ var serveCmd = &cobra.Command{
 			Port:       port,
 			Kubeconfig: kubeconfig,
 			Context:    context,
-			MetricsURL: metricsURL,
 		}
 		return server.Run(cfg)
 	},
@@ -70,7 +68,6 @@ func init() {
 	serveCmd.Flags().IntVarP(&port, "port", "p", 40107, "Port to listen on (40107 = D,A,G)")
 	serveCmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to kubeconfig (defaults to $KUBECONFIG or ~/.kube/config)")
 	serveCmd.Flags().StringVar(&context, "context", "", "Kubernetes context to use (defaults to current context)")
-	serveCmd.Flags().StringVar(&metricsURL, "metrics-url", "http://localhost:8080/metrics", "URL of kro controller Prometheus metrics endpoint")
 
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(versionCmd)

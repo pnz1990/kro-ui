@@ -17,6 +17,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -38,23 +39,33 @@ type k8sClients interface {
 	CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error)
 }
 
+// metricsDiscoverer discovers the kro controller pod for a given kubeconfig context
+// and proxies the /metrics scrape through the kube-apiserver pod proxy.
+// Defined at the consumption site per constitution §VI.
+// An empty contextName means "use the currently active context".
+type metricsDiscoverer interface {
+	ScrapeMetrics(ctx context.Context, contextName string) (*k8sclient.ControllerMetrics, error)
+}
+
 // Handler holds shared dependencies for all route handlers.
 type Handler struct {
 	factory      k8sClients
 	ctxMgr       contextManager
 	fleetBuilder fleetClientBuilder
-	metricsURL   string
+	metrics      metricsDiscoverer
 }
 
-// New creates a Handler with the given ClientFactory and metrics source URL.
-func New(factory *k8sclient.ClientFactory, metricsURL string) *Handler {
+// New creates a Handler with the given ClientFactory.
+// The MetricsDiscoverer is constructed internally and uses pod-proxy discovery
+// instead of a hardcoded URL (spec 040 — FR-002, FR-003).
+func New(factory *k8sclient.ClientFactory) *Handler {
 	return &Handler{
 		factory: factory,
 		ctxMgr:  factory,
 		fleetBuilder: &realFleetClientBuilder{
 			kubeconfigPath: factory.KubeconfigPath(),
 		},
-		metricsURL: metricsURL,
+		metrics: k8sclient.NewMetricsDiscoverer(factory),
 	}
 }
 

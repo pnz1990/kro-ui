@@ -366,8 +366,6 @@ Always read the spec before writing code. Always run `go vet ./...` and
 ## Active Technologies
 - Go 1.25 backend + TypeScript 5.x + React 19 + React Router v7 + Vite — no new npm or Go dependencies introduced since v0.2.1
 - All state is local React `useState`; no persistence layer; no state management libraries
-- TypeScript 5.x / React 19 / React Router v7 / Vite + React Router v7 (`<Link>`, `<Route>`), existing `RGDAuthoringForm`, `YAMLPreview`, `generator.ts` lib (039-rgd-authoring-entrypoint)
-- N/A — all state is local React `useState`; no persistence (039-rgd-authoring-entrypoint)
 
 ## Recent Changes
 - v0.3.4: negation-polarity condition fix (ReconciliationSuspended=False renders healthy), overlay node-mapping fix (all DAG nodes covered), Children denominator tooltip, condition inversion + schema defaults + catalog shimmer + home/fleet UX fixes, E2E journey backfill

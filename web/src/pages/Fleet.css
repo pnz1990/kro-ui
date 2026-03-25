@@ -135,3 +135,58 @@
   color: var(--color-text-muted);
   margin-bottom: 12px;
 }
+
+/* Metrics section (spec 040 FR-005) */
+.fleet__metrics-section {
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.fleet-metrics__table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 640px;
+  font-size: 0.875rem;
+}
+
+.fleet-metrics__table th,
+.fleet-metrics__table td {
+  text-align: left;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.fleet-metrics__table th {
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fleet-metrics__col-cluster {
+  width: 55%;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.fleet-metrics__col-metrics {
+  width: 45%;
+}
+
+.fleet-metrics__unavailable,
+.fleet-metrics__loading {
+  color: var(--color-text-muted);
+}
+
+.fleet-metrics__value {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.fleet-metrics__item {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
