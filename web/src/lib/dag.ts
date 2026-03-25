@@ -625,6 +625,7 @@ export function liveStateClass(state: NodeLiveState | undefined): string {
     case 'alive':       return 'dag-node-live--alive'
     case 'reconciling': return 'dag-node-live--reconciling'
     case 'error':       return 'dag-node-live--error'
+    case 'pending':     return 'dag-node-live--pending'
     case 'not-found':   return 'dag-node-live--notfound'
   }
 }

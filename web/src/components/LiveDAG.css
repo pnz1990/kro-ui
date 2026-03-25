@@ -112,12 +112,20 @@
   stroke-dasharray: none;
 }
 
-/* not-found / pending — dashed gray */
+/* not-found — dashed gray (resource not yet created) */
 .live-dag-container .dag-node-live--notfound rect.dag-node-rect {
   fill: var(--node-notfound-bg);
   stroke: var(--node-notfound-border);
   stroke-width: 1;
   stroke-dasharray: 4 3;
+}
+
+/* pending — dashed violet (excluded by includeWhen condition) */
+.live-dag-container .dag-node-live--pending rect.dag-node-rect {
+  fill: var(--node-pending-bg);
+  stroke: var(--node-pending-border);
+  stroke-width: 1;
+  stroke-dasharray: 6 3;
 }
 
 /* Selected live nodes — highlight still visible over live state */
@@ -194,4 +202,5 @@
 .dag-tooltip__state--alive       { color: var(--color-alive); }
 .dag-tooltip__state--reconciling { color: var(--color-reconciling); }
 .dag-tooltip__state--error       { color: var(--color-error); }
+.dag-tooltip__state--pending     { color: var(--color-pending); }
 .dag-tooltip__state--notfound    { color: var(--color-text-faint); }
