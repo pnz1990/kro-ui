@@ -49,6 +49,7 @@ const STATE_LABEL: Record<NodeLiveState, string> = {
   alive: 'Ready',
   reconciling: 'Reconciling',
   error: 'Error',
+  pending: 'Pending',
   'not-found': 'Not Found',
 }
 

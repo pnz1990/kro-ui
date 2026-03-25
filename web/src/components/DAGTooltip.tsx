@@ -65,6 +65,7 @@ function stateClass(state: NodeLiveState): string {
     case 'alive':       return 'alive'
     case 'reconciling': return 'reconciling'
     case 'error':       return 'error'
+    case 'pending':     return 'pending'
     case 'not-found':   return 'notfound'
   }
 }
@@ -74,6 +75,7 @@ const STATE_LABEL: Record<NodeLiveState, string> = {
   alive: 'Alive',
   reconciling: 'Reconciling',
   error: 'Error',
+  pending: 'Pending',
   'not-found': 'Not found',
 }
 

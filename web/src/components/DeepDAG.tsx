@@ -494,6 +494,11 @@ export default function DeepDAG({
         anchorY={hoveredTooltip?.anchorY ?? 0}
         nodeWidth={hoveredTooltip?.nodeWidth ?? 0}
         nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
+        nodeState={
+          hoveredTooltip?.node
+            ? nodeStateForNode(hoveredTooltip.node, nodeStateMap)
+            : undefined
+        }
       />
     </div>
   )

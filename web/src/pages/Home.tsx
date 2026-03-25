@@ -1,9 +1,10 @@
-// Home — RGD cards grid. Fetches GET /api/v1/rgds on mount.
+// Overview — RGD cards grid with controller health metrics. Fetches GET /api/v1/rgds on mount.
 // Uses VirtualGrid for windowed rendering at 5,000+ RGDs.
 // Search input is debounced (300ms) to avoid per-keystroke filter churn.
 // FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
@@ -22,7 +23,7 @@ import './Home.css'
 const RGD_CARD_HEIGHT = 130
 
 export default function Home() {
-  usePageTitle('RGDs')
+  usePageTitle('Overview')
   const [items, setItems] = useState<K8sObject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -128,6 +129,13 @@ export default function Home() {
           >
             kro on GitHub
           </a>
+          <Link
+            to="/author"
+            className="home__empty-cta"
+            data-testid="home-new-rgd-link"
+          >
+            New RGD
+          </Link>
         </div>
       </div>
     )
@@ -137,9 +145,9 @@ export default function Home() {
       <MetricsStrip />
       <div className="home__header">
         <div className="home__heading-group">
-          <h1 className="home__heading">RGDs</h1>
+          <h1 className="home__heading">Overview</h1>
           <p className="home__tagline">
-            ResourceGraphDefinitions — kro observability dashboard
+            Controller and RGD health at a glance
           </p>
         </div>
         {!isLoading && error === null && (

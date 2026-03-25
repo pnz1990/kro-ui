@@ -13,6 +13,7 @@ import {
   generateInstanceYAML,
   generateBatchYAML,
   generateRGDYAML,
+  STARTER_RGD_STATE,
 } from '@/lib/generator'
 import type {
   InstanceFormState,
@@ -49,16 +50,6 @@ function buildInitialFormState(
     }
   })
   return { metadataName, fields }
-}
-
-/** Default starter state for RGD authoring. */
-const STARTER_RGD_STATE: RGDAuthoringState = {
-  rgdName: 'my-app',
-  kind: 'MyApp',
-  group: 'kro.run',
-  apiVersion: 'v1alpha1',
-  specFields: [],
-  resources: [{ _key: 'starter-web', id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
 }
 
 /**

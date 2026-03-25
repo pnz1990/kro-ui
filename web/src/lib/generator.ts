@@ -297,6 +297,23 @@ export function generateRGDYAML(state: RGDAuthoringState): string {
   return lines.join('\n')
 }
 
+// ── STARTER_RGD_STATE ─────────────────────────────────────────────────────
+
+/**
+ * Default starter state for RGD authoring.
+ *
+ * Exported so both GenerateTab and AuthorPage share the same default
+ * without duplicating the constant (spec 039-rgd-authoring-entrypoint).
+ */
+export const STARTER_RGD_STATE: RGDAuthoringState = {
+  rgdName: 'my-app',
+  kind: 'MyApp',
+  group: 'kro.run',
+  apiVersion: 'v1alpha1',
+  specFields: [],
+  resources: [{ _key: 'starter-web', id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
+}
+
 /** Build a SimpleSchema type string from an AuthoringField. */
 function buildSimpleSchemaStr(field: AuthoringField): string {
   const base = field.type || 'string'

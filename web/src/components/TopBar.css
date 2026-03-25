@@ -72,3 +72,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── New RGD CTA button ──────────────────────────────────────────────── */
+
+.top-bar__new-rgd-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  text-decoration: none;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition), opacity var(--transition);
+}
+
+.top-bar__new-rgd-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+.top-bar__new-rgd-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
