@@ -33,10 +33,14 @@ test.describe('Journey 040 — Per-context controller metrics', () => {
 
   test('Step 1: --metrics-url flag is absent from kro-ui CLI help', () => {
     // The flag was removed in v0.4.0 (spec 040). Verify it is gone.
-    const KRO_UI_BIN = process.env.KRO_UI_BIN ?? './kro-ui'
+    // KRO_UI_BIN must be an absolute path to the binary (set by the E2E harness).
+    // We validate it contains no shell metacharacters before passing to execSync.
+    const rawBin = process.env.KRO_UI_BIN ?? './kro-ui'
+    // Allow only safe characters: alphanumeric, dash, underscore, dot, slash.
+    const KRO_UI_BIN = /^[a-zA-Z0-9_./-]+$/.test(rawBin) ? rawBin : './kro-ui'
     let helpOutput = ''
     try {
-      helpOutput = execSync(`${KRO_UI_BIN} serve --help 2>&1`, { encoding: 'utf-8' })
+      helpOutput = execSync(`${KRO_UI_BIN} serve --help 2>&1`, { encoding: 'utf-8', shell: false })
     } catch (e: unknown) {
       // --help exits non-zero on some cobra versions; capture output regardless
       helpOutput = (e as { stdout?: string; stderr?: string }).stdout ?? ''

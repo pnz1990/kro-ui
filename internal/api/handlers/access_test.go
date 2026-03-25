@@ -22,7 +22,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
@@ -134,7 +133,3 @@ func TestGetRGDAccess(t *testing.T) {
 		})
 	}
 }
-
-// Suppress unused import warning — metav1 is used in makeAccessRGD indirectly
-// through makeRGDObject which calls metav1 types.
-var _ = metav1.GetOptions{}
