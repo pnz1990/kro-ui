@@ -92,11 +92,20 @@ function edgePath(
   return `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`
 }
 
-function nodeBaseClass(node: DAGNode, isSelected: boolean, liveState?: NodeLiveState): string {
+function nodeBaseClass(
+  node: DAGNode,
+  isSelected: boolean,
+  liveState?: NodeLiveState,
+  overlayActive?: boolean,
+): string {
   const parts = [`dag-node dag-node--${node.nodeType}`]
   if (node.isConditional) parts.push('node-conditional')
   if (node.isChainable) parts.push('node-chainable')
-  if (liveState) parts.push(liveStateClass(liveState))
+  // When overlay is active, always push a live-state class for non-state nodes.
+  // liveStateClass(undefined) → 'dag-node-live--notfound' — this is intentional:
+  // a node absent from the children list should render as notfound, not unstyled.
+  // A plain `if (liveState)` guard would silently drop absent nodes (GH #165).
+  if (overlayActive && node.nodeType !== 'state') parts.push(liveStateClass(liveState))
   if (isSelected) parts.push('dag-node--selected')
   return parts.join(' ')
 }
@@ -332,7 +341,7 @@ export default function StaticChainDAG({
             const liveState = nodeStateMap && node.nodeType !== 'state'
               ? nodeStateForNode(node, nodeStateMap)
               : undefined
-            const className = nodeBaseClass(node, isSelected, liveState)
+            const className = nodeBaseClass(node, isSelected, liveState, !!nodeStateMap)
 
             const isExpanded = expandedNodes.has(node.id)
             const canExpand = node.isChainable && depth < MAX_DEPTH

@@ -99,15 +99,28 @@ function nodeBaseClass(
   node: DAGNode,
   isSelected: boolean,
   liveState?: NodeLiveState,   // ← new optional param
+  nodeStateMap?: NodeStateMap, // ← needed for the overlay-active guard
 ): string {
   const parts = [`dag-node dag-node--${node.nodeType}`]
   if (node.isConditional) parts.push('node-conditional')
   if (node.isChainable) parts.push('node-chainable')
-  if (liveState) parts.push(liveStateClass(liveState))  // ← new
+  // ⚠️ MUST use overlay-active guard, NOT a liveState truthy guard.
+  // liveStateClass(undefined) → 'dag-node-live--notfound', which is correct
+  // for nodes absent from children. The truthy guard `if (liveState)` silently
+  // drops not-found nodes (GH #165 Bug 1).
+  if (nodeStateMap && node.nodeType !== 'state') {
+    parts.push(liveStateClass(liveState))
+  }
   if (isSelected) parts.push('dag-node--selected')
   return parts.join(' ')
 }
 ```
+
+**Note**: An alternative (and cleaner) approach is to resolve the liveState
+upstream and pass the computed class string rather than threading `nodeStateMap`
+into `nodeBaseClass`. The critical invariant is: when `nodeStateMap` is provided
+and `node.nodeType !== 'state'`, `liveStateClass(liveState)` MUST always be
+called — even when `liveState` is `undefined`.
 
 ---
 
@@ -249,5 +262,71 @@ export function nodeStateForNode(
 |------|-------------|
 | `PickerItem.namespace` may be empty string for cluster-scoped resources | Render as just `<name>` in picker option, not `/<name>` |
 | `overlayKey` format is always `<ns>/<name>` | Parse by first `/` split to extract namespace/name for API calls |
-| `nodeStateMap` for `'state'` nodeType — state nodes are never overlaid | `nodeStateForNode` skips them (they won't appear in children); `nodeBaseClass` only appends live class when `liveState` is truthy |
-| Empty `stateMap` → `undefined` from `nodeStateForNode` for non-instance nodes | No live class appended; nodes keep their base style |
+| `nodeStateMap` for `'state'` nodeType — state nodes are never overlaid | `nodeStateForNode` skips them; `nodeBaseClass` guard: `nodeStateMap && node.nodeType !== 'state'` |
+| When overlay active, ALL non-state nodes must receive a live-state CSS class | `nodeBaseClass` MUST call `liveStateClass(liveState)` unconditionally (not guarded by `if (liveState)`); `liveStateClass(undefined)` → `'dag-node-live--notfound'` |
+| `buildNodeStateMap` must cover all RGD nodes, not just observed children | Pass `rgdNodes: DAGNode[]` as third arg; pre-enumerate and emit `'not-found'` for absent kinds |
+
+---
+
+## 9. `buildNodeStateMap` updated signature
+
+```typescript
+// web/src/lib/instanceNodeState.ts
+
+/**
+ * Builds a NodeStateMap for the overlay from a live instance and its children.
+ *
+ * CHANGED (GH #165): added `rgdNodes` third parameter.
+ * Pre-enumerates all non-state RGD nodes and emits explicit 'not-found' entries
+ * for nodes absent from the children list. This guarantees every non-state node
+ * receives a live-state CSS class when the overlay is active.
+ */
+export function buildNodeStateMap(
+  instance: K8sObject,
+  children: K8sObject[],
+  rgdNodes: DAGNode[],  // ← NEW — all nodes from the parsed DAG graph
+): NodeStateMap {
+  const result: NodeStateMap = {}
+
+  // 1. Root CR entry
+  const conditions = (instance.status?.conditions ?? []) as Array<{
+    type: string; status: string
+  }>
+  const progressing = conditions.find((c) => c.type === 'Progressing')
+  const ready = conditions.find((c) => c.type === 'Ready')
+  let rootState: NodeLiveState = 'alive'
+  if (progressing?.status === 'True') rootState = 'reconciling'
+  else if (ready?.status === 'False') rootState = 'error'
+  result['schema'] = { state: rootState }
+
+  // 2. Build presence map from children
+  const presenceMap = new Map<string, NodeLiveState>()
+  for (const child of children) {
+    const kind = child.kind
+      ?? (child.metadata?.labels?.['kro.run/resource-id'])
+    if (!kind) continue
+    const key = kind.toLowerCase()
+    const state: NodeLiveState =
+      child.metadata?.deletionTimestamp ? 'reconciling' : 'alive'
+    if (!presenceMap.has(key)) presenceMap.set(key, state)
+  }
+
+  // 3. Enumerate every non-state, non-instance RGD node
+  for (const node of rgdNodes) {
+    if (node.nodeType === 'instance' || node.nodeType === 'state') continue
+    const kindKey = (node.kind || node.label).toLowerCase()
+    result[kindKey] = { state: presenceMap.get(kindKey) ?? 'not-found' }
+  }
+
+  return result
+}
+```
+
+**Call site** (in `RGDDetail.tsx`) must be updated:
+```typescript
+// Before:
+setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items ?? []))
+
+// After:
+setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items ?? [], dagGraph?.nodes ?? []))
+```
