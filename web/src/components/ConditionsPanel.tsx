@@ -4,8 +4,10 @@
 // Updates on every poll cycle via props.
 //
 // spec 028: "Not reported" empty state, summary header, absent-field omission.
+// spec 028 US5: negation-polarity conditions counted correctly via isHealthyCondition.
 
 import type { K8sObject } from '@/lib/api'
+import { isHealthyCondition } from '@/lib/conditions'
 import './ConditionsPanel.css'
 
 interface ConditionsPanelProps {
@@ -76,12 +78,12 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
     )
   }
 
-  const trueCount = conditions.filter((c) => c.status === 'True').length
+  const trueCount = conditions.filter((c) => isHealthyCondition(c.type, c.status)).length
 
   return (
     <div data-testid="conditions-panel" className="conditions-panel">
       <div className="panel-heading">Conditions</div>
-      <div className="conditions-summary">
+      <div data-testid="conditions-summary" className="conditions-summary">
         {trueCount} / {conditions.length} conditions healthy
       </div>
       <div className="conditions-list">

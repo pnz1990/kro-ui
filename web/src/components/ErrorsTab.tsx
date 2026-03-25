@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listInstances } from '@/lib/api'
 import type { K8sObject } from '@/lib/api'
-import { rewriteConditionMessage } from '@/lib/conditions'
+import { rewriteConditionMessage, isHealthyCondition } from '@/lib/conditions'
 import './ErrorsTab.css'
 
 // ── Internal types ────────────────────────────────────────────────────────
@@ -71,6 +71,9 @@ export function groupErrorPatterns(instances: K8sObject[]): ErrorGroup[] {
     for (const raw of rawConditions) {
       const c = raw as K8sCondition
       if (c.status !== 'False') continue
+      // Skip conditions that are healthy per negation-polarity rules
+      // (e.g. ReconciliationSuspended=False is healthy, not an error).
+      if (isHealthyCondition(c.type ?? '', c.status)) continue
       if (!c.type) continue
 
       const key = c.type + '/' + (c.reason ?? '')

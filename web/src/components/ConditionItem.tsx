@@ -7,10 +7,15 @@
 // Issue #103: known kro internal error patterns are rewritten into plain-English
 // summaries; the raw Go error chain is available via a "Show raw" toggle.
 //
+// Issue #171: negation-polarity conditions (e.g. ReconciliationSuspended) render
+// as healthy when status="False". The status span carries a title tooltip explaining
+// the inversion to operators.
+//
 // Spec: .specify/specs/017-rgd-validation-linting/ FR-002, FR-003
+// Spec: .specify/specs/028-instance-health-rollup/ US5 FR-012
 
 import { useState } from 'react'
-import { rewriteConditionMessage } from '@/lib/conditions'
+import { rewriteConditionMessage, isHealthyCondition, NEGATION_POLARITY_CONDITIONS } from '@/lib/conditions'
 
 /** Maximum message length before truncation. */
 const MESSAGE_PREVIEW_LEN = 200
@@ -107,26 +112,35 @@ export default function ConditionItem({ condition, label, isAbsent }: ConditionI
   let statusIcon: string
   let statusLabel: string
 
-  if (status === 'True') {
+  const isHealthy = isHealthyCondition(condition.type, status)
+
+  if (isHealthy) {
     statusClass = 'condition-item--true'
     statusIcon = '✓'
     statusLabel = 'Passed'
-  } else if (status === 'False') {
-    statusClass = 'condition-item--false'
-    statusIcon = '✗'
-    statusLabel = 'Failed'
-  } else {
+  } else if (status === 'Unknown') {
     statusClass = 'condition-item--pending'
     statusIcon = '○'
     statusLabel = 'Pending'
+  } else {
+    statusClass = 'condition-item--false'
+    statusIcon = '✗'
+    statusLabel = 'Failed'
   }
+
+  // Negation-polarity: when status="False" is the healthy value, add a tooltip
+  // so operators understand why the row shows green despite saying "False".
+  const isNegationPolarity = NEGATION_POLARITY_CONDITIONS.has(condition.type) && status === 'False'
+  const negationTitle = isNegationPolarity
+    ? 'False is the healthy value for this condition — reconciliation is running normally'
+    : undefined
 
   return (
     <div className={`condition-item ${statusClass}`} data-testid={`condition-item-${condition.type}`}>
       <div className="condition-item__header">
         <span className="condition-item__icon" aria-hidden="true">{statusIcon}</span>
         <span className="condition-item__label">{label}</span>
-        <span className="condition-item__status-label">{statusLabel}</span>
+        <span className="condition-item__status-label" title={negationTitle}>{statusLabel}</span>
         {condition.reason && (
           <span className="condition-item__reason">{condition.reason}</span>
         )}
@@ -171,7 +185,7 @@ export default function ConditionItem({ condition, label, isAbsent }: ConditionI
         </div>
       )}
 
-      {!rawMessage && status !== 'True' && (
+      {!rawMessage && !isHealthy && (
         <div className="condition-item__message">
           <span className="condition-item__pending-hint">
             Awaiting controller processing
