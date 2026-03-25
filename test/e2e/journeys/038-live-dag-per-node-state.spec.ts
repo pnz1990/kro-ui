@@ -33,9 +33,10 @@ test.describe('Journey 038 — Live DAG per-node state', () => {
   test('Step 1: live DAG nodes have a live-state CSS class after first poll', async ({ page }) => {
     // Navigate to the test-instance detail page.
     await page.goto(`${BASE}/rgds/test-app?tab=instances`)
-    const rows = page.locator('[data-testid="instance-table-row"]')
-    await expect(rows.first()).toBeVisible({ timeout: 10_000 })
-    await rows.first().click()
+    // The instance table uses testid instance-row-<name> — wait for any row.
+    const firstRow = page.locator('[data-testid^="instance-row-"]').first()
+    await expect(firstRow).toBeVisible({ timeout: 10_000 })
+    await firstRow.click()
 
     // Wait for the live DAG to render and poll.
     const dagSvg = page.locator('[data-testid="dag-svg"]').first()
@@ -54,9 +55,9 @@ test.describe('Journey 038 — Live DAG per-node state', () => {
 
   test('Step 2: root schema node receives a live-state class', async ({ page }) => {
     await page.goto(`${BASE}/rgds/test-app?tab=instances`)
-    const rows = page.locator('[data-testid="instance-table-row"]')
-    await expect(rows.first()).toBeVisible({ timeout: 10_000 })
-    await rows.first().click()
+    const firstRow = page.locator('[data-testid^="instance-row-"]').first()
+    await expect(firstRow).toBeVisible({ timeout: 10_000 })
+    await firstRow.click()
 
     await page.waitForSelector('[class*="dag-node-live--"]', { timeout: 15_000 })
 

@@ -108,25 +108,27 @@ test.describe('Journey 007 — Context Switcher', () => {
     const dropdown = page.getByTestId('context-dropdown')
     await expect(dropdown).toBeVisible()
 
-    // Find a non-active, non-long-name option to avoid truncation issues
+    // Find a non-active option. Read its `data-context` or `title` attribute
+    // (not textContent) to avoid mismatches when the name is truncated in the label.
     const nonActiveOption = dropdown.locator(
       '[role="option"]:not(.context-switcher__option--active)',
     ).first()
     await expect(nonActiveOption).toBeVisible()
-    const switchedToName = await nonActiveOption.textContent()
+    // Use title attribute of the option for reliable comparison with the top-bar label
+    const switchedToTitle = await nonActiveOption.getAttribute('title') ?? await nonActiveOption.textContent()
     await nonActiveOption.click()
 
-    // Dropdown should close and top bar should update to the switched context
+    // Dropdown should close and top bar should update to the switched context.
     await expect(dropdown).not.toBeVisible()
-    // The displayed name may be truncated, so check the title attribute instead
+    // The displayed name may be truncated, so check the title attribute instead.
     const contextLabel = page.getByTestId('context-name')
-    await expect(contextLabel).toHaveAttribute('title', switchedToName?.trim() ?? '')
+    await expect(contextLabel).toHaveAttribute('title', switchedToTitle?.trim() ?? '')
 
     // RGD card should still be visible after context switch
-    // (all test contexts point at the same cluster, so the same RGD is returned)
+    // (all test contexts point at the same cluster, so the same RGD is returned).
     await expect(rgdCard).toBeVisible()
 
-    // URL remains / — no navigation occurred
+    // URL is / — navigate('/') from handleSwitch is idempotent when already on /.
     expect(page.url()).toBe(`${BASE}/`)
   })
 
