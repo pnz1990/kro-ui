@@ -65,7 +65,6 @@ export interface StaticChainDAGProps {
 
 // ── Layout constants ──────────────────────────────────────────────────────
 
-const PADDING = 32
 const NESTED_HEADER_HEIGHT = 32
 const NESTED_PADDING_BOTTOM = 8
 const NESTED_MIN_WIDTH = 280
@@ -74,11 +73,6 @@ const AFFORDANCE_HEIGHT = 20
 const MAX_DEPTH = 4
 
 // ── Helpers ───────────────────────────────────────────────────────────────
-
-function fittedHeight(nodes: DAGNode[], fallback: number): number {
-  if (nodes.length === 0) return fallback
-  return Math.max(...nodes.map((n) => n.y + n.height)) + PADDING
-}
 
 function edgePath(
   from: { x: number; y: number; width: number; height: number },
@@ -272,7 +266,12 @@ export default function StaticChainDAG({
   )
 
   // ── SVG height accounting for expanded subgraphs ─────────────────────
-  const baseHeight = fittedHeight(graph.nodes, graph.height)
+  // Use graph.height directly — this is the authoritative height from the
+  // Dagre layout and is stable across re-renders. Do NOT recompute from
+  // graph.nodes[*].y because that produces the same value in theory but
+  // creates a dependency on mutable node coordinates that can be inflated
+  // by the DOM layout when InstanceOverlayBar is a flex sibling. Issue #183.
+  const baseHeight = graph.height
   // Sum the height of all expanded panels rather than taking the max.
   // When two nodes on the same DAG row are both expanded, their panels are
   // both rendered below that row — we need space for all of them, not just
