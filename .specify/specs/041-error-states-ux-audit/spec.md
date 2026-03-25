@@ -3,7 +3,7 @@
 **GH Issue**: #187  
 **Type**: UX Enhancement + Bug Fix  
 **Scope**: Frontend only — `web/src/`  
-**Status**: In progress
+**Status**: Merged (PR #208)
 
 ---
 
