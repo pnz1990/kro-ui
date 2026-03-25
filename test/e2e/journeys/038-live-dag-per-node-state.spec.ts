@@ -53,20 +53,27 @@ test.describe('Journey 038 — Live DAG per-node state', () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test('Step 2: root schema node receives a live-state class', async ({ page }) => {
+  test('Step 2: multiple nodes (not just one) receive live-state classes', async ({ page }) => {
+    // This confirms both the root CR and at least one resource node are coloured —
+    // the core requirement of spec 038 (previously only the root CR was coloured).
     await page.goto(`${BASE}/rgds/test-app?tab=instances`)
     const firstRow = page.locator('[data-testid^="instance-row-"]').first()
     await expect(firstRow).toBeVisible({ timeout: 10_000 })
     await firstRow.click()
 
-    // Wait for ANY live-state node to appear (confirms polling completed).
-    await page.waitForSelector('[class*="dag-node-live--"]', { timeout: 15_000 })
+    // Wait for the live DAG to render.
+    const dagSvg = page.locator('[data-testid="dag-svg"]').first()
+    await expect(dagSvg).toBeVisible({ timeout: 10_000 })
 
-    // The schema node (root CR) has nodeType 'instance'. Its live-state class
-    // is derived from status.conditions — wait for it to appear explicitly.
-    const schemaNode = page.locator('[data-testid="dag-node-schema"]')
-    await expect(schemaNode).toBeVisible({ timeout: 5_000 })
-    // Wait for the live-state class to be applied to this specific node.
-    await expect(schemaNode).toHaveClass(/dag-node-live--/, { timeout: 10_000 })
+    // Wait for at least 2 nodes to have live-state classes.
+    // Before spec 038 only 1 node (the root CR) had a live-state class.
+    // After spec 038, all managed resource nodes are also coloured.
+    await page.waitForFunction(
+      () => document.querySelectorAll('[class*="dag-node-live--"]').length >= 2,
+      undefined,
+      { timeout: 15_000 }
+    )
+    const liveNodeCount = await page.locator('[class*="dag-node-live--"]').count()
+    expect(liveNodeCount).toBeGreaterThanOrEqual(2)
   })
 })
