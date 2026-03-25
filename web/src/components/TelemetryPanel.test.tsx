@@ -206,6 +206,46 @@ describe('TelemetryPanel (T007 — component render)', () => {
     const panel = screen.getByRole('status', { name: 'Instance telemetry' })
     expect(panel).toBeInTheDocument()
   })
+
+  // T018: FR-010 — Children cell carries a title explaining the denominator source.
+  it('children cell title attribute describes label-search count (singular)', () => {
+    const map = makeNodeStateMap([{ kind: 'Deployment', state: 'alive' }])
+    render(
+      <TelemetryPanel instance={emptyInstance} nodeStateMap={map} events={emptyEvents} />,
+    )
+    const cell = screen.getByTestId('telemetry-cell-children')
+    expect(cell).toHaveAttribute(
+      'title',
+      '1 child Kubernetes object found via kro.run/instance-name label',
+    )
+  })
+
+  it('children cell title attribute describes label-search count (plural)', () => {
+    const map = makeNodeStateMap([
+      { kind: 'Deployment', state: 'alive' },
+      { kind: 'Service', state: 'alive' },
+      { kind: 'ConfigMap', state: 'error' },
+    ])
+    render(
+      <TelemetryPanel instance={emptyInstance} nodeStateMap={map} events={emptyEvents} />,
+    )
+    const cell = screen.getByTestId('telemetry-cell-children')
+    expect(cell).toHaveAttribute(
+      'title',
+      '3 child Kubernetes objects found via kro.run/instance-name label',
+    )
+  })
+
+  it('children cell title attribute uses "0 objects" when map is empty', () => {
+    render(
+      <TelemetryPanel instance={emptyInstance} nodeStateMap={{}} events={emptyEvents} />,
+    )
+    const cell = screen.getByTestId('telemetry-cell-children')
+    expect(cell).toHaveAttribute(
+      'title',
+      '0 child Kubernetes objects found via kro.run/instance-name label',
+    )
+  })
 })
 
 // ── T009: Timer tests (US3 — live ticking, no memory leaks) ──────────────

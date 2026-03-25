@@ -4,7 +4,7 @@
 // All data is derived from props — no API calls are made by this component.
 // A 1s setInterval keeps Age and Time-in-state cells current between poll cycles.
 //
-// Implements spec 027-instance-telemetry-panel FR-001 through FR-009.
+// Implements spec 027-instance-telemetry-panel FR-001 through FR-010.
 
 import { useState, useEffect } from 'react'
 import type { K8sObject, K8sList } from '@/lib/api'
@@ -36,15 +36,17 @@ interface MetricCellProps {
   /** Optional CSS modifier class for the value element (e.g. 'alive', 'error'). */
   colorModifier?: 'alive' | 'error' | 'warning' | 'muted'
   testId?: string
+  /** Optional tooltip surfaced on hover via the native title attribute. */
+  title?: string
 }
 
-function MetricCell({ label, value, colorModifier, testId }: MetricCellProps) {
+function MetricCell({ label, value, colorModifier, testId, title }: MetricCellProps) {
   const valueClass = colorModifier
     ? `telemetry-panel__value telemetry-panel__value--${colorModifier}`
     : 'telemetry-panel__value'
 
   return (
-    <div className="telemetry-panel__cell" data-testid={testId ?? 'telemetry-cell'}>
+    <div className="telemetry-panel__cell" data-testid={testId ?? 'telemetry-cell'} title={title}>
       <span className={valueClass}>
         {value}
       </span>
@@ -83,12 +85,14 @@ export default function TelemetryPanel({ instance, nodeStateMap, events }: Telem
   const { healthy, total, hasError } = countHealthyChildren(nodeStateMap)
   const warningCount = countWarningEvents(events)
 
-  // ── Children cell: value string and color modifier ────────────────────
+  // ── Children cell: value string, color modifier, and tooltip ────────────
   // FR-005: --color-error when any child errored; --color-alive when all
   // healthy and total > 0; --color-text-muted when total === 0.
+  // FR-010: title attribute surfaces the data source (label-search count).
   const childrenValue = `${healthy}/${total}`
   const childrenColor: MetricCellProps['colorModifier'] =
     total === 0 ? 'muted' : hasError ? 'error' : 'alive'
+  const childrenTitle = `${total} child Kubernetes object${total === 1 ? '' : 's'} found via kro.run/instance-name label`
 
   // ── Warnings cell: value string and color modifier ────────────────────
   // FR-006: --color-status-warning when count > 0; --color-text-muted when 0.
@@ -116,6 +120,7 @@ export default function TelemetryPanel({ instance, nodeStateMap, events }: Telem
         label="Children"
         value={childrenValue}
         colorModifier={childrenColor}
+        title={childrenTitle}
         testId="telemetry-cell-children"
       />
       <MetricCell

@@ -52,10 +52,27 @@ panel appears above the DAG showing all 4 counters. Navigate to an instance with
    cell shows the elapsed time since `T` in the same kubectl format
 
 3. **Given** an instance with 3 children (2 alive, 1 error), **When** the panel
-   renders, **Then** the "Children" cell shows `2/3` with the fraction colored with
-   `--color-error` when any child is in error state, `--color-alive` when all healthy
+   renders, **Then** the "Children" cell shows `2/3` where the **numerator** is the
+   count of NodeStateMap entries with `state === 'alive'` or `state === 'reconciling'`,
+   and the **denominator** is the total count of NodeStateMap entries — i.e. the number
+   of Kubernetes objects discovered via the `kro.run/instance-name` label search, **not**
+   the count of resources defined in the RGD `spec.resources` array. The fraction is
+   colored with `--color-error` when any child is in error state, `--color-alive` when
+   all healthy.
 
-4. **Given** 5 events of which 2 are `type=Warning`, **When** the panel renders,
+   > **Note — denominator source**: The denominator reflects what kro actually labeled
+   > on the cluster, not how many resources the RGD defines. An RGD with 16 defined
+   > resources may produce only 1 labeled Kubernetes object (e.g. a Namespace), because
+   > kro only applies `kro.run/instance-name` to top-level managed objects, not to
+   > resources created inside a per-instance namespace. This is correct and expected
+   > behavior; the cell MUST NOT imply incompleteness.
+
+4. **Given** the "Children" cell is visible, the `<div>` for that cell MUST carry a
+   `title` attribute containing: `"N child Kubernetes object(s) found via
+   kro.run/instance-name label"` (where N is the denominator). This makes the data
+   source discoverable on hover without adding visual noise.
+
+5. **Given** 5 events of which 2 are `type=Warning`, **When** the panel renders,
    **Then** the "Warnings" cell shows `2` with `--color-status-warning` color;
    `0` warnings shows `0` with `--color-text-muted`
 
@@ -129,9 +146,17 @@ and observe the "Age" counter ticks up by 30.
   → `formatAge()`; falls back to "Not reported" if the Ready condition is absent
 - **FR-005**: "Children" cell: count `NodeStateMap` entries with `state === 'alive'`
   or `state === 'reconciling'` as the numerator (healthy); total
-  `Object.keys(nodeStateMap).length` as the denominator; color with `--color-error`
-  when any entry has `state === 'error'`, `--color-alive` when all healthy and
-  denominator > 0, `--color-text-muted` when denominator is zero
+  `Object.keys(nodeStateMap).length` as the denominator. The denominator represents
+  **Kubernetes objects discovered via the `kro.run/instance-name` label search** —
+  not the count of resources defined in the RGD `spec.resources` array. These are
+  different numbers; the spec is authoritative on which is used. Color with
+  `--color-error` when any entry has `state === 'error'`, `--color-alive` when all
+  healthy and denominator > 0, `--color-text-muted` when denominator is zero.
+- **FR-010**: "Children" cell MUST carry a `title` attribute on its root element
+  set to `"<N> child Kubernetes object(s) found via kro.run/instance-name label"`
+  where N is the denominator value. This surfaces the data source on hover without
+  adding visible UI noise. The `MetricCell` sub-component MUST accept an optional
+  `title` prop and forward it to its root `<div>`.
 - **FR-006**: "Warnings" cell: count events where `type === 'Warning'`; color with
   `--color-status-warning` when count > 0, `--color-text-muted` when 0
 - **FR-007**: Age counter ticks every second via a `setInterval` in a local
@@ -189,6 +214,7 @@ describe('extractTimeInState', () => {
 })
 
 describe('countHealthyChildren', () => {
+  // total = NodeStateMap size = label-search result count (NOT RGD spec.resources count)
   it('returns { healthy: N, total: M, hasError: false } when all alive')
   it('returns { healthy: 0, total: 0, hasError: false } for empty map')
   it('counts reconciling children as healthy')
@@ -217,6 +243,7 @@ it('shows healthy fraction with error color when any child errored')
 it('shows 0/0 when nodeStateMap is empty')
 it('shows warning count with warning color when > 0')
 it('shows 0 warnings with muted color when no warnings')
+it('children cell title attribute describes label-search count')
 ```
 
 ---
@@ -226,7 +253,10 @@ it('shows 0 warnings with muted color when no warnings')
 - **SC-001**: `TelemetryPanel` renders on the instance detail page with all 4 cells
 - **SC-002**: Age cell shows elapsed time from `creationTimestamp` and ticks every second
 - **SC-003**: Time in state cell shows elapsed time from `Ready.lastTransitionTime`
-- **SC-004**: Children cell shows healthy/total fraction, color-coded by health
+- **SC-004**: Children cell shows healthy/total fraction where the denominator is the
+  count of Kubernetes objects found via `kro.run/instance-name` label search (the
+  NodeStateMap size), color-coded by health; cell carries a `title` attribute
+  stating `"N child Kubernetes object(s) found via kro.run/instance-name label"`
 - **SC-005**: Warnings cell shows Warning event count, color-coded
 - **SC-006**: All "Not reported" / "—" fallbacks render correctly for absent data
 - **SC-007**: No additional API calls introduced by `TelemetryPanel`
