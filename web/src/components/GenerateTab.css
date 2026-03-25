@@ -87,3 +87,23 @@
     position: static;
   }
 }
+
+/* ── Designer hint link ──────────────────────────────────────────────────── */
+
+.generate-tab__designer-hint {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: auto;
+  padding-top: 16px;
+  text-align: center;
+}
+
+.generate-tab__designer-hint a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.generate-tab__designer-hint a:hover {
+  text-decoration: underline;
+}

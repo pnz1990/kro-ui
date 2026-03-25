@@ -1,27 +1,27 @@
 // GenerateTab.tsx — Top-level Generate tab for RGD detail page.
 //
-// Owns mode state (form / batch / rgd) and derived YAML for each mode.
+// Owns mode state (form / batch) and derived YAML for each mode.
 // Renders the active mode's input component + YAMLPreview side-by-side.
+//
+// The "New RGD" mode was removed in spec 042-rgd-designer-nav — use the
+// top-level /author route ("RGD Designer" in the nav) instead.
 //
 // Spec: .specify/specs/026-rgd-yaml-generator/ FR-001, FR-011, FR-012
 
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { buildSchemaDoc } from '@/lib/schema'
 import {
   kindToSlug,
   generateInstanceYAML,
   generateBatchYAML,
-  generateRGDYAML,
-  STARTER_RGD_STATE,
 } from '@/lib/generator'
 import type {
   InstanceFormState,
-  RGDAuthoringState,
 } from '@/lib/generator'
 import InstanceForm from '@/components/InstanceForm'
 import BatchForm from '@/components/BatchForm'
-import RGDAuthoringForm from '@/components/RGDAuthoringForm'
 import YAMLPreview from '@/components/YAMLPreview'
 import './GenerateTab.css'
 
@@ -29,7 +29,7 @@ export interface GenerateTabProps {
   rgd: K8sObject
 }
 
-type GenerateMode = 'form' | 'batch' | 'rgd'
+type GenerateMode = 'form' | 'batch'
 
 /** Build default InstanceFormState from a SchemaDoc. */
 function buildInitialFormState(
@@ -53,12 +53,11 @@ function buildInitialFormState(
 }
 
 /**
- * GenerateTab — three YAML generation modes on the RGD detail page.
+ * GenerateTab — two YAML generation modes on the RGD detail page.
  *
  * Modes:
- *   "form"  — per-field interactive instance form (US1)
- *   "batch" — textarea batch generator (US2)
- *   "rgd"   — guided RGD authoring scaffolder (US3)
+ *   "form"  — per-field interactive instance form
+ *   "batch" — textarea batch generator
  */
 export default function GenerateTab({ rgd }: GenerateTabProps) {
   const schema = useMemo(() => buildSchemaDoc(rgd), [rgd])
@@ -66,29 +65,23 @@ export default function GenerateTab({ rgd }: GenerateTabProps) {
   // ── Mode state ───────────────────────────────────────────────────────────
   const [mode, setMode] = useState<GenerateMode>('form')
 
-  // ── Form mode state (US1) ────────────────────────────────────────────────
+  // ── Form mode state ──────────────────────────────────────────────────────
   const [formState, setFormState] = useState<InstanceFormState>(() =>
     buildInitialFormState(schema),
   )
 
-  // ── Batch mode state (US2) ───────────────────────────────────────────────
+  // ── Batch mode state ─────────────────────────────────────────────────────
   const [batchText, setBatchText] = useState('')
   const { yaml: batchYaml, rows: batchRows } = useMemo(
     () => generateBatchYAML(batchText, schema),
     [batchText, schema],
   )
 
-  // ── RGD authoring state (US3) ────────────────────────────────────────────
-  const [rgdState, setRgdState] = useState<RGDAuthoringState>(STARTER_RGD_STATE)
-
   // ── Derived YAML for form mode ───────────────────────────────────────────
   const formYaml = useMemo(
     () => generateInstanceYAML(schema, formState),
     [schema, formState],
   )
-
-  // ── Derived YAML for RGD authoring ──────────────────────────────────────
-  const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
 
   return (
     <div className="generate-tab" data-testid="generate-tab">
@@ -112,15 +105,6 @@ export default function GenerateTab({ rgd }: GenerateTabProps) {
         >
           Batch
         </button>
-        <button
-          type="button"
-          data-testid="mode-btn-rgd"
-          className={`generate-tab__mode-btn${mode === 'rgd' ? ' generate-tab__mode-btn--active' : ''}`}
-          onClick={() => setMode('rgd')}
-          aria-pressed={mode === 'rgd'}
-        >
-          New RGD
-        </button>
       </div>
 
       {/* Two-column layout: input left, preview right */}
@@ -137,9 +121,10 @@ export default function GenerateTab({ rgd }: GenerateTabProps) {
               rows={batchRows}
             />
           )}
-          {mode === 'rgd' && (
-            <RGDAuthoringForm state={rgdState} onChange={setRgdState} />
-          )}
+          <p className="generate-tab__designer-hint">
+            Authoring a new RGD?{' '}
+            <Link to="/author">Open RGD Designer →</Link>
+          </p>
         </div>
 
         <div className="generate-tab__preview-pane">
@@ -148,9 +133,6 @@ export default function GenerateTab({ rgd }: GenerateTabProps) {
           )}
           {mode === 'batch' && (
             <YAMLPreview yaml={batchYaml} title="Batch Manifests" />
-          )}
-          {mode === 'rgd' && (
-            <YAMLPreview yaml={rgdYaml} title="ResourceGraphDefinition" />
           )}
         </div>
       </div>

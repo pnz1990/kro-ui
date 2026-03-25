@@ -222,7 +222,7 @@ export default function Catalog() {
                     <code>kubectl apply -f your-rgd.yaml</code>
                     {' '}or use the{' '}
                     <Link to="/author" data-testid="catalog-new-rgd-link">
-                      in-app authoring tool
+                      RGD Designer
                     </Link>.
                   </p>
                 </>

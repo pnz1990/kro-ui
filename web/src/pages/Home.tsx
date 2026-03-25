@@ -134,7 +134,7 @@ export default function Home() {
             className="home__empty-cta"
             data-testid="home-new-rgd-link"
           >
-            New RGD
+            Open RGD Designer
           </Link>
         </div>
       </div>
