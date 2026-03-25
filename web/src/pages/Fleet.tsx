@@ -14,6 +14,7 @@ import {
 } from '@/lib/api'
 import type { ClusterSummary, ControllerMetrics } from '@/lib/api'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { translateApiError } from '@/lib/errors'
 import ClusterCard from '@/components/ClusterCard'
 import FleetMatrix from '@/components/FleetMatrix'
 import SkeletonCard from '@/components/SkeletonCard'
@@ -231,7 +232,7 @@ export default function Fleet() {
 
       {!isLoading && error !== null && (
         <div className="fleet__error" role="alert">
-          <p className="fleet__error-message">{error}</p>
+          <p className="fleet__error-message">{translateApiError(error)}</p>
           <button className="fleet__retry-btn" onClick={fetchFleet}>
             Retry
           </button>
@@ -239,8 +240,8 @@ export default function Fleet() {
       )}
 
       {!isLoading && error === null && deduped.length === 0 && (
-        <div className="fleet__empty">
-          <p>No kubeconfig contexts found.</p>
+        <div className="fleet__empty" data-testid="fleet-empty">
+          <p>No kubeconfig contexts found. Mount a kubeconfig file and restart kro-ui, or check that your <code>~/.kube/config</code> contains at least one context.</p>
         </div>
       )}
 

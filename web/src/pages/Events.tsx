@@ -22,6 +22,7 @@ import {
 } from '@/lib/events'
 import type { KubeEvent } from '@/lib/events'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { translateApiError } from '@/lib/errors'
 import EventRow from '@/components/EventRow'
 import EventGroup from '@/components/EventGroup'
 import AnomalyBanner from '@/components/AnomalyBanner'
@@ -277,7 +278,10 @@ export default function Events() {
       {/* ── Error state ── */}
       {error && (
         <div className="events-page__error" role="alert" data-testid="events-error">
-          Failed to fetch events: {error}
+          <span>{translateApiError(error)}</span>
+          <button type="button" className="events-page__retry-btn" onClick={fetchAndMerge}>
+            Retry
+          </button>
         </div>
       )}
 

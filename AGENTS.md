@@ -370,6 +370,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 ## Active Technologies
 - Go 1.25 backend + TypeScript 5.x + React 19 + React Router v7 + Vite — no new npm or Go dependencies introduced since v0.2.1
 - All state is local React `useState`; no persistence layer; no state management libraries
+- TypeScript 5.x + React 19 + React Router v7, Vite (build only) — no new npm dependencies (041-error-states-ux-audit)
+- N/A — read-only observability UI (041-error-states-ux-audit)
 
 ## Recent Changes
 - v0.4.1: 9-issue bug-fix batch — breadcrumb rename (Overview), FieldTable scrollbar, OptimizationAdvisor layout, context-switch navigation, ValidationTab condition types (kro v0.4+), cluster-scoped Live YAML (Namespace/ClusterRole/PV), DAG tooltip hover persistence, DiscoverPlural discovery cache + Fleet errgroup fan-out + 5s server timeout, test coverage (access handler, 4 lib modules, 3 E2E journeys)

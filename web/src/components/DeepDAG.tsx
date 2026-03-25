@@ -23,6 +23,7 @@ import CollectionBadge from './CollectionBadge'
 import ExpandableNode from './ExpandableNode'
 import type { ExpandedNodeData } from './ExpandableNode'
 import DAGTooltip from './DAGTooltip'
+import DAGLegend from './DAGLegend'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import './LiveDAG.css'
 import './DeepDAG.css'
@@ -517,6 +518,7 @@ export default function DeepDAG({
         onTooltipMouseEnter={cancelTooltipHide}
         onTooltipMouseLeave={scheduleTooltipHide}
       />
+      <DAGLegend />
     </div>
   )
 }

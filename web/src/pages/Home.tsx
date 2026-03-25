@@ -12,6 +12,7 @@ import { matchesSearch } from '@/lib/catalog'
 import { isTerminating } from '@/lib/k8s'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
+import { translateApiError } from '@/lib/errors'
 import MetricsStrip from '@/components/MetricsStrip'
 import RGDCard from '@/components/RGDCard'
 import SearchBar from '@/components/SearchBar'
@@ -176,7 +177,7 @@ export default function Home() {
 
       {!isLoading && error !== null && (
         <div className="home__error" role="alert">
-          <p className="home__error-message">{error}</p>
+          <p className="home__error-message">{translateApiError(error)}</p>
           <button className="home__retry-btn" onClick={fetchRGDs}>
             Retry
           </button>

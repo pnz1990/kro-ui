@@ -11,6 +11,7 @@ import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
 import { formatAge } from '@/lib/format'
 import { toYaml } from '@/lib/yaml'
+import { translateApiError } from '@/lib/errors'
 import KroCodeBlock from './KroCodeBlock'
 import './CollectionPanel.css'
 
@@ -260,7 +261,18 @@ function ItemYamlView({ item, namespace, onBack }: ItemYamlViewProps) {
           </button>
         </div>
       ) : (
-        <div className="collection-yaml-error">Error: {viewState.message}</div>
+        <div className="collection-yaml-error" role="alert">
+          <div className="collection-yaml-error-msg">
+            {translateApiError(viewState.message ?? '')}
+          </div>
+          <button
+            type="button"
+            className="collection-yaml-retry-btn"
+            onClick={handleRetry}
+          >
+            Retry
+          </button>
+        </div>
       )}
     </div>
   )
@@ -400,14 +412,14 @@ export default function CollectionPanel({
           /* Legacy: kro < 0.8.0 — no kro.run/node-id labels */
           <div className="collection-legacy-notice">
             <span className="collection-legacy-icon" aria-hidden="true">⚠</span>
-            <span>Legacy collection — labels unavailable</span>
+            <span>Legacy collection — labels unavailable. kro &lt; 0.8.0 lacks <code>kro.run/node-id</code> labels — upgrade kro to enable collection drill-down.</span>
           </div>
         ) : items.length === 0 ? (
           <div
             data-testid="collection-empty-state"
             className="collection-empty-state"
           >
-            Empty collection — 0 resources
+            Empty collection. The forEach expression evaluated to an empty list. Check the forEach CEL expression above.
           </div>
         ) : (
           <div className="collection-table-wrapper">

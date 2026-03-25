@@ -32,6 +32,7 @@ import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
 import { extractInstanceHealth } from '@/lib/format'
 import { usePolling } from '@/hooks/usePolling'
 import { isTerminating, getDeletionTimestamp, getFinalizers } from '@/lib/k8s'
+import { translateApiError } from '@/lib/errors'
 import DeepDAG from '@/components/DeepDAG'
 import LiveNodeDetailPanel from '@/components/LiveNodeDetailPanel'
 import CollectionPanel from '@/components/CollectionPanel'
@@ -343,14 +344,19 @@ export default function InstanceDetail() {
       {/* Poll error (non-404) */}
       {pollError && !instanceGone && !pollLoading && (
         <div className="poll-error-banner" role="status">
-          Refresh paused — retrying in 10s
+          Refresh paused ({translateApiError(pollError)}) — retrying in 10s
         </div>
       )}
 
       {/* RGD error */}
       {rgdError && (
         <div className="instance-detail-error" role="alert">
-          Could not load RGD spec: {rgdError}
+          <p>{translateApiError(rgdError)} The RGD may have been deleted or renamed.</p>
+          {rgdName && (
+            <Link to={`/rgds/${rgdName}`} className="instance-detail-error__back-link">
+              ← Back to {rgdName}
+            </Link>
+          )}
         </div>
       )}
 
@@ -388,7 +394,13 @@ export default function InstanceDetail() {
                 />
               ) : (
                 <div className="instance-detail-dag-empty">
-                  No managed resources defined in this RGD.
+                  No managed resources defined in this RGD.{' '}
+                  {rgdName && (
+                    <Link to={`/rgds/${rgdName}`}>
+                      View the RGD&apos;s Graph tab
+                    </Link>
+                  )}{' '}
+                  to inspect the spec.
                 </div>
               )}
             </div>
@@ -401,7 +413,7 @@ export default function InstanceDetail() {
                 finalizers={getFinalizers(fastData.instance)}
                 defaultExpanded={isTerminating(fastData.instance)}
               />
-              <EventsPanel events={fastData.events} />
+              <EventsPanel events={fastData.events} namespace={namespace} />
             </div>
           </div>
         </>

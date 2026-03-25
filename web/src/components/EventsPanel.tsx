@@ -10,6 +10,8 @@ import './EventsPanel.css'
 
 interface EventsPanelProps {
   events: K8sList | null
+  /** Instance namespace — used in the "No events" help text's kubectl command. */
+  namespace?: string
 }
 
 interface K8sEvent {
@@ -57,18 +59,25 @@ function typeClass(type: string | undefined): string {
  *
  * Spec: .specify/specs/005-instance-detail-live/ US3 acceptance 3-4
  */
-export default function EventsPanel({ events }: EventsPanelProps) {
+export default function EventsPanel({ events, namespace }: EventsPanelProps) {
   const items: K8sEvent[] = events?.items
     ? [...events.items as K8sEvent[]].sort(
         (a, b) => getEventTimestamp(b) - getEventTimestamp(a),
       )
     : []
 
+  const kubectlCmd = namespace
+    ? `kubectl get events -n ${namespace}`
+    : 'kubectl get events'
+
   return (
     <div data-testid="events-panel" className="events-panel">
       <div className="panel-heading">Events</div>
       {items.length === 0 ? (
-        <div className="panel-empty">No events.</div>
+        <div className="panel-empty" data-testid="events-panel-empty">
+          No events found. Kubernetes events expire after ~1 hour —{' '}
+          run <code>{kubectlCmd}</code> to check for recent activity.
+        </div>
       ) : (
         <div className="events-list">
           {items.map((ev, i) => {
@@ -80,7 +89,10 @@ export default function EventsPanel({ events }: EventsPanelProps) {
               <div key={key} className={`event-row${isDeletion ? ' event-row--deletion' : ''}`}>
                 <div className="event-header">
                   {isDeletion && (
-                    <span className="event-deletion-tag" aria-label="deletion event">⊘</span>
+                    <span className="event-deletion-tag" aria-label="deletion event">
+                      <span aria-hidden="true">⊘</span>
+                      {' '}Deletion
+                    </span>
                   )}
                   {ev.type && (
                     <span className={`event-type ${typeClass(ev.type)}`}>

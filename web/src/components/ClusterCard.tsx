@@ -37,11 +37,15 @@ export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
             <span className="cluster-card__cluster">{cluster}</span>
           )}
         </div>
-        <span
-          className={`cluster-card__health-dot cluster-card__health-dot--${health}`}
-          aria-label={`Health: ${health}`}
-          title={healthLabel(health, degradedInstances)}
-        />
+        <div className="cluster-card__health">
+          <span
+            className={`cluster-card__health-dot cluster-card__health-dot--${health}`}
+            aria-hidden="true"
+          />
+          <span className="cluster-card__health-label">
+            {healthLabel(health, degradedInstances)}
+          </span>
+        </div>
       </div>
 
       <div className="cluster-card__body">

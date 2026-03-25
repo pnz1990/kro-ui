@@ -306,7 +306,7 @@ describe('Catalog', () => {
     renderCatalog()
 
     await waitFor(() => {
-      expect(screen.getByText('connection refused')).toBeInTheDocument()
+      expect(screen.getByText(/Cannot reach the Kubernetes API server/)).toBeInTheDocument()
     })
 
     expect(screen.getByText('Retry')).toBeInTheDocument()

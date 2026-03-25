@@ -1,5 +1,6 @@
 import type { ClusterSummary } from '@/lib/api'
 import { abbreviateContext } from '@/lib/format'
+import { Link } from 'react-router-dom'
 import './FleetMatrix.css'
 
 // RGDPresence represents a single cell in the matrix.
@@ -43,14 +44,32 @@ export default function FleetMatrix({ clusters, rgdsByContext }: FleetMatrixProp
 
   if (kinds.length === 0) {
     return (
-      <div className="fleet-matrix fleet-matrix--empty">
-        <span className="fleet-matrix__empty-text">No RGDs found across any cluster.</span>
+      <div className="fleet-matrix fleet-matrix--empty" data-testid="fleet-matrix-empty">
+        <span className="fleet-matrix__empty-text">
+          No ResourceGraphDefinitions found. Apply an RGD to any connected cluster to see it here.
+        </span>
+        {' '}
+        <Link to="/author">Create your first RGD →</Link>
       </div>
     )
   }
 
   return (
     <div className="fleet-matrix" role="region" aria-label="RGD presence matrix">
+      <div className="fleet-matrix__legend" aria-label="Matrix legend">
+        <span className="fleet-matrix__legend-entry">
+          <span className="fleet-matrix__dot fleet-matrix__dot--present" aria-hidden="true" />
+          Present
+        </span>
+        <span className="fleet-matrix__legend-entry">
+          <span className="fleet-matrix__dot fleet-matrix__dot--degraded" aria-hidden="true" />
+          Degraded
+        </span>
+        <span className="fleet-matrix__legend-entry">
+          <span className="fleet-matrix__absent-dash" aria-hidden="true">–</span>
+          Absent
+        </span>
+      </div>
       <div className="fleet-matrix__scroll">
         <table className="fleet-matrix__table">
           <thead>
