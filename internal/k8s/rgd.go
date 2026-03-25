@@ -187,10 +187,6 @@ func ListChildResources(ctx context.Context, clients K8sClients, instanceName st
 	// Cluster-scoped resources (Namespace, ClusterRole, PV, etc.) must be listed
 	// without .Namespace() — using .Namespace("") on a cluster-scoped resource
 	// routes through the wrong API path and produces intermittent failures. Issue #202.
-	type gvrEntry struct {
-		gvr        schema.GroupVersionResource
-		namespaced bool
-	}
 	var gvrs []gvrEntry
 	for _, apiList := range apiLists {
 		gv, err := schema.ParseGroupVersion(apiList.GroupVersion)
@@ -212,16 +208,140 @@ func ListChildResources(ctx context.Context, clients K8sClients, instanceName st
 		}
 	}
 
-	// Fan out concurrently — one goroutine per GVR, each with a 2s deadline.
-	// Search cluster-wide (empty namespace) so children in per-instance namespaces
-	// are included. Constitution §XI: fan-out list operations MUST use concurrency
-	// with a per-resource timeout of 2 seconds.
+	return listWithLabelSelector(ctx, log, clients.Dynamic(), gvrs, labelSelector)
+}
+
+// gvrEntry carries a GVR and whether the resource is namespace-scoped.
+type gvrEntry struct {
+	gvr        schema.GroupVersionResource
+	namespaced bool
+}
+
+// rgdResourceGVRs extracts the set of GVRs for resources declared in an RGD's
+// spec.resources[].template.{apiVersion,kind}. This allows ListChildResources
+// to fan out only to the specific resource types the RGD manages rather than
+// scanning all ~90+ API resource types — critical on large clusters (EKS) where
+// a full fan-out causes throttling and intermittent 2s timeouts.
+//
+// Resources whose template apiVersion or kind is empty/invalid are skipped.
+// The Namespaced flag is resolved via DiscoverPlural (cached). If discovery
+// fails for a given kind, the resource is included with namespaced=true as a
+// safe default (cluster-scoped resources have no namespace, so we use
+// .Namespace("").List() which returns an empty list for cluster-scoped types
+// rather than an error).
+func rgdResourceGVRs(ctx context.Context, clients K8sClients, rgd map[string]any) []gvrEntry {
+	log := zerolog.Ctx(ctx)
+	resources, ok := rgd["spec"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	resList, ok := resources["resources"].([]any)
+	if !ok {
+		return nil
+	}
+
+	seen := make(map[schema.GroupVersionResource]bool)
+	var entries []gvrEntry
+
+	for _, r := range resList {
+		res, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		tmpl, ok := res["template"].(map[string]any)
+		if !ok {
+			continue
+		}
+		rawAPIVersion, _ := tmpl["apiVersion"].(string)
+		rawKind, _ := tmpl["kind"].(string)
+		if rawAPIVersion == "" || rawKind == "" {
+			continue
+		}
+
+		gv, err := schema.ParseGroupVersion(rawAPIVersion)
+		if err != nil {
+			continue
+		}
+
+		plural, err := DiscoverPlural(clients, gv.Group, gv.Version, rawKind)
+		if err != nil {
+			// Discovery failed — fall back to naive plural and assume namespaced.
+			plural = strings.ToLower(rawKind) + "s"
+			log.Debug().Err(err).Str("kind", rawKind).Msg("DiscoverPlural failed for RGD resource; using naive plural")
+		}
+
+		gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: plural}
+		if seen[gvr] {
+			continue // deduplicate (e.g. two ConfigMaps in the same RGD)
+		}
+		seen[gvr] = true
+
+		// Determine Namespaced flag from discovery cache.
+		namespaced := true // default: treat as namespaced (safer)
+		if apiLists, err := clients.CachedServerGroupsAndResources(); err == nil {
+			gvStr := rawAPIVersion
+			for _, apiList := range apiLists {
+				if apiList.GroupVersion != gvStr {
+					continue
+				}
+				for _, res := range apiList.APIResources {
+					if strings.EqualFold(res.Kind, rawKind) {
+						namespaced = res.Namespaced
+						break
+					}
+				}
+			}
+		}
+
+		entries = append(entries, gvrEntry{gvr: gvr, namespaced: namespaced})
+	}
+	return entries
+}
+
+// ListChildResourcesForRGD is like ListChildResources but scopes the fan-out to
+// only the resource types declared in the named RGD's spec.resources[].template.
+// This avoids throttling on large clusters (EKS, GKE) where a full discovery
+// fan-out across 90+ GVRs causes intermittent 2s timeouts for custom-resource
+// types. When rgdName is empty or the RGD cannot be fetched, it falls back to
+// the full discovery fan-out via ListChildResources.
+func ListChildResourcesForRGD(ctx context.Context, clients K8sClients, instanceName, rgdName string) ([]map[string]any, error) {
+	log := zerolog.Ctx(ctx)
+
+	if rgdName != "" {
+		rgdGVR := schema.GroupVersionResource{Group: KroGroup, Version: "v1alpha1", Resource: RGDResource}
+		rgdObj, err := clients.Dynamic().Resource(rgdGVR).Get(ctx, rgdName, metav1.GetOptions{})
+		if err == nil {
+			gvrs := rgdResourceGVRs(ctx, clients, rgdObj.Object)
+			if len(gvrs) > 0 {
+				log.Debug().
+					Str("rgd", rgdName).
+					Int("gvrs", len(gvrs)).
+					Msg("using RGD-scoped child listing")
+				labelSelector := fmt.Sprintf("kro.run/instance-name=%s", instanceName)
+				return listWithLabelSelector(ctx, log, clients.Dynamic(), gvrs, labelSelector)
+			}
+		} else {
+			log.Debug().Err(err).Str("rgd", rgdName).Msg("could not fetch RGD for scoped listing; falling back to full discovery")
+		}
+	}
+
+	return ListChildResources(ctx, clients, instanceName)
+}
+
+// listWithLabelSelector fans out concurrent List calls for the given GVRs and
+// label selector. Each goroutine has a perResourceTimeout deadline.
+func listWithLabelSelector(
+	ctx context.Context,
+	log *zerolog.Logger,
+	dyn dynamic.Interface,
+	gvrs []gvrEntry,
+	labelSelector string,
+) ([]map[string]any, error) {
 	var (
 		mu      sync.Mutex
 		results []map[string]any
 	)
 
-	dyn := clients.Dynamic()
 	var wg sync.WaitGroup
 	wg.Add(len(gvrs))
 

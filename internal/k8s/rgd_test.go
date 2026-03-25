@@ -718,3 +718,282 @@ func TestListChildResources(t *testing.T) {
 		})
 	}
 }
+
+// makeRGDObject builds a minimal RGD unstructured object for testing.
+func makeRGDObject(name string, resources []map[string]any) *unstructured.Unstructured {
+	resList := make([]any, len(resources))
+	for i, r := range resources {
+		resList[i] = r
+	}
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "kro.run/v1alpha1",
+		"kind":       "ResourceGraphDefinition",
+		"metadata":   map[string]any{"name": name},
+		"spec": map[string]any{
+			"schema": map[string]any{
+				"kind": "WebApp", "apiVersion": "v1alpha1", "group": "e2e.kro-ui.dev",
+			},
+			"resources": resList,
+		},
+	}}
+}
+
+func TestRGDResourceGVRs(t *testing.T) {
+	tests := []struct {
+		name  string
+		build func(t *testing.T) (K8sClients, map[string]any)
+		check func(t *testing.T, entries []gvrEntry)
+	}{
+		{
+			name: "extracts GVR for a single namespaced resource",
+			build: func(t *testing.T) (K8sClients, map[string]any) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+				rgd := map[string]any{
+					"spec": map[string]any{
+						"resources": []any{
+							map[string]any{
+								"id":       "cfg",
+								"template": map[string]any{"apiVersion": "v1", "kind": "ConfigMap"},
+							},
+						},
+					},
+				}
+				return clients, rgd
+			},
+			check: func(t *testing.T, entries []gvrEntry) {
+				t.Helper()
+				require.Len(t, entries, 1)
+				assert.Equal(t, "configmaps", entries[0].gvr.Resource)
+				assert.Equal(t, "v1", entries[0].gvr.Version)
+				assert.Equal(t, "", entries[0].gvr.Group)
+				assert.True(t, entries[0].namespaced)
+			},
+		},
+		{
+			name: "deduplicates same GVR when two resources share the same kind",
+			build: func(t *testing.T) (K8sClients, map[string]any) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+				rgd := map[string]any{
+					"spec": map[string]any{
+						"resources": []any{
+							map[string]any{"id": "cfg1", "template": map[string]any{"apiVersion": "v1", "kind": "ConfigMap"}},
+							map[string]any{"id": "cfg2", "template": map[string]any{"apiVersion": "v1", "kind": "ConfigMap"}},
+						},
+					},
+				}
+				return clients, rgd
+			},
+			check: func(t *testing.T, entries []gvrEntry) {
+				t.Helper()
+				assert.Len(t, entries, 1)
+			},
+		},
+		{
+			name: "marks cluster-scoped resource as namespaced=false",
+			build: func(t *testing.T) (K8sClients, map[string]any) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						{Name: "namespaces", Kind: "Namespace", Namespaced: false, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+				rgd := map[string]any{
+					"spec": map[string]any{
+						"resources": []any{
+							map[string]any{"id": "ns", "template": map[string]any{"apiVersion": "v1", "kind": "Namespace"}},
+						},
+					},
+				}
+				return clients, rgd
+			},
+			check: func(t *testing.T, entries []gvrEntry) {
+				t.Helper()
+				require.Len(t, entries, 1)
+				assert.False(t, entries[0].namespaced)
+			},
+		},
+		{
+			name: "skips resources with empty apiVersion or kind",
+			build: func(t *testing.T) (K8sClients, map[string]any) {
+				t.Helper()
+				clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+				rgd := map[string]any{
+					"spec": map[string]any{
+						"resources": []any{
+							map[string]any{"id": "bad1", "template": map[string]any{"apiVersion": "", "kind": "ConfigMap"}},
+							map[string]any{"id": "bad2", "template": map[string]any{"apiVersion": "v1", "kind": ""}},
+							map[string]any{"id": "bad3", "template": map[string]any{}},
+						},
+					},
+				}
+				return clients, rgd
+			},
+			check: func(t *testing.T, entries []gvrEntry) {
+				t.Helper()
+				assert.Empty(t, entries)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, rgd := tt.build(t)
+			entries := rgdResourceGVRs(context.Background(), clients, rgd)
+			tt.check(t, entries)
+		})
+	}
+}
+
+func TestListChildResourcesForRGD(t *testing.T) {
+	rgdGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "resourcegraphdefinitions"}
+	cmGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
+	nsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}
+	selector := "kro.run/instance-name=my-inst"
+
+	tests := []struct {
+		name  string
+		build func(t *testing.T) (K8sClients, string, string)
+		check func(t *testing.T, results []map[string]any, err error)
+	}{
+		{
+			name: "RGD-scoped: only fans out to resource types declared in the RGD",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
+						{Name: "namespaces", Kind: "Namespace", Namespaced: false, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{
+						"test-rgd": makeRGDObject("test-rgd", []map[string]any{
+							{"id": "cfg", "template": map[string]any{"apiVersion": "v1", "kind": "ConfigMap"}},
+						}),
+					},
+				}
+				dyn.resources[cmGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"": {
+							labelItems: map[string][]unstructured.Unstructured{
+								selector: {
+									{Object: map[string]any{"kind": "ConfigMap", "metadata": map[string]any{"name": "my-cfg"}}},
+								},
+							},
+						},
+					},
+				}
+				// Namespace stub — should NOT be queried (not in RGD spec)
+				dyn.resources[nsGVR] = &stubNamespaceableResource{
+					labelItems: map[string][]unstructured.Unstructured{
+						selector: {
+							{Object: map[string]any{"kind": "Namespace", "metadata": map[string]any{"name": "should-not-appear"}}},
+						},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-inst", "test-rgd"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				require.Len(t, results, 1)
+				assert.Equal(t, "ConfigMap", results[0]["kind"])
+			},
+		},
+		{
+			name: "falls back to full discovery when RGD fetch fails",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{getErr: fmt.Errorf("not found")}
+				dyn.resources[cmGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"": {
+							labelItems: map[string][]unstructured.Unstructured{
+								selector: {
+									{Object: map[string]any{"kind": "ConfigMap", "metadata": map[string]any{"name": "fallback-cm"}}},
+								},
+							},
+						},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-inst", "missing-rgd"
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				require.Len(t, results, 1)
+				assert.Equal(t, "ConfigMap", results[0]["kind"])
+			},
+		},
+		{
+			name: "falls back to full discovery when rgdName is empty",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.resources["v1"] = &metav1.APIResourceList{
+					GroupVersion: "v1",
+					APIResources: []metav1.APIResource{
+						{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"list", "get"}},
+					},
+				}
+				dyn := newStubDynamic()
+				dyn.resources[cmGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"": {
+							labelItems: map[string][]unstructured.Unstructured{
+								selector: {
+									{Object: map[string]any{"kind": "ConfigMap", "metadata": map[string]any{"name": "empty-rgd-cm"}}},
+								},
+							},
+						},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-inst", ""
+			},
+			check: func(t *testing.T, results []map[string]any, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				require.Len(t, results, 1)
+				assert.Equal(t, "ConfigMap", results[0]["kind"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, instanceName, rgdName := tt.build(t)
+			results, err := ListChildResourcesForRGD(context.Background(), clients, instanceName, rgdName)
+			tt.check(t, results, err)
+		})
+	}
+}
