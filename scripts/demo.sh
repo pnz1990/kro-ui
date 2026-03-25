@@ -16,8 +16,9 @@
 # demo.sh — spin up a local kro-ui demo environment.
 #
 # Usage:
-#   make demo          # idempotent — creates the kind cluster if needed, reuses it if it exists
-#   SKIP_KIND_DELETE=true make demo  # keep the cluster after the demo server exits
+#   make demo                 # idempotent — creates the kind cluster if needed, reuses it if it exists
+#                             # re-running on an existing cluster is safe: cluster, kro, and fixtures
+#                             # are all applied idempotently (create-or-reuse / apply)
 #
 # The demo ALWAYS uses .demo-kubeconfig.yaml in the repo root — it never
 # touches ~/.kube/config or any production cluster.
@@ -106,8 +107,11 @@ fi
 
 KC=(kubectl --kubeconfig "${KUBECONFIG_PATH}")
 
-# ── 2. Install kro via Helm ───────────────────────────────────────────────────
-if [[ -z "${DEMO_SKIP_KIND_CREATE:-}" ]]; then
+# ── 2. Install/upgrade kro via Helm ──────────────────────────────────────────
+# Use `helm upgrade --install` so re-running demo on an existing cluster is safe.
+if helm status kro --namespace kro-system --kubeconfig "${KUBECONFIG_PATH}" &>/dev/null; then
+  info "kro already installed — skipping Helm install (run 'helm upgrade kro …' to update)"
+else
   info "Installing kro ${KRO_VERSION} via Helm…"
   helm install kro oci://registry.k8s.io/kro/charts/kro \
     --version "${KRO_VERSION}" \
@@ -115,8 +119,6 @@ if [[ -z "${DEMO_SKIP_KIND_CREATE:-}" ]]; then
     --kubeconfig "${KUBECONFIG_PATH}" \
     --wait --timeout 120s
   ok "kro installed"
-else
-  info "Skipping kro installation (using existing cluster)"
 fi
 
 # ── 3. Create demo namespace ──────────────────────────────────────────────────

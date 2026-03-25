@@ -26,7 +26,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, and a copyable example manifest
-  - **Generate tab** — three-mode YAML generator: interactive instance form (per-field controls with type coercion), batch mode (one line = one manifest), and RGD authoring scaffolder
+  - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
 - **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error/pending/not-found), node YAML inspection, spec/conditions/events/telemetry panels
   - Per-node state derived from each child resource's own `status.conditions` — not just the root CR; `includeWhen`-excluded nodes shown in violet (pending), not-yet-created in gray (not-found)
   - Hover tooltip shows live state label for every node
@@ -35,7 +35,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, cardinality badge (`N/M`), and individual resource YAML
   - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
 - **Instance health roll-up** — 5-state health badges (Ready/Reconciling/Pending/Error/Unknown) on all instance list rows and RGD cards; error count badges on home and catalog cards
-- **New RGD authoring** — global `+ New RGD` entrypoint in the top bar navigates to `/author`; standalone authoring page pre-populated with a starter RGD scaffold; Home and Catalog empty states link directly to it
+- **RGD Designer** (`/author`) — first-class nav section alongside Overview/Catalog/Fleet/Events; standalone RGD authoring scaffolder with live DAG preview (updates within 300ms, client-side only); Home and Catalog empty states link directly to it
 - **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), deletion event tagging, grouping by instance, and URL-param pre-filtering
 - **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix with abbreviated ARN context labels, and per-cluster kro controller metrics column
 - **Controller metrics panel** — kro controller metrics auto-discovered via pod proxy (zero configuration); per-context correct after context switch; powers Fleet metrics column via `?context=` fan-out

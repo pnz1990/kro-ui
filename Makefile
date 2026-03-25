@@ -89,12 +89,9 @@ test-e2e-report:
 
 ## Start a local kro-ui demo cluster with all fixtures loaded.
 ## Prerequisites: kind, helm, and kubectl must be in PATH.
-## Creates a kind cluster named kro-ui-demo, installs the latest kro release
-## via Helm, applies all fixture RGDs and instances, builds the binary, and
-## starts the server at http://localhost:40107.
-##
-## To skip cluster creation and use an existing cluster instead:
-##   DEMO_SKIP_KIND_CREATE=true KUBECONFIG=~/.kube/config make demo
+## Idempotent: re-running on an existing cluster is safe — the kind cluster,
+## kro Helm release, and all fixture resources are created-or-reused.
+## Builds the binary, applies fixtures, and starts the server at http://localhost:40107.
 ##
 ## To stop: press Ctrl+C. The cluster is left running for further exploration.
 ## To delete it: make demo-clean
