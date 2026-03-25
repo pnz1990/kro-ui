@@ -178,7 +178,9 @@ function NestedSubgraph({
         <div className="static-chain-nested-header">
           <span className="static-chain-nested-header-kind">{node.kind}</span>
         </div>
-        <div className="static-chain-not-found">RGD not found</div>
+        <div className="static-chain-not-found" role="alert" data-testid="static-chain-not-found">
+          Chained RGD &apos;{chainedName}&apos; not found in this cluster — it may have been deleted or not yet applied.
+        </div>
       </div>
     )
   }
@@ -500,7 +502,7 @@ export default function StaticChainDAG({
                     data-testid={`static-chain-maxdepth-${node.id}`}
                     aria-label="Max depth reached"
                   >
-                    ⋯
+                    ⋯ (max depth)
                   </text>
                 )}
 
@@ -513,7 +515,7 @@ export default function StaticChainDAG({
                     data-testid={`static-chain-cycle-${node.id}`}
                     aria-label="Cycle detected"
                   >
-                    ⊗
+                    ⊗ (cycle)
                   </text>
                 )}
 

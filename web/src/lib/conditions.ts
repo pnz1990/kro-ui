@@ -111,3 +111,32 @@ export function rewriteConditionMessage(reason: string | undefined, message: str
 
   return null // no known pattern — show raw
 }
+
+/**
+ * conditionStatusLabel — translates a raw Kubernetes condition status string
+ * ("True" | "False" | "Unknown") to a user-readable display label.
+ *
+ * For normal-polarity conditions:
+ *   "True"    → "Healthy"
+ *   "False"   → "Failed"
+ *   "Unknown" → "Pending"
+ *
+ * For negation-polarity conditions (NEGATION_POLARITY_CONDITIONS):
+ *   "True"    → "Failed"   (e.g. ReconciliationSuspended=True → reconciliation off → bad)
+ *   "False"   → "Healthy"  (e.g. ReconciliationSuspended=False → reconciliation running → good)
+ *   "Unknown" → "Pending"
+ *
+ * Returns the raw status string as-is for any other input (defensive fallback).
+ *
+ * Spec: .specify/specs/041-error-states-ux-audit/spec.md FR-031 (L-10)
+ * Issue: #187
+ */
+export function conditionStatusLabel(type: string, status: string): string {
+  const inverted = NEGATION_POLARITY_CONDITIONS.has(type)
+  switch (status) {
+    case 'True':    return inverted ? 'Failed'  : 'Healthy'
+    case 'False':   return inverted ? 'Healthy' : 'Failed'
+    case 'Unknown': return 'Pending'
+    default:        return status
+  }
+}

@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom'
 import { listInstances } from '@/lib/api'
 import type { K8sObject } from '@/lib/api'
 import { rewriteConditionMessage, isHealthyCondition } from '@/lib/conditions'
+import { translateApiError } from '@/lib/errors'
 import './ErrorsTab.css'
 
 // ── Internal types ────────────────────────────────────────────────────────
@@ -223,7 +224,9 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
       {/* API error */}
       {!loading && error && (
         <div className="errors-tab__api-error" role="alert" data-testid="errors-api-error">
-          <span className="errors-tab__api-error-msg">Error: {error}</span>
+          <span className="errors-tab__api-error-msg">
+            {translateApiError(error, { tab: 'validation' })}
+          </span>
           <button
             type="button"
             className="errors-tab__retry-btn"
@@ -238,7 +241,8 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
       {/* No instances yet */}
       {!loading && !error && instances !== null && instances.length === 0 && (
         <div className="errors-tab__empty" data-testid="errors-empty">
-          No instances yet. Create one with <code>kubectl apply</code>.
+          No instances yet. Create one with <code>kubectl apply</code> or use the{' '}
+          <Link to={{ search: '?tab=generate' }}>Generate tab</Link>.
         </div>
       )}
 

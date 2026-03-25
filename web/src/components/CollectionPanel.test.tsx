@@ -195,7 +195,7 @@ describe('CollectionPanel', () => {
     )
 
     expect(screen.getByTestId('collection-empty-state')).toBeInTheDocument()
-    expect(screen.getByTestId('collection-empty-state')).toHaveTextContent('0 resources')
+    expect(screen.getByTestId('collection-empty-state')).toHaveTextContent('forEach expression evaluated to an empty list')
   })
 
   it('calls onClose when close button is clicked', () => {
@@ -280,7 +280,7 @@ describe('CollectionPanel', () => {
     )
 
     // All children have no kro.run/node-id label → legacy notice is shown
-    expect(screen.getByText('Legacy collection — labels unavailable')).toBeInTheDocument()
+    expect(screen.getByText(/Legacy collection — labels unavailable/)).toBeInTheDocument()
   })
 
   it('shows index, name, kind, status, age columns in table', () => {

@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth } from '@/lib/format'
 import type { InstanceHealthState } from '@/lib/format'
+import { translateApiError } from '@/lib/errors'
 import './InstanceOverlayBar.css'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -38,6 +39,11 @@ export interface InstanceOverlayBarProps {
   pickerLoading: boolean
   /** Non-null when picker fetch failed. */
   pickerError: string | null
+  /**
+   * Whether the RGD is in a Ready state. When false, picker errors will hint
+   * that the CRD may not be provisioned yet instead of a generic connectivity error.
+   */
+  rgdReady?: boolean
   /** Currently selected overlay key "<namespace>/<name>", or null for "No overlay". */
   selected: string | null
   /** Raw instance K8sObject for the selected overlay — drives the summary bar. */
@@ -77,6 +83,7 @@ export default function InstanceOverlayBar({
   items,
   pickerLoading,
   pickerError,
+  rgdReady,
   selected,
   overlayInstance,
   overlayLoading,
@@ -94,9 +101,12 @@ export default function InstanceOverlayBar({
       <span className="instance-overlay-bar__loading">Loading instances…</span>
     )
   } else if (pickerError) {
+    const pickerMsg = rgdReady === false
+      ? 'Could not load instance list — the RGD CRD may not be provisioned yet'
+      : 'Could not load instance list — check cluster connectivity'
     pickerContent = (
-      <span className="instance-overlay-bar__error">
-        <span>Could not load instances: {pickerError}</span>
+      <span className="instance-overlay-bar__error" role="alert" data-testid="overlay-picker-error">
+        <span>{pickerMsg}</span>
         <button
           type="button"
           className="instance-overlay-bar__retry-btn"
@@ -111,6 +121,10 @@ export default function InstanceOverlayBar({
       <span className="instance-overlay-bar__empty">
         No instances — create one with{' '}
         <code className="instance-overlay-bar__code">kubectl apply</code>
+        {' '}or use the{' '}
+        <Link to={{ search: '?tab=generate' }} className="instance-overlay-bar__generate-link">
+          Generate tab
+        </Link>
       </span>
     )
   } else {
@@ -165,9 +179,16 @@ export default function InstanceOverlayBar({
         </div>
       )
     } else if (overlayError) {
+      const overlayMsg = (overlayError.includes('404') || overlayError.toLowerCase().includes('not found'))
+        ? 'Instance not found — it may have been deleted'
+        : translateApiError(overlayError)
       summaryContent = (
-        <div className="instance-overlay-bar__overlay-status instance-overlay-bar__overlay-status--error">
-          <span>Overlay failed: {overlayError}</span>
+        <div
+          className="instance-overlay-bar__overlay-status instance-overlay-bar__overlay-status--error"
+          role="alert"
+          data-testid="overlay-data-error"
+        >
+          <span>{overlayMsg}</span>
           <button
             type="button"
             className="instance-overlay-bar__retry-btn"

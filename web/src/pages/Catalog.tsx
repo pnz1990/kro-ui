@@ -18,6 +18,7 @@ import {
 } from '@/lib/catalog'
 import type { SortOption } from '@/lib/catalog'
 import { useDebounce } from '@/hooks/useDebounce'
+import { translateApiError } from '@/lib/errors'
 import CatalogCard from '@/components/CatalogCard'
 import SearchBar from '@/components/SearchBar'
 import LabelFilter from '@/components/LabelFilter'
@@ -185,7 +186,7 @@ export default function Catalog() {
 
       {!isLoading && error !== null && (
         <div className="catalog__error" role="alert">
-          <p className="catalog__error-message">{error}</p>
+          <p className="catalog__error-message">{translateApiError(error)}</p>
           <button className="catalog__retry-btn" onClick={fetchRGDs}>
             Retry
           </button>
@@ -214,7 +215,14 @@ export default function Catalog() {
           }}
           emptyState={
             <div className="catalog__empty" data-testid="catalog-empty">
-              {items.length === 0 ? (
+              {hasFilters ? (
+                <>
+                  <p>No RGDs match your search.</p>
+                  <button className="catalog__clear-filters-btn" onClick={clearFilters}>
+                    Clear filters
+                  </button>
+                </>
+              ) : items.length === 0 ? (
                 <>
                   <p>No ResourceGraphDefinitions found in this cluster.</p>
                   <p className="catalog__empty-hint">
@@ -227,14 +235,7 @@ export default function Catalog() {
                   </p>
                 </>
               ) : (
-                <>
-                  <p>No RGDs match your search.</p>
-                  {hasFilters && (
-                    <button className="catalog__clear-filters-btn" onClick={clearFilters}>
-                      Clear filters
-                    </button>
-                  )}
-                </>
+                <p>No RGDs match your search.</p>
               )}
             </div>
           }

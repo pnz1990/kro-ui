@@ -204,3 +204,32 @@
 .dag-tooltip__state--error       { color: var(--color-error); }
 .dag-tooltip__state--pending     { color: var(--color-pending); }
 .dag-tooltip__state--notfound    { color: var(--color-text-faint); }
+
+/* Live-state legend (L-2, issue #167) */
+.live-dag-state-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.live-dag-state-legend__entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.live-dag-state-legend__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.live-dag-state-legend__dot--alive       { background: var(--color-alive); }
+.live-dag-state-legend__dot--reconciling { background: var(--color-reconciling); }
+.live-dag-state-legend__dot--pending     { background: var(--color-pending); }
+.live-dag-state-legend__dot--error       { background: var(--color-error); }
+.live-dag-state-legend__dot--notfound    { background: var(--color-not-found); }

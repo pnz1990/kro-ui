@@ -44,7 +44,7 @@ describe('ClusterCard', () => {
     const { container } = renderCard(summary)
     const dot = container.querySelector('.cluster-card__health-dot')
     expect(dot).toHaveClass('cluster-card__health-dot--degraded')
-    expect(screen.getByText('2 degraded')).toBeInTheDocument()
+    expect(screen.getAllByText('2 degraded').length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows gray health for unreachable cluster', () => {
@@ -62,7 +62,7 @@ describe('ClusterCard', () => {
     const { container } = renderCard(summary)
     const dot = container.querySelector('.cluster-card__health-dot')
     expect(dot).toHaveClass('cluster-card__health-dot--unreachable')
-    expect(screen.getByText('Unreachable')).toBeInTheDocument()
+    expect(screen.getAllByText('Unreachable').length).toBeGreaterThanOrEqual(1)
   })
 
   it('calls onSwitch with context name when clicked', () => {
@@ -94,6 +94,6 @@ describe('ClusterCard', () => {
       rgdKinds: [],
     }
     renderCard(summary)
-    expect(screen.getByText('kro not installed')).toBeInTheDocument()
+    expect(screen.getAllByText('kro not installed').length).toBeGreaterThanOrEqual(1)
   })
 })

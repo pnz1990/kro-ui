@@ -10,7 +10,7 @@
 // isHealthyCondition() lives in @/lib/conditions and is reused here and in ErrorsTab.
 
 import type { K8sObject } from '@/lib/api'
-import { isHealthyCondition } from '@/lib/conditions'
+import { isHealthyCondition, conditionStatusLabel } from '@/lib/conditions'
 import './ConditionsPanel.css'
 
 interface ConditionsPanelProps {
@@ -93,7 +93,7 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
             <div className="condition-header">
               <span className="condition-type">{c.type}</span>
               <span className={`condition-status ${statusClass(c.type, c.status)}`}>
-                {c.status}
+                {conditionStatusLabel(c.type, c.status)}
               </span>
               {c.reason && c.reason !== '' && (
                 <span className="condition-reason">{c.reason}</span>

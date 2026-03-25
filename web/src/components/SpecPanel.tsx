@@ -5,6 +5,7 @@
 // Issue #122: empty-string values render as em-dash (§XII graceful degradation).
 
 import type { K8sObject } from '@/lib/api'
+import { Link } from 'react-router-dom'
 import './SpecPanel.css'
 
 interface SpecPanelProps {
@@ -38,7 +39,11 @@ export default function SpecPanel({ instance }: SpecPanelProps) {
     <div data-testid="spec-panel" className="spec-panel">
       <div className="panel-heading">Spec</div>
       {fields.length === 0 ? (
-        <div className="panel-empty">No spec fields.</div>
+        <div className="panel-empty">
+          No spec fields defined. Check the RGD&apos;s{' '}
+          <Link to="?tab=docs">Docs tab</Link>{' '}
+          to see the schema.
+        </div>
       ) : (
         <table className="spec-table">
           <tbody>

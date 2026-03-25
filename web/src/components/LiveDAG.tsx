@@ -15,6 +15,7 @@ import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
 import DAGTooltip from './DAGTooltip'
+import DAGLegend from './DAGLegend'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import './LiveDAG.css'
 
@@ -306,6 +307,33 @@ export default function LiveDAG({
         onTooltipMouseEnter={cancelTooltipHide}
         onTooltipMouseLeave={scheduleTooltipHide}
       />
+
+      {/* Node-type badge legend (L-1) */}
+      <DAGLegend />
+
+      {/* Live-state legend (L-2, issue #167) */}
+      <div className="live-dag-state-legend" aria-label="Live node state legend">
+        <span className="live-dag-state-legend__entry">
+          <span className="live-dag-state-legend__dot live-dag-state-legend__dot--alive" aria-hidden="true" />
+          Alive
+        </span>
+        <span className="live-dag-state-legend__entry">
+          <span className="live-dag-state-legend__dot live-dag-state-legend__dot--reconciling" aria-hidden="true" />
+          Reconciling
+        </span>
+        <span className="live-dag-state-legend__entry">
+          <span className="live-dag-state-legend__dot live-dag-state-legend__dot--pending" aria-hidden="true" />
+          Pending
+        </span>
+        <span className="live-dag-state-legend__entry">
+          <span className="live-dag-state-legend__dot live-dag-state-legend__dot--error" aria-hidden="true" />
+          Error
+        </span>
+        <span className="live-dag-state-legend__entry">
+          <span className="live-dag-state-legend__dot live-dag-state-legend__dot--notfound" aria-hidden="true" />
+          Not found
+        </span>
+      </div>
     </div>
   )
 }
