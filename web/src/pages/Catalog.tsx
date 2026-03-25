@@ -143,6 +143,7 @@ export default function Catalog() {
             </span>
           )}
         </div>
+        <p className="catalog__subtitle">Browse, filter, and discover all ResourceGraphDefinitions</p>
 
         <div className="catalog__toolbar">
           <SearchBar value={searchQuery} onSearch={setSearchQuery} />
