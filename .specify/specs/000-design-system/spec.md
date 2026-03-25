@@ -412,7 +412,7 @@ Titles follow the format `<content> — kro-ui`. Specific rules:
 
 | Page | Title format |
 |------|-------------|
-| Home | `kro-ui` |
+| Overview (was: Home) | `Overview — kro-ui` |
 | Catalog | `Catalog — kro-ui` |
 | Fleet | `Fleet — kro-ui` |
 | Events | `Events — kro-ui` |
