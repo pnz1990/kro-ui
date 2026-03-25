@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams, useLocation, Link } from "react-router-dom"
 import { getRGD, listRGDs, listInstances, getInstance, getInstanceChildren } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
+import { translateApiError } from "@/lib/errors"
 import { toYaml } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
 import { extractRGDKind, extractReadyStatus } from "@/lib/format"
@@ -316,7 +317,37 @@ export default function RGDDetail() {
   }
 
   if (error) {
-    return <div className="rgd-detail-error">Error: {error}</div>
+    const retryLoad = () => {
+      if (!name) return
+      setLoading(true)
+      setError(null)
+      Promise.all([
+        getRGD(name),
+        listRGDs().catch(() => ({ metadata: {}, items: [] as K8sObject[] })),
+      ])
+        .then(([data, allRgds]) => {
+          setRgd(data)
+          setRgds(allRgds.items ?? [])
+          setRgdLastFetched(new Date())
+          setError(null)
+        })
+        .catch((err: Error) => {
+          setError(err.message)
+          setRgd(null)
+        })
+        .finally(() => setLoading(false))
+    }
+    return (
+      <div className="rgd-detail-error" role="alert" data-testid="rgd-detail-error">
+        <p className="rgd-detail-error__msg">{translateApiError(error)}</p>
+        <div className="rgd-detail-error__actions">
+          <button type="button" className="rgd-detail-error__retry-btn" onClick={retryLoad}>
+            Retry
+          </button>
+          <Link to="/" className="rgd-detail-error__back-link">← Back to Overview</Link>
+        </div>
+      </div>
+    )
   }
 
   if (!rgd) return null
@@ -448,6 +479,7 @@ export default function RGDDetail() {
                 items={pickerItems}
                 pickerLoading={pickerLoading}
                 pickerError={pickerError}
+                rgdReady={readyState.state !== 'error'}
                 selected={overlayKey}
                 overlayInstance={overlayInstance}
                 overlayLoading={overlayLoading}
@@ -467,7 +499,12 @@ export default function RGDDetail() {
                 />
               ) : (
                 <div className="rgd-graph-empty">
-                  No managed resources defined
+                  No managed resources defined in this RGD.{' '}
+                  Open the{' '}
+                  <button type="button" className="rgd-graph-empty__tab-link" onClick={() => setTab('yaml')}>YAML tab</button>
+                  {' '}to inspect the spec, or use the{' '}
+                  <button type="button" className="rgd-graph-empty__tab-link" onClick={() => setTab('generate')}>Generate tab</button>
+                  {' '}to scaffold a new resource.
                 </div>
               )}
               <OptimizationAdvisor
@@ -499,9 +536,23 @@ export default function RGDDetail() {
             )}
 
             {!instancesLoading && instancesError && (
-              <div className="rgd-instances-error" data-testid="instance-error-state">
+              <div className="rgd-instances-error" data-testid="instance-error-state" role="alert">
                 <span className="rgd-instances-error__msg">
-                  Error: {instancesError}
+                  {readyState.state === 'error'
+                    ? <>
+                        This RGD&apos;s CRD has not been provisioned yet. Instances can only be
+                        created once the RGD is Ready.{' '}
+                        <button
+                          type="button"
+                          className="rgd-instances-error__tab-link"
+                          onClick={() => setTab('validation')}
+                        >
+                          Check the Validation tab
+                        </button>{' '}
+                        for details.
+                      </>
+                    : translateApiError(instancesError)
+                  }
                 </span>
                 <button
                   type="button"

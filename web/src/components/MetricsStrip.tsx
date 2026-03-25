@@ -80,8 +80,8 @@ export default function MetricsStrip() {
       // Endpoint reachable but kro isn't exposing /metrics on that port yet
       detail = 'metrics endpoint returned 503 — check that kro is exposing /metrics'
     } else if (errMsg.toLowerCase().includes('connection refused') || errMsg.toLowerCase().includes('unreachable')) {
-      // Network/DNS failure — likely --metrics-url not set or wrong address
-      detail = 'start kro-ui with --metrics-url to enable'
+      // Network/DNS failure — kro controller pod not found or not reachable
+      detail = 'kro controller pod not found in this cluster'
     } else {
       detail = 'metrics endpoint unavailable'
     }

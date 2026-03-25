@@ -83,9 +83,9 @@ describe('MetricsStrip', () => {
     const { container } = render(<MetricsStrip />)
 
     // The degraded message now includes actionable context (issue #97).
-    // "connection refused" → default branch → "--metrics-url" hint.
+    // "connection refused" → "kro controller pod not found in this cluster" (L-11 fix).
     expect(screen.getByText(/Controller metrics unavailable/)).toBeInTheDocument()
-    expect(screen.getByText(/--metrics-url/)).toBeInTheDocument()
+    expect(screen.getByText(/kro controller pod not found/)).toBeInTheDocument()
     expect(container.querySelectorAll('.metrics-strip__cell').length).toBe(0)
   })
 

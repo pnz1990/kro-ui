@@ -3,6 +3,7 @@ import { getRGDAccess } from "@/lib/api"
 import type { AccessResponse, GVRPermission } from "@/lib/api"
 import PermissionCell from "@/components/PermissionCell"
 import RBACFixSuggestion from "@/components/RBACFixSuggestion"
+import { translateApiError } from "@/lib/errors"
 import "./AccessTab.css"
 
 interface AccessTabProps {
@@ -94,13 +95,17 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
   }
 
   if (loading) {
-    return <div className="access-tab-loading">Checking permissions…</div>
+    return <div className="access-tab-loading" data-testid="access-tab-loading">Checking permissions…</div>
   }
 
   if (error) {
+    // 403 on the access tab means kro-ui's own SA can't check permissions — give specific guidance
+    const msg = (error.includes('403') || error.toLowerCase().includes('forbidden'))
+      ? "kro-ui's own service account lacks permissions to run access checks. Check that the Helm ClusterRole is installed."
+      : translateApiError(error)
     return (
-      <div className="access-tab-error" data-testid="access-tab-error">
-        <span className="access-tab-error__msg">Error: {error}</span>
+      <div className="access-tab-error" role="alert" data-testid="access-tab-error">
+        <span className="access-tab-error__msg">{msg}</span>
         <button
           type="button"
           className="access-tab-retry-btn"

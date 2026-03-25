@@ -18,7 +18,7 @@
 // Issue: https://github.com/pnz1990/kro-ui/issues/171
 
 import { describe, it, expect } from 'vitest'
-import { isHealthyCondition, NEGATION_POLARITY_CONDITIONS } from './conditions'
+import { isHealthyCondition, NEGATION_POLARITY_CONDITIONS, conditionStatusLabel } from './conditions'
 
 describe('NEGATION_POLARITY_CONDITIONS', () => {
   it('contains ReconciliationSuspended', () => {
@@ -77,5 +77,49 @@ describe('isHealthyCondition', () => {
 
   it('returns false for an empty status string', () => {
     expect(isHealthyCondition('Ready', '')).toBe(false)
+  })
+})
+
+describe('conditionStatusLabel', () => {
+  // ── Normal-polarity conditions ─────────────────────────────────────────
+
+  it('maps True → Healthy for normal-polarity condition', () => {
+    expect(conditionStatusLabel('Ready', 'True')).toBe('Healthy')
+  })
+
+  it('maps False → Failed for normal-polarity condition', () => {
+    expect(conditionStatusLabel('Ready', 'False')).toBe('Failed')
+  })
+
+  it('maps Unknown → Pending for normal-polarity condition', () => {
+    expect(conditionStatusLabel('Ready', 'Unknown')).toBe('Pending')
+  })
+
+  it('maps True → Healthy for another normal-polarity condition (GraphVerified)', () => {
+    expect(conditionStatusLabel('GraphVerified', 'True')).toBe('Healthy')
+  })
+
+  // ── Negation-polarity conditions ───────────────────────────────────────
+
+  it('maps False → Healthy for ReconciliationSuspended (negation polarity)', () => {
+    expect(conditionStatusLabel('ReconciliationSuspended', 'False')).toBe('Healthy')
+  })
+
+  it('maps True → Failed for ReconciliationSuspended (negation polarity)', () => {
+    expect(conditionStatusLabel('ReconciliationSuspended', 'True')).toBe('Failed')
+  })
+
+  it('maps Unknown → Pending for ReconciliationSuspended (negation polarity)', () => {
+    expect(conditionStatusLabel('ReconciliationSuspended', 'Unknown')).toBe('Pending')
+  })
+
+  // ── Unknown input passthrough ──────────────────────────────────────────
+
+  it('returns raw status string when status is not True/False/Unknown', () => {
+    expect(conditionStatusLabel('Ready', 'SomeOtherValue')).toBe('SomeOtherValue')
+  })
+
+  it('returns empty string unchanged', () => {
+    expect(conditionStatusLabel('Ready', '')).toBe('')
   })
 })

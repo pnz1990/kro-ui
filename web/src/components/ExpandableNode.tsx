@@ -11,6 +11,7 @@
 import type { ReactNode } from 'react'
 import type { DAGNode } from '@/lib/dag'
 import type { NodeLiveState } from '@/lib/instanceNodeState'
+import { translateApiError } from '@/lib/errors'
 import './DeepDAG.css'
 
 // ── Nested subgraph data ────────────────────────────────────────────────────
@@ -213,7 +214,7 @@ export default function ExpandableNode({
           data-testid={`deep-dag-maxdepth-${node.id}`}
           aria-label="Max depth reached"
         >
-          ⋯
+          ⋯ (max depth)
         </text>
       )}
 
@@ -252,7 +253,20 @@ export default function ExpandableNode({
                 data-testid={`deep-dag-error-${node.id}`}
                 role="alert"
               >
-                {childError}
+                <div className="deep-dag-nested-error-msg">
+                  {translateApiError(childError)}
+                </div>
+                <button
+                  type="button"
+                  className="deep-dag-nested-retry-btn"
+                  onClick={() => {
+                    // Re-trigger load by toggling off then on
+                    onToggle()
+                    setTimeout(() => onToggle(), 0)
+                  }}
+                >
+                  Retry
+                </button>
               </div>
             )}
 

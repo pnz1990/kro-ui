@@ -18,6 +18,7 @@ import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
 import { toYaml } from '@/lib/yaml'
 import { isTerminating, getDeletionTimestamp, getFinalizers, formatRelativeTime } from '@/lib/k8s'
+import { translateApiError } from '@/lib/errors'
 import KroCodeBlock from './KroCodeBlock'
 import FinalizersPanel from './FinalizersPanel'
 import './LiveNodeDetailPanel.css'
@@ -185,7 +186,18 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
           </button>
         </div>
       ) : (
-        <div className="node-yaml-error">Error: {yamlState.message}</div>
+        <div className="node-yaml-error" role="alert">
+          <div className="node-yaml-error-msg">
+            {translateApiError(yamlState.message ?? '')}
+          </div>
+          <button
+            type="button"
+            className="node-yaml-retry-btn"
+            onClick={handleRetry}
+          >
+            Retry
+          </button>
+        </div>
       )}
     </div>
   )

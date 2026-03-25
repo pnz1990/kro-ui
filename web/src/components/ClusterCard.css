@@ -122,3 +122,15 @@
   font-size: 0.7rem;
   color: var(--color-text-muted);
 }
+
+/* Health dot + label wrapper (M-17) */
+.cluster-card__health {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cluster-card__health-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}

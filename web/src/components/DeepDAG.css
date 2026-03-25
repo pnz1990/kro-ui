@@ -100,3 +100,31 @@
   text-anchor: middle;
   pointer-events: none;
 }
+
+/* Deep DAG nested error — message + retry (M-8) */
+.deep-dag-nested-error {
+  flex-direction: column;
+  gap: 8px;
+  height: auto;
+  min-height: 60px;
+}
+
+.deep-dag-nested-error-msg {
+  color: var(--color-status-error);
+  font-size: 12px;
+}
+
+.deep-dag-nested-retry-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.deep-dag-nested-retry-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
