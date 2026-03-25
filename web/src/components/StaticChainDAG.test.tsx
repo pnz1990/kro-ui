@@ -8,6 +8,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import StaticChainDAG from './StaticChainDAG'
 import type { DAGGraph, DAGNode, DAGEdge } from '@/lib/dag'
+import type { NodeStateMap } from '@/lib/instanceNodeState'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ function renderComponent(
     depth?: number
     rgdName?: string
     onNodeClick?: (id: string) => void
+    nodeStateMap?: NodeStateMap
   } = {},
 ) {
   return render(
@@ -72,6 +74,7 @@ function renderComponent(
         depth={opts.depth}
         rgdName={opts.rgdName ?? 'test-parent'}
         onNodeClick={opts.onNodeClick}
+        nodeStateMap={opts.nodeStateMap}
       />
     </MemoryRouter>,
   )
@@ -261,5 +264,105 @@ describe('StaticChainDAG — View RGD → link (T027)', () => {
     expect(screen.getByTestId('static-chain-cycle-cycle')).toBeInTheDocument()
     // link still present
     expect(screen.getByTestId('static-chain-link-cycle')).toBeInTheDocument()
+  })
+})
+
+// ── T183: Overlay (nodeStateMap) — SVG height and live-state classes ──────
+//
+// Regression tests for issue #183: when an instance overlay is selected the
+// static DAG rendered 2–3 stacked rows. Root causes:
+//   1. `baseHeight` was recomputed from node bounding boxes instead of
+//      using graph.height directly (fixed in StaticChainDAG.tsx).
+//   2. The SVG element was rendered as `display: inline` (default), which
+//      allowed flex/block containers to stretch it beyond its explicit height
+//      attribute (fixed in StaticChainDAG.css with `display: block`).
+
+describe('StaticChainDAG — overlay nodeStateMap (T183)', () => {
+  /** Minimal NodeStateMap matching the graph nodes below. */
+  function makeStateMap(): NodeStateMap {
+    return {
+      configmap: {
+        state: 'alive',
+        kind: 'ConfigMap',
+        name: 'my-cm',
+        namespace: 'default',
+        group: '',
+        version: 'v1',
+      },
+    }
+  }
+
+  it('SVG height attribute equals graph.height when nodeStateMap is provided', () => {
+    // graph.height: 200 — nodes at y:0 height:48, so bounding box bottom is 48.
+    // The fix uses graph.height directly, so the SVG should be 200px, not 80px
+    // (what the old fittedHeight would compute: 48 + 32 = 80).
+    const root = makeNode('schema', { nodeType: 'instance', kind: 'MyApp', y: 0, height: 52 })
+    const child = makeNode('cm', { nodeType: 'resource', kind: 'ConfigMap', y: 140, height: 48 })
+    const graph: DAGGraph = { nodes: [root, child], edges: [], width: 400, height: 272 }
+
+    renderComponent(graph, [], { nodeStateMap: makeStateMap() })
+
+    const svg = screen.getByTestId('dag-svg')
+    // height attribute must equal graph.height (272), not a recomputed value
+    expect(svg.getAttribute('height')).toBe('272')
+    expect(svg.getAttribute('viewBox')).toBe('0 0 400 272')
+  })
+
+  it('SVG height is identical with and without nodeStateMap', () => {
+    const root = makeNode('schema', { nodeType: 'instance', kind: 'MyApp', y: 0, height: 52 })
+    const child = makeNode('cm', { nodeType: 'resource', kind: 'ConfigMap', y: 140, height: 48 })
+    const graph: DAGGraph = { nodes: [root, child], edges: [], width: 400, height: 272 }
+
+    const { unmount } = renderComponent(graph, [])
+    const heightWithout = screen.getByTestId('dag-svg').getAttribute('height')
+    unmount()
+
+    renderComponent(graph, [], { nodeStateMap: makeStateMap() })
+    const heightWith = screen.getByTestId('dag-svg').getAttribute('height')
+
+    // Overlay must not change the SVG height. Issue #183.
+    expect(heightWith).toBe(heightWithout)
+  })
+
+  it('resource node gets dag-node-live--alive class when overlay is active', () => {
+    const root = makeNode('schema', { nodeType: 'instance', kind: 'MyApp' })
+    const child = makeNode('cm', { nodeType: 'resource', kind: 'ConfigMap' })
+    const graph = makeGraph([root, child])
+    const stateMap: NodeStateMap = {
+      configmap: { state: 'alive', kind: 'ConfigMap', name: 'x', namespace: 'default', group: '', version: 'v1' },
+    }
+
+    renderComponent(graph, [], { nodeStateMap: stateMap })
+
+    const cmNode = screen.getByTestId('dag-node-cm')
+    expect(cmNode.getAttribute('class')).toContain('dag-node-live--alive')
+  })
+
+  it('state nodes do NOT get live-state class when overlay is active', () => {
+    const stateNode = makeNode('s1', { nodeType: 'state', kind: 'state' })
+    const graph = makeGraph([stateNode])
+    const stateMap: NodeStateMap = {
+      state: { state: 'alive', kind: 'state', name: 'x', namespace: 'default', group: '', version: 'v1' },
+    }
+
+    renderComponent(graph, [], { nodeStateMap: stateMap })
+
+    const el = screen.getByTestId('dag-node-s1')
+    // state nodes must never receive a live-state class — nodeBaseClass guard
+    expect(el.getAttribute('class')).not.toContain('dag-node-live--')
+  })
+
+  it('absent resource nodes get dag-node-live--notfound class when overlay is active', () => {
+    const root = makeNode('schema', { nodeType: 'instance', kind: 'MyApp' })
+    // 'deployment' not in stateMap → should render as not-found
+    const dep = makeNode('dep', { nodeType: 'resource', kind: 'Deployment' })
+    const graph = makeGraph([root, dep])
+    // stateMap has no 'deployment' entry
+    const stateMap: NodeStateMap = {}
+
+    renderComponent(graph, [], { nodeStateMap: stateMap })
+
+    const depNode = screen.getByTestId('dag-node-dep')
+    expect(depNode.getAttribute('class')).toContain('dag-node-live--notfound')
   })
 })

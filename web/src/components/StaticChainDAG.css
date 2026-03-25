@@ -172,6 +172,17 @@
   min-height: unset;
 }
 
+/* SVG block rendering — prevents inline-stretch in flex/block containers.
+ * Without display:block, an SVG element is "inline" by default and can be
+ * stretched beyond its explicit height attribute by the browser layout engine
+ * when its parent is a flex/grid container (e.g. the .rgd-graph-area flex
+ * column). This caused the DAG to render as 2–3 stacked rows when
+ * InstanceOverlayBar was present as a flex sibling. Issue #183.
+ */
+.static-chain-dag-container svg {
+  display: block;
+}
+
 /* ── Node fill rules (fix #92) ───────────────────────────────────────────
  * StaticChainDAG does not use DAGGraph.tsx, so DAGGraph.css is never loaded.
  * These rules mirror DAGGraph.css node fill/stroke rules, scoped under
