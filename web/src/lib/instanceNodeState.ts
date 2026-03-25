@@ -12,14 +12,15 @@ import type { DAGNode } from './dag'
 /**
  * Live state for a single DAG node.
  *
- * | State       | Condition                                        |
- * |-------------|--------------------------------------------------|
- * | alive       | Child resource exists, no error conditions       |
- * | reconciling | Instance has Progressing=True condition          |
- * | error       | Instance has Ready=False condition               |
- * | not-found   | Resource not present in children list / unknown  |
+ * | State       | Condition                                                    |
+ * |-------------|--------------------------------------------------------------|
+ * | alive       | Child resource exists, no error conditions                   |
+ * | reconciling | Child/CR has Progressing=True condition                      |
+ * | error       | Child/CR has Ready=False or Available=False, or terminating  |
+ * | pending     | Node has includeWhen expr(s) and is absent (excluded by cond)|
+ * | not-found   | Resource absent from children list, no includeWhen exprs     |
  */
-export type NodeLiveState = 'alive' | 'reconciling' | 'error' | 'not-found'
+export type NodeLiveState = 'alive' | 'reconciling' | 'error' | 'pending' | 'not-found'
 
 export interface NodeStateEntry {
   state: NodeLiveState
@@ -66,6 +67,40 @@ function hasCondition(conditions: K8sCondition[], type: string, statusVal: strin
   return conditions.some((c) => c.type === type && c.status === statusVal)
 }
 
+/**
+ * getChildConditions — reads `status.conditions` from a child K8sObject.
+ * Mirrors getConditions() but takes any child resource (not just the CR).
+ */
+function getChildConditions(child: K8sObject): K8sCondition[] {
+  const status = child.status as Record<string, unknown> | undefined
+  if (!status) return []
+  const conditions = status.conditions
+  if (!Array.isArray(conditions)) return []
+  return conditions as K8sCondition[]
+}
+
+/**
+ * deriveChildState — derives a NodeLiveState from a child resource's own
+ * status.conditions. Only called when the CR-level globalState is 'alive'.
+ *
+ * Precedence (highest to lowest):
+ *   Ready=False or Available=False → 'error'
+ *   Progressing=True               → 'reconciling'
+ *   otherwise                      → 'alive'
+ */
+function deriveChildState(conditions: K8sCondition[]): NodeLiveState {
+  if (
+    hasCondition(conditions, 'Ready', 'False') ||
+    hasCondition(conditions, 'Available', 'False')
+  ) {
+    return 'error'
+  }
+  if (hasCondition(conditions, 'Progressing', 'True')) {
+    return 'reconciling'
+  }
+  return 'alive'
+}
+
 function parseApiVersion(apiVersion: unknown): { group: string; version: string } {
   if (typeof apiVersion !== 'string') return { group: '', version: 'v1' }
   const parts = apiVersion.split('/')
@@ -80,16 +115,24 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
  *
  * Algorithm:
  * 1. Determine the global state from instance conditions:
- *    - Progressing=True  → all present nodes are 'reconciling'
- *    - Ready=False        → all present nodes are 'error'
- *    - Otherwise          → present nodes are 'alive'
+ *    - Progressing=True → globalState = 'reconciling'
+ *    - Ready=False      → globalState = 'error'
+ *    - Otherwise        → globalState = 'alive'
  * 2. Build a presence map from children, keyed by lowercase kind.
+ *    - Terminating children always get state 'error'.
+ *    - When globalState is 'reconciling' or 'error', all present children
+ *      inherit that global state (CR-level signal wins).
+ *    - When globalState is 'alive', each child's own status.conditions are
+ *      inspected individually via deriveChildState() — enabling per-node
+ *      health differentiation even when the CR itself is healthy.
  * 3. Enumerate every non-state, non-instance RGD node and emit an explicit
- *    entry: the child's derived state if present, or 'not-found' if absent.
+ *    entry for absent nodes:
+ *    - Node has includeWhen expressions → state = 'pending' (excluded by cond)
+ *    - Node has no includeWhen          → state = 'not-found' (not yet created)
  *
  * The `rgdNodes` parameter (GH #165 fix) ensures every DAG node has an entry
- * so that absent nodes receive the dag-node-live--notfound CSS class rather
- * than being silently unstyled. Pass `dagGraph.nodes` from the call site.
+ * so that absent nodes receive the correct CSS class rather than being
+ * silently unstyled. Pass `dagGraph.nodes` from the call site.
  */
 export function buildNodeStateMap(
   instance: K8sObject,
@@ -98,15 +141,15 @@ export function buildNodeStateMap(
 ): NodeStateMap {
   const conditions = getConditions(instance)
 
-  // Derive the global presence state from conditions.
+  // Derive the global state from CR-level conditions.
   // Precedence: reconciling > error > alive
-  let presentState: NodeLiveState = 'alive'
+  let globalState: NodeLiveState = 'alive'
   if (hasCondition(conditions, 'Ready', 'False')) {
-    presentState = 'error'
+    globalState = 'error'
   }
   // Progressing=True wins over error — kro actively working
   if (hasCondition(conditions, 'Progressing', 'True')) {
-    presentState = 'reconciling'
+    globalState = 'reconciling'
   }
 
   const result: NodeStateMap = {}
@@ -140,8 +183,17 @@ export function buildNodeStateMap(
     const childFinalizers = getFinalizers(child)
     const childDeletionTimestamp = getDeletionTimestamp(child)
 
-    // Terminating children force error state over global presentState.
-    const nodeState: NodeLiveState = childTerminating ? 'error' : presentState
+    // Terminating children force error state regardless of global or per-node state.
+    // When globalState is 'reconciling' or 'error', it propagates to all present nodes.
+    // When globalState is 'alive', inspect the child's own conditions for per-node state.
+    let nodeState: NodeLiveState
+    if (childTerminating) {
+      nodeState = 'error'
+    } else if (globalState !== 'alive') {
+      nodeState = globalState
+    } else {
+      nodeState = deriveChildState(getChildConditions(child))
+    }
 
     result[key] = {
       state: nodeState,
@@ -157,17 +209,19 @@ export function buildNodeStateMap(
   }
 
   // ── Step 3: enumerate every non-state, non-instance RGD node ─────────────
-  // Emit 'not-found' for nodes absent from the children result.
-  // This guarantees every DAG node has an entry when the overlay is active,
-  // so dag-node-live--notfound is applied (GH #165 fix).
+  // Absent nodes receive 'pending' when the node has includeWhen expressions
+  // (meaning it is actively excluded by a condition), or 'not-found' otherwise
+  // (meaning the resource hasn't been created yet).
+  // This guarantees every DAG node has an entry when the overlay is active.
   for (const node of rgdNodes) {
     if (node.nodeType === 'instance' || node.nodeType === 'state') continue
     const kindKey = (node.kind || node.label || '').toLowerCase()
     if (!kindKey) continue
     if (kindKey in result) continue // already set by an observed child
 
+    const hasIncludeWhen = node.includeWhen.some((e) => e.trim() !== '')
     result[kindKey] = {
-      state: 'not-found',
+      state: hasIncludeWhen ? 'pending' : 'not-found',
       kind: node.kind || node.label || kindKey,
       name: '',
       namespace: '',
