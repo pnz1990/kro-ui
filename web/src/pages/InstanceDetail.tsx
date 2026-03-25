@@ -249,6 +249,7 @@ export default function InstanceDetail() {
       selectedNode.label,
       instanceName,
       children,
+      selectedNode.kind || undefined,
     )
   }, [selectedNode, instanceName, children])
 
