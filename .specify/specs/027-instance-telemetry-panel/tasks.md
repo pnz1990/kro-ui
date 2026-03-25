@@ -87,6 +87,28 @@ implementation files are required — this phase adds only the timer validation 
 
 ---
 
+## Phase 4b: Spec Clarification Follow-up (GH #161)
+
+**Background**: GH issue #161 revealed that AC-003 was ambiguous about the Children
+denominator. The spec has been updated (FR-005 / FR-010 / AC-003 / SC-004) to be
+explicit: the denominator is the `NodeStateMap` size (label-search result count), not
+the RGD `spec.resources` count. The existing implementation already uses `NodeStateMap`
+correctly, so only the tooltip and one test need to be added.
+
+- [ ] T016 [FR-010] Add optional `title` prop to `MetricCell` sub-component in
+  `web/src/components/TelemetryPanel.tsx`; forward it to the root `<div>`
+
+- [ ] T017 [FR-010] Pass `title` to the Children `MetricCell` in `TelemetryPanel`:
+  `title={`${total} child Kubernetes object(s) found via kro.run/instance-name label`}`
+
+- [ ] T018 [FR-010] Add component test: `it('children cell title attribute describes label-search count')` in `TelemetryPanel.test.tsx`; assert `data-testid="telemetry-cell-children"` element has the expected `title` value
+
+- [ ] T019 Run `bun run typecheck` and `bun run test` after T016–T018; confirm all pass
+
+**Checkpoint**: Children cell has a `title` attribute visible on hover. Test T018 passes. No TypeScript errors.
+
+---
+
 ## Phase 5: Polish & Cross-Cutting Concerns
 
 **Purpose**: Final validation, build hygiene, and constitution compliance.
