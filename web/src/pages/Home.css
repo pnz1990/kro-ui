@@ -7,12 +7,23 @@
   margin-bottom: 24px;
 }
 
+.home__heading-group {
+  margin-bottom: 16px;
+}
+
 .home__heading {
   font-family: var(--font-sans);
   font-size: 20px;
   font-weight: 600;
   color: var(--color-text);
-  margin: 0 0 16px 0;
+  margin: 0 0 4px 0;
+}
+
+.home__tagline {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0;
 }
 
 .home__toolbar {

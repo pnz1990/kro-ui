@@ -140,8 +140,9 @@ export function parseSimpleSchema(typeStr: string): ParsedType {
     const trimmed = mod.trim()
     if (trimmed === 'required') {
       parsed.required = true
-    } else if (trimmed.startsWith('default=')) {
-      // Extract the value after 'default='.
+    } else if (trimmed.startsWith('default=') || trimmed.startsWith('default: ')) {
+      // Extract the value after 'default=' or 'default: ' (colon-space variant).
+      // kro occasionally emits `default: X` instead of `default=X`. Both are valid.
       // kro sometimes emits space-separated constraints within the same segment
       // instead of using pipe separators, e.g.:
       //   `default="normal" enum=easy,normal,hard`
@@ -153,7 +154,8 @@ export function parseSimpleSchema(typeStr: string): ParsedType {
       //   `default="normal"` → raw = `"normal"`
       // The YAML serializer then detects the leading `"` and double-encodes it.
       // Strip surrounding double-quotes from string defaults. See issue #114.
-      const raw = trimmed.slice('default='.length)
+      const prefix = trimmed.startsWith('default: ') ? 'default: ' : 'default='
+      const raw = trimmed.slice(prefix.length)
       const stripped = stripTrailingConstraints(raw)
       parsed.default = stripped.startsWith('"') && stripped.endsWith('"') && stripped.length >= 2
         ? stripped.slice(1, -1)

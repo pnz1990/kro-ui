@@ -12,9 +12,54 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// conditions.ts — shared helpers for interpreting kro condition messages.
+// conditions.ts — shared helpers for interpreting kro condition messages and polarity.
 //
 // Spec: .specify/specs/030-error-patterns-tab/contracts/ui-contracts.md
+//       .specify/specs/028-instance-health-rollup/ FR-011, FR-012, FR-013, FR-014
+// Issue #159 / #171: condition polarity inversion (ReconciliationSuspended=False → healthy)
+
+// ── Negation-polarity condition helpers ───────────────────────────────────
+//
+// Some Kubernetes condition types use inverted polarity: status "False" is the
+// healthy/expected value. The canonical example in kro is ReconciliationSuspended:
+// when status=False the controller is running normally (not suspended), which is
+// the desired state.
+//
+// NEGATION_POLARITY_CONDITIONS is the single source of truth for which condition
+// types use this inverted polarity. Adding a new type here automatically propagates
+// correct styling to ConditionItem, correct counting in ConditionsPanel, and correct
+// error suppression in ErrorsTab — no other files need to change.
+
+/**
+ * Condition types where status="False" is the healthy/expected value.
+ * Do NOT hardcode this set in component files — always import from here.
+ *
+ * Issue #159 / #171: ReconciliationSuspended=False means reconciliation is active → healthy.
+ */
+export const NEGATION_POLARITY_CONDITIONS = new Set<string>([
+  'ReconciliationSuspended',
+])
+
+/**
+ * @deprecated Use NEGATION_POLARITY_CONDITIONS — same set, canonical name.
+ * Kept for any code merged from parallel branches; will be removed in a future cleanup.
+ */
+export const HEALTHY_WHEN_FALSE = NEGATION_POLARITY_CONDITIONS
+
+/**
+ * isHealthyCondition — returns true when a condition is in the desired/healthy state.
+ *
+ * For normal conditions: healthy when status="True".
+ * For negation-polarity conditions (listed in NEGATION_POLARITY_CONDITIONS):
+ *   healthy when status="False" (e.g. ReconciliationSuspended=False means running).
+ *
+ * @param type   - condition.type (e.g. "Ready", "ReconciliationSuspended")
+ * @param status - condition.status ("True" | "False" | "Unknown")
+ */
+export function isHealthyCondition(type: string, status: string): boolean {
+  if (NEGATION_POLARITY_CONDITIONS.has(type)) return status === 'False'
+  return status === 'True'
+}
 
 /**
  * rewriteConditionMessage — translates known kro internal error strings into
@@ -65,42 +110,4 @@ export function rewriteConditionMessage(reason: string | undefined, message: str
   }
 
   return null // no known pattern — show raw
-}
-
-// ── Negation-polarity condition helpers ───────────────────────────────────
-//
-// Some Kubernetes condition types use inverted polarity: status "False" is the
-// healthy/expected value. The canonical example in kro is ReconciliationSuspended:
-// when status=False the controller is running normally (not suspended), which is
-// the desired state.
-//
-// NEGATION_POLARITY_CONDITIONS is the single source of truth for which condition
-// types use this inverted polarity. Adding a new type here automatically propagates
-// correct styling to ConditionItem, correct counting in ConditionsPanel, and correct
-// error suppression in ErrorsTab — no other files need to change.
-//
-// Spec: .specify/specs/028-instance-health-rollup/ FR-011, FR-012, FR-013, FR-014
-// Issue: https://github.com/pnz1990/kro-ui/issues/171
-
-/**
- * Condition types where status="False" is the healthy/expected value.
- * Do NOT hardcode this set in component files — always import from here.
- */
-export const NEGATION_POLARITY_CONDITIONS = new Set<string>([
-  'ReconciliationSuspended',
-])
-
-/**
- * isHealthyCondition — returns true when a condition is in the desired/healthy state.
- *
- * For normal conditions: healthy when status="True".
- * For negation-polarity conditions (listed in NEGATION_POLARITY_CONDITIONS):
- *   healthy when status="False" (e.g. ReconciliationSuspended=False means running).
- *
- * @param type   - condition.type (e.g. "Ready", "ReconciliationSuspended")
- * @param status - condition.status ("True" | "False" | "Unknown")
- */
-export function isHealthyCondition(type: string, status: string): boolean {
-  if (NEGATION_POLARITY_CONDITIONS.has(type)) return status === 'False'
-  return status === 'True'
 }

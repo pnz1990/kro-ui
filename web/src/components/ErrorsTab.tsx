@@ -7,6 +7,9 @@
 // Go controller message.
 //
 // Spec: .specify/specs/030-error-patterns-tab/
+//
+// Issue #159: conditions where False is the healthy value (e.g. ReconciliationSuspended)
+// are excluded from error aggregation — they represent active/healthy state, not failure.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -70,11 +73,12 @@ export function groupErrorPatterns(instances: K8sObject[]): ErrorGroup[] {
 
     for (const raw of rawConditions) {
       const c = raw as K8sCondition
-      if (c.status !== 'False') continue
-      // Skip conditions that are healthy per negation-polarity rules
-      // (e.g. ReconciliationSuspended=False is healthy, not an error).
-      if (isHealthyCondition(c.type ?? '', c.status)) continue
       if (!c.type) continue
+      // Issue #159: only aggregate conditions that are genuinely unhealthy.
+      // isHealthyCondition correctly handles inverted conditions like
+      // ReconciliationSuspended where False=healthy and True=problem.
+      // Skip any condition that is in its healthy state.
+      if (isHealthyCondition(c.type, c.status ?? '')) continue
 
       const key = c.type + '/' + (c.reason ?? '')
       const ref: InstanceRef = {
