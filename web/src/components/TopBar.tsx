@@ -24,7 +24,7 @@ export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProp
             `top-bar__nav-link${isActive ? ' top-bar__nav-link--active' : ''}`
           }
         >
-          Home
+          Overview
         </NavLink>
         <NavLink
           to="/catalog"
