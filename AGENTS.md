@@ -372,6 +372,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 
 ## Recent Changes
+- v0.4.1: 9-issue bug-fix batch — breadcrumb rename (Overview), FieldTable scrollbar, OptimizationAdvisor layout, context-switch navigation, ValidationTab condition types (kro v0.4+), cluster-scoped Live YAML (Namespace/ClusterRole/PV), DAG tooltip hover persistence, DiscoverPlural discovery cache + Fleet errgroup fan-out + 5s server timeout, test coverage (access handler, 4 lib modules, 3 E2E journeys)
 - v0.4.0: Overview/Catalog IA differentiation (Home renamed to Overview), live DAG per-node state with pending/per-child conditions + tooltip wiring, global `/author` RGD authoring entrypoint + `+ New RGD` top bar, per-context controller metrics via pod-proxy discovery (removes `--metrics-url`), Fleet per-cluster metrics column
 - v0.3.4: negation-polarity condition fix (ReconciliationSuspended=False renders healthy), overlay node-mapping fix (all DAG nodes covered), Children denominator tooltip, condition inversion + schema defaults + catalog shimmer + home/fleet UX fixes, E2E journey backfill
 - v0.3.3: cluster-wide child resource search (per-instance namespaces), parallel events fan-out with 2s timeout, DAG width fitted to node bounding boxes, null items guard for kro serialization edge cases, uniform card min-height
