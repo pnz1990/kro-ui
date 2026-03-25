@@ -4,6 +4,7 @@
 // Updates on every poll cycle via props.
 //
 // spec 028: "Not reported" empty state, summary header, absent-field omission.
+// spec 028 US5: negation-polarity conditions counted correctly via isHealthyCondition.
 //
 // Issue #159: ReconciliationSuspended=False is healthy (Kubernetes inversion convention).
 // isHealthyCondition() lives in @/lib/conditions and is reused here and in ErrorsTab.
@@ -83,7 +84,7 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
   return (
     <div data-testid="conditions-panel" className="conditions-panel">
       <div className="panel-heading">Conditions</div>
-      <div className="conditions-summary">
+      <div data-testid="conditions-summary" className="conditions-summary">
         {trueCount} / {conditions.length} conditions healthy
       </div>
       <div className="conditions-list">

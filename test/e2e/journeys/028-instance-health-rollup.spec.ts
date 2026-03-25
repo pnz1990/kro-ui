@@ -129,4 +129,36 @@ test.describe('Journey 028: Instance Health Rollup', () => {
       }
     }
   })
+
+  test('Step 6: ReconciliationSuspended=False is rendered as healthy (negation-polarity)', async ({ page }) => {
+    await page.goto(`${BASE}/rgds/${RGD_NAME}/instances/${INSTANCE_NS}/${INSTANCE_NAME}`)
+    await expect(page.locator('[data-testid="instance-detail-page"]')).toBeVisible({ timeout: 10000 })
+
+    const conditionRow = page.locator('[data-testid="condition-item-ReconciliationSuspended"]')
+    const exists = await conditionRow.count() > 0
+
+    if (!exists) {
+      // ReconciliationSuspended not present on this instance — skip assertions
+      return
+    }
+
+    // Must have the healthy CSS class (condition-item--true), not the unhealthy one
+    await expect(conditionRow).toHaveClass(/condition-item--true/)
+    await expect(conditionRow).not.toHaveClass(/condition-item--false/)
+
+    // Conditions summary (if visible) must show equal healthy/total counts,
+    // confirming ReconciliationSuspended=False is NOT counted as unhealthy.
+    const summaryEl = page.locator('[data-testid="conditions-summary"]')
+    const summaryVisible = await summaryEl.isVisible()
+    if (summaryVisible) {
+      const summaryText = await summaryEl.textContent()
+      // Parse "N / M conditions healthy" — N must equal M
+      const match = summaryText?.match(/(\d+)\s*\/\s*(\d+)\s+conditions healthy/)
+      if (match) {
+        const healthy = parseInt(match[1], 10)
+        const total = parseInt(match[2], 10)
+        expect(healthy).toBe(total)
+      }
+    }
+  })
 })

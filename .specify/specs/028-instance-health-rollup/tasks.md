@@ -140,6 +140,78 @@
 **Purpose**: Add the E2E Playwright journey covering the full health rollup user path.
 
 - [x] T024 Create `test/e2e/journeys/028-instance-health-rollup.spec.ts` implementing the 5-step journey from spec.md §E2E User Journey: (1) home page with `[data-testid="health-chip"]` visible after load; (2) chip text matches `/\d+ ready/` or `/no instances/`; (3) instance table has `[data-testid="readiness-badge"]`; (4) instance detail shows `[data-testid="health-pill"]` with text matching `/Ready|Reconciling|Error|Unknown/`; (5) if `[data-testid="conditions-panel-empty"]` exists, text is "Not reported".
+- [x] T036 [US5] Update `test/e2e/journeys/028-instance-health-rollup.spec.ts`: add Step 6 asserting that `[data-testid="condition-item-ReconciliationSuspended"]` (if present) has class `condition-item--true` and does NOT have class `condition-item--false`. Assert `[data-testid="conditions-summary"]` (if present) shows equal healthy/total counts (e.g. `5 / 5 conditions healthy`).
+
+---
+
+## Phase 7b: User Story 5 — Negation-Polarity Conditions (Issue #171)
+
+**Branch**: `spec/028-negation-polarity`
+
+**Purpose**: `ReconciliationSuspended=False` (and other inverted-polarity condition types)
+must render as healthy, be counted as healthy in the summary, not appear in ErrorsTab,
+and carry a `title` tooltip explaining the inversion to operators.
+
+**Context**:
+- `web/src/lib/conditions.ts` exists but only contains `rewriteConditionMessage` — it does NOT yet have `NEGATION_POLARITY_CONDITIONS` or `isHealthyCondition`. Both must be added.
+- `ConditionItem.tsx` uses raw `status === 'True'` comparison — does not call `isHealthyCondition`.
+- `ConditionsPanel.tsx` computes `trueCount` as `conditions.filter(c => c.status === 'True').length` — must change to `isHealthyCondition`.
+- `ErrorsTab.tsx` aggregates all `status === 'False'` conditions as errors — must gate with `!isHealthyCondition`.
+- No prior `HEALTHY_WHEN_FALSE` constant exists on this branch. Create `NEGATION_POLARITY_CONDITIONS` directly (canonical name per spec FR-011).
+
+### Tests for User Story 5
+
+- [x] T029 [P] [US5] Write unit tests in `web/src/lib/conditions.test.ts` (create new file):
+  - `isHealthyCondition: returns true for normal condition with status=True`
+  - `isHealthyCondition: returns false for normal condition with status=False`
+  - `isHealthyCondition: returns true for ReconciliationSuspended with status=False`
+  - `isHealthyCondition: returns false for ReconciliationSuspended with status=True`
+  - `isHealthyCondition: returns false for normal condition with status=Unknown`
+  - `NEGATION_POLARITY_CONDITIONS: contains ReconciliationSuspended`
+
+### Implementation for User Story 5
+
+- [x] T030 [P] [US5] Add `NEGATION_POLARITY_CONDITIONS` constant and `isHealthyCondition`
+  function to `web/src/lib/conditions.ts` (append after `rewriteConditionMessage`):
+  ```ts
+  export const NEGATION_POLARITY_CONDITIONS = new Set<string>([
+    'ReconciliationSuspended',
+  ])
+  export function isHealthyCondition(type: string, status: string): boolean {
+    if (NEGATION_POLARITY_CONDITIONS.has(type)) return status === 'False'
+    return status === 'True'
+  }
+  ```
+- [x] T031 [US5] Update `web/src/components/ConditionItem.tsx` to use `isHealthyCondition`:
+  1. Import `{ isHealthyCondition, NEGATION_POLARITY_CONDITIONS }` from `@/lib/conditions`.
+  2. Replace the `if (status === 'True') ... else if (status === 'False')` block
+     (lines 110–122) with: `const isHealthy = isHealthyCondition(condition.type, status)`.
+     Set `statusClass = isHealthy ? 'condition-item--true' : (status === 'Unknown' ? 'condition-item--pending' : 'condition-item--false')`.
+     Set `statusIcon = isHealthy ? '✓' : (status === 'Unknown' ? '○' : '✗')`.
+     Set `statusLabel = isHealthy ? 'Passed' : (status === 'Unknown' ? 'Pending' : 'Failed')`.
+  3. When `NEGATION_POLARITY_CONDITIONS.has(condition.type) && status === 'False'`, add
+     `title="False is the healthy value for this condition — reconciliation is running normally"`
+     on the `<span className="condition-item__status-label">` element.
+- [x] T032 [US5] Write unit tests for `ConditionItem` negation-polarity rendering in
+  `web/src/components/ConditionItem.test.tsx` (create new file):
+  - `renders condition-item--true when ReconciliationSuspended=False`
+  - `renders title tooltip on status label when ReconciliationSuspended=False`
+  - `renders condition-item--false when ReconciliationSuspended=True`
+  - `renders condition-item--true when normal condition status=True`
+  - `renders condition-item--false when normal condition status=False`
+- [x] T033 [US5] Update `web/src/components/ConditionsPanel.tsx`: change the `trueCount`
+  computation at line 79 from `conditions.filter((c) => c.status === 'True').length` to
+  `conditions.filter((c) => isHealthyCondition(c.type, c.status)).length`. Add import
+  `import { isHealthyCondition } from '@/lib/conditions'` at the top.
+- [x] T034 [US5] Update `web/src/components/ErrorsTab.tsx` `groupErrorPatterns` function:
+  gate condition entries at line 73 — change `if (c.status !== 'False') continue` to
+  `if (isHealthyCondition(c.type ?? '', c.status ?? '')) continue`. Also change
+  `if (c.status !== 'False') continue` guard to check `!isHealthyCondition`.
+  Add import `import { isHealthyCondition } from '@/lib/conditions'` at the top.
+- [x] T035 [US5] Run `bun run --cwd web typecheck` — 0 TypeScript errors ✓
+
+**Checkpoint**: `ReconciliationSuspended: False` renders as healthy (✓ Passed, green),
+counts toward healthy total, and does not appear in ErrorsTab.
 
 ---
 
@@ -170,8 +242,9 @@ Phase 5 (US3): T017–T020
 Phase 6 (US4): T021–T023
     ↓
 Phase 7 (T024) — depends on all story phases
+Phase 7b (T029–T036, US5) — can run in parallel with Phase 7; depends only on conditions.ts existing
     ↓
-Phase 8 (T025–T028) — final validation; run after Phase 7
+Phase 8 (T025–T028) — final validation; run after Phases 7 and 7b
 ```
 
 ### User Story Dependencies
