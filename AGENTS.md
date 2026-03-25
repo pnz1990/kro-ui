@@ -368,6 +368,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 
 ## Recent Changes
+- v0.3.4: negation-polarity condition fix (ReconciliationSuspended=False renders healthy), overlay node-mapping fix (all DAG nodes covered), Children denominator tooltip, condition inversion + schema defaults + catalog shimmer + home/fleet UX fixes, E2E journey backfill
 - v0.3.3: cluster-wide child resource search (per-instance namespaces), parallel events fan-out with 2s timeout, DAG width fitted to node bounding boxes, null items guard for kro serialization edge cases, uniform card min-height
 - v0.3.2: Docker image now includes aws CLI v2 for EKS exec credential plugin; mount `~/.aws` alongside `~/.kube/config`
 - v0.3.1: DAG legend component, required-field a11y improvements, overlay crash fix, expand accordion fix, demo environment hardening (idempotent kind cluster, safe kubeconfig fallback, non-fatal CEL/collection waits)
