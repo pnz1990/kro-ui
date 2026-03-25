@@ -69,6 +69,10 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `032-rbac-sa-autodetect` | #115 | RBAC SA auto-detection — replace hardcoded kro/kro with runtime discovery | Merged (PR #141) |
 | `036-rgd-detail-header` | #130 | RGD detail page header — Kind badge and status dot on all tabs | Merged (PR #140) |
 | `034-generate-form-polish` | #121 | Generate tab form polish — required field indicator, aria-required | Merged (PR #144) |
+| `037-ia-home-catalog-merge` | #163 | Home/Catalog IA — rename Home to Overview, add subtitles | Merged (PR #179) |
+| `038-live-dag-per-node-state` | #166 | Live DAG per-node state — pending state, per-child conditions, tooltip wiring | Merged (PR #180) |
+| `039-rgd-authoring-entrypoint` | #162 | Global `/author` route and `+ New RGD` top bar entrypoint | Merged (PR #181) |
+| `040-per-context-controller-metrics` | #174 | Per-context controller metrics via pod-proxy discovery | Merged (PR #182) |
 
 ### Worktrunk (required workflow)
 
@@ -368,6 +372,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 
 ## Recent Changes
+- v0.4.0: Overview/Catalog IA differentiation (Home renamed to Overview), live DAG per-node state with pending/per-child conditions + tooltip wiring, global `/author` RGD authoring entrypoint + `+ New RGD` top bar, per-context controller metrics via pod-proxy discovery (removes `--metrics-url`), Fleet per-cluster metrics column
 - v0.3.4: negation-polarity condition fix (ReconciliationSuspended=False renders healthy), overlay node-mapping fix (all DAG nodes covered), Children denominator tooltip, condition inversion + schema defaults + catalog shimmer + home/fleet UX fixes, E2E journey backfill
 - v0.3.3: cluster-wide child resource search (per-instance namespaces), parallel events fan-out with 2s timeout, DAG width fitted to node bounding boxes, null items guard for kro serialization edge cases, uniform card min-height
 - v0.3.2: Docker image now includes aws CLI v2 for EKS exec credential plugin; mount `~/.aws` alongside `~/.kube/config`

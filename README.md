@@ -15,8 +15,8 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 
 ## Features
 
-- **Home page** — RGD card grid with status dots, kind badges, resource count, age, chaining indicators, debounced search filter, error count badges, and terminating instance badges; virtualized for 5,000+ RGDs
-- **RGD catalog** — searchable, filterable registry of all RGDs with chaining detection, per-RGD instance counts, and forEach collapse suggestions (optimization advisor)
+- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, health chips, controller metrics strip, terminating badges, debounced search, and error count badges; virtualized for 5,000+ RGDs
+- **Catalog page** (`/catalog`) — browsable RGD directory with search, label filter, sort controls, per-RGD instance counts, "Used by" chaining rows, and forEach collapse suggestions (optimization advisor)
 - **RGD static chaining graph** — detect and visualize chained RGD relationships; expand parent/child chains without a live cluster
 - **RGD detail** — seven tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate
   - **Graph tab** — interactive DAG with all managed resources, forEach collections, external refs, and `includeWhen` conditions; `readyWhen` CEL expressions and `forEach` cardinality badges on hover; instance overlay selector to visualize which nodes are active for a specific CR; "refreshed X ago" indicator
@@ -27,19 +27,22 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, and a copyable example manifest
   - **Generate tab** — three-mode YAML generator: interactive instance form (per-field controls with type coercion), batch mode (one line = one manifest), and RGD authoring scaffolder
-- **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error/terminating), node YAML inspection, spec/conditions/events/telemetry panels
+- **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error/pending/not-found), node YAML inspection, spec/conditions/events/telemetry panels
+  - Per-node state derived from each child resource's own `status.conditions` — not just the root CR; `includeWhen`-excluded nodes shown in violet (pending), not-yet-created in gray (not-found)
+  - Hover tooltip shows live state label for every node
   - **Telemetry panel** — per-instance age, state duration, child resource health table, and reconcile health indicators
   - **Deletion debugger** — when an instance has a `deletionTimestamp`, surfaces a Terminating banner showing elapsed time, active finalizers (with controller ownership), blocking child resources, and deletion-related events
   - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, cardinality badge (`N/M`), and individual resource YAML
   - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
 - **Instance health roll-up** — 5-state health badges (Ready/Reconciling/Pending/Error/Unknown) on all instance list rows and RGD cards; error count badges on home and catalog cards
+- **New RGD authoring** — global `+ New RGD` entrypoint in the top bar navigates to `/author`; standalone authoring page pre-populated with a starter RGD scaffold; Home and Catalog empty states link directly to it
 - **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), deletion event tagging, grouping by instance, and URL-param pre-filtering
-- **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix with abbreviated ARN context labels
-- **Controller metrics panel** — kro controller throughput and error rates exposed via the metrics proxy endpoint
+- **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix with abbreviated ARN context labels, and per-cluster kro controller metrics column
+- **Controller metrics panel** — kro controller metrics auto-discovered via pod proxy (zero configuration); per-context correct after context switch; powers Fleet metrics column via `?context=` fan-out
 - **Context switcher** — switch kubeconfig contexts at runtime without restart
 - **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types)
 - **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly
-- **First-time onboarding** — home page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
+- **First-time onboarding** — Overview page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
 - **Dark/light theme** — dark default, full design token system, SVG favicon
 
 ## Quickstart
@@ -78,27 +81,7 @@ docker run -p 40107:40107 \
 # open http://localhost:40107
 ```
 
-**Controller metrics panel** requires the kro metrics endpoint to be reachable.
-Port-forward it from the cluster, then pass the URL:
-
-```bash
-# Terminal 1 — expose kro metrics
-kubectl port-forward -n kro-system deployment/kro 8080:8080
-
-# Terminal 2 — run kro-ui pointing at the forwarded metrics
-# Note: use host.docker.internal, not localhost (localhost = the container)
-docker run -p 40107:40107 \
-  -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  -v ~/.aws:/home/nonroot/.aws:ro \
-  -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:latest \
-  serve --metrics-url http://host.docker.internal:8080/metrics
-# open http://localhost:40107
-```
-
-> `host.docker.internal` is Docker Desktop's hostname for the host machine.
-> On Linux without Docker Desktop, use `--add-host host.docker.internal:host-gateway`
-> in the `docker run` command.
+**Controller metrics** are now auto-discovered via pod proxy — no `--metrics-url` flag required. kro-ui finds the kro controller pod automatically using label selectors and proxies through the kube-apiserver.
 
 ### In-cluster (Helm)
 
@@ -129,7 +112,7 @@ All endpoints are read-only. No mutating k8s API calls are ever issued.
 | `/api/v1/instances/{ns}/{name}/children` | GET | Instance child resources |
 | `/api/v1/resources/{ns}/{group}/{ver}/{kind}/{name}` | GET | Raw resource YAML |
 | `/api/v1/kro/capabilities` | GET | Detected kro capabilities and feature gates |
-| `/api/v1/kro/metrics` | GET | kro controller metrics (throughput, error rates) |
+| `/api/v1/kro/metrics` | GET | kro controller metrics auto-discovered via pod proxy; `?context=<name>` for per-cluster Fleet fan-out |
 | `/api/v1/events` | GET | kro-filtered Kubernetes events (`?namespace=`, `?rgd=`) |
 | `/api/v1/fleet/summary` | GET | Multi-cluster summary across all kubeconfig contexts |
 

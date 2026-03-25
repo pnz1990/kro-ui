@@ -2,8 +2,8 @@ apiVersion: v2
 name: kro-ui
 description: Web dashboard for kro ResourceGraphDefinitions
 type: application
-version: 0.3.4
-appVersion: "0.3.4"
+version: 0.4.0
+appVersion: "0.4.0"
 keywords:
   - kro
   - kubernetes
