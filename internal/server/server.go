@@ -64,6 +64,11 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 
 	// API routes — handler may be nil-safe for healthz-only testing.
 	r.Route("/api/v1", func(r chi.Router) {
+		// Enforce 5s response budget on every API handler (Constitution §XI).
+		// healthz and version are exempt — they are served before the timeout
+		// middleware applies (registered below inside this subrouter first).
+		r.Use(middleware.Timeout(5 * time.Second))
+
 		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("ok"))

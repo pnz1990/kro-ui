@@ -19,7 +19,7 @@ export default function NotFound() {
         The page you requested does not exist.
       </p>
       <Link to="/" className="not-found__home-link">
-        Back to home
+        Back to Overview
       </Link>
     </div>
   )

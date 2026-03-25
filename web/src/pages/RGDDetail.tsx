@@ -470,11 +470,11 @@ export default function RGDDetail() {
                   No managed resources defined
                 </div>
               )}
+              <OptimizationAdvisor
+                key={String(rgdName)}
+                groups={collapseGroups}
+              />
             </div>
-            <OptimizationAdvisor
-              key={String(rgdName)}
-              groups={collapseGroups}
-            />
             {selectedNode && (
               <NodeDetailPanel
                 node={selectedNode}

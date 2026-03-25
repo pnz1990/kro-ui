@@ -22,6 +22,7 @@ import (
 
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -92,10 +93,16 @@ const kroAPIVersion = "kro.run/v1alpha1"
 const rgdCRDName = "resourcegraphdefinitions.kro.run"
 
 // Well-known kro controller deployment identifiers.
-const (
-	kroNamespace      = "kro-system"
-	kroDeploymentName = "kro-controller-manager"
-)
+// Probed in order — first match wins. The official Helm chart uses "kro";
+// older or custom installations may use "kro-controller-manager".
+// Constitution §XI: no hardcoded single name; probe multiple candidates.
+const kroNamespace = "kro-system"
+
+var kroDeploymentNames = []string{
+	"kro",
+	"kro-controller-manager",
+	"kro-controller",
+}
 
 // DetectCapabilities probes the connected cluster and returns what the kro
 // installation supports. Falls back to Baseline() on any error.
@@ -263,12 +270,21 @@ func hasExternalRefSelector(resourceItemProps map[string]any) bool {
 
 // detectFeatureGatesAndVersion reads the kro controller Deployment and parses
 // --feature-gates from its container args, and extracts the version from the image tag.
+// Probes kroDeploymentNames in order; uses the first Deployment that resolves.
 func detectFeatureGatesAndVersion(ctx context.Context, dyn dynamic.Interface) (map[string]bool, string) {
 	log := zerolog.Ctx(ctx)
 
-	deploy, err := dyn.Resource(deployGVR).Namespace(kroNamespace).Get(ctx, kroDeploymentName, metav1.GetOptions{})
-	if err != nil {
-		log.Debug().Err(err).Msg("kro controller deployment not found, feature gates default to false")
+	var deploy *unstructured.Unstructured
+	for _, name := range kroDeploymentNames {
+		obj, err := dyn.Resource(deployGVR).Namespace(kroNamespace).Get(ctx, name, metav1.GetOptions{})
+		if err == nil {
+			deploy = obj
+			break
+		}
+		log.Debug().Str("name", name).Err(err).Msg("kro deployment candidate not found, trying next")
+	}
+	if deploy == nil {
+		log.Debug().Msg("kro controller deployment not found under any known name, feature gates default to false")
 		return nil, ""
 	}
 

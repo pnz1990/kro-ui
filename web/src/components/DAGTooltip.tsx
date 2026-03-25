@@ -39,6 +39,19 @@ export interface DAGTooltipProps {
    * Spec: .specify/specs/029-dag-instance-overlay/
    */
   nodeState?: NodeLiveState
+  /**
+   * Called when the cursor enters the tooltip element.
+   * The parent DAG component uses this to cancel the pending hide timer,
+   * keeping the tooltip visible while the user reads or scrolls content.
+   * Issue #188.
+   */
+  onTooltipMouseEnter?: () => void
+  /**
+   * Called when the cursor leaves the tooltip element.
+   * The parent DAG component uses this to start the hide timer again.
+   * Issue #188.
+   */
+  onTooltipMouseLeave?: () => void
 }
 
 /**
@@ -96,6 +109,8 @@ export default function DAGTooltip({
   nodeWidth,
   nodeHeight,
   nodeState,
+  onTooltipMouseEnter,
+  onTooltipMouseLeave,
 }: DAGTooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
@@ -171,6 +186,8 @@ export default function DAGTooltip({
           ? { left: pos.left, top: pos.top }
           : { left: initialLeft, top: initialTop }
       }
+      onMouseEnter={onTooltipMouseEnter}
+      onMouseLeave={onTooltipMouseLeave}
     >
       <div className="dag-tooltip-header">
         <span className="dag-tooltip-node-id">{node.id}</span>

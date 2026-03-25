@@ -21,6 +21,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/pnz1990/kro-ui/internal/api/types"
@@ -91,8 +92,9 @@ func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 
 // GetResource returns the raw unstructured YAML/JSON for any resource.
 // This is used by the frontend for node YAML inspection — works for any k8s kind.
-// The {group} path segment uses "_" to represent the core (empty) API group,
-// since chi cannot route an empty path segment.
+// Two sentinels are used for path segments that chi cannot route as empty strings:
+//   - group "_"     → core API group (empty string)
+//   - namespace "_" → cluster-scoped resource (no namespace)
 func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
 	namespace := chi.URLParam(r, "namespace")
@@ -105,6 +107,12 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	if group == "_" {
 		group = ""
 	}
+	// Treat "_" namespace as cluster-scoped (no namespace).
+	// Cluster-scoped resources (Namespace, ClusterRole, PV, etc.) have no
+	// metadata.namespace; the frontend sends "_" to avoid a double-slash URL.
+	if namespace == "_" {
+		namespace = ""
+	}
 
 	plural, err := k8sclient.DiscoverPlural(h.factory, group, version, kind)
 	if err != nil {
@@ -112,7 +120,14 @@ func (h *Handler) GetResource(w http.ResponseWriter, r *http.Request) {
 	}
 
 	gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: plural}
-	obj, err := h.factory.Dynamic().Resource(gvr).Namespace(namespace).Get(r.Context(), name, metav1.GetOptions{})
+
+	var obj *unstructured.Unstructured
+	if namespace == "" {
+		// Cluster-scoped GET — do not include a namespace in the API path.
+		obj, err = h.factory.Dynamic().Resource(gvr).Get(r.Context(), name, metav1.GetOptions{})
+	} else {
+		obj, err = h.factory.Dynamic().Resource(gvr).Namespace(namespace).Get(r.Context(), name, metav1.GetOptions{})
+	}
 	if err != nil {
 		log.Error().Err(err).Str("gvr", gvr.String()).Str("name", name).Msg("resource not found")
 		respondError(w, http.StatusNotFound, err.Error())

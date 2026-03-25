@@ -78,15 +78,41 @@ func IsListable(r metav1.APIResource) bool {
 	return false
 }
 
-// DiscoverPlural uses the discovery API to find the correct plural resource name for a kind.
+// DiscoverPlural finds the correct plural resource name for a kind using the
+// TTL-cached discovery results. This avoids a live API server call on every
+// request — the cache is refreshed at most once per 30s (Constitution §XI).
+//
+// It falls back to the naive "<kind>s" pluralisation only when the kind is
+// genuinely absent from the cached resource lists (e.g. CRD not yet registered).
 func DiscoverPlural(clients K8sClients, group, version, kind string) (string, error) {
+	apiLists, err := clients.CachedServerGroupsAndResources()
+	if err != nil {
+		// Cache miss / discovery error — fall through to direct lookup below.
+		apiLists = nil
+	}
+
 	gv := group + "/" + version
 	if group == "" {
 		gv = version
 	}
+
+	// Scan cached results first.
+	for _, list := range apiLists {
+		if list.GroupVersion != gv {
+			continue
+		}
+		for _, r := range list.APIResources {
+			if strings.EqualFold(r.Kind, kind) {
+				return r.Name, nil
+			}
+		}
+	}
+
+	// Cache miss for this specific GV — fall back to a single targeted lookup.
+	// This happens on first use after startup or when a new CRD is registered.
 	resourceList, err := clients.Discovery().ServerResourcesForGroupVersion(gv)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("discovery for %s: %w", gv, err)
 	}
 	for _, r := range resourceList.APIResources {
 		if strings.EqualFold(r.Kind, kind) {

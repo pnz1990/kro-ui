@@ -12,12 +12,19 @@ import type { RGDCondition } from './ConditionItem'
 import ResourceSummary from './ResourceSummary'
 import './ValidationTab.css'
 
-/** The four condition types kro sets on every RGD, in display order. */
+/** The condition types kro emits on every RGD (kro v0.4+), in display order.
+ *
+ * kro v0.4+ emits: ResourceGraphAccepted, KindReady, ControllerReady, Ready
+ * kro ≤v0.3 emitted: GraphVerified, TopologyReady, CustomResourceDefinitionSynced, Ready
+ *
+ * Unknown condition types present in status.conditions are appended at the end
+ * of the checklist automatically — so future kro versions are handled gracefully.
+ */
 const KNOWN_CONDITION_TYPES: ReadonlyArray<{ type: string; label: string }> = [
-  { type: 'GraphVerified',                    label: 'Graph Verified' },
-  { type: 'TopologyReady',                    label: 'Topology Ready' },
-  { type: 'CustomResourceDefinitionSynced',   label: 'CRD Synced' },
-  { type: 'Ready',                            label: 'Ready' },
+  { type: 'ResourceGraphAccepted', label: 'Graph Accepted' },
+  { type: 'KindReady',             label: 'Kind Ready' },
+  { type: 'ControllerReady',       label: 'Controller Ready' },
+  { type: 'Ready',                 label: 'Ready' },
 ]
 
 /** Friendly label for a condition type. Unknown types use the raw type value. */

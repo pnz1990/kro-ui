@@ -229,6 +229,21 @@ export default function StaticChainDAG({
   const navigate = useNavigate()
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<(DAGTooltipTarget & { nodeState?: NodeLiveState }) | null>(null)
+  // Debounced hide: gives the cursor time to travel from the node to the tooltip.
+  // Issue #188 — without this, onMouseLeave fires before the cursor reaches the tooltip.
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function scheduleTooltipHide() {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => setHoveredTooltip(null), 150)
+  }
+
+  function cancelTooltipHide() {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
+    }
+  }
 
   // ── Expansion state ────────────────────────────────────────────────────
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => new Set())
@@ -383,6 +398,7 @@ export default function StaticChainDAG({
                   onMouseEnter={() => {
                     if (!svgRef.current) return
                     const svgRect = svgRef.current.getBoundingClientRect()
+                    cancelTooltipHide()
                     setHoveredTooltip({
                       node,
                       anchorX: svgRect.left + node.x + node.width / 2,
@@ -392,7 +408,7 @@ export default function StaticChainDAG({
                       nodeState: liveState,
                     })
                   }}
-                  onMouseLeave={() => setHoveredTooltip(null)}
+                  onMouseLeave={scheduleTooltipHide}
                 >
                   <rect
                     className="dag-node-rect"
@@ -577,6 +593,8 @@ export default function StaticChainDAG({
         nodeWidth={hoveredTooltip?.nodeWidth ?? 0}
         nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
         nodeState={hoveredTooltip?.nodeState}
+        onTooltipMouseEnter={cancelTooltipHide}
+        onTooltipMouseLeave={scheduleTooltipHide}
       />
     </div>
   )
