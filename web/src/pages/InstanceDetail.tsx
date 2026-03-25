@@ -206,8 +206,8 @@ export default function InstanceDetail() {
   // ── Node state map — derived on every poll + children update ─────────────
   const nodeStateMap = useMemo(() => {
     if (!fastData) return {}
-    return buildNodeStateMap(fastData.instance, children)
-  }, [fastData, children])
+    return buildNodeStateMap(fastData.instance, children, dagGraph?.nodes ?? [])
+  }, [fastData, children, dagGraph])
 
   // ── Detect instance deletion (next poll returns 404) ────────────────────
   const instanceGoneRef = useRef(false)

@@ -218,7 +218,7 @@ export default function DeepDAG({
         const childSpec = childRGD.spec as Record<string, unknown> | undefined
         if (!childSpec) throw new Error('Child RGD has no spec')
         const childGraph = buildDAGGraph(childSpec)
-        const childStateMap = buildNodeStateMap(childInstance, childrenResp.items ?? [])
+        const childStateMap = buildNodeStateMap(childInstance, childrenResp.items ?? [], childGraph.nodes)
         const childChildren = childrenResp.items ?? []
 
         setExpansionMap((prev) => {

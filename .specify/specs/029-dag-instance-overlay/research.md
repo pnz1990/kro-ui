@@ -147,9 +147,70 @@ if (liveState) parts.push(liveStateClass(liveState))
 
 **Rationale**: This is the same algorithm in `LiveDAG.tsx:42–61` and `DeepDAG.tsx:71–81`. Extracting it to `nodeStateForNode()` in `dag.ts` (R-003) ensures all three consumers use identical logic.
 
+### R-011 — Root cause of GH #165: `nodeBaseClass` truthy guard
+
+**Decision**: Change the live-state class guard in `nodeBaseClass()` from
+`if (liveState)` to `if (nodeStateMap && node.nodeType !== 'state')`.
+
+**Rationale**: `liveStateClass(undefined)` returns `'dag-node-live--notfound'`
+by design (the function signature is `(state: NodeLiveState | undefined): string`).
+But the call site in `nodeBaseClass` guards with `if (liveState)`, and
+`undefined` is falsy — so absent nodes never receive the `notfound` class.
+This is the immediate cause of GH #165: only the root CR node (which gets a
+truthy state from its conditions) was colored; all child resource nodes that
+happened to be absent from `children` got `undefined` from `nodeStateForNode`
+and were silently unstyled.
+
+The fix threads the same guard already used to compute `liveState` (line 332:
+`nodeStateMap && node.nodeType !== 'state'`) into the class builder. When the
+overlay is active, `liveStateClass` is called unconditionally for every
+non-state node.
+
+**Alternatives considered**:
+- Change `nodeStateForNode` to return `'not-found'` instead of `undefined` for
+  absent nodes — rejected because `undefined` is the correct sentinel for "no
+  overlay active" vs `'not-found'` meaning "overlay active, resource absent".
+  The same function is used in LiveDAG/DeepDAG where the map is comprehensive
+  and `undefined` genuinely means no data.
+- Always call `liveStateClass(liveState ?? 'not-found')` with `if (liveState !== undefined)` —
+  functionally equivalent but less clear about the intent.
+
 ---
 
-## Resolved unknowns summary
+### R-012 — Root cause of GH #165: `buildNodeStateMap` only keys observed children
+
+**Decision**: Add `rgdNodes: DAGNode[]` as a third parameter to
+`buildNodeStateMap`. Pre-enumerate all non-state, non-instance nodes from
+`rgdNodes` and emit explicit `'not-found'` entries for nodes absent from the
+children presence map.
+
+**Rationale**: The original `buildNodeStateMap(instance, children)` built the
+state map by iterating over `children` — it only produced entries for kinds
+that were actually present in the cluster. When `nodeStateForNode` looked up a
+node whose kind had no child, it returned `undefined`. Combined with Bug 1
+(truthy guard), this meant no live-state class was ever applied to absent nodes.
+
+Even after fixing Bug 1, a `NodeStateMap` that omits absent kinds would still
+produce `undefined` from `nodeStateForNode` — the map's `undefined` lookup
+(`stateMap[kindKey]?.state`) and Bug 1's fix together would produce `notfound`
+styling, so Bug 1 fix alone could be sufficient in practice. However, making
+`buildNodeStateMap` explicitly enumerate all RGD nodes is cleaner:
+- Makes the contract explicit: every non-state node has an entry.
+- Enables unit testing of the mapping in isolation (AC-019).
+- Consistent with the principle that absent data should produce a defined
+  fallback, not an implicit chain of `undefined` lookups.
+
+**Alternatives considered**:
+- Fix only Bug 1 (truthy guard) and leave `buildNodeStateMap` unchanged — this
+  would work because `liveStateClass(undefined)` → `notfound` fills the gap.
+  Rejected as incomplete: the spec explicitly requires "nodes not represented
+  in children are gray dashed" (AC-007), which implies the not-found state is
+  intentional and should be explicitly produced, not accidentally correct.
+- Derive `rgdNodes` inside `buildNodeStateMap` by some other means — rejected
+  (no access to the graph data from inside `instanceNodeState.ts`; callers
+  already have `dagGraph.nodes`).
+
+---
 
 | Unknown | Resolution |
 |---------|-----------|
@@ -158,7 +219,8 @@ if (liveState) parts.push(liveStateClass(liveState))
 | Where is `liveStateClass()`? | `dag.ts:605–613` — shared, already exported |
 | Where is `nodeState()` logic? | Duplicated in LiveDAG + DeepDAG; extract to `dag.ts` as `nodeStateForNode()` |
 | `StaticChainDAG` container class? | `static-chain-dag-container` |
-| `nodeBaseClass()` location and signature? | `StaticChainDAG.tsx:83–89` — extend with optional `liveState` param |
+| `nodeBaseClass()` location and signature? | `StaticChainDAG.tsx:83–89` — extend with optional `liveState` param **AND overlay-active guard** (see R-011) |
 | Picker component design? | New `InstanceOverlayBar` component, standard `<select>`, BEM CSS |
 | Do live-state tooltip CSS classes exist? | Yes, in `LiveDAG.css:190–197` — currently dead code; activate via new prop |
 | Is `reconciling-pulse` keyframe global? | Yes — defined in `tokens.css:269–272` |
+| Why child nodes not colored? (GH #165) | Two bugs: (1) truthy guard in `nodeBaseClass`; (2) `buildNodeStateMap` only keyed by observed children. See R-011 and R-012. |
