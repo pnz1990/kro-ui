@@ -114,6 +114,10 @@ shows error state — even before expansion.
 - **NFR-002**: TypeScript strict mode MUST pass
 - **NFR-003**: No layout shift in the parent DAG when a child expands — the
   parent graph re-layouts to accommodate the expanded subgraph
+- **NFR-004**: Any `<foreignObject>` element inside the DeepDAG SVG MUST carry
+  `overflow="visible"` so that expanded child content does not get clipped to the
+  foreignObject bounds. After expansion, the SVG `viewBox` MUST be recalculated to
+  encompass the new bounding box height.
 
 ### Key Components
 

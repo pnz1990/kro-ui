@@ -6,6 +6,7 @@
 // kro-specific field paths (constitution §II).
 
 import type { K8sObject } from './api'
+import { isHealthyCondition } from './conditions'
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -109,14 +110,24 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
     }
   }
 
-  // Step 3: Ready condition
+  // Step 3a: Ready condition (the primary health signal for kro instances).
+  // Use the first Ready condition as the authoritative answer.
   const ready = valid.find((c) => c.type === 'Ready')
   if (ready) {
-    if (ready.status === 'True') {
+    if (isHealthyCondition('Ready', ready.status)) {
       return { state: 'ready', reason: ready.reason ?? '', message: ready.message ?? '' }
     }
-    if (ready.status === 'False') {
+    if (ready.status !== 'Unknown') {
       return { state: 'error', reason: ready.reason ?? '', message: ready.message ?? '' }
+    }
+  }
+
+  // Step 3b: Check negation-polarity conditions (e.g. ReconciliationSuspended=True → error).
+  // These are not covered by the Ready=False path above. Issue #220 (028-F3).
+  for (const c of valid) {
+    if (c.type === 'Ready' || c.status === 'Unknown') continue
+    if (!isHealthyCondition(c.type, c.status)) {
+      return { state: 'error', reason: c.reason ?? '', message: c.message ?? '' }
     }
   }
 

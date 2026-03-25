@@ -5,7 +5,8 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import CollectionPanel, { isItemReady } from './CollectionPanel'
+import CollectionPanel from './CollectionPanel'
+import { isItemReady } from '@/lib/collection'
 import type { K8sObject } from '@/lib/api'
 import type { DAGNode } from '@/lib/dag'
 

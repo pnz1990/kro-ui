@@ -326,6 +326,51 @@ describe('extractInstanceHealth', () => {
     expect(result.reason).toBe('')
     expect(result.message).toBe('')
   })
+
+  // ── 028-F3: negation-polarity conditions ──────────────────────────────────
+
+  it('returns error when ReconciliationSuspended=True with no Ready condition — fix #220 028-F3', () => {
+    // ReconciliationSuspended=True means reconciliation is paused → unhealthy.
+    // When there is no Ready condition, isHealthyCondition must catch this.
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'ReconciliationSuspended', status: 'True', reason: 'ManualPause' },
+        ],
+      },
+    }
+    const result = extractInstanceHealth(obj)
+    expect(result.state).toBe('error')
+    expect(result.reason).toBe('ManualPause')
+  })
+
+  it('returns error when ReconciliationSuspended=True and Ready=Unknown — fix #220 028-F3', () => {
+    // Real-world: kro suspends reconciliation → Ready stays Unknown.
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'Unknown', reason: '' },
+          { type: 'ReconciliationSuspended', status: 'True', reason: 'ManualPause' },
+        ],
+      },
+    }
+    const result = extractInstanceHealth(obj)
+    expect(result.state).toBe('error')
+    expect(result.reason).toBe('ManualPause')
+  })
+
+  it('returns ready when ReconciliationSuspended=False (negation-polarity healthy)', () => {
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'True', reason: 'AllGood' },
+          { type: 'ReconciliationSuspended', status: 'False', reason: '' },
+        ],
+      },
+    }
+    const result = extractInstanceHealth(obj)
+    expect(result.state).toBe('ready')
+  })
 })
 
 // ── aggregateHealth ──────────────────────────────────────────────────

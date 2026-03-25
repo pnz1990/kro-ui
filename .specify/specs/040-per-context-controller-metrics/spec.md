@@ -76,8 +76,15 @@ through the kube-apiserver using `ClientFactory.RESTConfig()`:
 GET /api/v1/namespaces/{ns}/pods/{podName}/proxy/metrics
 ```
 
-Use `rest.HTTPClientFor(restCfg)` to build an `http.Client` with the correct
+ Use `rest.HTTPClientFor(restCfg)` to build an `http.Client` with the correct
 TLS credentials and auth token; then construct the URL from `restCfg.Host`.
+
+> **§II Exception (justified)**: `rest.HTTPClientFor` is used here instead of the
+> dynamic client because the kube-apiserver pod-proxy path requires a raw HTTP
+> client with the kubeconfig's TLS/auth credentials. The dynamic client exposes
+> no API for arbitrary non-k8s-resource HTTP proxying. This is the only place in
+> the codebase that uses `rest.HTTPClientFor`; all kro resource access elsewhere
+> continues to use `k8s.io/client-go/dynamic`.
 
 Do **not** use `CoreV1().Pods(ns).ProxyGet()` — that requires a typed client
 which violates Constitution §II ("dynamic client everywhere").
