@@ -30,9 +30,10 @@ func (h *Handler) resolveInstanceGVR(ctx context.Context, rgdName string) (schem
 
 // listChildResources finds all child resources across all namespaces that carry
 // the kro.run/instance-name label matching the instance name.
-// Thin wrapper that delegates to k8s.ListChildResources.
-// The namespace param has been removed (issue #146): kro creates child resources
-// in per-instance namespaces, so we must search cluster-wide.
-func (h *Handler) listChildResources(ctx context.Context, instanceName string) ([]map[string]any, error) {
-	return k8sclient.ListChildResources(ctx, h.factory, instanceName)
+// When rgdName is provided the fan-out is scoped to only the resource types
+// declared in the RGD spec — avoiding full-cluster discovery fan-out that causes
+// throttling on large clusters (EKS/GKE). Falls back to full discovery when
+// rgdName is empty or the RGD cannot be fetched.
+func (h *Handler) listChildResources(ctx context.Context, instanceName, rgdName string) ([]map[string]any, error) {
+	return k8sclient.ListChildResourcesForRGD(ctx, h.factory, instanceName, rgdName)
 }

@@ -76,17 +76,21 @@ func (h *Handler) GetInstanceEvents(w http.ResponseWriter, r *http.Request) {
 // Uses the kro.run/instance-name label to find all child resources across all
 // namespaces — kro creates managed resources in per-instance namespaces which
 // may differ from the instance's own namespace (issue #146).
+// When the ?rgd= query param is provided the search is scoped to only the
+// resource types declared in the RGD spec, avoiding full-cluster discovery
+// fan-out that causes throttling on large clusters (EKS/GKE).
 func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
 	namespace := chi.URLParam(r, "namespace")
 	name := chi.URLParam(r, "name")
+	rgdName := r.URL.Query().Get("rgd")
 
-	children, err := h.listChildResources(r.Context(), name)
+	children, err := h.listChildResources(r.Context(), name, rgdName)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	log.Debug().Int("count", len(children)).Str("namespace", namespace).Str("name", name).Msg("listed instance children")
+	log.Debug().Int("count", len(children)).Str("namespace", namespace).Str("name", name).Str("rgd", rgdName).Msg("listed instance children")
 	respond(w, http.StatusOK, types.ChildrenResponse{Items: children})
 }
 
