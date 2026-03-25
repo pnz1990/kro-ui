@@ -419,6 +419,25 @@ func TestGetInstanceChildren(t *testing.T) {
 				assert.NotContains(t, body, `"error"`)
 			},
 		},
+		{
+			// GetInstanceChildren must return 500 when listChildResources fails.
+			// Covers the handler's error branch for discovery failures.
+			name:  "returns 500 when discovery fails",
+			ns:    "kro-ui-e2e",
+			iname: "test-instance",
+			query: "",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				disc := newStubDiscovery()
+				disc.err = fmt.Errorf("simulated discovery failure")
+				return newRGDTestHandler(newStubDynamic(), disc)
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusInternalServerError, rr.Code)
+				assert.Contains(t, rr.Body.String(), `"error"`)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -572,9 +591,8 @@ func TestGetResource(t *testing.T) {
 			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
 				t.Helper()
 				require.Equal(t, http.StatusNotFound, rr.Code)
-				body := rr.Body.String()
-				assert.Contains(t, body, `"error"`)
-				assert.Contains(t, body, "not found")
+				assert.Contains(t, rr.Body.String(), `"error"`)
+				assert.Contains(t, rr.Body.String(), "not found")
 			},
 		},
 	}

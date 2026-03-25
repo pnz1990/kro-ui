@@ -852,6 +852,68 @@ func TestRGDResourceGVRs(t *testing.T) {
 				assert.Empty(t, entries)
 			},
 		},
+		{
+			// ParseGroupVersion returns an error for malformed apiVersions like
+			// "invalid///version". This path is hit when an RGD template has a
+			// syntactically bad apiVersion field; the resource must be skipped.
+			name: "skips resource with invalid apiVersion format",
+			build: func(t *testing.T) (K8sClients, map[string]any) {
+				t.Helper()
+				clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+				rgd := map[string]any{
+					"spec": map[string]any{
+						"resources": []any{
+							map[string]any{
+								"id": "bad",
+								"template": map[string]any{
+									"apiVersion": "not/a/valid/gv", // three slashes — ParseGroupVersion errors
+									"kind":       "Foo",
+								},
+							},
+						},
+					},
+				}
+				return clients, rgd
+			},
+			check: func(t *testing.T, entries []gvrEntry) {
+				t.Helper()
+				assert.Empty(t, entries)
+			},
+		},
+		{
+			// When DiscoverPlural fails (CRD not yet registered or unknown kind),
+			// rgdResourceGVRs must fall back to naive plural ("<kind>s") and still
+			// return an entry so the fan-out can attempt the List call.
+			name: "falls back to naive plural when DiscoverPlural fails",
+			build: func(t *testing.T) (K8sClients, map[string]any) {
+				t.Helper()
+				// Empty discovery — DiscoverPlural will find nothing and error.
+				clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+				rgd := map[string]any{
+					"spec": map[string]any{
+						"resources": []any{
+							map[string]any{
+								"id": "game",
+								"template": map[string]any{
+									"apiVersion": "game.k8s.example/v1alpha1",
+									"kind":       "Monster",
+								},
+							},
+						},
+					},
+				}
+				return clients, rgd
+			},
+			check: func(t *testing.T, entries []gvrEntry) {
+				t.Helper()
+				// Entry present with naive plural "monsters", namespaced=true (safe default).
+				require.Len(t, entries, 1)
+				assert.Equal(t, "monsters", entries[0].gvr.Resource)
+				assert.Equal(t, "game.k8s.example", entries[0].gvr.Group)
+				assert.Equal(t, "v1alpha1", entries[0].gvr.Version)
+				assert.True(t, entries[0].namespaced, "unknown resources default to namespaced=true")
+			},
+		},
 	}
 
 	for _, tt := range tests {
