@@ -87,6 +87,9 @@ export default function FleetMatrix({ clusters, rgdsByContext }: FleetMatrixProp
                       {cell.presence === 'degraded' && (
                         <span className="fleet-matrix__dot fleet-matrix__dot--degraded" aria-hidden="true" />
                       )}
+                      {cell.presence === 'absent' && (
+                        <span className="fleet-matrix__absent-dash" aria-hidden="true">–</span>
+                      )}
                     </td>
                   )
                 })}

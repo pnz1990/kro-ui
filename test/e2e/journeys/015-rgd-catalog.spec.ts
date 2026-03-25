@@ -61,9 +61,11 @@ test.describe('Journey 015 — RGD Catalog', () => {
     const card = page.getByTestId('catalog-card-test-app')
     await expect(card).toBeVisible({ timeout: 10000 })
 
-    // Wait for the count cell to resolve — starts as "…", becomes "N instances" or "—"
-    // toContainText matches a substring, unlike toHaveText which is exact.
-    await expect(card.getByTestId('catalog-card-instances')).not.toContainText('…', { timeout: 15000 })
+    // Wait for the count cell to resolve — starts as a shimmer (issue #168: was "…"),
+    // then becomes "N instances" or "— instances" (failed fetch).
+    // The shimmer <span> has class catalog-card__count-skeleton and no text content,
+    // so we wait for the skeleton to disappear before reading the text.
+    await expect(card.locator('.catalog-card__count-skeleton')).toHaveCount(0, { timeout: 15000 })
     const instancesText = await card.getByTestId('catalog-card-instances').textContent()
     // Valid outcomes: "N instance", "N instances", "— instances" (failed fetch)
     expect(instancesText).toMatch(/(\d+|—) instance/)
