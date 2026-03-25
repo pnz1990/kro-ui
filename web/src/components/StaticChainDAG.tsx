@@ -273,6 +273,10 @@ export default function StaticChainDAG({
 
   // ── SVG height accounting for expanded subgraphs ─────────────────────
   const baseHeight = fittedHeight(graph.nodes, graph.height)
+  // Sum the height of all expanded panels rather than taking the max.
+  // When two nodes on the same DAG row are both expanded, their panels are
+  // both rendered below that row — we need space for all of them, not just
+  // the tallest one. Issue #204.
   const extraHeight = useMemo(() => {
     let extra = 0
     for (const nodeId of expandedNodes) {
@@ -289,13 +293,11 @@ export default function StaticChainDAG({
           ? sub.height + NESTED_HEADER_HEIGHT + NESTED_PADDING_BOTTOM
           : 60 + NESTED_HEADER_HEIGHT + NESTED_PADDING_BOTTOM
       }
-      const nodeBottom = node.y + node.height
-      const graphBottom = baseHeight
-      const alreadyHas = Math.max(0, graphBottom - nodeBottom)
-      extra = Math.max(extra, nestedH + 8 - alreadyHas)
+      // Accumulate: sum all expansions (each occupies vertical space below its node).
+      extra += nestedH + 8
     }
     return extra
-  }, [expandedNodes, nodeMap, effectiveAncestors, depth, rgds, baseHeight])
+  }, [expandedNodes, nodeMap, effectiveAncestors, depth, rgds])
 
   const svgHeight = baseHeight + Math.max(0, extraHeight)
 
@@ -370,9 +372,11 @@ export default function StaticChainDAG({
             const toggleX = node.x + node.width - 8
             const toggleY = node.y + 10
 
-            // Nested subgraph foreignObject dimensions
+            // Nested subgraph foreignObject dimensions.
+            // Clamp nestedX so the panel never overflows the SVG left or right edge. Issue #204.
             const nestedWidth = Math.max(NESTED_MIN_WIDTH, graph.width)
-            const nestedX = node.x + node.width / 2 - nestedWidth / 2
+            const rawNestedX = node.x + node.width / 2 - nestedWidth / 2
+            const nestedX = Math.max(0, Math.min(rawNestedX, graph.width - nestedWidth))
             const nestedY = node.y + node.height + 8
 
             // "View RGD →" link foreignObject position

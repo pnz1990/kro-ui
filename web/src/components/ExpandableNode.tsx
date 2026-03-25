@@ -48,6 +48,12 @@ export interface ExpandableNodeProps {
   childLoading?: boolean
   /** Non-null when the child fetch failed. */
   childError?: string
+  /**
+   * Total width of the parent SVG viewport (graph.width).
+   * Used to clamp the nested panel so it never overflows the left or right edge.
+   * Issue #204.
+   */
+  svgWidth?: number
 }
 
 // ── Layout constants ──────────────────────────────────────────────────────
@@ -105,6 +111,7 @@ export default function ExpandableNode({
   expandedData,
   childLoading,
   childError,
+  svgWidth,
 }: ExpandableNodeProps) {
   const cx = node.x + node.width / 2
   const labelY = node.y + node.height / 2 - (node.kind ? 7 : 0)
@@ -129,8 +136,13 @@ export default function ExpandableNode({
     : NESTED_LOADING_HEIGHT
   const nestedHeight = NESTED_HEADER_HEIGHT + contentHeight + NESTED_PADDING_BOTTOM
 
-  // Center the nested container horizontally relative to the parent node
-  const nestedX = node.x + node.width / 2 - nestedWidth / 2
+  // Center the nested container horizontally relative to the parent node,
+  // then clamp to [0, svgWidth - nestedWidth] so it never overflows the SVG
+  // viewport left or right edge. Issue #204.
+  const rawNestedX = node.x + node.width / 2 - nestedWidth / 2
+  const nestedX = svgWidth !== undefined
+    ? Math.max(0, Math.min(rawNestedX, svgWidth - nestedWidth))
+    : Math.max(0, rawNestedX)
   const nestedY = node.y + node.height + 8
 
   return (

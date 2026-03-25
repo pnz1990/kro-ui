@@ -127,6 +127,9 @@ type stubNamespaceableResource struct {
 	listErr     error
 	getErr      error
 	nsResources map[string]*stubResourceClient // namespace → namespaced stub
+	// labelItems is used by cluster-scoped List() calls (no .Namespace() wrapper). Issue #202.
+	labelItems   map[string][]unstructured.Unstructured
+	createResult *unstructured.Unstructured
 }
 
 func (s *stubNamespaceableResource) Namespace(ns string) dynamic.ResourceInterface {
@@ -145,9 +148,16 @@ func (s *stubNamespaceableResource) Namespace(ns string) dynamic.ResourceInterfa
 }
 
 // Cluster-scoped List/Get — delegate to inline data.
-func (s *stubNamespaceableResource) List(_ context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+func (s *stubNamespaceableResource) List(_ context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 	if s.listErr != nil {
 		return nil, s.listErr
+	}
+	// Support label-selector filtering for cluster-scoped List() calls. Issue #202.
+	if opts.LabelSelector != "" && s.labelItems != nil {
+		if items, ok := s.labelItems[opts.LabelSelector]; ok {
+			return &unstructured.UnstructuredList{Items: items}, nil
+		}
+		return &unstructured.UnstructuredList{}, nil
 	}
 	return &unstructured.UnstructuredList{Items: s.items}, nil
 }
