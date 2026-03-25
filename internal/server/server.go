@@ -47,12 +47,11 @@ type Config struct {
 	Port       int
 	Kubeconfig string
 	Context    string
-	MetricsURL string
 }
 
 // NewRouter creates a chi.Router with all API routes, middleware, and SPA fallback.
 // If factory is nil, only healthz and static file serving are functional (for testing).
-func NewRouter(factory *k8sclient.ClientFactory, metricsURL string) (chi.Router, error) {
+func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -84,7 +83,7 @@ func NewRouter(factory *k8sclient.ClientFactory, metricsURL string) (chi.Router,
 
 		// Only wire handler routes when a factory is available.
 		if factory != nil {
-			h := handlers.New(factory, metricsURL)
+			h := handlers.New(factory)
 
 			// Cluster contexts
 			r.Get("/contexts", h.ListContexts)
@@ -168,7 +167,7 @@ func Run(cfg Config) error {
 
 	logger.Info().Str("active_context", factory.ActiveContext()).Msg("connected to cluster")
 
-	r, err := NewRouter(factory, cfg.MetricsURL)
+	r, err := NewRouter(factory)
 	if err != nil {
 		return fmt.Errorf("create router: %w", err)
 	}

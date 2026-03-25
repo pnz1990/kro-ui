@@ -74,6 +74,9 @@ type ClientFactory struct {
 	dynamic        dynamic.Interface
 	discovery      discovery.DiscoveryInterface
 	discCache      apiResourceCache
+	// switchHooks are called (without the lock held) after a successful SwitchContext.
+	// Use RegisterContextSwitchHook to add hooks. Each hook must be safe for concurrent call.
+	switchHooks []func()
 }
 
 // NewClientFactory creates a ClientFactory from the given kubeconfig path and context.
@@ -148,11 +151,33 @@ func (f *ClientFactory) load(context string) error {
 
 // SwitchContext reloads all clients for the given context.
 // Returns an error if the context name is empty or not found in the kubeconfig.
+// After a successful switch, all registered context-switch hooks are called.
 func (f *ClientFactory) SwitchContext(ctx string) error {
 	if ctx == "" {
 		return fmt.Errorf("context name must not be empty")
 	}
-	return f.load(ctx)
+	if err := f.load(ctx); err != nil {
+		return err
+	}
+	// Notify hooks (e.g. PodRefCache.invalidateAll) without holding the lock.
+	f.mu.RLock()
+	hooks := make([]func(), len(f.switchHooks))
+	copy(hooks, f.switchHooks)
+	f.mu.RUnlock()
+	for _, h := range hooks {
+		h()
+	}
+	return nil
+}
+
+// RegisterContextSwitchHook adds a function to be called after every successful
+// SwitchContext call. This is used by MetricsDiscoverer to invalidate its
+// PodRefCache when the active context changes (spec 040 — FR-003).
+// hook must be safe for concurrent calls.
+func (f *ClientFactory) RegisterContextSwitchHook(hook func()) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.switchHooks = append(f.switchHooks, hook)
 }
 
 // Dynamic returns the dynamic client for the active context.
@@ -189,6 +214,17 @@ func (f *ClientFactory) CachedServerGroupsAndResources() ([]*metav1.APIResourceL
 	}
 	f.discCache.set(lists)
 	return lists, nil
+}
+
+// RESTConfig returns a copy of the REST config for the active context.
+// The returned config carries TLS credentials and auth token — it can be
+// passed to rest.HTTPClientFor to build an authenticated http.Client.
+func (f *ClientFactory) RESTConfig() *rest.Config {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	// Return a shallow copy so callers cannot mutate the factory's config.
+	cfg := *f.restConfig
+	return &cfg
 }
 
 // ActiveContext returns the name of the currently active context.

@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -88,4 +89,21 @@ func BuildContextClient(kubeconfigPath, contextName string) (*ContextClients, er
 // the path resolution logic.
 func (f *ClientFactory) KubeconfigPath() string {
 	return f.kubeconfigPath
+}
+
+// buildRESTConfig builds a *rest.Config for the given kubeconfig context.
+// This is used by MetricsDiscoverer to build an authenticated http.Client
+// for per-context pod proxy requests without modifying the shared ClientFactory.
+func buildRESTConfig(kubeconfigPath, contextName string) (*rest.Config, error) {
+	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfigPath}
+	overrides := &clientcmd.ConfigOverrides{}
+	if contextName != "" {
+		overrides.CurrentContext = contextName
+	}
+	cfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	restCfg, err := cfg.ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("build rest config for context %q: %w", contextName, err)
+	}
+	return restCfg, nil
 }

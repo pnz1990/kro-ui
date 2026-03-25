@@ -25,18 +25,47 @@ import (
 	k8s "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
-// GetMetrics scrapes kro's Prometheus metrics endpoint and returns a JSON snapshot
-// of the four key operational counters. Absent metrics are encoded as JSON null.
+// GetMetrics scrapes the kro controller metrics for the requested context.
+// If ?context= is absent or empty, the active context is used.
+// If ?context= is set but not found in the kubeconfig, 404 is returned.
+// When the kro pod is not found, 200 OK with null metric fields is returned
+// (kro not installed is not an error — Constitution §XII graceful degradation).
 //
-// Errors from the upstream endpoint are translated to appropriate HTTP status codes:
-//   - 503 Service Unavailable — endpoint unreachable
-//   - 502 Bad Gateway         — endpoint returned non-200
-//   - 504 Gateway Timeout     — endpoint did not respond within budget
+// HTTP error mapping:
+//   - 404 Not Found           — unknown ?context= param
+//   - 503 Service Unavailable — pod proxy unreachable
+//   - 502 Bad Gateway         — pod proxy returned non-200
+//   - 504 Gateway Timeout     — pod proxy did not respond in time
 func (h *Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
-	metrics, err := k8s.ScrapeMetrics(r.Context(), h.metricsURL)
+
+	// Read optional ?context= query param.
+	contextName := r.URL.Query().Get("context")
+	if contextName != "" {
+		// Validate the requested context exists in the kubeconfig.
+		contexts, _, err := h.ctxMgr.ListContexts()
+		if err != nil {
+			log.Error().Err(err).Msg("list contexts for metrics validation failed")
+			respondError(w, http.StatusInternalServerError, "failed to list contexts")
+			return
+		}
+		found := false
+		for _, c := range contexts {
+			if c.Name == contextName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			respondError(w, http.StatusNotFound,
+				"context \""+contextName+"\" not found in kubeconfig")
+			return
+		}
+	}
+
+	metrics, err := h.metrics.ScrapeMetrics(r.Context(), contextName)
 	if err != nil {
-		log.Error().Err(err).Str("url", h.metricsURL).Msg("metrics scrape failed")
+		log.Error().Err(err).Str("context", contextName).Msg("metrics scrape failed")
 
 		var bgErr *k8s.ErrMetricsBadGateway
 		var toErr *k8s.ErrMetricsTimeout
