@@ -48,14 +48,15 @@
 - [ ] Create `web/src/components/ValidationTab.tsx`:
   - Props: `rgd: K8sObject`
   - Renders checklist of ALL conditions: known types first (in defined order), unknown types appended generically (FR-002, FR-003)
-  - If no conditions: show "Pending" state for all 4 known types with "Awaiting controller processing" (US1-SC4)
+   - If no conditions: show "Not reported" state for all 4 known types with `condition-item--absent` styling (US1-SC4). Do NOT show "Pending" — absent conditions are not the same as Unknown-status conditions.
   - Below checklist: `<ResourceSummary rgd={rgd} />`
   - `data-testid="validation-tab"`
 - [ ] Create `web/src/components/ValidationTab.css` — tokens only
 - [ ] Create `web/src/components/ValidationTab.test.tsx`:
   - `shows green checkmark for True conditions`
   - `shows red X for False conditions`
-  - `shows gray pending for absent/unknown-status conditions`
+  - `shows "Not reported" (–) with condition-item--absent for absent conditions`
+  - `shows gray pending (○) with condition-item--pending for Unknown-status conditions`
   - `renders unknown condition types generically without crashing`
   - `shows resource summary with correct type breakdown`
 

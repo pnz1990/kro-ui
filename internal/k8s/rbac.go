@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,7 +109,18 @@ func ResolveKroServiceAccount(ctx context.Context, clients K8sClients) (namespac
 // given service account (namespace/name), by reading ClusterRoleBindings and
 // namespace-scoped RoleBindings and resolving their referenced roles.
 // It also resolves aggregated ClusterRoles.
+//
+// Constitution §XI: a 4s deadline is applied to the entire RBAC read chain.
+// Individual reads are sequential (CRBs → RBs → role lookups) but each inherits
+// this deadline, capping the total latency well within the 5s handler timeout.
 func FetchEffectiveRules(ctx context.Context, clients K8sClients, saNamespace, saName string) ([]policyRule, error) {
+	// Apply a 4s deadline to the entire rule-fetch chain — sequential reads across
+	// ClusterRoleBindings, RoleBindings, and referenced roles can add up on large
+	// clusters. Constitution §XI: all K8s I/O must have a bounded timeout.
+	tctx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	defer cancel()
+	ctx = tctx
+
 	log := zerolog.Ctx(ctx)
 
 	var rules []policyRule

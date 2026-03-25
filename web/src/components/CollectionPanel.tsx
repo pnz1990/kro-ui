@@ -21,51 +21,6 @@ const LABEL_NODE_ID = 'kro.run/node-id'
 const LABEL_COLL_INDEX = 'kro.run/collection-index'
 const LABEL_COLL_SIZE = 'kro.run/collection-size'
 
-// ── isItemReady ────────────────────────────────────────────────────────────
-
-/**
- * Determine whether a collection item resource is "ready".
- *
- * Priority:
- *   1. status.phase — Running, Active, or Succeeded → true
- *   2. status.conditions — Ready=True or Available=True → true
- *   3. All other cases → false
- *
- * Exported for unit-testing. Pure function — no side effects.
- */
-export function isItemReady(item: K8sObject): boolean {
-  const status = item.status
-  if (typeof status !== 'object' || status === null) return false
-
-  const s = status as Record<string, unknown>
-
-  // Phase check
-  const phase = s.phase
-  if (typeof phase === 'string') {
-    if (phase === 'Running' || phase === 'Active' || phase === 'Succeeded') return true
-    // Known non-ready phases — fall through to conditions check
-  }
-
-  // Conditions check
-  const conditions = s.conditions
-  if (Array.isArray(conditions)) {
-    for (const c of conditions) {
-      if (typeof c !== 'object' || c === null) continue
-      const cond = c as Record<string, unknown>
-      if (
-        typeof cond.type === 'string' &&
-        typeof cond.status === 'string' &&
-        (cond.type === 'Ready' || cond.type === 'Available') &&
-        cond.status === 'True'
-      ) {
-        return true
-      }
-    }
-  }
-
-  return false
-}
-
 // ── Item status derivation ─────────────────────────────────────────────────
 
 type ItemStatus = 'running' | 'pending' | 'failed' | 'unknown'

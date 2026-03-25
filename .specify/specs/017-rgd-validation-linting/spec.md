@@ -114,12 +114,13 @@ collections, external refs), and a list of all CEL cross-references detected.
 - **FR-001**: Validation tab MUST read conditions from the already-loaded RGD
   object (no additional API call)
 - **FR-002**: Each known condition type MUST be displayed with: type name,
-  status icon (green ✓ / red ✗ / gray ○ / dash –), reason, message, last
-  transition time. The status rendering MUST distinguish three states:
-  - `True` → green ✓ "Passed"
-  - `False` → red ✗ with reason and message
-  - `Unknown` (condition present, status Unknown) → gray ○ "Pending / Awaiting controller processing"
-  - Absent (condition not in `status.conditions` at all) → dash `–` "Not reported / Not emitted by the connected kro version" with neutral `condition-item--absent` styling
+   status icon (green ✓ / red ✗ / gray ○ / dash –), reason, message, last
+   transition time. The status rendering MUST distinguish four states with the
+   following normative CSS class names:
+   - `True` → green ✓ "Passed" — CSS class: `condition-item--passed`
+   - `False` → red ✗ with reason and message — CSS class: `condition-item--failed`
+   - `Unknown` (condition present, status Unknown) → gray ○ "Pending / Awaiting controller processing" — CSS class: `condition-item--pending`
+   - Absent (condition not in `status.conditions` at all) → dash `–` "Not reported / Not emitted by the connected kro version" — CSS class: `condition-item--absent`
 - **FR-003**: Unknown condition types MUST be rendered generically
 - **FR-004**: Resource summary MUST be computed client-side from `spec.resources`
   using the same node type classification as spec 003 (`buildDAGGraph`)
