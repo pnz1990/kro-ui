@@ -314,6 +314,47 @@ export const STARTER_RGD_STATE: RGDAuthoringState = {
   resources: [{ _key: 'starter-web', id: 'web', apiVersion: 'apps/v1', kind: 'Deployment' }],
 }
 
+// ── rgdAuthoringStateToSpec ───────────────────────────────────────────────
+
+/**
+ * Convert RGDAuthoringState to a kro RGD spec object for DAG preview.
+ *
+ * Produces the minimal spec shape that buildDAGGraph can process:
+ *   { schema: { kind, apiVersion, spec? }, resources: [...] }
+ *
+ * Called by AuthorPage's live DAG preview (debounced at 300ms).
+ * Pure function — never throws; filters incomplete resources and fields.
+ *
+ * Spec: .specify/specs/042-rgd-designer-nav/
+ */
+export function rgdAuthoringStateToSpec(
+  state: RGDAuthoringState,
+): Record<string, unknown> {
+  const schemaSpec: Record<string, string> = {}
+  for (const f of state.specFields) {
+    if (f.name) schemaSpec[f.name] = f.type || 'string'
+  }
+
+  return {
+    schema: {
+      kind: state.kind || 'MyApp',
+      apiVersion: state.apiVersion || 'v1alpha1',
+      ...(Object.keys(schemaSpec).length > 0 ? { spec: schemaSpec } : {}),
+    },
+    resources: state.resources
+      .filter((r) => r.id)
+      .map((r) => ({
+        id: r.id,
+        template: {
+          apiVersion: r.apiVersion || 'apps/v1',
+          kind: r.kind || 'Deployment',
+          metadata: { name: '' },
+          spec: {},
+        },
+      })),
+  }
+}
+
 /** Build a SimpleSchema type string from an AuthoringField. */
 function buildSimpleSchemaStr(field: AuthoringField): string {
   const base = field.type || 'string'

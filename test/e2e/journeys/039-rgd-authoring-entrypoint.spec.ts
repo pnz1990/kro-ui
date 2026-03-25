@@ -13,56 +13,55 @@
 // limitations under the License.
 
 /**
- * Journey 039: RGD Authoring Global Entrypoint
+ * Journey 039: RGD Designer Global Entrypoint
  *
- * Validates that the RGD authoring form is discoverable from:
- * 1. The top bar "+ New RGD" button (visible on every page)
- * 2. Navigating to /author renders the authoring form
- * 3. The Home empty state "New RGD" link only appears in the onboarding
- *    variant (not in the no-search-results variant)
- * 4. The per-RGD Generate tab "New RGD" mode still works as an in-tab
- *    mode switch (regression guard — must NOT navigate away)
+ * Validates that the RGD Designer is discoverable from:
+ * 1. The top bar "RGD Designer" nav link (visible on every page)
+ * 2. Navigating to /author renders the authoring form and live DAG preview
+ * 3. The Home empty state "Open RGD Designer" link only appears in the
+ *    onboarding variant (not in the no-search-results variant)
+ * 4. The /author page shows a live DAG preview panel
  *
  * Spec ref: .specify/specs/039-rgd-authoring-entrypoint/
+ *           .specify/specs/042-rgd-designer-nav/
  *
  * Cluster pre-conditions:
  * - kind cluster running, kro installed
- * - test-app RGD applied (for Step 4 regression guard)
  */
 
 import { test, expect } from '@playwright/test'
 
 const BASE = 'http://localhost:40107'
 
-test.describe('Journey 039 — RGD Authoring Global Entrypoint', () => {
-  test('Step 1: top bar has a visible "+ New RGD" entrypoint on the home page', async ({ page }) => {
+test.describe('Journey 039 — RGD Designer Global Entrypoint', () => {
+  test('Step 1: top bar has a visible "RGD Designer" nav link on the home page', async ({ page }) => {
     await page.goto(BASE)
     // Wait for the page to load (top bar is always rendered, no data dependency)
-    await expect(page.getByTestId('topbar-new-rgd')).toBeVisible({ timeout: 10000 })
-    const text = await page.getByTestId('topbar-new-rgd').textContent()
-    expect(text?.trim()).toContain('New RGD')
+    await expect(page.getByTestId('topbar-rgd-designer')).toBeVisible({ timeout: 10000 })
+    const text = await page.getByTestId('topbar-rgd-designer').textContent()
+    expect(text?.trim()).toContain('RGD Designer')
   })
 
-  test('Step 2: clicking top bar "New RGD" navigates to /author and renders the form', async ({ page }) => {
+  test('Step 2: clicking top bar "RGD Designer" navigates to /author and renders the form', async ({ page }) => {
     await page.goto(BASE)
-    await expect(page.getByTestId('topbar-new-rgd')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('topbar-rgd-designer')).toBeVisible({ timeout: 10000 })
 
-    await page.getByTestId('topbar-new-rgd').click()
+    await page.getByTestId('topbar-rgd-designer').click()
 
     // URL must change to /author
     await expect(page).toHaveURL(`${BASE}/author`, { timeout: 5000 })
 
     // Page title
-    await expect(page).toHaveTitle(/New RGD — kro-ui/)
+    await expect(page).toHaveTitle(/RGD Designer — kro-ui/)
 
     // RGDAuthoringForm must be visible
     await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 5000 })
   })
 
-  test('Step 3: Home no-match empty state does NOT show "New RGD" link', async ({ page }) => {
+  test('Step 3: Home no-match empty state does NOT show "Open RGD Designer" link', async ({ page }) => {
     await page.goto(BASE)
     // Wait for RGD cards to load so the search filter is active
-    await expect(page.getByTestId('topbar-new-rgd')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('topbar-rgd-designer')).toBeVisible({ timeout: 10000 })
 
     // Type a search that matches nothing
     const search = page.locator('input[type="search"]')
@@ -73,24 +72,19 @@ test.describe('Journey 039 — RGD Authoring Global Entrypoint', () => {
     // The no-match empty state should be visible
     await expect(page.locator('.home__empty').first()).toBeVisible({ timeout: 3000 })
 
-    // The "New RGD" link must NOT appear in the no-match variant
+    // The "Open RGD Designer" link must NOT appear in the no-match variant
     // (it only appears in the onboarding variant when items.length === 0 with no query)
     await expect(page.getByTestId('home-new-rgd-link')).not.toBeVisible()
   })
 
-  test('Step 4: per-RGD Generate tab "New RGD" mode button does not navigate away (regression guard)', async ({ page }) => {
-    await page.goto(`${BASE}/rgds/test-app?tab=generate`)
-    await expect(page.getByTestId('generate-tab')).toBeVisible({ timeout: 10000 })
+  test('Step 4: /author page shows live DAG preview panel', async ({ page }) => {
+    await page.goto(`${BASE}/author`)
+    await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 10000 })
 
-    // Click the "New RGD" mode button inside the Generate tab
-    await page.getByTestId('mode-btn-rgd').click()
+    // The DAG preview pane must be visible on the RGD Designer page
+    await expect(page.locator('.author-page__dag-pane')).toBeVisible({ timeout: 5000 })
 
-    // The RGDAuthoringForm must be visible inside the tab
-    await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 3000 })
-
-    // URL must still contain tab=generate — we must NOT have navigated to /author
-    await expect(page).toHaveURL(/tab=generate/)
-    const url = page.url()
-    expect(url).not.toContain('/author')
+    // The page title must be "RGD Designer — kro-ui"
+    await expect(page).toHaveTitle(/RGD Designer — kro-ui/)
   })
 })
