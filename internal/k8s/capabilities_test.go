@@ -265,7 +265,7 @@ func makeDeployment(args []string, image string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "apps/v1",
 		"kind":       "Deployment",
-		"metadata":   map[string]any{"name": kroDeploymentName, "namespace": kroNamespace},
+		"metadata":   map[string]any{"name": kroDeploymentNames[0], "namespace": kroNamespace},
 		"spec": map[string]any{
 			"template": map[string]any{
 				"spec": map[string]any{
@@ -392,7 +392,7 @@ func TestDetectCapabilities(t *testing.T) {
 				)
 				dyn.resources[deployGVR] = &capStubNamespaceableResource{
 					nsResources: map[string]*capStubResourceClient{
-						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentName: deploy}},
+						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentNames[0]: deploy}},
 					},
 				}
 				return dyn, disc
@@ -417,7 +417,7 @@ func TestDetectCapabilities(t *testing.T) {
 				)
 				dyn.resources[deployGVR] = &capStubNamespaceableResource{
 					nsResources: map[string]*capStubResourceClient{
-						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentName: deploy}},
+						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentNames[0]: deploy}},
 					},
 				}
 				return dyn, disc
@@ -437,7 +437,7 @@ func TestDetectCapabilities(t *testing.T) {
 				deploy := makeDeployment(nil, "ghcr.io/kro/controller:latest")
 				dyn.resources[deployGVR] = &capStubNamespaceableResource{
 					nsResources: map[string]*capStubResourceClient{
-						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentName: deploy}},
+						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentNames[0]: deploy}},
 					},
 				}
 				return dyn, disc
@@ -478,7 +478,7 @@ func TestDetectCapabilities(t *testing.T) {
 				)
 				dyn.resources[deployGVR] = &capStubNamespaceableResource{
 					nsResources: map[string]*capStubResourceClient{
-						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentName: deploy}},
+						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentNames[0]: deploy}},
 					},
 				}
 				return dyn, disc
@@ -503,7 +503,7 @@ func TestDetectCapabilities(t *testing.T) {
 				)
 				dyn.resources[deployGVR] = &capStubNamespaceableResource{
 					nsResources: map[string]*capStubResourceClient{
-						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentName: deploy}},
+						kroNamespace: {getItems: map[string]*unstructured.Unstructured{kroDeploymentNames[0]: deploy}},
 					},
 				}
 				return dyn, disc

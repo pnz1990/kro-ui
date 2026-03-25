@@ -289,7 +289,7 @@ export default function InstanceDetail() {
       <nav className="instance-detail-breadcrumbs" aria-label="Breadcrumb">
         <ol className="breadcrumb-list">
           <li className="breadcrumb-item">
-            <Link to="/" className="breadcrumb-link">Home</Link>
+            <Link to="/" className="breadcrumb-link">Overview</Link>
           </li>
           {rgdName && (
             <li className="breadcrumb-item">

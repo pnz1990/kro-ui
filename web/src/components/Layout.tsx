@@ -3,7 +3,7 @@
 // their data after a context switch.
 
 import { useCallback, useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { listContexts } from '@/lib/api'
 import type { KubeContext } from '@/lib/api'
 import Footer from './Footer'
@@ -13,6 +13,7 @@ import './Layout.css'
 export default function Layout() {
   const [contexts, setContexts] = useState<KubeContext[]>([])
   const [activeContext, setActiveContext] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     listContexts()
@@ -29,7 +30,10 @@ export default function Layout() {
 
   const handleSwitch = useCallback((name: string) => {
     setActiveContext(name)
-  }, [])
+    // Navigate to Overview so the new cluster's RGD list loads immediately.
+    // The <Outlet key={activeContext}> re-key ensures a full remount.
+    navigate('/')
+  }, [navigate])
 
   return (
     <div className="layout">

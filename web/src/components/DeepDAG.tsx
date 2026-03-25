@@ -129,6 +129,20 @@ export default function DeepDAG({
   // ── Hover tooltip state ────────────────────────────────────────────────────
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
   const svgRef = useRef<SVGSVGElement>(null)
+  // Debounced hide — gives cursor time to travel from node to tooltip. Issue #188.
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function scheduleTooltipHide() {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => setHoveredTooltip(null), 150)
+  }
+
+  function cancelTooltipHide() {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
+    }
+  }
 
   // ── Node → RGD name index ─────────────────────────────────────────────────
   // Build a kind → rgdName lookup from the RGD list (same logic as catalog.ts).
@@ -393,17 +407,18 @@ export default function DeepDAG({
                 aria-pressed={isSelected}
                 onClick={() => onNodeClick?.(node)}
                 onMouseEnter={() => {
-                  const svgRect = svgRef.current?.getBoundingClientRect()
-                  if (!svgRect) return
-                  setHoveredTooltip({
-                    node,
-                    anchorX: svgRect.left + node.x,
-                    anchorY: svgRect.top + node.y,
-                    nodeWidth: node.width,
-                    nodeHeight: node.height,
-                  })
-                }}
-                onMouseLeave={() => setHoveredTooltip(null)}
+                   const svgRect = svgRef.current?.getBoundingClientRect()
+                   if (!svgRect) return
+                   cancelTooltipHide()
+                   setHoveredTooltip({
+                     node,
+                     anchorX: svgRect.left + node.x,
+                     anchorY: svgRect.top + node.y,
+                     nodeWidth: node.width,
+                     nodeHeight: node.height,
+                   })
+                 }}
+                 onMouseLeave={scheduleTooltipHide}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
@@ -499,6 +514,8 @@ export default function DeepDAG({
             ? nodeStateForNode(hoveredTooltip.node, nodeStateMap)
             : undefined
         }
+        onTooltipMouseEnter={cancelTooltipHide}
+        onTooltipMouseLeave={scheduleTooltipHide}
       />
     </div>
   )

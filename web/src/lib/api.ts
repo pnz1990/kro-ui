@@ -99,8 +99,12 @@ export const listEvents = (namespace?: string, rgd?: string) => {
 
 // ── Raw resource ─────────────────────────────────────────────────────
 
+// Cluster-scoped resources (Namespace, ClusterRole, PV, etc.) have no
+// metadata.namespace. Use "_" as a sentinel — parallel to the group sentinel —
+// so chi can route the request without a double-slash in the URL path.
+// The backend decodes "_" back to "" and uses the non-namespaced client-go GET.
 export const getResource = (namespace: string, group: string, version: string, kind: string, name: string) =>
-  get<K8sObject>(`/resources/${namespace}/${group || '_'}/${version}/${kind}/${name}`)
+  get<K8sObject>(`/resources/${namespace || '_'}/${group || '_'}/${version}/${kind}/${name}`)
 
 // ── RBAC Access ──────────────────────────────────────────────────────
 

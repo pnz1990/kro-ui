@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/pnz1990/kro-ui/internal/api/types"
@@ -113,9 +114,17 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 
 	summary.RGDCount = len(list.Items)
 
-	// For each RGD, collect kinds, count instances and detect degraded ones.
-	degraded := 0
-	totalInstances := 0
+	// For each RGD, build the GVR and fan out instance list calls concurrently.
+	// DiscoverPlural now reads from the TTL cache (issue #192/Bug A) so calling
+	// it once per RGD no longer incurs N sequential API server discovery requests.
+	// The errgroup with a 2s per-resource timeout prevents any single slow resource
+	// from holding up the rest. Constitution §XI.
+	type rgdEntry struct {
+		kind       string
+		group      string
+		apiVersion string
+	}
+	entries := make([]rgdEntry, 0, len(list.Items))
 	kinds := make([]string, 0, len(list.Items))
 	for _, rgd := range list.Items {
 		kind, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "kind")
@@ -124,35 +133,63 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 		if kind == "" {
 			continue
 		}
-		kinds = append(kinds, kind)
 		if group == "" {
 			group = k8sclient.KroGroup
 		}
 		if apiVersion == "" {
 			apiVersion = "v1alpha1"
 		}
+		entries = append(entries, rgdEntry{kind, group, apiVersion})
+		kinds = append(kinds, kind)
+	}
 
-		plural, err := k8sclient.DiscoverPlural(clients, group, apiVersion, kind)
-		if err != nil {
-			plural = strings.ToLower(kind) + "s"
-		}
+	type instanceResult struct {
+		count    int
+		degraded int
+	}
+	results := make([]instanceResult, len(entries))
+	var mu sync.Mutex
+	g, _ := errgroup.WithContext(tctx)
+	for i, entry := range entries {
+		i, entry := i, entry // capture
+		g.Go(func() error {
+			rctx, rcancel := context.WithTimeout(tctx, 2*time.Second)
+			defer rcancel()
 
-		instanceGVR := rgdGVR
-		instanceGVR.Group = group
-		instanceGVR.Version = apiVersion
-		instanceGVR.Resource = plural
-
-		instances, err := clients.Dynamic().Resource(instanceGVR).List(tctx, metav1.ListOptions{})
-		if err != nil || instances == nil {
-			continue
-		}
-
-		totalInstances += len(instances.Items)
-		for _, inst := range instances.Items {
-			if isInstanceDegraded(inst.Object) {
-				degraded++
+			plural, err := k8sclient.DiscoverPlural(clients, entry.group, entry.apiVersion, entry.kind)
+			if err != nil {
+				plural = strings.ToLower(entry.kind) + "s"
 			}
-		}
+
+			instanceGVR := rgdGVR
+			instanceGVR.Group = entry.group
+			instanceGVR.Version = entry.apiVersion
+			instanceGVR.Resource = plural
+
+			instances, err := clients.Dynamic().Resource(instanceGVR).List(rctx, metav1.ListOptions{})
+			if err != nil || instances == nil {
+				return nil // non-fatal: count stays 0 for this RGD
+			}
+
+			deg := 0
+			for _, inst := range instances.Items {
+				if isInstanceDegraded(inst.Object) {
+					deg++
+				}
+			}
+			mu.Lock()
+			results[i] = instanceResult{len(instances.Items), deg}
+			mu.Unlock()
+			return nil
+		})
+	}
+	_ = g.Wait() // errors are non-fatal; partial results are acceptable
+
+	totalInstances := 0
+	degraded := 0
+	for _, r := range results {
+		totalInstances += r.count
+		degraded += r.degraded
 	}
 
 	summary.InstanceCount = totalInstances

@@ -30,12 +30,12 @@ function makeRGD(
   }
 }
 
-/** Standard "all passing" condition set. */
+/** Standard "all passing" condition set (kro v0.4+ condition type names). */
 const allTrueConditions = [
-  { type: 'GraphVerified',                  status: 'True',  reason: 'GraphVerified',    message: '' },
-  { type: 'TopologyReady',                  status: 'True',  reason: 'TopologyReady',    message: '' },
-  { type: 'CustomResourceDefinitionSynced', status: 'True',  reason: 'CRDSynced',        message: '' },
-  { type: 'Ready',                          status: 'True',  reason: 'Ready',            message: '' },
+  { type: 'ResourceGraphAccepted', status: 'True',  reason: 'ResourceGraphAccepted', message: '' },
+  { type: 'KindReady',             status: 'True',  reason: 'KindReady',             message: '' },
+  { type: 'ControllerReady',       status: 'True',  reason: 'ControllerReady',       message: '' },
+  { type: 'Ready',                 status: 'True',  reason: 'Ready',                 message: '' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ describe('ValidationTab', () => {
     renderValidationTab(makeRGD(allTrueConditions))
 
     // All four known condition items should be rendered
-    const graphItem = screen.getByTestId('condition-item-GraphVerified')
+    const graphItem = screen.getByTestId('condition-item-ResourceGraphAccepted')
     expect(graphItem).toBeInTheDocument()
     expect(graphItem).toHaveClass('condition-item--true')
     expect(graphItem).toHaveTextContent('✓')
@@ -70,7 +70,7 @@ describe('ValidationTab', () => {
   it('shows red X (✗) and reason/message for False conditions', () => {
     const rgd = makeRGD([
       {
-        type: 'GraphVerified',
+        type: 'ResourceGraphAccepted',
         status: 'False',
         reason: 'CycleDetected',
         message: 'cycle detected: A → B → A',
@@ -78,7 +78,7 @@ describe('ValidationTab', () => {
     ])
     renderValidationTab(rgd)
 
-    const item = screen.getByTestId('condition-item-GraphVerified')
+    const item = screen.getByTestId('condition-item-ResourceGraphAccepted')
     expect(item).toHaveClass('condition-item--false')
     expect(item).toHaveTextContent('✗')
     expect(item).toHaveTextContent('Failed')
@@ -94,7 +94,7 @@ describe('ValidationTab', () => {
     // See: https://github.com/pnz1990/kro-ui/issues/59
     renderValidationTab(makeRGD([]))
 
-    for (const type of ['GraphVerified', 'TopologyReady', 'CustomResourceDefinitionSynced', 'Ready']) {
+    for (const type of ['ResourceGraphAccepted', 'KindReady', 'ControllerReady', 'Ready']) {
       const item = screen.getByTestId(`condition-item-${type}`)
       expect(item).toHaveClass('condition-item--absent')
       expect(item).toHaveTextContent('–')
@@ -185,7 +185,7 @@ describe('ValidationTab', () => {
   it('truncates long messages and shows a "Show more" toggle', () => {
     const longMessage = 'x'.repeat(300)
     const rgd = makeRGD([
-      { type: 'GraphVerified', status: 'False', reason: 'SomeError', message: longMessage },
+      { type: 'ResourceGraphAccepted', status: 'False', reason: 'SomeError', message: longMessage },
     ])
     renderValidationTab(rgd)
 

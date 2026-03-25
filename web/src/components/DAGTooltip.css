@@ -19,7 +19,10 @@
   max-width: 360px;
   /* Start invisible; useEffect flips to dag-tooltip--visible after clamping */
   opacity: 0;
-  pointer-events: none;
+  /* pointer-events intentionally enabled — the user must be able to hover into
+     the tooltip to scroll/copy long CEL expressions. Hide is debounced in the
+     parent DAG component so the tooltip stays visible while the cursor travels
+     from the node to the tooltip. Issue #188. */
 }
 
 .dag-tooltip--visible {

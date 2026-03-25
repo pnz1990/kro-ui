@@ -65,9 +65,9 @@ describe('TopBar', () => {
     expect(onSwitch).toHaveBeenCalledWith('other')
   })
 
-  it('renders Home and Catalog nav links', () => {
+  it('renders Overview and Catalog nav links', () => {
     renderTopBar({ activeContext: 'test' })
-    expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Catalog' })).toHaveAttribute('href', '/catalog')
   })
 })

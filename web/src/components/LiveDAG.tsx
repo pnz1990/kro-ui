@@ -211,6 +211,20 @@ export default function LiveDAG({
   const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
+  // Debounced hide — gives cursor time to travel from node to tooltip. Issue #188.
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function scheduleTooltipHide() {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => setHoveredTooltip(null), 150)
+  }
+
+  function cancelTooltipHide() {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current)
+      hideTimerRef.current = null
+    }
+  }
 
   return (
     <div className="dag-graph-container live-dag-container">
@@ -267,7 +281,10 @@ export default function LiveDAG({
               state={nodeStateForNode(node, nodeStateMap)}
               isSelected={node.id === selectedNodeId}
               onNodeClick={onNodeClick}
-              onHover={setHoveredTooltip}
+              onHover={(target) => {
+                if (target) { cancelTooltipHide(); setHoveredTooltip(target) }
+                else { scheduleTooltipHide() }
+              }}
               svgRef={svgRef}
               children={node.nodeType === 'collection' ? children : undefined}
             />
@@ -286,6 +303,8 @@ export default function LiveDAG({
             ? nodeStateForNode(hoveredTooltip.node, nodeStateMap)
             : undefined
         }
+        onTooltipMouseEnter={cancelTooltipHide}
+        onTooltipMouseLeave={scheduleTooltipHide}
       />
     </div>
   )
