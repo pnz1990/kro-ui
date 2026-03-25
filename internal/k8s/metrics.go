@@ -311,7 +311,7 @@ func NewMetricsDiscoverer(factory *ClientFactory) *MetricsDiscoverer {
 // and the caller is switching contexts (detected by the factory's SwitchContext method
 // calling cache.invalidateAll), the cache is already cleared before the next poll arrives.
 // See ClientFactory.SwitchContext — it calls md.cache.invalidateAll() if a MetricsDiscoverer
-// is registered via RegisterCacheInvalidator.
+// is registered via RegisterContextSwitchHook.
 func (md *MetricsDiscoverer) ScrapeMetrics(ctx context.Context, contextName string) (*ControllerMetrics, error) {
 	var (
 		dyn      dynamic.Interface

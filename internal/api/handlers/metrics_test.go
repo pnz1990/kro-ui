@@ -332,6 +332,9 @@ func TestGetMetrics_ContextNotFound(t *testing.T) {
 	assert.Contains(t, errResp.Error, "no-such-context")
 }
 
-// ── Unused httptest server reference (kept to avoid import removal) ───────────
-// The metricsFixture constant is retained for future integration tests.
+// metricsFixture is retained for documentation purposes and potential future
+// integration tests that wire a real httptest.Server to a stub MetricsDiscoverer.
+// The blank reference below prevents the compiler from removing the httptest import
+// if all direct httptest.NewServer calls are later removed from this file.
+// (scrapeViaProxy tests that use httptest.NewServer live in internal/k8s/metrics_test.go.)
 var _ = httptest.NewServer
