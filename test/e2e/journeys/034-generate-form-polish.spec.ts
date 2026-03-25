@@ -44,10 +44,10 @@ test.describe('Journey 034 — Generate Tab Form Polish', () => {
     await page.goto(`${BASE}/rgds/test-app?tab=generate`)
     await expect(page.getByTestId('generate-tab')).toBeVisible({ timeout: 10000 })
 
-    // Mode buttons: Form, Batch, RGD
+    // Mode buttons: Form and Batch (New RGD mode removed in spec 042-rgd-designer-nav)
     await expect(page.getByTestId('mode-btn-form')).toBeVisible()
     await expect(page.getByTestId('mode-btn-batch')).toBeVisible()
-    await expect(page.getByTestId('mode-btn-rgd')).toBeVisible()
+    await expect(page.getByTestId('mode-btn-rgd')).not.toBeVisible()
   })
 
   test('Step 3: Form mode shows the instance form', async ({ page }) => {
