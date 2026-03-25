@@ -13,9 +13,9 @@
 // limitations under the License.
 
 /**
- * Journey 002: Home Page — RGD Card Grid and Navigation
+ * Journey 002: Overview Page — RGD Card Grid and Navigation
  *
- * Validates that the home page renders RGD cards correctly, displays
+ * Validates that the overview page renders RGD cards correctly, displays
  * the active context name, and navigates to graph/instances views.
  *
  * Spec ref: .specify/specs/002-rgd-list-home/spec.md § E2E User Journey
@@ -31,7 +31,7 @@ import { test, expect } from '@playwright/test'
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
 
-test.describe('Journey 002 — Home page RGD cards and navigation', () => {
+test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
 
   test('Step 1: Open the dashboard', async ({ page }) => {
     await page.goto(BASE)
@@ -111,7 +111,7 @@ test.describe('Journey 002 — Home page RGD cards and navigation', () => {
     await expect(page).toHaveURL(`${BASE}/rgds/test-app?tab=instances`)
   })
 
-  test('Step 5: Home page shows cards for all fixture RGDs', async ({ page }) => {
+  test('Step 5: Overview page shows cards for all fixture RGDs', async ({ page }) => {
     await page.goto(BASE)
 
     for (const name of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
