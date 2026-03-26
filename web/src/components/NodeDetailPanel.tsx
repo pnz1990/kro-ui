@@ -204,7 +204,15 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
           <Section label="Schema Fields">
             <KroCodeBlock
               code={Object.entries(node.schemaSpec)
-                .map(([k, v]) => `${k}: ${String(v)}`)
+                // Issue #244: use JSON.stringify for non-primitive values so nested
+                // objects render as human-readable JSON instead of '[object Object]'.
+                .map(([k, v]) =>
+                  `${k}: ${
+                    typeof v === 'object' && v !== null
+                      ? JSON.stringify(v, null, 2)
+                      : String(v)
+                  }`,
+                )
                 .join('\n')}
             />
           </Section>

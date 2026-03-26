@@ -4,11 +4,13 @@ interface SearchBarProps {
   value: string
   onSearch: (value: string) => void
   placeholder?: string
+  /** When true, the input is disabled and aria-disabled is set. */
+  disabled?: boolean
 }
 
-export default function SearchBar({ value, onSearch, placeholder = 'Search by name, kind, or label…' }: SearchBarProps) {
+export default function SearchBar({ value, onSearch, placeholder = 'Search by name, kind, or label…', disabled = false }: SearchBarProps) {
   return (
-    <div className="search-bar">
+    <div className={`search-bar${disabled ? ' search-bar--disabled' : ''}`} aria-disabled={disabled}>
       <span className="search-bar__icon" aria-hidden="true">
         {/* Magnifier icon — inline SVG, no external deps */}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -24,8 +26,10 @@ export default function SearchBar({ value, onSearch, placeholder = 'Search by na
         value={value}
         placeholder={placeholder}
         onChange={(e) => onSearch(e.target.value)}
+        disabled={disabled}
+        aria-disabled={disabled}
       />
-      {value && (
+      {value && !disabled && (
         <button
           className="search-bar__clear"
           aria-label="Clear search"

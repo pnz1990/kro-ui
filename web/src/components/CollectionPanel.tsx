@@ -5,7 +5,7 @@
 //
 // Spec: .specify/specs/011-collection-explorer/
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import type { DAGNode } from '@/lib/dag'
 import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
@@ -133,24 +133,31 @@ function ItemYamlView({ item, namespace, onBack }: ItemYamlViewProps) {
   const version = slashIdx >= 0 ? apiVersion.slice(slashIdx + 1) : apiVersion
 
   const [viewState, setViewState] = useState<YamlViewState>({ status: 'loading' })
-  const fetchedRef = useRef(false)
   // Incrementing retryCount is what re-triggers the fetch useEffect
   const [retryCount, setRetryCount] = useState(0)
 
+  // Issue #238: use AbortController instead of a ref guard.
+  // A new controller is created on each invocation; cleanup aborts it so stale
+  // responses from the previous mount cycle or superseded retries are discarded.
   useEffect(() => {
-    if (fetchedRef.current) return
-    fetchedRef.current = true
+    const ctrl = new AbortController()
+    const { signal } = ctrl
+
+    setViewState({ status: 'loading' })
 
     const timeoutId = setTimeout(() => {
+      ctrl.abort()
       setViewState({ status: 'timeout', kubectl })
     }, 15000)
 
     getResource(namespace, group, version, kind, name)
       .then((obj) => {
+        if (signal.aborted) return
         clearTimeout(timeoutId)
         setViewState({ status: 'loaded', yaml: toYaml(obj), kubectl })
       })
       .catch((err: Error) => {
+        if (signal.aborted) return
         clearTimeout(timeoutId)
         const msg = err.message ?? ''
         if (msg.includes('404') || msg.includes('not found') || msg.includes('HTTP 404')) {
@@ -160,13 +167,14 @@ function ItemYamlView({ item, namespace, onBack }: ItemYamlViewProps) {
         }
       })
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      clearTimeout(timeoutId)
+      ctrl.abort()
+    }
   }, [namespace, group, version, kind, name, kubectl, retryCount])
 
   function handleRetry() {
-    fetchedRef.current = false
     setRetryCount((c) => c + 1)
-    setViewState({ status: 'loading' })
   }
 
   return (
@@ -395,7 +403,7 @@ export default function CollectionPanel({
               <tbody>
                 {items.map((item) => {
                   const labels = getLabels(item)
-                  const idx = labels[LABEL_COLL_INDEX] ?? '?'
+                  const idx = labels[LABEL_COLL_INDEX] ?? '—'
                   const name = getMetaName(item)
                   const kind = getItemKind(item)
                   const ts = getMetaCreationTimestamp(item)

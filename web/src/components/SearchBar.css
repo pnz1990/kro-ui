@@ -72,3 +72,13 @@
   outline: 2px solid var(--color-border-focus);
   outline-offset: 1px;
 }
+
+/* Issue #242: disabled state — shown during loading to preserve layout */
+.search-bar--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.search-bar--disabled .search-bar__input {
+  cursor: not-allowed;
+}

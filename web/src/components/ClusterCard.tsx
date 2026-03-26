@@ -19,7 +19,7 @@ function healthLabel(health: ClusterHealth, degraded: number): string {
 }
 
 export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
-  const { context, cluster, health, rgdCount, instanceCount, degradedInstances } = summary
+  const { context, cluster, health, rgdCount, instanceCount, degradedInstances, kroVersion } = summary
 
   return (
     <button
@@ -57,6 +57,11 @@ export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
             <div className="cluster-card__stat">
               {instanceCount} instances
             </div>
+            {kroVersion && (
+              <div className="cluster-card__stat cluster-card__kro-version">
+                kro {kroVersion}
+              </div>
+            )}
           </>
         ) : null}
 

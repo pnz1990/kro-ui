@@ -64,7 +64,8 @@ export default function ContextSwitcher({
   const abortRef = useRef<AbortController | null>(null)
 
   const truncated = truncateContextName(active)
-  const needsTooltip = active.length > MAX_DISPLAY_LENGTH
+  // Issue #237: evaluate against the abbreviated display length, not the raw name.
+  const needsTooltip = truncated.length > MAX_DISPLAY_LENGTH
 
   // Close dropdown and return focus to trigger
   const close = useCallback(() => {
@@ -256,7 +257,7 @@ export default function ContextSwitcher({
                   )}
                   <span className="context-switcher__option-text">
                     <span className="context-switcher__label">{truncateContextName(ctx.name)}</span>
-                    {ctx.name.length > MAX_DISPLAY_LENGTH && (
+                    {truncateContextName(ctx.name).length > MAX_DISPLAY_LENGTH && (
                       <span className="context-switcher__option-subtitle">{ctx.name}</span>
                     )}
                   </span>
