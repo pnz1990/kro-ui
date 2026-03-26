@@ -127,30 +127,37 @@ export default function DAGTooltip({
     setVisible(false)
 
     const el = tooltipRef.current
-    const rect = el.getBoundingClientRect()
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-    const margin = 8
 
-    let left = initialLeft
-    let top = initialTop
+    // Issue #239: getBoundingClientRect() returns 0×0 if called before browser
+    // layout completes. Defer measurement to the next animation frame.
+    const rafId = requestAnimationFrame(() => {
+      const rect = el.getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const margin = 8
 
-    // Flip left if right edge overflows
-    if (left + rect.width > vw - margin) {
-      left = anchorX - rect.width - margin
-    }
-    // Ensure left is never off the left edge
-    if (left < margin) left = margin
+      let left = initialLeft
+      let top = initialTop
 
-    // Flip up if bottom edge overflows
-    if (top + rect.height > vh - margin) {
-      top = anchorY + nodeHeight - rect.height
-    }
-    // Ensure top is never off the top edge
-    if (top < margin) top = margin
+      // Flip left if right edge overflows
+      if (left + rect.width > vw - margin) {
+        left = anchorX - rect.width - margin
+      }
+      // Ensure left is never off the left edge
+      if (left < margin) left = margin
 
-    setPos({ left, top })
-    setVisible(true)
+      // Flip up if bottom edge overflows
+      if (top + rect.height > vh - margin) {
+        top = anchorY + nodeHeight - rect.height
+      }
+      // Ensure top is never off the top edge
+      if (top < margin) top = margin
+
+      setPos({ left, top })
+      setVisible(true)
+    })
+
+    return () => cancelAnimationFrame(rafId)
   }, [node, anchorX, anchorY, nodeWidth, nodeHeight, initialLeft, initialTop])
 
   // Hide when node is null — reset state for next hover

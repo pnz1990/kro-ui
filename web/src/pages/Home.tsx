@@ -151,14 +151,17 @@ export default function Home() {
             Controller and RGD health at a glance
           </p>
         </div>
-        {!isLoading && error === null && (
+        {/* Issue #242: toolbar always rendered to prevent layout jump;
+            SearchBar is disabled during loading so no input is accepted. */}
+        {error === null && (
           <div className="home__toolbar">
             <SearchBar
               value={query}
               onSearch={setQuery}
               placeholder="Search by name or kind…"
+              disabled={isLoading}
             />
-            {items.length > 0 && (
+            {!isLoading && items.length > 0 && (
               <span className="home__count">
                 {filteredItems.length} of {items.length}
               </span>

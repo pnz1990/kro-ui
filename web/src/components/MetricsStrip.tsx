@@ -103,7 +103,7 @@ export default function MetricsStrip() {
       <CounterCell label="Queue depth (client-go)" value={data?.workqueueDepth} />
       {data?.scrapedAt && (
         <span className="metrics-strip__updated">
-          Updated {formatAge(data.scrapedAt)} ago
+          Updated {formatAge(data.scrapedAt)}
         </span>
       )}
     </div>

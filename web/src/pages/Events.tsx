@@ -107,6 +107,8 @@ export default function Events() {
     setAllEvents([])
     setLoading(true)
     setError(null)
+    // Issue #240: reset visibleCount so Load More reappears correctly for the new filter.
+    setVisibleCount(MAX_EVENTS)
   }, [rgdFilter])
 
   // ── Merge fetcher: adds new events into the de-dup map ───────────
