@@ -186,6 +186,40 @@ wait_rgd_ready cel-functions 120s optional
 info "Applying chain RGDs…"
 "${KC[@]}" apply -f "${FIXTURES_DIR}/chain-child.yaml"
 "${KC[@]}" apply -f "${FIXTURES_DIR}/chain-parent.yaml"
+# chain-cycle-a.yaml: mutual cycle RGDs — never reach Ready; apply non-fatally
+info "Applying chain-cycle RGDs (cycle detection demo)…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/chain-cycle-a.yaml" 2>/dev/null || true
+
+# upstream fixture families (spec 043-upstream-fixture-generator)
+info "Applying upstream-cartesian-foreach RGD + instance…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cartesian-foreach-rgd.yaml"
+wait_rgd_ready upstream-cartesian-foreach 180s optional
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cartesian-foreach-instance.yaml" 2>/dev/null || true
+
+info "Applying upstream-collection-chain RGD + instance…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-collection-chain-rgd.yaml"
+wait_rgd_ready upstream-collection-chain 180s optional
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-collection-chain-instance.yaml" 2>/dev/null || true
+
+info "Applying upstream-contagious-include-when RGD + instance…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-contagious-include-when-rgd.yaml"
+wait_rgd_ready upstream-contagious-include-when 120s optional
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-contagious-include-when-instance.yaml" 2>/dev/null || true
+
+info "Applying upstream-cluster-scoped RGD (no instance)…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cluster-scoped-rgd.yaml"
+wait_rgd_ready upstream-cluster-scoped 120s optional
+
+info "Applying upstream-external-collection prereq + RGD + instance…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-prereq.yaml" 2>/dev/null || true
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-rgd.yaml"
+wait_rgd_ready upstream-external-collection 120s optional
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-instance.yaml" 2>/dev/null || true
+
+info "Applying upstream-cel-comprehensions RGD + instance…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cel-comprehensions-rgd.yaml"
+wait_rgd_ready upstream-cel-comprehensions 120s optional
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cel-comprehensions-instance.yaml" 2>/dev/null || true
 
 ok "All fixtures applied"
 

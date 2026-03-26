@@ -83,6 +83,13 @@ export default async function globalSetup() {
     multiReady: false,
     externalRefReady: false,
     celFunctionsReady: false,
+    // spec 043-upstream-fixture-generator
+    cartesianReady: false,
+    collectionChainReady: false,
+    contagiousReady: false,
+    clusterScopedReady: false,
+    externalCollectionReady: false,
+    celComprehensionsReady: false,
   }
 
   // ── 1. Create kind cluster ───────────────────────────────────────────────
@@ -265,9 +272,111 @@ export default async function globalSetup() {
   console.log('[setup] Applying chain RGDs…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-child.yaml')])
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-parent.yaml')])
-  console.log('[setup] Chain RGDs applied')
+  // chain-cycle-a.yaml contains both chain-cycle-a and chain-cycle-b RGDs (multi-doc YAML).
+  // These RGDs form a mutual cycle and will never reach Ready — no readiness wait.
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-cycle-a.yaml')])
+  console.log('[setup] Chain RGDs applied (including cycle fixtures)')
 
-  // ── 6g. Write fixture state for worker processes ──────────────────────────
+  // ── 6g. upstream-cartesian-foreach RGD + instance (2D forEach) ───────────
+  console.log('[setup] Applying upstream-cartesian-foreach RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cartesian-foreach-rgd.yaml')])
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/upstream-cartesian-foreach',
+      '--for=condition=Ready', '--timeout=180s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cartesian-foreach-instance.yaml')])
+    fixtureState.cartesianReady = true
+    console.log('[setup] upstream-cartesian-foreach ready')
+  } catch {
+    console.warn('[setup] upstream-cartesian-foreach RGD did not become Ready — journey steps will be skipped')
+  }
+
+  // ── 6h. upstream-collection-chain RGD + instance (resource→collection) ───
+  console.log('[setup] Applying upstream-collection-chain RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-collection-chain-rgd.yaml')])
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/upstream-collection-chain',
+      '--for=condition=Ready', '--timeout=180s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-collection-chain-instance.yaml')])
+    fixtureState.collectionChainReady = true
+    console.log('[setup] upstream-collection-chain ready')
+  } catch {
+    console.warn('[setup] upstream-collection-chain RGD did not become Ready — journey steps will be skipped')
+  }
+
+  // ── 6i. upstream-contagious-include-when RGD + instance ───────────────────
+  console.log('[setup] Applying upstream-contagious-include-when RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-contagious-include-when-rgd.yaml')])
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/upstream-contagious-include-when',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-contagious-include-when-instance.yaml')])
+    fixtureState.contagiousReady = true
+    console.log('[setup] upstream-contagious-include-when ready')
+  } catch {
+    console.warn('[setup] upstream-contagious-include-when RGD did not become Ready — journey steps will be skipped')
+  }
+
+  // ── 6j. upstream-cluster-scoped RGD (no instance — cluster-scoped) ────────
+  console.log('[setup] Applying upstream-cluster-scoped RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cluster-scoped-rgd.yaml')])
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/upstream-cluster-scoped',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    fixtureState.clusterScopedReady = true
+    console.log('[setup] upstream-cluster-scoped ready')
+  } catch {
+    console.warn('[setup] upstream-cluster-scoped RGD did not become Ready — journey steps will be skipped')
+  }
+
+  // ── 6k. upstream-external-collection prereq + RGD + instance ─────────────
+  // The external collection RGD reads ConfigMaps by label selector — the prereq
+  // ConfigMaps must exist before the instance is applied.
+  console.log('[setup] Applying upstream-external-collection prereq ConfigMaps…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-prereq.yaml')])
+  console.log('[setup] Applying upstream-external-collection RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-rgd.yaml')])
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/upstream-external-collection',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-instance.yaml')])
+    fixtureState.externalCollectionReady = true
+    console.log('[setup] upstream-external-collection ready')
+  } catch {
+    console.warn('[setup] upstream-external-collection RGD did not become Ready — journey steps will be skipped')
+  }
+
+  // ── 6l. upstream-cel-comprehensions RGD + instance ────────────────────────
+  console.log('[setup] Applying upstream-cel-comprehensions RGD…')
+  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-rgd.yaml')])
+  try {
+    execFileSync('kubectl', [
+      '--kubeconfig', KUBECONFIG_PATH,
+      'wait', 'rgd/upstream-cel-comprehensions',
+      '--for=condition=Ready', '--timeout=120s',
+    ], { stdio: 'inherit', encoding: 'utf8' })
+    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-instance.yaml')])
+    fixtureState.celComprehensionsReady = true
+    console.log('[setup] upstream-cel-comprehensions ready')
+  } catch {
+    console.warn('[setup] upstream-cel-comprehensions RGD did not become Ready — journey steps will be skipped')
+  }
+
+  // ── 6m. Write fixture state for worker processes ──────────────────────────
   // Playwright workers run in a separate process from globalSetup — env var
   // mutations here are not visible in tests. Write state to a JSON file instead.
   writeFileSync(FIXTURE_STATE_PATH, JSON.stringify(fixtureState, null, 2))
