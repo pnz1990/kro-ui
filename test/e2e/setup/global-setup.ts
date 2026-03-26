@@ -22,13 +22,9 @@
  *      the same cluster endpoint — used by the context-switcher journey
  *   4. Create the kro-ui-e2e namespace
  *   5. Apply pre-requisite resources (ConfigMap for external-ref fixture)
- *   6. Apply all fixture RGDs, wait for Ready, then apply instances:
- *        a. test-app RGD + test-instance (NodeTypeResource, includeWhen)
- *        b. test-collection RGD + test-collection-instance (NodeTypeCollection forEach)
- *        c. multi-resource RGD + multi-resource-instance (4-resource DAG with HPA)
- *        d. external-ref RGD + external-ref-instance (NodeTypeExternal)
- *        e. cel-functions RGD + cel-functions-instance (CEL extension functions)
- *        f. chain-parent + chain-child RGDs (chaining graph — no instances needed)
+ *   6. Apply all fixture RGDs in parallel, wait for Ready, then apply instances.
+ *      All fixture blocks run concurrently via Promise.all — independent CRD
+ *      generations do not need to wait for each other.
  *   7. Build the kro-ui binary (if not already built)
  *   8. Start the kro-ui server process in the background
  *   9. Wait for /healthz to respond
@@ -79,6 +75,7 @@ export default async function globalSetup() {
   // so Playwright worker processes can read them (process.env mutations in
   // globalSetup are NOT visible to workers which run in a separate process).
   const fixtureState = {
+    testAppReady: false,
     collectionReady: false,
     multiReady: false,
     externalRefReady: false,
@@ -141,240 +138,219 @@ export default async function globalSetup() {
   // ── 5. Apply pre-requisite resources ─────────────────────────────────────
   // The external-ref RGD reads this ConfigMap via externalRef. It must exist
   // before the RGD or its instance is applied.
-  console.log('[setup] Applying external-ref pre-requisite ConfigMap…')
+  // The upstream-external-collection prereq ConfigMaps must also exist before
+  // that instance is applied. Apply all prereqs before kicking off parallel waits.
+  console.log('[setup] Applying pre-requisite resources…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-prereq.yaml')])
-
-  // ── 6a. test-app RGD + instance ──────────────────────────────────────────
-  console.log('[setup] Applying test-app RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-rgd.yaml')])
-  console.log('[setup] Waiting for test-app RGD to be Ready…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'rgd/test-app',
-    '--for=condition=Ready', '--timeout=120s',
-  ], { retries: 3 })
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-instance.yaml')])
-  console.log('[setup] Waiting for test-instance to reconcile…')
-  execFile('kubectl', [
-    '--kubeconfig', KUBECONFIG_PATH,
-    'wait', 'namespace/kro-ui-test',
-    '--for=jsonpath={.status.phase}=Active', '--timeout=120s',
-  ], { retries: 5 })
-  console.log('[setup] test-instance reconciled')
-
-  // ── 6b. test-collection RGD + instance ───────────────────────────────────
-  // forEach RGD CRD generation is non-deterministic and can exceed 120s on
-  // resource-constrained CI runners. We apply the RGD unconditionally (the
-  // static DAG in journey 010 steps 1-2 only needs the RGD object to exist),
-  // but treat the Ready wait as best-effort. If it times out we set
-  // KRO_COLLECTION_READY=false so journey 010 steps 3-5 (live instance) skip
-  // gracefully instead of crashing setup for all other journeys.
-  console.log('[setup] Applying test-collection RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-rgd.yaml')])
-  console.log('[setup] Waiting for test-collection RGD to be Ready (best-effort, 120s)…')
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/test-collection',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-instance.yaml')])
-    console.log('[setup] Waiting for test-collection-instance ConfigMaps to appear…')
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'configmap/test-collection-instance-us-east-1-config',
-      '--for=jsonpath={.metadata.name}=test-collection-instance-us-east-1-config',
-      '--namespace', NAMESPACE,
-      '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    fixtureState.collectionReady = true
-    console.log('[setup] test-collection-instance reconciled')
-  } catch {
-    console.warn('[setup] test-collection RGD did not become Ready in time — journey 010 live-instance steps will be skipped')
-  }
-
-  // ── 6c. multi-resource RGD + instance ────────────────────────────────────
-  console.log('[setup] Applying multi-resource RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-rgd.yaml')])
-  console.log('[setup] Waiting for multi-resource RGD to be Ready…')
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/multi-resource',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-instance.yaml')])
-    console.log('[setup] Waiting for multi-resource-instance Deployment to become Available…')
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'deployment/kro-ui-multi-deploy',
-      '--for=condition=Available',
-      '--namespace', NAMESPACE,
-      '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    fixtureState.multiReady = true
-    console.log('[setup] multi-resource-instance reconciled')
-  } catch {
-    console.warn('[setup] multi-resource RGD did not become Ready in time — related journey steps will be skipped')
-  }
-
-  // ── 6d. external-ref RGD + instance ──────────────────────────────────────
-  console.log('[setup] Applying external-ref RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-rgd.yaml')])
-  console.log('[setup] Waiting for external-ref RGD to be Ready…')
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/external-ref',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-instance.yaml')])
-    console.log('[setup] Waiting for external-ref-instance owned ConfigMap to appear…')
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'configmap/kro-ui-echo-echo',
-      '--for=jsonpath={.metadata.name}=kro-ui-echo-echo',
-      '--namespace', NAMESPACE,
-      '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    fixtureState.externalRefReady = true
-    console.log('[setup] external-ref-instance reconciled')
-  } catch {
-    console.warn('[setup] external-ref RGD did not become Ready in time — related journey steps will be skipped')
-  }
-
-  // ── 6e. cel-functions RGD + instance ─────────────────────────────────────
-  console.log('[setup] Applying cel-functions RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-rgd.yaml')])
-  console.log('[setup] Waiting for cel-functions RGD to be Ready…')
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/cel-functions',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-instance.yaml')])
-    console.log('[setup] Waiting for cel-functions-instance Deployment to become Available…')
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'deployment/kroui-cel',
-      '--for=condition=Available',
-      '--namespace', NAMESPACE,
-      '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    fixtureState.celFunctionsReady = true
-    console.log('[setup] cel-functions-instance reconciled')
-  } catch {
-    console.warn('[setup] cel-functions RGD did not become Ready in time — related journey steps will be skipped')
-  }
-
-  // ── 6f. Chain RGDs (no instances needed for chaining graph tests) ─────────
-  console.log('[setup] Applying chain RGDs…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-child.yaml')])
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-parent.yaml')])
-  // chain-cycle-a.yaml contains both chain-cycle-a and chain-cycle-b RGDs (multi-doc YAML).
-  // These RGDs form a mutual cycle and will never reach Ready — no readiness wait.
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-cycle-a.yaml')])
-  console.log('[setup] Chain RGDs applied (including cycle fixtures)')
-
-  // ── 6g. upstream-cartesian-foreach RGD + instance (2D forEach) ───────────
-  console.log('[setup] Applying upstream-cartesian-foreach RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cartesian-foreach-rgd.yaml')])
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/upstream-cartesian-foreach',
-      '--for=condition=Ready', '--timeout=180s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cartesian-foreach-instance.yaml')])
-    fixtureState.cartesianReady = true
-    console.log('[setup] upstream-cartesian-foreach ready')
-  } catch {
-    console.warn('[setup] upstream-cartesian-foreach RGD did not become Ready — journey steps will be skipped')
-  }
-
-  // ── 6h. upstream-collection-chain RGD + instance (resource→collection) ───
-  console.log('[setup] Applying upstream-collection-chain RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-collection-chain-rgd.yaml')])
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/upstream-collection-chain',
-      '--for=condition=Ready', '--timeout=180s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-collection-chain-instance.yaml')])
-    fixtureState.collectionChainReady = true
-    console.log('[setup] upstream-collection-chain ready')
-  } catch {
-    console.warn('[setup] upstream-collection-chain RGD did not become Ready — journey steps will be skipped')
-  }
-
-  // ── 6i. upstream-contagious-include-when RGD + instance ───────────────────
-  console.log('[setup] Applying upstream-contagious-include-when RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-contagious-include-when-rgd.yaml')])
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/upstream-contagious-include-when',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-contagious-include-when-instance.yaml')])
-    fixtureState.contagiousReady = true
-    console.log('[setup] upstream-contagious-include-when ready')
-  } catch {
-    console.warn('[setup] upstream-contagious-include-when RGD did not become Ready — journey steps will be skipped')
-  }
-
-  // ── 6j. upstream-cluster-scoped RGD (no instance — cluster-scoped) ────────
-  console.log('[setup] Applying upstream-cluster-scoped RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cluster-scoped-rgd.yaml')])
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/upstream-cluster-scoped',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    fixtureState.clusterScopedReady = true
-    console.log('[setup] upstream-cluster-scoped ready')
-  } catch {
-    console.warn('[setup] upstream-cluster-scoped RGD did not become Ready — journey steps will be skipped')
-  }
-
-  // ── 6k. upstream-external-collection prereq + RGD + instance ─────────────
-  // The external collection RGD reads ConfigMaps by label selector — the prereq
-  // ConfigMaps must exist before the instance is applied.
-  console.log('[setup] Applying upstream-external-collection prereq ConfigMaps…')
   execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-prereq.yaml')])
-  console.log('[setup] Applying upstream-external-collection RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-rgd.yaml')])
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/upstream-external-collection',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-instance.yaml')])
-    fixtureState.externalCollectionReady = true
-    console.log('[setup] upstream-external-collection ready')
-  } catch {
-    console.warn('[setup] upstream-external-collection RGD did not become Ready — journey steps will be skipped')
-  }
 
-  // ── 6l. upstream-cel-comprehensions RGD + instance ────────────────────────
-  console.log('[setup] Applying upstream-cel-comprehensions RGD…')
-  execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-rgd.yaml')])
-  try {
-    execFileSync('kubectl', [
-      '--kubeconfig', KUBECONFIG_PATH,
-      'wait', 'rgd/upstream-cel-comprehensions',
-      '--for=condition=Ready', '--timeout=120s',
-    ], { stdio: 'inherit', encoding: 'utf8' })
-    execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-instance.yaml')])
-    fixtureState.celComprehensionsReady = true
-    console.log('[setup] upstream-cel-comprehensions ready')
-  } catch {
-    console.warn('[setup] upstream-cel-comprehensions RGD did not become Ready — journey steps will be skipped')
+  // ── 6. Apply all fixture RGDs in parallel ─────────────────────────────────
+  // Each fixture block is independent: apply RGD → wait Ready → apply instance.
+  // Running them concurrently with Promise.all cuts setup time from ~8–12 min
+  // down to the time of the single slowest fixture (~2–3 min).
+  //
+  // Chain RGDs (chain-parent, chain-child, chain-cycle) have no readiness wait
+  // and are applied fire-and-forget; they still run in the same parallel batch.
+  console.log('[setup] Applying all fixture RGDs in parallel…')
+
+  const results = await Promise.allSettled([
+
+    // ── 6a. test-app RGD + instance ────────────────────────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/test-app',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-instance.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'namespace/kro-ui-test',
+        '--for=jsonpath={.status.phase}=Active', '--timeout=120s',
+      ])
+      fixtureState.testAppReady = true
+      console.log('[setup] ✓ test-app ready')
+    })(),
+
+    // ── 6b. test-collection RGD + instance ─────────────────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/test-collection',
+        '--for=condition=Ready', '--timeout=180s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'test-collection-instance.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'configmap/test-collection-instance-us-east-1-config',
+        '--for=jsonpath={.metadata.name}=test-collection-instance-us-east-1-config',
+        '--namespace', NAMESPACE,
+        '--timeout=120s',
+      ])
+      fixtureState.collectionReady = true
+      console.log('[setup] ✓ test-collection ready')
+    })(),
+
+    // ── 6c. multi-resource RGD + instance ──────────────────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/multi-resource',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'multi-resource-instance.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'deployment/kro-ui-multi-deploy',
+        '--for=condition=Available',
+        '--namespace', NAMESPACE,
+        '--timeout=120s',
+      ])
+      fixtureState.multiReady = true
+      console.log('[setup] ✓ multi-resource ready')
+    })(),
+
+    // ── 6d. external-ref RGD + instance ────────────────────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/external-ref',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'external-ref-instance.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'configmap/kro-ui-echo-echo',
+        '--for=jsonpath={.metadata.name}=kro-ui-echo-echo',
+        '--namespace', NAMESPACE,
+        '--timeout=120s',
+      ])
+      fixtureState.externalRefReady = true
+      console.log('[setup] ✓ external-ref ready')
+    })(),
+
+    // ── 6e. cel-functions RGD + instance ───────────────────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/cel-functions',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'cel-functions-instance.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'deployment/kroui-cel',
+        '--for=condition=Available',
+        '--namespace', NAMESPACE,
+        '--timeout=120s',
+      ])
+      fixtureState.celFunctionsReady = true
+      console.log('[setup] ✓ cel-functions ready')
+    })(),
+
+    // ── 6f. Chain RGDs (no instances, no readiness wait) ───────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-child.yaml')])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-parent.yaml')])
+      // chain-cycle-a.yaml: mutual cycle — never reaches Ready; apply non-fatally.
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'chain-cycle-a.yaml')])
+      console.log('[setup] ✓ chain RGDs applied (including cycle fixtures)')
+    })(),
+
+    // ── 6g. upstream-cartesian-foreach RGD + instance (2D forEach) ─────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cartesian-foreach-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/upstream-cartesian-foreach',
+        '--for=condition=Ready', '--timeout=180s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cartesian-foreach-instance.yaml')])
+      fixtureState.cartesianReady = true
+      console.log('[setup] ✓ upstream-cartesian-foreach ready')
+    })(),
+
+    // ── 6h. upstream-collection-chain RGD + instance ───────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-collection-chain-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/upstream-collection-chain',
+        '--for=condition=Ready', '--timeout=180s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-collection-chain-instance.yaml')])
+      fixtureState.collectionChainReady = true
+      console.log('[setup] ✓ upstream-collection-chain ready')
+    })(),
+
+    // ── 6i. upstream-contagious-include-when RGD + instance ────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-contagious-include-when-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/upstream-contagious-include-when',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-contagious-include-when-instance.yaml')])
+      fixtureState.contagiousReady = true
+      console.log('[setup] ✓ upstream-contagious-include-when ready')
+    })(),
+
+    // ── 6j. upstream-cluster-scoped RGD (no instance — cluster-scoped) ─────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cluster-scoped-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/upstream-cluster-scoped',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      fixtureState.clusterScopedReady = true
+      console.log('[setup] ✓ upstream-cluster-scoped ready')
+    })(),
+
+    // ── 6k. upstream-external-collection RGD + instance ────────────────────
+    // prereq ConfigMaps were applied in step 5 before this parallel block.
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/upstream-external-collection',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-instance.yaml')])
+      fixtureState.externalCollectionReady = true
+      console.log('[setup] ✓ upstream-external-collection ready')
+    })(),
+
+    // ── 6l. upstream-cel-comprehensions RGD + instance ─────────────────────
+    (async () => {
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-rgd.yaml')])
+      await execFileAsync('kubectl', [
+        '--kubeconfig', KUBECONFIG_PATH,
+        'wait', 'rgd/upstream-cel-comprehensions',
+        '--for=condition=Ready', '--timeout=120s',
+      ])
+      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-instance.yaml')])
+      fixtureState.celComprehensionsReady = true
+      console.log('[setup] ✓ upstream-cel-comprehensions ready')
+    })(),
+
+  ])
+
+  // Log any fixture failures without aborting — all fixtures are best-effort.
+  // Journeys guard with fixtureState.<key> and skip gracefully when false.
+  const failed = results
+    .map((r, i) => r.status === 'rejected' ? `  fixture[${i}]: ${(r as PromiseRejectedResult).reason}` : null)
+    .filter(Boolean)
+  if (failed.length > 0) {
+    console.warn(`[setup] ${failed.length} fixture(s) did not become Ready:\n${failed.join('\n')}`)
   }
+  console.log(`[setup] Parallel fixture setup complete (${results.filter(r => r.status === 'fulfilled').length}/${results.length} succeeded)`)
 
   // ── 6m. Write fixture state for worker processes ──────────────────────────
   // Playwright workers run in a separate process from globalSetup — env var
@@ -437,6 +413,22 @@ function execFile(
       console.warn(`[setup] Command failed (attempt ${i + 1}/${retries + 1}), retrying…`)
     }
   }
+}
+
+/**
+ * execFileAsync is the async equivalent of execFile — wraps spawn in a Promise
+ * so kubectl wait calls can run concurrently inside Promise.allSettled without
+ * blocking the Node.js event loop.
+ */
+function execFileAsync(binary: string, args: string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(binary, args, { stdio: 'inherit' })
+    child.on('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`${binary} ${args.join(' ')} exited with code ${code}`))
+    })
+    child.on('error', reject)
+  })
 }
 
 /**
