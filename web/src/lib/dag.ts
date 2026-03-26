@@ -912,6 +912,38 @@ export function buildDAGGraph(spec: Record<string, unknown>, rgds?: K8sObject[])
     }
   }
 
+  // ── Propagate isConditional (contagious includeWhen) ──────────────────
+  // When a node is excluded by includeWhen, any downstream node that
+  // depends on it (directly or transitively) is also effectively excluded.
+  // kro upstream calls this "contagious" exclusion. We mark these nodes
+  // isConditional=true so the UI renders them with the conditional indicator
+  // rather than leaving them ambiguously styled.
+  {
+    const nodeById = new Map(nodes.map((n) => [n.id, n]))
+    // Rebuild toChildren after the fallback-edge pass above
+    const toChildrenFull = new Map<string, string[]>()
+    for (const e of edges) {
+      if (!toChildrenFull.has(e.from)) toChildrenFull.set(e.from, [])
+      toChildrenFull.get(e.from)!.push(e.to)
+    }
+    // BFS from every directly-conditional node; mark all reachable descendants
+    const toVisit: string[] = nodes
+      .filter((n) => n.isConditional)
+      .map((n) => n.id)
+    const propagated = new Set<string>(toVisit)
+    while (toVisit.length > 0) {
+      const cur = toVisit.shift()!
+      for (const child of toChildrenFull.get(cur) ?? []) {
+        if (!propagated.has(child)) {
+          propagated.add(child)
+          const childNode = nodeById.get(child)
+          if (childNode) childNode.isConditional = true
+          toVisit.push(child)
+        }
+      }
+    }
+  }
+
   // ── Layout ────────────────────────────────────────────────────────────
   const nodeIds = nodes.map((n) => n.id)
   const nodeHeights = new Map(nodes.map((n) => [n.id, n.height]))
