@@ -129,7 +129,7 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
             </span>
             {node.isConditional && (
               <span className="node-conditional-badge">
-                <span>?</span>
+                <span aria-hidden="true">◈</span>
                 <span>conditional</span>
               </span>
             )}
