@@ -39,6 +39,13 @@ interface FixtureState {
   multiReady: boolean
   externalRefReady: boolean
   celFunctionsReady: boolean
+  // Added in spec 043-upstream-fixture-generator
+  cartesianReady: boolean
+  collectionChainReady: boolean
+  contagiousReady: boolean
+  clusterScopedReady: boolean
+  externalCollectionReady: boolean
+  celComprehensionsReady: boolean
 }
 
 function loadFixtureState(): FixtureState {
@@ -46,12 +53,20 @@ function loadFixtureState(): FixtureState {
   if (!existsSync(statePath)) {
     // File doesn't exist — either setup hasn't run yet or it's running locally
     // without the new setup. Default all to false (safest).
-    return { collectionReady: false, multiReady: false, externalRefReady: false, celFunctionsReady: false }
+    return {
+      collectionReady: false, multiReady: false, externalRefReady: false, celFunctionsReady: false,
+      cartesianReady: false, collectionChainReady: false, contagiousReady: false,
+      clusterScopedReady: false, externalCollectionReady: false, celComprehensionsReady: false,
+    }
   }
   try {
     return JSON.parse(readFileSync(statePath, 'utf8')) as FixtureState
   } catch {
-    return { collectionReady: false, multiReady: false, externalRefReady: false, celFunctionsReady: false }
+    return {
+      collectionReady: false, multiReady: false, externalRefReady: false, celFunctionsReady: false,
+      cartesianReady: false, collectionChainReady: false, contagiousReady: false,
+      clusterScopedReady: false, externalCollectionReady: false, celComprehensionsReady: false,
+    }
   }
 }
 
