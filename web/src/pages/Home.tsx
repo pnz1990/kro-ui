@@ -143,7 +143,7 @@ export default function Home() {
           </a>
           <Link
             to="/author"
-            className="home__empty-cta"
+            className="home__empty-cta home__empty-cta--secondary"
             data-testid="home-new-rgd-link"
           >
             Open RGD Designer

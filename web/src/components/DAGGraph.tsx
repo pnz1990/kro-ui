@@ -9,7 +9,8 @@
 
 import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { nodeBadge, forEachLabel, fittedWidth } from '@/lib/dag'
+// Issue #255: fittedHeight extracted to dag.ts alongside fittedWidth — no more duplication
+import { nodeBadge, forEachLabel, fittedWidth, fittedHeight } from '@/lib/dag'
 import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import './DAGGraph.css'
@@ -18,18 +19,6 @@ interface DAGGraphProps {
   graph: DAGGraph
   onNodeClick?: (nodeId: string) => void
   selectedNodeId?: string
-}
-
-const PADDING = 32
-
-/**
- * Compute the actual content height from node bounding boxes.
- * Prevents empty space below the last row of nodes (issue #64).
- */
-function fittedHeight(graph: DAGGraph): number {
-  if (graph.nodes.length === 0) return graph.height
-  const maxBottom = Math.max(...graph.nodes.map((n) => n.y + n.height))
-  return maxBottom + PADDING
 }
 
 /** Cubic bezier edge path from parent bottom-center to child top-center. */

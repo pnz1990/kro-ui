@@ -18,11 +18,13 @@ import './CollectionPanel.css'
 
 // ── Item status derivation ─────────────────────────────────────────────────
 
-type ItemStatus = 'running' | 'pending' | 'failed' | 'unknown'
+// Issue #252: renamed 'unknown' → 'not-reported' to match constitution §XII
+// language: "Not reported" for absent data, not "Unknown" (implies indeterminate state).
+type ItemStatus = 'running' | 'pending' | 'failed' | 'not-reported'
 
 function itemStatus(item: K8sObject): ItemStatus {
   const status = item.status
-  if (typeof status !== 'object' || status === null) return 'unknown'
+  if (typeof status !== 'object' || status === null) return 'not-reported'
   const s = status as Record<string, unknown>
 
   const phase = s.phase
@@ -56,14 +58,14 @@ function itemStatus(item: K8sObject): ItemStatus {
     }
   }
 
-  return 'unknown'
+  return 'not-reported'
 }
 
 const STATUS_LABEL: Record<ItemStatus, string> = {
   running: 'Running',
   pending: 'Pending',
   failed: 'Failed',
-  unknown: 'Unknown',
+  'not-reported': 'Not reported',
 }
 
 // ── Label accessors ────────────────────────────────────────────────────────
@@ -295,10 +297,17 @@ export default function CollectionPanel({
       ? parseInt(getLabels(items[0])[LABEL_COLL_SIZE] ?? String(items.length), 10)
       : 0
 
-  // Whether this appears to be a pre-kro-0.8.0 collection (no kro labels on any child)
-  const allChildrenLabelless =
-    children.length > 0 &&
-    children.every((child) => !getLabels(child)[LABEL_NODE_ID])
+  // Issue #257: the legacy notice should fire when THIS node's items are
+  // completely unlabelled. The original code checked `children.every(...)` which
+  // caused a false-negative in mixed-label clusters (other nodes' labelled children
+  // made `every` return false for a node whose children truly lack labels).
+  //
+  // Correct fix: check whether there are any children that have NO kro.run/node-id
+  // label at all AND items (filtered by this node's id) is empty.
+  // This handles both the pure-legacy case (all children unlabelled) and the
+  // mixed case (some children for other nodes are labelled; this node's are not).
+  const unlabelledChildren = children.filter((child) => !getLabels(child)[LABEL_NODE_ID])
+  const allChildrenLabelless = items.length === 0 && unlabelledChildren.length > 0
 
   const forEachExpr = node.forEach ?? ''
 

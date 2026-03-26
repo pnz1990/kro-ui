@@ -206,4 +206,40 @@ describe('Events', () => {
     // Clear filters button should appear when both filters are active
     expect(screen.getByTestId('clear-filters-btn')).toBeInTheDocument()
   })
+
+  // ── Issue #254: instance filter uses substring match ────────────────────
+
+  it('T254: instance filter matches partial name (substring)', async () => {
+    // Two events — one with name "my-app-v2" and one with "other-app"
+    const appV2Event = makeEventItem({ uid: 'u1', instanceName: 'my-app-v2' })
+    const otherEvent = makeEventItem({ uid: 'u2', instanceName: 'other-app' })
+    mockedListEvents.mockResolvedValue({
+      items: [appV2Event, otherEvent],
+      metadata: {},
+    })
+
+    // Filter by prefix "my-app" — should match "my-app-v2" but not "other-app"
+    renderEvents('/events?instance=my-app')
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('events-loading')).not.toBeInTheDocument()
+    })
+
+    // "my-app-v2" event should appear (partial match)
+    expect(screen.getByText('Event for my-app-v2')).toBeInTheDocument()
+    // "other-app" event should not appear
+    expect(screen.queryByText('Event for other-app')).not.toBeInTheDocument()
+  })
+
+  it('T254b: exact instance name still matches', async () => {
+    const exactEvent = makeEventItem({ uid: 'u3', instanceName: 'exact-name' })
+    mockedListEvents.mockResolvedValue({ items: [exactEvent], metadata: {} })
+
+    renderEvents('/events?instance=exact-name')
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('events-loading')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('Event for exact-name')).toBeInTheDocument()
+  })
 })

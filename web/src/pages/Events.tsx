@@ -161,7 +161,11 @@ export default function Events() {
   // ── Filter by ?instance= param (client-side) ─────────────────────
   const filteredEvents = useMemo(() => {
     if (!instanceFilter) return allEvents
-    return allEvents.filter(e => e.involvedObject.name === instanceFilter)
+    // Issue #254: use case-insensitive substring match (consistent with the
+    // placeholder "Filter by instance name…" implying prefix/partial matching,
+    // and with Home page search bar behaviour).
+    const lower = instanceFilter.toLowerCase()
+    return allEvents.filter(e => e.involvedObject.name.toLowerCase().includes(lower))
   }, [allEvents, instanceFilter])
 
   // ── Slice to visible window ──────────────────────────────────────
@@ -191,7 +195,11 @@ export default function Events() {
           <h1 className="events-page__title">Events</h1>
           {lastRefresh && (
             <span className="events-page__refresh-hint" aria-live="polite">
+              {/* Issue #260: show polling indicator in header always, not just empty state */}
               Updated {formatSecondsAgo(lastRefresh)}
+              <span className="events-page__polling-badge" title="Auto-refreshes every 5 seconds">
+                {' '}· Polling every 5s
+              </span>
             </span>
           )}
         </div>

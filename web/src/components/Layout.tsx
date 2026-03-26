@@ -22,9 +22,11 @@ export default function Layout() {
         setActiveContext(res.active)
       })
       .catch(() => {
-        // Graceful degradation: context display is informational, not blocking
+        // Issue #253: use a sentinel instead of '' so the context switcher button
+        // shows a readable label rather than blank when the server is unreachable.
+        // Graceful degradation: context display is informational, not blocking.
         setContexts([])
-        setActiveContext('')
+        setActiveContext('(unavailable)')
       })
   }, [])
 
