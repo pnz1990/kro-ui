@@ -10,12 +10,8 @@
 
 import { isItemReady } from '@/lib/collection'
 import type { K8sObject } from '@/lib/api'
+import { LABEL_NODE_ID, LABEL_COLL_SIZE } from '@/lib/kro'
 import './CollectionBadge.css'
-
-// ── Label constant ─────────────────────────────────────────────────────────
-
-const LABEL_NODE_ID = 'kro.run/node-id'
-const LABEL_COLL_SIZE = 'kro.run/collection-size'
 
 // ── Props ──────────────────────────────────────────────────────────────────
 

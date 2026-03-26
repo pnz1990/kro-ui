@@ -8,6 +8,8 @@ import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName } from '@/lib/format'
+import { aggregateHealth } from '@/lib/format'
+import type { HealthSummary } from '@/lib/format'
 import { matchesSearch } from '@/lib/catalog'
 import { isTerminating } from '@/lib/k8s'
 import { usePageTitle } from '@/hooks/usePageTitle'
@@ -34,6 +36,9 @@ export default function Home() {
   // FR-007: Map from rgdName → terminating instance count.
   // Fetched in the background after the RGD list loads; absent = not yet fetched.
   const [terminatingCounts, setTerminatingCounts] = useState<Map<string, number>>(new Map())
+  // Health summaries pre-computed alongside terminatingCounts — eliminates the
+  // per-card listInstances call in RGDCard (issue #235).
+  const [healthSummaries, setHealthSummaries] = useState<Map<string, HealthSummary>>(new Map())
 
   // Abort controller ref — cancels in-flight listInstances fan-out on unmount or re-fetch.
   const abortRef = useRef<AbortController | null>(null)
@@ -50,26 +55,32 @@ export default function Home() {
       .then((res) => {
         if (ac.signal.aborted) return
         setItems(res.items ?? [])
-        // FR-007: fire-and-forget background fetch of terminating counts.
+        // FR-007: fire-and-forget background fetch of terminating counts and health summaries.
         // Each RGD gets one listInstances call. Errors are silently ignored —
         // absent count = no badge (graceful degradation).
+        // Passing healthSummary to RGDCard avoids a redundant second listInstances
+        // per card (issue #235).
         const rgdNames = (res.items ?? []).map(extractRGDName).filter(Boolean)
         Promise.allSettled(
           rgdNames.map((name) =>
             listInstances(name, undefined, { signal: ac.signal }).then((list) => ({
               name,
               count: (list.items ?? []).filter(isTerminating).length,
+              health: aggregateHealth(list.items ?? []),
             }))
           )
         ).then((results) => {
           if (ac.signal.aborted) return
           const counts = new Map<string, number>()
+          const summaries = new Map<string, HealthSummary>()
           for (const result of results) {
             if (result.status === 'fulfilled') {
               counts.set(result.value.name, result.value.count)
+              summaries.set(result.value.name, result.value.health)
             }
           }
           setTerminatingCounts(counts)
+          setHealthSummaries(summaries)
         })
         // allSettled never rejects — no .catch needed
       })
@@ -195,6 +206,7 @@ export default function Home() {
                 key={name}
                 rgd={rgd}
                 terminatingCount={terminatingCounts.get(name)}
+                healthSummary={healthSummaries.get(name)}
               />
             )
           }}

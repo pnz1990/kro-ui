@@ -12,14 +12,9 @@ import { getResource } from '@/lib/api'
 import { formatAge } from '@/lib/format'
 import { toYaml } from '@/lib/yaml'
 import { translateApiError } from '@/lib/errors'
+import { LABEL_NODE_ID, LABEL_COLL_INDEX, LABEL_COLL_SIZE } from '@/lib/kro'
 import KroCodeBlock from './KroCodeBlock'
 import './CollectionPanel.css'
-
-// ── kro label constants ────────────────────────────────────────────────────
-
-const LABEL_NODE_ID = 'kro.run/node-id'
-const LABEL_COLL_INDEX = 'kro.run/collection-index'
-const LABEL_COLL_SIZE = 'kro.run/collection-size'
 
 // ── Item status derivation ─────────────────────────────────────────────────
 

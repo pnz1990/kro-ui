@@ -24,9 +24,14 @@ interface RGDCardProps {
    * Spec: .specify/specs/031-deletion-debugger/ FR-007
    */
   terminatingCount?: number
+  /**
+   * Pre-computed health summary from Home.tsx's background fan-out.
+   * When provided, RGDCard skips its own listInstances fetch (issue #235).
+   */
+  healthSummary?: HealthSummary
 }
 
-export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
+export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSummaryProp }: RGDCardProps) {
   const name = extractRGDName(rgd)
   const kind = extractRGDKind(rgd)
   const resourceCount = extractResourceCount(rgd)
@@ -35,11 +40,15 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
 
   const encodedName = encodeURIComponent(name)
 
-  // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004)
-  const [chipSummary, setChipSummary] = useState<HealthSummary | null>(null)
-  const [chipLoading, setChipLoading] = useState(true)
+  // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004).
+  // When healthSummaryProp is provided (from Home.tsx fan-out), skip the per-card
+  // listInstances fetch entirely — the summary is already available (issue #235).
+  const [chipSummary, setChipSummary] = useState<HealthSummary | null>(healthSummaryProp ?? null)
+  const [chipLoading, setChipLoading] = useState(healthSummaryProp === undefined ? Boolean(name) : false)
 
   useEffect(() => {
+    // If the parent passed a pre-computed summary, nothing to fetch.
+    if (healthSummaryProp !== undefined) return
     if (!name) {
       setChipLoading(false)
       return
@@ -56,7 +65,7 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
         if (!ac.signal.aborted) setChipLoading(false)
       })
     return () => ac.abort()
-  }, [name])
+  }, [name, healthSummaryProp])
 
   return (
     <article className="rgd-card" data-testid={`rgd-card-${name}`}>
