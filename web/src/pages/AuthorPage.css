@@ -95,6 +95,11 @@
   padding: 0;
 }
 
+/* Issue #247: DAG build error notice — renders token-safe error color */
+.author-page__dag-hint--error {
+  color: var(--color-status-error);
+}
+
 .author-page__preview-pane {
   flex: 1 1 0;
   min-width: 0;

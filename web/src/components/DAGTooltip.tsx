@@ -95,12 +95,16 @@ const STATE_LABEL: Record<NodeLiveState, string> = {
 /**
  * DAGTooltip — portal-rendered, viewport-clamped hover tooltip.
  *
- * Returns null if:
- *   - node is null (no hover target)
- *   - node has no non-empty readyWhen expressions (tooltip not useful)
+ * Returns null only when node is null (no hover target).
  *
- * Per the constitution, the tooltip shows id, kind, node type, includeWhen
- * (if present), and readyWhen (if present).
+ * Per the constitution (§XIII), the tooltip MUST show id, kind, and node type
+ * for every node on hover. CEL sections (readyWhen, includeWhen) are rendered
+ * conditionally only when expressions are present.
+ *
+ * Issue #248: the previous early-return guard `!readyWhen && !includeWhen &&
+ * !nodeState` was incorrectly hiding the tooltip for plain resource nodes that
+ * have no CEL expressions and are on the static DAG (no nodeState). The guard
+ * is removed — tooltip always renders when a node is hovered.
  */
 export default function DAGTooltip({
   node,
@@ -173,9 +177,9 @@ export default function DAGTooltip({
   const readyWhenExprs = nonEmpty(node.readyWhen)
   const includeWhenExprs = nonEmpty(node.includeWhen)
 
-  // Nothing interesting to show — bail out
-  // Relaxed when nodeState is provided (overlay active): every node gets a tooltip
-  if (readyWhenExprs.length === 0 && includeWhenExprs.length === 0 && !nodeState) return null
+  // Note: no early-return for empty CEL expressions (issue #248).
+  // The tooltip header (id, kind, type) is always useful; CEL sections
+  // are rendered conditionally below.
 
   const readyWhenCode =
     'readyWhen:\n' + readyWhenExprs.map((e) => `  - ${e}`).join('\n')
