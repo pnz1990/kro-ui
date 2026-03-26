@@ -62,10 +62,12 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 
 ### Docker
 
+> **Pinned to the latest release** — update this tag on every new release.
+
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:latest
+  ghcr.io/pnz1990/kro-ui:v0.4.4
 # open http://localhost:40107
 ```
 
@@ -77,7 +79,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:latest
+  ghcr.io/pnz1990/kro-ui:v0.4.4
 # open http://localhost:40107
 ```
 
@@ -85,8 +87,11 @@ docker run -p 40107:40107 \
 
 ### In-cluster (Helm)
 
+> **Pinned to the latest release** — update this version on every new release.
+
 ```bash
-helm install kro-ui ./helm/kro-ui \
+helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
+  --version 0.4.4 \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
