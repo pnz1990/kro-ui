@@ -50,7 +50,9 @@ const STATE_LABEL: Record<NodeLiveState, string> = {
   alive: 'Ready',
   reconciling: 'Reconciling',
   error: 'Error',
-  pending: 'Pending',
+  // 'pending' means includeWhen evaluated to false — kro never created the resource.
+  // "Excluded" is more accurate than "Pending" (which implies "waiting to be created").
+  pending: 'Excluded',
   'not-found': 'Not Found',
 }
 
@@ -221,6 +223,10 @@ const CONCEPT_TEXT: Record<string, string> = {
   externalCollection:
     'External Reference Collection — References to pre-existing Kubernetes resources ' +
     'matched by label selector. kro reads them but does not create or own them.',
+  state:
+    'State Store — A kro state node. It does not create any Kubernetes resource; ' +
+    "instead it computes values and stores them in kro's internal state store (kstate()). " +
+    "Other resources can reference these values via ${kstate(schema.status.storeName, 'field', default)}.",
 }
 
 const TYPE_ICON: Record<string, string> = {
@@ -229,6 +235,7 @@ const TYPE_ICON: Record<string, string> = {
   collection: '∀',
   external: '⬡',
   externalCollection: '⬡',
+  state: '⊞',
 }
 
 /** Filter blank CEL expressions before rendering. */
@@ -270,6 +277,8 @@ export default function LiveNodeDetailPanel({
   const extMeta = extRef?.metadata as Record<string, unknown> | undefined
 
   const isForEach = node.nodeType === 'collection'
+  // State nodes produce no Kubernetes objects — never fetch YAML for them.
+  const isStateNode = node.nodeType === 'state'
 
   // ── Deletion metadata from fetched raw resource (FR-006) ──────────────────
   // Populated via the onRawObj callback from YamlSection when the resource fetch succeeds.
@@ -331,7 +340,7 @@ export default function LiveNodeDetailPanel({
             </span>
             {node.isConditional && (
               <span className="node-conditional-badge">
-                <span>?</span>
+                <span aria-hidden="true">◈</span>
                 <span>conditional</span>
               </span>
             )}
@@ -354,19 +363,42 @@ export default function LiveNodeDetailPanel({
           </Section>
         )}
 
-        {/* YAML section — resource and external nodes only */}
-        {!isForEach && node.nodeType !== 'instance' && (
-          <Section label="Live YAML">
-            <YamlSection
-              nodeId={node.id}
-              resourceInfo={resourceInfo}
-              onRawObj={setRawResourceObj}
-            />
+        {/* State node guidance — no YAML fetch (state nodes produce no K8s objects) */}
+        {isStateNode && (
+          <Section label="Note">
+            <p className="node-detail-concept node-detail-foreach-note">
+              State store node — no Kubernetes resource is created for this node.
+              It computes values and writes them into kro&apos;s internal state store.
+            </p>
           </Section>
         )}
 
-        {/* Finalizers (FR-006) — shown after YAML section for non-instance, non-forEach nodes */}
-        {!isForEach && node.nodeType !== 'instance' && resourceFinalizers.length > 0 && (
+        {/* YAML section — resource and external nodes only.
+            Suppressed for state nodes (no K8s object) and when resourceInfo is
+            null (node absent — pending/not-found). */}
+        {!isForEach && !isStateNode && node.nodeType !== 'instance' && (
+          <Section label="Live YAML">
+            {resourceInfo ? (
+              <YamlSection
+                nodeId={node.id}
+                resourceInfo={resourceInfo}
+                onRawObj={setRawResourceObj}
+              />
+            ) : liveState === 'pending' ? (
+              <p className="node-yaml-absent-note">
+                This resource is excluded by its <code>includeWhen</code> condition — it has
+                not been created yet.
+              </p>
+            ) : (
+              <p className="node-yaml-absent-note">
+                Resource not yet present in the cluster.
+              </p>
+            )}
+          </Section>
+        )}
+
+        {/* Finalizers (FR-006) — shown after YAML section for non-instance, non-forEach, non-state nodes */}
+        {!isForEach && !isStateNode && node.nodeType !== 'instance' && resourceFinalizers.length > 0 && (
           <Section label="Finalizers">
             <FinalizersPanel
               finalizers={resourceFinalizers}

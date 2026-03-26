@@ -249,13 +249,22 @@ export default function InstanceDetail() {
     if (selectedNode.nodeType === 'collection') return null
     // Root instance node: no YAML
     if (selectedNode.nodeType === 'instance') return null
+    // Absent nodes: don't attempt a YAML fetch that will always fail.
+    // 'pending'   = includeWhen condition is false — resource was never created.
+    // 'not-found' = resource not yet created (e.g. kro still reconciling).
+    // In both cases resolveChildResourceInfo falls through to a guessed name,
+    // the API call fails with "resource type not found", and the panel shows a
+    // misleading error. Suppress the section instead.
+    const kindKey = (selectedNode.kind || selectedNode.label).toLowerCase()
+    const liveState = nodeStateMap[kindKey]?.state
+    if (liveState === 'pending' || liveState === 'not-found') return null
     return resolveChildResourceInfo(
       selectedNode.label,
       instanceName,
       children,
       selectedNode.kind || undefined,
     )
-  }, [selectedNode, instanceName, children])
+  }, [selectedNode, instanceName, children, nodeStateMap])
 
   // ── Live state for the selected node ────────────────────────────────────
   // Fall back to 'not-found' when children haven't loaded yet — ensures the
@@ -269,6 +278,9 @@ export default function InstanceDetail() {
       if (states.length > 0) return 'alive'
       return 'not-found'
     }
+    // State nodes produce no K8s resources — they have no meaningful live state.
+    // Returning undefined suppresses the state badge entirely for these nodes.
+    if (selectedNode.nodeType === 'state') return undefined
     const kindKey = (selectedNode.kind || selectedNode.label).toLowerCase()
     return nodeStateMap[kindKey]?.state ?? 'not-found'
   }, [selectedNode, fastData, nodeStateMap])
