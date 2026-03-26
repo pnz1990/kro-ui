@@ -1,0 +1,115 @@
+/* YAMLImportPanel.css — Collapsible YAML import panel for the RGD Designer.
+   All colors via tokens.css — no hardcoded hex/rgba.
+   Spec: .specify/specs/045-rgd-designer-validation-optimizer/ US8 */
+
+.yaml-import-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* ── Header toggle ─────────────────────────────────────────────────────── */
+
+.yaml-import-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-surface-2);
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.yaml-import-panel__header:hover {
+  background: var(--color-surface-3);
+}
+
+.yaml-import-panel__header:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.yaml-import-panel__toggle-icon {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* ── Collapsible body ──────────────────────────────────────────────────── */
+
+.yaml-import-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-surface-1);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Textarea ──────────────────────────────────────────────────────────── */
+
+.yaml-import-panel__textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.yaml-import-panel__textarea:hover {
+  border-color: var(--color-primary);
+}
+
+.yaml-import-panel__textarea:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Apply button ──────────────────────────────────────────────────────── */
+
+.yaml-import-panel__apply-btn {
+  align-self: flex-start;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-surface-1);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.yaml-import-panel__apply-btn:hover {
+  opacity: 0.85;
+}
+
+.yaml-import-panel__apply-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Error message ─────────────────────────────────────────────────────── */
+
+.yaml-import-panel__error {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-error);
+  min-height: 1.25em;
+}

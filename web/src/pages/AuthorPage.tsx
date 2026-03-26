@@ -7,14 +7,17 @@
 // Spec: .specify/specs/039-rgd-authoring-entrypoint/ FR-001, FR-002, FR-003
 // Spec: .specify/specs/042-rgd-designer-nav/ (title rename + live DAG)
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
 import type { RGDAuthoringState } from '@/lib/generator'
 import { buildDAGGraph } from '@/lib/dag'
 import type { DAGGraph } from '@/lib/dag'
+import type { StaticIssue } from '@/lib/api'
+import * as api from '@/lib/api'
 import RGDAuthoringForm from '@/components/RGDAuthoringForm'
 import StaticChainDAG from '@/components/StaticChainDAG'
 import YAMLPreview from '@/components/YAMLPreview'
+import YAMLImportPanel from '@/components/YAMLImportPanel'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import './AuthorPage.css'
@@ -37,6 +40,35 @@ export default function AuthorPage() {
 
   const [rgdState, setRgdState] = useState<RGDAuthoringState>(STARTER_RGD_STATE)
   const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
+
+  // ── Offline static validation (US10) — debounced 1s after YAML changes ──
+  const [staticIssues, setStaticIssues] = useState<StaticIssue[]>([])
+  useEffect(() => {
+    const t = setTimeout(() => {
+      api.validateRGDStatic(rgdYaml).then((result) => setStaticIssues(result.issues))
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [rgdYaml])
+
+  // ── Dry-run cluster validation (US9) — manual, triggered by button ───────
+  const [dryRunResult, setDryRunResult] = useState<api.DryRunResult | null>(null)
+  const [dryRunLoading, setDryRunLoading] = useState(false)
+
+  // Clear stale result whenever YAML changes
+  useEffect(() => { setDryRunResult(null) }, [rgdYaml])
+
+  async function handleValidate() {
+    setDryRunLoading(true)
+    setDryRunResult(null)
+    try {
+      const res = await api.validateRGD(rgdYaml)
+      setDryRunResult(res)
+    } catch {
+      setDryRunResult({ valid: false, error: 'Could not reach cluster' })
+    } finally {
+      setDryRunLoading(false)
+    }
+  }
 
   // ── Live DAG preview (debounced 300ms) ──────────────────────────────────
   const debouncedState = useDebounce(rgdState, 300)
@@ -65,7 +97,8 @@ export default function AuthorPage() {
       </div>
       <div className="author-page__body">
         <div className="author-page__form-pane">
-          <RGDAuthoringForm state={rgdState} onChange={setRgdState} />
+          <YAMLImportPanel onImport={setRgdState} />
+          <RGDAuthoringForm state={rgdState} onChange={setRgdState} staticIssues={staticIssues} />
         </div>
         <div className="author-page__right-pane">
           <div className="author-page__dag-pane">
@@ -90,7 +123,13 @@ export default function AuthorPage() {
             </p>
           )}
           <div className="author-page__preview-pane">
-            <YAMLPreview yaml={rgdYaml} title="ResourceGraphDefinition" />
+            <YAMLPreview
+              yaml={rgdYaml}
+              title="ResourceGraphDefinition"
+              onValidate={handleValidate}
+              validateResult={dryRunResult}
+              validateLoading={dryRunLoading}
+            />
           </div>
         </div>
       </div>
