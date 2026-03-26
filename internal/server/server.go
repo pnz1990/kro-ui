@@ -114,11 +114,17 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			// Smart event stream — kro-filtered Kubernetes Events
 			r.Get("/events", h.ListEvents)
 
-			// Fleet overview — aggregated multi-context summary
-			r.Get("/fleet/summary", h.FleetSummary)
-
 			// Controller metrics — kro Prometheus scrape summary
 			r.Get("/kro/metrics", h.GetMetrics)
+		}
+
+		// Fleet summary is registered outside the 5s middleware timeout block
+		// because it fans out across all kubeconfig contexts and legitimately
+		// needs a longer deadline (30s) — Constitution §XI allows per-handler
+		// overrides when documented and bounded.
+		if factory != nil {
+			h := handlers.New(factory)
+			r.With(middleware.Timeout(30*time.Second)).Get("/fleet/summary", h.FleetSummary)
 		}
 	})
 

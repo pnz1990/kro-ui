@@ -45,7 +45,7 @@ func (b *realFleetClientBuilder) BuildClient(kubeconfigPath, ctx string) (k8scli
 }
 
 // FleetSummary returns per-context summaries for all kubeconfig contexts.
-// It fans out in parallel with a 10s timeout per cluster (NFR-003).
+// It fans out in parallel, bounded by the route-level 30s timeout in server.go.
 // One unreachable cluster never blocks others (FR-003).
 func (h *Handler) FleetSummary(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
@@ -79,9 +79,9 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 		Cluster: ctx.Cluster,
 	}
 
-	// Use a 10s deadline per cluster (NFR-003).
-	tctx, cancel := context.WithTimeout(parent, 10*time.Second)
-	defer cancel()
+	// parent is already bounded by the route-level 30s timeout (server.go).
+	// No additional per-cluster deadline is added here — the per-RGD goroutines
+	// each apply their own 2s deadline via rctx (Constitution §XI).
 
 	// Build ephemeral clients — does NOT affect the shared ClientFactory.
 	var kubeconfigPath string
@@ -97,7 +97,7 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	}
 
 	// List RGDs to determine kro presence and count.
-	list, err := clients.Dynamic().Resource(rgdGVR).List(tctx, metav1.ListOptions{})
+	list, err := clients.Dynamic().Resource(rgdGVR).List(parent, metav1.ListOptions{})
 	if err != nil {
 		// Distinguish kro-not-installed from generic unreachability.
 		errStr := err.Error()
@@ -149,11 +149,13 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	}
 	results := make([]instanceResult, len(entries))
 	var mu sync.Mutex
-	g, _ := errgroup.WithContext(tctx)
+	// Use the derived context from errgroup so any early cancellation propagates
+	// to all goroutines (Constitution §XI; fixes issue #226).
+	g, gctx := errgroup.WithContext(parent)
 	for i, entry := range entries {
 		i, entry := i, entry // capture
 		g.Go(func() error {
-			rctx, rcancel := context.WithTimeout(tctx, 2*time.Second)
+			rctx, rcancel := context.WithTimeout(gctx, 2*time.Second)
 			defer rcancel()
 
 			plural, err := k8sclient.DiscoverPlural(clients, entry.group, entry.apiVersion, entry.kind)

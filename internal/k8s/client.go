@@ -270,6 +270,15 @@ type Context struct {
 // KroGroup is the API group for kro resources.
 const KroGroup = "kro.run"
 
+// LabelInstanceName is the kro label key used to associate child resources with
+// their parent CR instance. Defined here as a single source of truth so label
+// renames only require one change.
+const LabelInstanceName = KroGroup + "/instance-name"
+
+// LabelNodeID is the kro label key that maps a child resource back to the RGD
+// resource node that produced it (kro.run/node-id).
+const LabelNodeID = KroGroup + "/node-id"
+
 // RGDResource is the plural resource name for ResourceGraphDefinitions.
 const RGDResource = "resourcegraphdefinitions"
 
