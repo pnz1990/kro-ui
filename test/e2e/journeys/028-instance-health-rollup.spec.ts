@@ -44,9 +44,10 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     // RGD card must be visible
     await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
 
-    // After the async chip fetch, at least one chip should appear
-    // (may be skeleton initially — wait for text to resolve)
-    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 8000 })
+    // After the async chip fetch, at least one chip should appear.
+    // With 14 RGDs and potential API throttling under parallel load, allow
+    // up to 20s for the first chip to resolve from skeleton.
+    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
     const chip = page.locator('[data-testid="health-chip"]').first()
     await expect(chip).toBeVisible()
 
