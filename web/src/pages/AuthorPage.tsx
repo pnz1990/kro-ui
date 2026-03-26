@@ -11,12 +11,16 @@ import { useState, useMemo } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
 import type { RGDAuthoringState } from '@/lib/generator'
 import { buildDAGGraph } from '@/lib/dag'
+import type { DAGGraph } from '@/lib/dag'
 import RGDAuthoringForm from '@/components/RGDAuthoringForm'
 import StaticChainDAG from '@/components/StaticChainDAG'
 import YAMLPreview from '@/components/YAMLPreview'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import './AuthorPage.css'
+
+/** Sentinel empty graph returned when buildDAGGraph throws (issue #247). */
+const EMPTY_GRAPH: DAGGraph = { nodes: [], edges: [], width: 0, height: 0 }
 
 /**
  * AuthorPage — global RGD Designer entrypoint.
@@ -36,10 +40,20 @@ export default function AuthorPage() {
 
   // ── Live DAG preview (debounced 300ms) ──────────────────────────────────
   const debouncedState = useDebounce(rgdState, 300)
-  const dagGraph = useMemo(
-    () => buildDAGGraph(rgdAuthoringStateToSpec(debouncedState), []),
-    [debouncedState],
-  )
+
+  // Issue #247: wrap in try-catch so an invalid/circular form state can't
+  // propagate an unhandled exception out of useMemo and crash the page.
+  // On error return an empty graph and surface a notice below the DAG.
+  const [dagError, setDagError] = useState<string | null>(null)
+  const dagGraph = useMemo(() => {
+    try {
+      setDagError(null)
+      return buildDAGGraph(rgdAuthoringStateToSpec(debouncedState), [])
+    } catch (err) {
+      setDagError(err instanceof Error ? err.message : 'Invalid form state')
+      return EMPTY_GRAPH
+    }
+  }, [debouncedState])
 
   return (
     <div className="author-page">
@@ -61,7 +75,16 @@ export default function AuthorPage() {
               rgdName={debouncedState.rgdName || 'my-rgd'}
             />
           </div>
-          {debouncedState.resources.length === 0 && (
+          {dagError !== null && (
+            <p
+              className="author-page__dag-hint author-page__dag-hint--error"
+              data-testid="author-dag-error"
+              role="alert"
+            >
+              DAG preview unavailable: {dagError}
+            </p>
+          )}
+          {dagError === null && debouncedState.resources.length === 0 && (
             <p className="author-page__dag-hint">
               Add resources to see the dependency graph
             </p>

@@ -62,10 +62,20 @@ export default function ContextSwitcher({
   const containerRef = useRef<HTMLDivElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const abortRef = useRef<AbortController | null>(null)
+  // Issue #246: keep refs for each option element so we can call .focus()
+  // when focusedIdx changes — required for screen-reader announcements (WCAG 4.1.3).
+  const itemRefsRef = useRef<(HTMLDivElement | null)[]>([])
 
   const truncated = truncateContextName(active)
   // Issue #237: evaluate against the abbreviated display length, not the raw name.
   const needsTooltip = truncated.length > MAX_DISPLAY_LENGTH
+
+  // Issue #246: move real DOM focus to the highlighted option whenever
+  // focusedIdx changes and the dropdown is open.
+  useEffect(() => {
+    if (!isOpen || focusedIdx < 0) return
+    itemRefsRef.current[focusedIdx]?.focus()
+  }, [isOpen, focusedIdx])
 
   // Close dropdown and return focus to trigger
   const close = useCallback(() => {
@@ -225,6 +235,7 @@ export default function ContextSwitcher({
               return (
                 <div
                   key={ctx.name}
+                  ref={(el) => { itemRefsRef.current[idx] = el }}
                   className={[
                     'context-switcher__option',
                     isActive ? 'context-switcher__option--active' : '',

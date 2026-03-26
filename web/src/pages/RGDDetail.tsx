@@ -163,6 +163,13 @@ export default function RGDDetail() {
   // ── Graph tab overlay state ───────────────────────────────────────────────
   // spec: .specify/specs/029-dag-instance-overlay/
 
+  // Memoised DAG — declared here so the overlay useEffect can include it in its
+  // dependency array without a "used before declaration" error (issue #233).
+  const dagGraph = useMemo(() => {
+    if (!rgd?.spec) return null
+    return buildDAGGraph(rgd.spec as Record<string, unknown>, rgds)
+  }, [rgd, rgds])
+
   // Picker: list of instances for the overlay <select>
   const [pickerItems, setPickerItems] = useState<PickerItem[]>([])
   const [pickerLoading, setPickerLoading] = useState(false)
@@ -238,7 +245,7 @@ export default function RGDDetail() {
       })
       .finally(() => setOverlayLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlayKey, name, overlayRetry])
+  }, [overlayKey, name, overlayRetry, dagGraph])
 
   function handleOverlaySelect(key: string | null) {
     setOverlayKey(key)
@@ -280,12 +287,6 @@ export default function RGDDetail() {
     setOverlayRetry((c) => c + 1)
   }
 
-  // ── Memoised DAG ─────────────────────────────────────────────────────────
-  const dagGraph = useMemo(() => {
-    if (!rgd?.spec) return null
-    return buildDAGGraph(rgd.spec as Record<string, unknown>, rgds)
-  }, [rgd, rgds])
-
   // ── Collapse candidate groups (static analysis, no API call) ─────────────
   // spec: .specify/specs/023-rgd-optimization-advisor/
   const collapseGroups = useMemo(() => {
@@ -300,7 +301,13 @@ export default function RGDDetail() {
 
   function setTab(t: TabId) {
     if (t === "graph") {
-      setSearchParams({})
+      // Issue #249: only remove the `tab` key — preserve all other params
+      // (e.g. `?namespace=kube-system`) so switching back restores the filter.
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev)
+        p.delete("tab")
+        return p
+      })
     } else {
       setSearchParams({ tab: t })
     }

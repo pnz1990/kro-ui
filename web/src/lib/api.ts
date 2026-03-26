@@ -7,7 +7,10 @@ async function get<T>(path: string, options?: { signal?: AbortSignal }): Promise
   const res = await fetch(BASE + path, { signal: options?.signal })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `HTTP ${res.status}`)
+    // Issue #250: guard against non-string body.error (object/number/false)
+    // which would produce "[object Object]" via new Error(non-string).
+    const msg = typeof body.error === 'string' ? body.error : `HTTP ${res.status}`
+    throw new Error(msg)
   }
   return res.json()
 }
@@ -20,7 +23,9 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   })
   if (!res.ok) {
     const b = await res.json().catch(() => ({}))
-    throw new Error(b.error ?? `HTTP ${res.status}`)
+    // Issue #250: same non-string guard for the POST path
+    const msg = typeof b.error === 'string' ? b.error : `HTTP ${res.status}`
+    throw new Error(msg)
   }
   return res.json()
 }

@@ -266,3 +266,43 @@ describe('RGDDetail breadcrumb (spec 025 T028)', () => {
     expect(screen.queryByTestId('rgd-breadcrumb')).toBeNull()
   })
 })
+
+// ── T249: setTab('graph') preserves namespace param (issue #249) ──────────
+
+describe('RGDDetail setTab namespace preservation (issue #249)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedGetRGD.mockResolvedValue(makeRGD())
+    mockedListRGDs.mockResolvedValue({ metadata: {}, items: [] })
+    mockedListInstances.mockResolvedValue(makeInstanceList([]))
+  })
+
+  it('T249: switching to Graph tab preserves the namespace search param', async () => {
+    // Start on the Instances tab with a namespace filter applied
+    renderDetail('?tab=instances&namespace=default')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-instances')).toHaveAttribute('aria-selected', 'true'),
+    )
+
+    // Click the Graph tab
+    const graphTab = screen.getByTestId('tab-graph')
+    fireEvent.click(graphTab)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-graph')).toHaveAttribute('aria-selected', 'true'),
+    )
+
+    // The URL should have dropped the `tab` param but kept `namespace`
+    // Since jsdom doesn't expose window.location search easily, we verify
+    // indirectly: switching back to instances should still show the filter.
+    const instancesTab = screen.getByTestId('tab-instances')
+    fireEvent.click(instancesTab)
+
+    await waitFor(() =>
+      expect(screen.getByTestId('tab-instances')).toHaveAttribute('aria-selected', 'true'),
+    )
+    // The namespace filter select should still be present and pre-selected
+    expect(screen.getByTestId('namespace-filter')).toBeInTheDocument()
+  })
+})

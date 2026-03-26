@@ -193,7 +193,11 @@ export default function NodeDetailPanel({ node, onClose }: NodeDetailPanelProps)
               {extMeta?.name != null && <div>name: {String(extMeta.name)}</div>}
               {extMeta?.namespace != null && <div>namespace: {String(extMeta.namespace)}</div>}
               {extMeta?.selector != null && (
-                <div>selector: {JSON.stringify(extMeta.selector)}</div>
+                // Issue #251: use KroCodeBlock with pretty-printed JSON for
+                // human-readable formatting of complex selectors.
+                <Section label="Selector">
+                  <KroCodeBlock code={JSON.stringify(extMeta.selector, null, 2)} />
+                </Section>
               )}
             </div>
           </Section>

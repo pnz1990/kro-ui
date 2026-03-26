@@ -252,7 +252,9 @@ describe('DAGGraph', () => {
     expect(document.body.querySelector('#dag-node-tooltip')).toBeInTheDocument()
   })
 
-  it('T012b: mouseenter on node without readyWhen or includeWhen does NOT render tooltip', () => {
+  it('T012b: mouseenter on node without readyWhen or includeWhen DOES render tooltip header (issue #248)', () => {
+    // Issue #248: plain resource nodes (no CEL expressions) must show the
+    // tooltip with at minimum the node id, kind, and type — never return null.
     const node = makeNode('noCondition', {
       hasReadyWhen: false,
       readyWhen: [],
@@ -266,7 +268,10 @@ describe('DAGGraph', () => {
     const group = screen.getByTestId('dag-node-noCondition')
     fireEvent.mouseEnter(group)
 
-    expect(document.body.querySelector('#dag-node-tooltip')).not.toBeInTheDocument()
+    // Tooltip should now be present with node id in the header
+    const tooltip = document.body.querySelector('#dag-node-tooltip')
+    expect(tooltip).toBeInTheDocument()
+    expect(tooltip?.textContent).toContain('noCondition')
   })
 
   it('T012c: mouseleave removes tooltip from document.body', () => {
