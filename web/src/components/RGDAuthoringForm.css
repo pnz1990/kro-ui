@@ -1,6 +1,9 @@
 /* RGDAuthoringForm.css — Section layout, repeatable row styling.
    Section titles match docs-tab__section-title pattern.
-   All colors via tokens.css — no inline hex/rgba. */
+   All colors via tokens.css — no inline hex/rgba.
+   Extended in spec 044 for: scope toggle, status fields, template editor,
+   forEach iterators, externalRef, advanced options (includeWhen/readyWhen),
+   spec field constraints. */
 
 .rgd-authoring-form {
   display: flex;
@@ -39,6 +42,27 @@
   font-size: 12px;
   color: var(--color-text-muted);
   text-align: right;
+}
+
+/* ── Scope toggle (US7) ───────────────────────────────────────────────────── */
+
+.rgd-authoring-form__scope-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.rgd-authoring-form__scope-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.rgd-authoring-form__scope-label input[type="radio"] {
+  accent-color: var(--color-primary);
 }
 
 /* ── Inputs ──────────────────────────────────────────────────────────────── */
@@ -84,7 +108,56 @@
   flex: 1;
 }
 
-/* ── Field row ────────────────────────────────────────────────────────────── */
+/* CEL expression inputs use monospace font */
+.rgd-authoring-form__input--cel {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Constraint inputs */
+.rgd-authoring-form__input--constraint {
+  width: 120px;
+  flex: unset;
+}
+
+/* ── CEL wrap + badge ─────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__cel-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.rgd-authoring-form__cel-wrap .rgd-authoring-form__input--cel {
+  padding-right: 36px;
+  width: 100%;
+}
+
+.rgd-authoring-form__cel-badge {
+  position: absolute;
+  right: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Field block + row ────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .rgd-authoring-form__field-row,
 .rgd-authoring-form__resource-row {
@@ -101,6 +174,36 @@
 .rgd-authoring-form__field-row .rgd-authoring-form__input,
 .rgd-authoring-form__resource-row .rgd-authoring-form__input {
   flex: 1;
+}
+
+/* ── Spec field constraint expansion (US8) ────────────────────────────────── */
+
+.rgd-authoring-form__field-constraints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 6px 8px 6px 28px;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.rgd-authoring-form__constraint-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Status field rows (US2) ──────────────────────────────────────────────── */
+
+.rgd-authoring-form__status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* ── Required checkbox label ──────────────────────────────────────────────── */
@@ -162,4 +265,263 @@
 .rgd-authoring-form__add-btn:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
+}
+
+.rgd-authoring-form__add-btn--sm {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/* ── Expand / disclosure buttons ─────────────────────────────────────────── */
+
+.rgd-authoring-form__expand-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  padding: 0;
+}
+
+.rgd-authoring-form__expand-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.rgd-authoring-form__expand-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.rgd-authoring-form__disclosure-btn {
+  align-self: flex-start;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rgd-authoring-form__disclosure-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.rgd-authoring-form__disclosure-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Resource block ───────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__resource-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.rgd-authoring-form__resource-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rgd-authoring-form__select--type {
+  flex-shrink: 0;
+  font-size: 11px;
+}
+
+/* ── Status badges ────────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.rgd-authoring-form__badge--conditional {
+  color: var(--color-warning, var(--color-text-muted));
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+}
+
+.rgd-authoring-form__badge--ready {
+  color: var(--color-primary);
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+}
+
+/* Warning badge on template button */
+.rgd-authoring-form__warn-badge {
+  color: var(--color-warning, var(--color-text-muted));
+  font-size: 12px;
+}
+
+/* ── Template editor (US1) ────────────────────────────────────────────────── */
+
+.rgd-authoring-form__template-editor {
+  display: flex;
+  flex-direction: column;
+}
+
+.rgd-authoring-form__template-textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.rgd-authoring-form__template-textarea:hover {
+  border-color: var(--color-primary);
+}
+
+.rgd-authoring-form__template-textarea:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── forEach iterators (US5) ──────────────────────────────────────────────── */
+
+.rgd-authoring-form__foreach-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.rgd-authoring-form__foreach-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rgd-authoring-form__foreach-in {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── externalRef (US6) ────────────────────────────────────────────────────── */
+
+.rgd-authoring-form__extref-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.rgd-authoring-form__extref-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rgd-authoring-form__extref-mode {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.rgd-authoring-form__selector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 8px;
+}
+
+.rgd-authoring-form__selector-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Advanced options (US3+US4) ───────────────────────────────────────────── */
+
+.rgd-authoring-form__advanced-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.rgd-authoring-form__advanced-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.rgd-authoring-form__readywhen-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.rgd-authoring-form__readywhen-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Subsection label / sublabel ──────────────────────────────────────────── */
+
+.rgd-authoring-form__subsection-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.rgd-authoring-form__sublabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 90px;
+  text-align: right;
 }
