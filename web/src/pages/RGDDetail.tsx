@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams, useLocation, Link } from "react-router-dom"
 import { getRGD, listRGDs, listInstances, getInstance, getInstanceChildren } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
@@ -71,9 +71,12 @@ export default function RGDDetail() {
   // ── All RGDs for chain detection (spec 025) ───────────────────────────────
   const [rgds, setRgds] = useState<K8sObject[]>([])
 
-  useEffect(() => {
+  // Issue #261: extract the RGD fetch into a useCallback so the initial
+  // useEffect and the retryLoad handler share one source of truth.
+  const fetchRGD = useCallback(() => {
     if (!name) return
     setLoading(true)
+    setError(null)
     // Fetch RGD detail and all RGDs in parallel; listRGDs failure is non-fatal
     // (chain detection degrades to no chainable marking rather than an error page)
     Promise.all([
@@ -92,6 +95,10 @@ export default function RGDDetail() {
       })
       .finally(() => setLoading(false))
   }, [name])
+
+  useEffect(() => {
+    fetchRGD()
+  }, [fetchRGD])
 
   // ── Instances tab state ───────────────────────────────────────────────────
 
@@ -258,11 +265,10 @@ export default function RGDDetail() {
   }
 
   function handlePickerRetry() {
+    // Issue #261: removed spurious setPickerLoading(false) immediately before
+    // setPickerLoading(true) — that caused an unnecessary re-render.
     setPickerError(null)
     setPickerItems([])
-    setPickerLoading(false)
-    // Re-trigger the picker fetch effect by temporarily resetting its guard
-    // (the effect checks pickerItems.length + pickerLoading + pickerError)
     if (!name) return
     setPickerLoading(true)
     listInstances(name)
@@ -280,7 +286,6 @@ export default function RGDDetail() {
       .catch((err: Error) => setPickerError(err.message))
       .finally(() => setPickerLoading(false))
   }
-
   function handleOverlayRetry() {
     if (!overlayKey) return
     setOverlayError(null)
@@ -324,31 +329,12 @@ export default function RGDDetail() {
   }
 
   if (error) {
-    const retryLoad = () => {
-      if (!name) return
-      setLoading(true)
-      setError(null)
-      Promise.all([
-        getRGD(name),
-        listRGDs().catch(() => ({ metadata: {}, items: [] as K8sObject[] })),
-      ])
-        .then(([data, allRgds]) => {
-          setRgd(data)
-          setRgds(allRgds.items ?? [])
-          setRgdLastFetched(new Date())
-          setError(null)
-        })
-        .catch((err: Error) => {
-          setError(err.message)
-          setRgd(null)
-        })
-        .finally(() => setLoading(false))
-    }
+    // Issue #261: use the shared fetchRGD callback instead of a duplicate fetch body
     return (
       <div className="rgd-detail-error" role="alert" data-testid="rgd-detail-error">
         <p className="rgd-detail-error__msg">{translateApiError(error)}</p>
         <div className="rgd-detail-error__actions">
-          <button type="button" className="rgd-detail-error__retry-btn" onClick={retryLoad}>
+          <button type="button" className="rgd-detail-error__retry-btn" onClick={fetchRGD}>
             Retry
           </button>
           <Link to="/" className="rgd-detail-error__back-link">← Back to Overview</Link>

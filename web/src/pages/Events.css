@@ -41,6 +41,13 @@
   color: var(--color-text-faint);
 }
 
+/* Issue #260: polling badge shown alongside "Updated X ago" in the header */
+.events-page__polling-badge {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  opacity: 0.8;
+}
+
 /* ── Filter bar (issue #66) ─────────────────────────────────────────── */
 
 .events-page__filter-bar {

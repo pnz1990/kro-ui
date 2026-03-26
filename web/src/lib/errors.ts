@@ -89,7 +89,10 @@ export function translateApiError(message: string, context?: TranslateContext): 
   }
 
   // Pattern 5: connection refused / dial tcp / HTTP 503
-  if (m.includes('connection refused') || m.includes('dial tcp') || m.includes('503')) {
+  // Issue #258: use a precise pattern for 503 — only match the status code when
+  // surrounded by whitespace or at string boundaries, not inside a resource name
+  // like "service-503" or a port like ":5030".
+  if (m.includes('connection refused') || m.includes('dial tcp') || /(^|\s)503(\s|$)/.test(m)) {
     return "Cannot reach the Kubernetes API server — check cluster connectivity."
   }
 

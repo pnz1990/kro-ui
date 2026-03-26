@@ -321,4 +321,66 @@ describe('CollectionPanel', () => {
     expect(screen.getByText('mine')).toBeInTheDocument()
     expect(screen.queryByText('not-mine')).not.toBeInTheDocument()
   })
+
+  // ── Issue #252: 'Unknown' → 'Not reported' ─────────────────────────────
+
+  it('T252: renders "Not reported" for items with no parseable status (not "Unknown")', () => {
+    // An item with no status at all — e.g. a ConfigMap
+    const noStatusItem: K8sObject = {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'my-config',
+        namespace: 'default',
+        creationTimestamp: '2026-01-01T00:00:00Z',
+        labels: {
+          'kro.run/node-id': nodeId,
+          'kro.run/collection-index': '0',
+          'kro.run/collection-size': '1',
+        },
+      },
+      // no status field
+    }
+    render(
+      <CollectionPanel
+        node={node}
+        children={[noStatusItem]}
+        namespace="default"
+        onClose={() => {}}
+      />,
+    )
+    // Should show "Not reported", never "Unknown" (constitution §XII)
+    expect(screen.getByText('Not reported')).toBeInTheDocument()
+    expect(screen.queryByText('Unknown')).not.toBeInTheDocument()
+  })
+
+  // ── Issue #257: allChildrenLabelless scoped to items (current node) ────
+
+  it('T257: allChildrenLabelless uses items scope — does not fire when only other nodes\' children lack labels', () => {
+    // Items for THIS node have labels; children for another node do not.
+    // allChildrenLabelless should be false (= no legacy warning shown).
+    const itemWithLabel = makeItem(0, 1, nodeId) // has kro.run/node-id
+    const otherWithoutLabel: K8sObject = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        name: 'unlabelled-other',
+        namespace: 'default',
+        creationTimestamp: '2026-01-01T00:00:00Z',
+        labels: {}, // no kro.run/node-id
+      },
+      status: { phase: 'Running' },
+    }
+    render(
+      <CollectionPanel
+        node={node}
+        children={[itemWithLabel, otherWithoutLabel]}
+        namespace="default"
+        onClose={() => {}}
+      />,
+    )
+    // Legacy kro notice should NOT appear; the current node's items have labels
+    expect(screen.queryByText(/legacy kro/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/older version/i)).not.toBeInTheDocument()
+  })
 })

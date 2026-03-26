@@ -153,7 +153,9 @@ export default function ContextSwitcher({
     const timeout = setTimeout(() => ctrl.abort(), SWITCH_TIMEOUT_MS)
 
     try {
-      await switchContext(name)
+      // Issue #256: pass the AbortController signal so the underlying fetch is
+      // actually cancelled when the 10s timeout fires (no more zombie requests).
+      await switchContext(name, { signal: ctrl.signal })
       onSwitch(name)
     } catch (err) {
       if (ctrl.signal.aborted) {

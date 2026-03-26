@@ -105,9 +105,10 @@ export default function Fleet() {
   const [metricsMap, setMetricsMap] = useState<Map<string, ControllerMetrics | null>>(new Map())
   const navigate = useNavigate()
 
-  // Re-render every 15s to update the "refreshed N ago" counter
+  // Issue #259: tick every 1s (was 15s) so "Updated X ago" stays accurate.
+  // Matches InstanceDetail's RefreshIndicator pattern. Overhead is negligible.
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 15_000)
+    const id = setInterval(() => setTick((t) => t + 1), 1_000)
     return () => clearInterval(id)
   }, [])
 

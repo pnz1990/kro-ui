@@ -197,4 +197,31 @@ describe('translateApiError', () => {
       expect(result).toContain("API server doesn't recognise")
     })
   })
+
+  // ── Issue #258: '503' word-boundary matching ──────────────────────────────
+  describe('pattern 5 — 503 boundary (issue #258)', () => {
+    it('matches standalone HTTP 503', () => {
+      expect(translateApiError('HTTP 503')).toContain('Cannot reach')
+    })
+
+    it('matches "http 503" case-insensitive', () => {
+      expect(translateApiError('received http 503 from upstream')).toContain('Cannot reach')
+    })
+
+    it('does NOT match resource name "service-503" (503 after hyphen)', () => {
+      // "service-503" — 503 follows a hyphen, not whitespace/boundary
+      const msg = 'resource "service-503" not found in namespace default'
+      expect(translateApiError(msg)).toBe(msg)
+    })
+
+    it('does NOT match "5030" as a false 503 positive', () => {
+      // "5030" contains "503" as substring — must not match
+      const msg = 'error code 5030 returned by custom webhook'
+      expect(translateApiError(msg)).toBe(msg)
+    })
+
+    it('matches "503" at end of string', () => {
+      expect(translateApiError('upstream returned 503')).toContain('Cannot reach')
+    })
+  })
 })

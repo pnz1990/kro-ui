@@ -580,6 +580,20 @@ export function fittedWidth(graph: DAGGraph): number {
 }
 
 /**
+ * Compute the actual content height from node bounding boxes.
+ * Prevents empty space below the last row of nodes (issue #64).
+ *
+ * Extracted from DAGGraph.tsx and LiveDAG.tsx (issue #255 — anti-pattern:
+ * duplicating graph helpers across component files).
+ * The PADDING constant is 32px, matching both components' local definition.
+ */
+export function fittedHeight(graph: DAGGraph): number {
+  if (graph.nodes.length === 0) return graph.height
+  const maxBottom = Math.max(...graph.nodes.map((n) => n.y + n.height))
+  return maxBottom + 32 // 32px bottom-padding (matches PADDING constant)
+}
+
+/**
  * Returns the badge character for a DAG node, or null if none applies.
  * The conditional modifier (?) overrides the node-type badge (∀, ⬡).
  * Defined here once; imported by DAGGraph, StaticChainDAG, LiveDAG, DeepDAG.

@@ -15,11 +15,12 @@ async function get<T>(path: string, options?: { signal?: AbortSignal }): Promise
   return res.json()
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(path: string, body: unknown, options?: { signal?: AbortSignal }): Promise<T> {
   const res = await fetch(BASE + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    signal: options?.signal,
   })
   if (!res.ok) {
     const b = await res.json().catch(() => ({}))
@@ -44,7 +45,10 @@ export interface ContextsResponse {
 }
 
 export const listContexts = () => get<ContextsResponse>('/contexts')
-export const switchContext = (context: string) => post<{ active: string }>('/contexts/switch', { context })
+// Issue #256: accept AbortSignal so ContextSwitcher can cancel a zombie request
+// when its 10s timeout fires before the server responds.
+export const switchContext = (context: string, options?: { signal?: AbortSignal }) =>
+  post<{ active: string }>('/contexts/switch', { context }, options)
 
 // ── RGDs ─────────────────────────────────────────────────────────────
 

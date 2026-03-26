@@ -88,8 +88,9 @@ describe('Layout', () => {
       expect(screen.getByTestId('child-content')).toBeInTheDocument()
     })
 
-    // TopBar should render with empty context name
-    expect(screen.getByTestId('context-name')).toHaveTextContent('')
+    // Issue #253: on error, activeContext is set to '(unavailable)' instead of ''
+    // so the context switcher button shows a readable label rather than blank.
+    expect(screen.getByTestId('context-name')).toHaveTextContent('(unavailable)')
   })
 
   it('updates displayed context name after switch', async () => {

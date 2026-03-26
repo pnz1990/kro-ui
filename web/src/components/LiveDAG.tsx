@@ -10,7 +10,8 @@
 
 import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel, nodeStateForNode, fittedWidth } from '@/lib/dag'
+// Issue #255: fittedHeight extracted to dag.ts alongside fittedWidth — no more duplication
+import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel, nodeStateForNode, fittedWidth, fittedHeight } from '@/lib/dag'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
@@ -18,15 +19,6 @@ import DAGTooltip from './DAGTooltip'
 import DAGLegend from './DAGLegend'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import './LiveDAG.css'
-
-const PADDING = 32
-
-/** Compute the actual content height from node bounding boxes (issue #64). */
-function fittedHeight(graph: DAGGraph): number {
-  if (graph.nodes.length === 0) return graph.height
-  const maxBottom = Math.max(...graph.nodes.map((n) => n.y + n.height))
-  return maxBottom + PADDING
-}
 
 interface LiveDAGProps {
   graph: DAGGraph
