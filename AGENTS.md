@@ -51,6 +51,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `014-multi-cluster-overview` | #16 | Fleet view across kubeconfig contexts | Merged (PR #52) |
 | `012-rgd-chaining-deep-graph` | #15 | Recursive expansion of chained RGD instances | Merged (PR #54) |
 | `020-schema-doc-generator` | #21 | Auto-generated API docs from RGD schema | Merged (PR #55) |
+| `026-rgd-yaml-generator` | — | RGD YAML generator — instance form, batch mode, YAML preview | Merged (PR #144) |
 | `home-search-dag-tooltip` | #77 | Home search filter + DAG node hover tooltip | Merged (PR #77) |
 | `023-rgd-optimization-advisor` | #78 | forEach collapse suggestions in catalog | Merged (PR #78) |
 | `022-controller-metrics-panel` | #79 | kro controller metrics panel | Merged (PR #79) |
@@ -73,6 +74,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `038-live-dag-per-node-state` | #166 | Live DAG per-node state — pending state, per-child conditions, tooltip wiring | Merged (PR #180) |
 | `039-rgd-authoring-entrypoint` | #162 | Global `/author` route and `+ New RGD` top bar entrypoint | Merged (PR #181) |
 | `040-per-context-controller-metrics` | #174 | Per-context controller metrics via pod-proxy discovery | Merged (PR #182) |
+| `041-error-states-ux-audit` | #187 | Error states UX audit — translateApiError, enriched empty states, symbol legends | Merged (PR #208) |
 | `042-rgd-designer-nav` | #196 | RGD Designer — promote /author to nav, remove New RGD mode, add live DAG preview | Merged (PR #206) |
 | `fix/issue-183` | #183 | Static DAG overlay svgHeight — use graph.height directly, SVG display:block | Merged (PR #209) |
 | `fix/issue-210` | #210 | Live YAML resolve child resource by kro.run/node-id label | Merged (PR #211) |

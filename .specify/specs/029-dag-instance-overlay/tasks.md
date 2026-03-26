@@ -145,44 +145,43 @@ CSS classes. Two bugs must be fixed:
 
 **⚠️ T023 depends on T022. T022 and T024 can run in parallel.**
 
-- [ ] T022 [P] Fix `buildNodeStateMap` in `web/src/lib/instanceNodeState.ts`:
+- [x] T022 [P] Fix `buildNodeStateMap` in `web/src/lib/instanceNodeState.ts`:
   - Add `rgdNodes: DAGNode[]` as third parameter (import `DAGNode` from `@/lib/dag`)
   - Build a `presenceMap: Map<string, NodeLiveState>` from children (key: `child.kind?.toLowerCase()`, fallback: `child.metadata?.labels?.['kro.run/resource-id']?.toLowerCase()`; skip if kind absent; value: `'reconciling'` if `deletionTimestamp` set, else `'alive'`)
   - After processing children, loop over `rgdNodes`: for each node where `nodeType !== 'instance'` and `nodeType !== 'state'`, compute `kindKey = (node.kind || node.label).toLowerCase()` and emit `result[kindKey] = { state: presenceMap.get(kindKey) ?? 'not-found' }`
   - Write companion unit test `instanceNodeState.test.ts`: table-driven test with 6 rgdNodes (Deployment, Service, ConfigMap, Secret, Ingress, HPA) and 2 children (Deployment + Service) → assert map has entries for all 6 kinds, 4 with `state: 'not-found'`, 2 with `state: 'alive'` (AC-019)
+  - **Shipped in v0.3.4 (PR #137 batch fix for GH #165)**
 
-- [ ] T023 Update call site in `web/src/pages/RGDDetail.tsx`:
+- [x] T023 Update call site in `web/src/pages/RGDDetail.tsx`:
   - Find the `buildNodeStateMap(instance, childrenRes.items ?? [])` call in the overlay fetch effect
   - Change to `buildNodeStateMap(instance, childrenRes.items ?? [], dagGraph?.nodes ?? [])`
   - Ensure `dagGraph` is accessible in scope (it should already be in component state)
+  - **Shipped in v0.3.4 (PR #137 batch fix for GH #165)**
 
-- [ ] T024 [P] Fix `nodeBaseClass()` guard in `web/src/components/StaticChainDAG.tsx`:
+- [x] T024 [P] Fix `nodeBaseClass()` guard in `web/src/components/StaticChainDAG.tsx`:
   - Find the `if (liveState) parts.push(liveStateClass(liveState))` line in `nodeBaseClass`
   - Change to: pass `nodeStateMap` into `nodeBaseClass` as an optional fourth param, or compute `liveStateClass` at the call site
   - The critical invariant: when `nodeStateMap` is provided and `node.nodeType !== 'state'`, `liveStateClass(liveState)` is always called (including when `liveState === undefined` → produces `'dag-node-live--notfound'`)
-  - Preferred implementation (minimal diff): compute the class at the node render site rather than threading `nodeStateMap` into `nodeBaseClass`:
-    ```typescript
-    const liveClass = (nodeStateMap && node.nodeType !== 'state')
-      ? liveStateClass(liveState)
-      : undefined
-    // Then pass liveClass to nodeBaseClass or push directly into className
-    ```
+  - **Shipped in v0.3.4 (PR #137 batch fix for GH #165)**
 
-- [ ] T025 [P] Harden E2E Step 3 in `test/e2e/journeys/029-dag-instance-overlay.spec.ts`:
+- [x] T025 [P] Harden E2E Step 3 in `test/e2e/journeys/029-dag-instance-overlay.spec.ts`:
   - Find the soft assertion that checks `[class*="dag-node-live--"]` count
   - Replace with a hard assertion: `await expect(page.locator('[class*="dag-node-live--"]')).toHaveCount(greaterThan(1), { timeout: 15_000 })`
   - Or use a minimum count assertion matching the number of non-state nodes in `test-app` RGD
   - Remove any `try/catch` or graceful-skip wrapper around this assertion
+  - **Shipped in v0.3.4 (PR #137 batch fix for GH #165)**
 
-- [ ] T026 Run `cd web && bun run typecheck` — must pass with zero errors
+- [x] T026 Run `cd web && bun run typecheck` — must pass with zero errors
+  - **Shipped in v0.3.4 (PR #137 batch fix for GH #165)**
 
-- [ ] T027 Manual AC verification for AC-003, AC-007, AC-017, AC-019:
+- [x] T027 Manual AC verification for AC-003, AC-007, AC-017, AC-019:
   - Navigate to an RGD with multiple managed resources
   - Select an instance from the overlay picker
   - Verify: ALL non-state nodes receive a live-state class (use DevTools Elements inspector)
   - Verify: absent nodes have `dag-node-live--notfound` class (gray dashed style)
   - Verify: present nodes have `dag-node-live--alive` or `dag-node-live--reconciling` class
   - Verify: state nodes have NO live-state class
+  - **Shipped in v0.3.4 (PR #137 batch fix for GH #165)**
 
 **Checkpoint**: AC-003, AC-007, AC-017, AC-019 all pass. No regression on AC-001–AC-002, AC-004–AC-018.
 

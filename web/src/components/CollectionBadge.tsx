@@ -8,7 +8,7 @@
 //
 // Spec: .specify/specs/011-collection-explorer/
 
-import { isItemReady } from './CollectionPanel'
+import { isItemReady } from '@/lib/collection'
 import type { K8sObject } from '@/lib/api'
 import './CollectionBadge.css'
 

@@ -48,6 +48,14 @@ US1 (Footer) and US2 (empty-state) can proceed directly after Phase 1.
 
 ## Phase 3: User Story 1 — Site-wide Footer (Priority: P1) 🎯 MVP
 
+> **⚠️ Superseded by spec 035-global-footer (PR #138)**: The Footer component
+> and its CSS were delivered by spec 035, which had independent, more complete
+> requirements. The tasks below are marked complete; the canonical Footer.tsx
+> implementation is in spec 035. The merged Footer.tsx renders kro.run and GitHub
+> links in a `<footer role="contentinfo">` element. Version display was dropped
+> from the final implementation (the version API is available at `/api/v1/version`
+> but the footer does not display it — onboarding page uses it instead).
+
 **Goal**: Every page in kro-ui shows a footer with links to `kro.run`, the kro
 GitHub repository, and the running app version. Version is fetched from
 `/api/v1/version`; absent silently on failure.

@@ -52,8 +52,7 @@ An **Errors** tab button is added to the existing 7-tab bar on `RGDDetail`.
 
 The Errors tab:
 1. Fetches all instances of this RGD: `GET /api/v1/rgds/{name}/instances`
-2. For each instance that has at least one `status.conditions[]` entry with
-   `status=False`, extracts the failing condition(s).
+2. For each instance, identifies failing conditions using `isHealthyCondition(conditionType, status)` — returns `false` for unhealthy conditions. This handles negation-polarity conditions (e.g. `ReconciliationSuspended=True` is unhealthy) correctly. Raw `status=False` filtering alone would miss these.
 3. No event fetching — `getInstanceEvents` requires per-instance calls, which
    would be an unbounded fan-out at scale. Condition data from the already-
    available instance list is sufficient.

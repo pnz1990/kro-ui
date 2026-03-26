@@ -3,7 +3,7 @@
 **GH Issue**: #187  
 **Type**: UX Enhancement + Bug Fix  
 **Scope**: Frontend only — `web/src/`  
-**Status**: In progress
+**Status**: Merged (PR #208)
 
 ---
 
@@ -313,7 +313,7 @@ Fix:
 **File**: `ConditionsPanel.tsx:96`
 
 Fix:
-- Map `"True"` → `"Healthy"`, `"False"` → `"Failed"`, `"Unknown"` → `"Pending"`
+- Map `"True"` → `"Healthy"`, `"False"` → `"Failed"`, `"Unknown"` → `"Unknown"` (display as-is; do NOT map to "Pending" — "Pending" is reserved for `status=Unknown` conditions per §XII and spec 017)
 - Exception: negation-polarity conditions (`NEGATION_POLARITY_CONDITIONS`) — for these,
   `"False"` → `"Healthy"`, `"True"` → `"Failed"`
 
