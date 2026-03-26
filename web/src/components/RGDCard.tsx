@@ -41,22 +41,26 @@ export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSu
   const encodedName = encodeURIComponent(name)
 
   // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004).
-  // When healthSummaryProp is provided (from Home.tsx fan-out), skip the per-card
-  // listInstances fetch entirely — the summary is already available (issue #235).
-  const [chipSummary, setChipSummary] = useState<HealthSummary | null>(healthSummaryProp ?? null)
-  const [chipLoading, setChipLoading] = useState(healthSummaryProp === undefined ? Boolean(name) : false)
+  // When healthSummaryProp is provided (from Home.tsx fan-out), use it directly and skip
+  // the per-card listInstances fetch. Falls back to its own fetch when prop is absent.
+  const [fetchedSummary, setFetchedSummary] = useState<HealthSummary | null>(null)
+  const [chipLoading, setChipLoading] = useState(Boolean(name))
 
   useEffect(() => {
-    // If the parent passed a pre-computed summary, nothing to fetch.
-    if (healthSummaryProp !== undefined) return
+    // If the parent passed a pre-computed summary, no need to fetch.
+    if (healthSummaryProp !== undefined) {
+      setChipLoading(false)
+      return
+    }
     if (!name) {
       setChipLoading(false)
       return
     }
+    setChipLoading(true)
     const ac = new AbortController()
     listInstances(name, undefined, { signal: ac.signal })
       .then((list) => {
-        setChipSummary(aggregateHealth(list.items ?? []))
+        setFetchedSummary(aggregateHealth(list.items ?? []))
       })
       .catch(() => {
         // Silently swallow — chip simply absent on any error (constitution §XII)
@@ -66,6 +70,9 @@ export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSu
       })
     return () => ac.abort()
   }, [name, healthSummaryProp])
+
+  // Use the prop when available (updated reactively), fall back to the fetched value.
+  const chipSummary = healthSummaryProp ?? fetchedSummary
 
   return (
     <article className="rgd-card" data-testid={`rgd-card-${name}`}>
