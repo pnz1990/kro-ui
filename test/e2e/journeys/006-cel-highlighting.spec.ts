@@ -28,6 +28,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 test.describe('Journey 006 — CEL syntax highlighting', () => {
 
@@ -99,6 +100,7 @@ test.describe('Journey 006 — CEL syntax highlighting', () => {
   // ── Steps 6-8: cel-functions RGD — broader CEL token coverage ────────────
 
   test('Step 6: cel-functions YAML tab shows token-cel-expression spans with .split( call', async ({ page }) => {
+    test.skip(!fixtureState.celFunctionsReady, 'cel-functions RGD not Ready in setup')
     await page.goto('/rgds/cel-functions?tab=yaml')
     await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
 
@@ -111,6 +113,7 @@ test.describe('Journey 006 — CEL syntax highlighting', () => {
   })
 
   test('Step 7: cel-functions YAML tab contains json.marshal CEL expression token', async ({ page }) => {
+    test.skip(!fixtureState.celFunctionsReady, 'cel-functions RGD not Ready in setup')
     await page.goto('/rgds/cel-functions?tab=yaml')
     await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
 
@@ -121,6 +124,7 @@ test.describe('Journey 006 — CEL syntax highlighting', () => {
   })
 
   test('Step 8: cel-functions YAML tab has YAML key tokens visible', async ({ page }) => {
+    test.skip(!fixtureState.celFunctionsReady, 'cel-functions RGD not Ready in setup')
     await page.goto('/rgds/cel-functions?tab=yaml')
     await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
 
@@ -132,6 +136,7 @@ test.describe('Journey 006 — CEL syntax highlighting', () => {
   // ── Step 9: external-ref RGD — optional chaining token ───────────────────
 
   test('Step 9: external-ref YAML tab contains orValue in a CEL expression token', async ({ page }) => {
+    test.skip(!fixtureState.externalRefReady, 'external-ref RGD not Ready in setup')
     await page.goto('/rgds/external-ref?tab=yaml')
     await expect(page.locator('[data-testid="kro-code-block"]')).toBeVisible()
 

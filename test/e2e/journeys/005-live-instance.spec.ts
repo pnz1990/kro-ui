@@ -163,6 +163,26 @@ test.describe('005: Live Instance Detail', () => {
     await expect(page.getByTestId('spec-panel')).toBeVisible()
     await expect(page.getByTestId('conditions-panel')).toBeVisible()
     await expect(page.getByTestId('events-panel')).toBeVisible()
+
+    // Upgraded assertion: if condition entries are present, verify no entry
+    // renders with a missing/undefined reason field (constitution §XII).
+    const conditionItems = page.locator('.condition-item, [data-testid^="condition-item-"]')
+    const condCount = await conditionItems.count()
+    if (condCount > 0) {
+      const allText = await conditionItems.allTextContents()
+      for (const text of allText) {
+        expect(text).not.toContain('undefined')
+        expect(text).not.toContain('[object Object]')
+      }
+      // At least one condition should have a recognisable reason value
+      const reasons = page.locator('.condition-reason, [class*="condition-reason"], [data-testid*="reason"]')
+      const reasonCount = await reasons.count()
+      if (reasonCount > 0) {
+        const reasonTexts = await reasons.allTextContents()
+        const hasNonEmpty = reasonTexts.some(t => t.trim().length > 0)
+        expect(hasNonEmpty).toBe(true)
+      }
+    }
   })
 
   // ── Steps 7-9: multi-resource-instance live DAG ───────────────────────────

@@ -4,7 +4,7 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 
 .PHONY: all build web go run docker dev-web typecheck tidy clean \
         test-web test-web-watch test-e2e test-e2e-install test-e2e-report \
-        demo demo-clean
+        demo demo-clean dump-fixtures
 
 ## Build everything (frontend + Go binary)
 all: build
@@ -101,3 +101,11 @@ demo: build
 ## Delete the demo kind cluster created by `make demo`.
 demo-clean:
 	kind delete cluster --name kro-ui-demo
+
+## Regenerate upstream fixture YAMLs into test/e2e/fixtures/.
+## Run after a kro version bump:
+##   GOPROXY=direct GONOSUMDB="*" go get github.com/kubernetes-sigs/kro@vX.Y.Z
+##   make tidy && make dump-fixtures
+##   git diff test/e2e/fixtures/upstream-*.yaml
+dump-fixtures:
+	GOPROXY=direct GONOSUMDB="*" go run -tags tools ./cmd/dump-fixtures

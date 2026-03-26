@@ -126,6 +126,44 @@ describe('buildDAGGraph', () => {
     expect(node?.includeWhen).toEqual(['${schema.spec.enableConfig}'])
   })
 
+  // ── T006c: contagious includeWhen propagation ─────────────────────────
+
+  it('T006c: marks downstream dependents of a conditional node as isConditional=true (contagious exclusion)', () => {
+    // parentDeploy has includeWhen; childConfig references ${parentDeploy.metadata.name}
+    // so it depends on parentDeploy. When parent is excluded, child should also be
+    // rendered as conditional (contagious exclusion — upstream kro semantics).
+    const spec = minimalSpec([
+      {
+        id: 'parentDeploy',
+        includeWhen: ['${schema.spec.enableParent}'],
+        template: {
+          apiVersion: 'apps/v1',
+          kind: 'Deployment',
+          metadata: { name: '${schema.spec.name}-deploy' },
+          spec: {},
+        },
+      },
+      {
+        id: 'childConfig',
+        template: {
+          apiVersion: 'v1',
+          kind: 'ConfigMap',
+          metadata: { name: '${schema.spec.name}-config' },
+          data: { deployName: '${parentDeploy.metadata.name}' },
+        },
+      },
+    ])
+    const graph = buildDAGGraph(spec)
+    const parent = graph.nodes.find((n) => n.id === 'parentDeploy')
+    const child = graph.nodes.find((n) => n.id === 'childConfig')
+    expect(parent?.isConditional).toBe(true)
+    // Contagious: child references parent → child is also conditional
+    expect(child?.isConditional).toBe(true)
+    // An edge must exist from parentDeploy → childConfig
+    const edge = graph.edges.find((e) => e.from === 'parentDeploy' && e.to === 'childConfig')
+    expect(edge).toBeDefined()
+  })
+
   // ── T006b: state: block → NodeTypeState ('state') — issue #94/#95 ─────
 
   it('T006b: classifies state: block (no template) as NodeTypeState', () => {

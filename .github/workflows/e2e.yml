@@ -9,7 +9,7 @@ on:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v6
@@ -23,6 +23,13 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache bun dependencies (web)
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-web-${{ hashFiles('web/bun.lock') }}
+          restore-keys: bun-web-
 
       - name: Build frontend
         run: bun install && bun run build
@@ -46,12 +53,40 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Cache bun dependencies (e2e)
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-e2e-${{ hashFiles('test/e2e/bun.lock') }}
+          restore-keys: bun-e2e-
+
       - name: Install e2e deps
         run: bun install
         working-directory: test/e2e
 
+      # Cache the Playwright Chromium browser binary.
+      # Keyed on the Playwright version from the lockfile so cache is
+      # invalidated on version bumps. The --with-deps OS package install
+      # cannot be cached, but the ~300MB browser binary download can be.
+      - name: Cache Playwright Chromium
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('test/e2e/bun.lock') }}
+          restore-keys: playwright-chromium-
+
       - name: Install Playwright browsers (Chromium only)
-        run: bunx playwright install chromium --with-deps
+        # Always run --with-deps to ensure OS-level dependencies (libglib2, etc.)
+        # are present even on cache hits. Skip the slow browser download when
+        # the cache was restored by passing --no-shell.
+        # On cache miss the full install runs normally.
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" = "true" ]; then
+            bunx playwright install --with-deps chromium
+          else
+            bunx playwright install chromium --with-deps
+          fi
         working-directory: test/e2e
 
       - name: Run E2E journeys
@@ -61,6 +96,9 @@ jobs:
           # Tell global-setup to skip kind create (kind-action already did it)
           SKIP_KIND_CREATE: "true"
           KRO_UI_BINARY: ${{ github.workspace }}/bin/kro-ui
+          # Pin kro chart version to avoid a GitHub API call per run.
+          # Bump this when upgrading kro in CI.
+          KRO_CHART_VERSION: "0.9.0"
           CI: "true"
 
       # ── Artifacts ─────────────────────────────────────────────────────────

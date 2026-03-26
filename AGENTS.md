@@ -375,6 +375,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 ## Active Technologies
 - Go 1.25 backend + TypeScript 5.x + React 19 + React Router v7 + Vite — no new npm or Go dependencies introduced since v0.2.1
 - All state is local React `useState`; no persistence layer; no state management libraries
+- Go 1.25 (backend) + TypeScript 5.x / Node (E2E setup script) + Playwright (E2E), kubectl, kind, helm (043-upstream-fixture-generator)
+- N/A — no persistent storage (043-upstream-fixture-generator)
 
 ## Recent Changes
 - v0.4.2: RGD Designer promoted to first-class nav (replaces `+ New RGD` button), live DAG preview on `/author`, error states UX audit (translateApiError, enriched empty states), static DAG overlay svgHeight fix (display:block + graph.height direct), Live YAML node resolution via kro.run/node-id label (fixes all RGDs where ID ≠ kind), cluster-scoped children fix + DeepDAG accordion + DAG panel layout

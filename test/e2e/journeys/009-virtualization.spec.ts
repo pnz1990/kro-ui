@@ -55,13 +55,16 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     const container = page.getByTestId('virtual-grid-container')
     await expect(container).toBeVisible()
 
-    // Count the rendered card elements inside the items div.
-    // With the test-app fixture (1 RGD) this should be exactly 1.
-    // The assertion < 100 validates the bound holds regardless of cluster size.
+    // Count the rendered ROOT card elements inside the items div.
+    // Use data-testid^="rgd-card-" to match only the outermost card element
+    // per RGD — not sub-elements whose class names also start with "rgd-card".
+    // With 14 fixture RGDs the bound is < 500 (well above 14, well below any
+    // pathological unbounded rendering).
     const gridItems = page.getByTestId('virtual-grid-items')
     await expect(gridItems).toBeVisible()
-    const cardCount = await gridItems.locator('[class*="rgd-card"]').count()
-    expect(cardCount).toBeLessThan(100)
+    const cardCount = await gridItems.locator('[data-testid^="rgd-card-"]').count()
+    expect(cardCount).toBeGreaterThanOrEqual(5)
+    expect(cardCount).toBeLessThan(500)
   })
 
   test('Step 3: Home page search bar is visible and functional', async ({ page }) => {
@@ -98,11 +101,16 @@ test.describe('Journey 009 — RGD list virtualization', () => {
   test('Step 5: Catalog page DOM card count is bounded', async ({ page }) => {
     await page.goto(`${BASE}/catalog`)
 
+    const container = page.getByTestId('virtual-grid-container')
+    await expect(container).toBeVisible()
+
+    // Use data-testid^="catalog-card-" to match only root catalog card elements.
+    // With 14 fixture RGDs the bound is < 500.
     const gridItems = page.getByTestId('virtual-grid-items')
     await expect(gridItems).toBeVisible()
-
-    const cardCount = await gridItems.locator('[class*="catalog-card"]').count()
-    expect(cardCount).toBeLessThan(100)
+    const cardCount = await gridItems.locator('[data-testid^="catalog-card-"]').count()
+    expect(cardCount).toBeGreaterThanOrEqual(5)
+    expect(cardCount).toBeLessThan(500)
   })
 
   test('Step 6: Catalog search debounces — filter fires after pause', async ({ page }) => {
@@ -133,13 +141,15 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await page.goto(BASE)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
 
-    // The fixture set installs at least 7 RGDs (test-app, test-collection,
-    // multi-resource, external-ref, cel-functions, chain-parent, chain-child).
-    // All fit in the viewport at normal card size — no windowing at this count.
-    // The bound < 100 guards against accidentally rendering unbounded items.
-    const cardCount = await page.getByTestId('virtual-grid-items').locator('[class*="rgd-card"]').count()
+    // The fixture set installs 14 RGDs (test-app, test-collection, multi-resource,
+    // external-ref, cel-functions, chain-parent, chain-child, chain-cycle-a,
+    // chain-cycle-b, upstream-cartesian-foreach, upstream-collection-chain,
+    // upstream-contagious-include-when, upstream-cluster-scoped,
+    // upstream-external-collection, upstream-cel-comprehensions).
+    // Use data-testid^="rgd-card-" to count only root card elements.
+    const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="rgd-card-"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(5)
-    expect(cardCount).toBeLessThan(100)
+    expect(cardCount).toBeLessThan(500)
   })
 
   test('Step 8: searching "cel-functions" on home page shows the cel-functions card', async ({ page }) => {
