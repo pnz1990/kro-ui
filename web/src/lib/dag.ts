@@ -656,7 +656,9 @@ export function nodeStateForNode(
     if (states.includes('reconciling')) return 'reconciling'
     if (states.includes('error')) return 'error'
     if (states.length > 0) return 'alive'
-    return undefined
+    // Children are still in-flight — show 'pending' (violet) rather than
+    // undefined which maps to 'not-found' (gray). Fixes issue #230.
+    return 'pending'
   }
   const kindKey = (node.kind || node.label).toLowerCase()
   return stateMap[kindKey]?.state

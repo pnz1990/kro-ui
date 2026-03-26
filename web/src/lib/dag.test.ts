@@ -9,6 +9,7 @@ import {
   nodeBadge,
   COLLECTION_NODE_HEIGHT,
   FOREACH_LABEL_MAX_CHARS,
+  nodeStateForNode,
   type NodeType,
   type DAGNode,
 } from './dag'
@@ -893,5 +894,57 @@ describe('buildDAGGraph — collection node height and forEach format', () => {
     const g = buildDAGGraph(spec)
     expect(g.nodes.find((n) => n.id === 'col')!.height)
       .toBeGreaterThan(g.nodes.find((n) => n.id === 'res')!.height)
+  })
+})
+
+// ── nodeStateForNode ──────────────────────────────────────────────────────
+
+describe('nodeStateForNode', () => {
+  const instanceNode: DAGNode = {
+    id: 'schema', label: 'schema', kind: 'MyApp', nodeType: 'instance',
+    x: 0, y: 0, width: 120, height: 40,
+    isConditional: false, isChainable: false, readyWhen: [], includeWhen: [],
+    hasReadyWhen: false, celExpressions: [],
+  }
+  const resourceNode: DAGNode = {
+    id: 'deployment', label: 'deployment', kind: 'Deployment', nodeType: 'resource',
+    x: 0, y: 0, width: 120, height: 40,
+    isConditional: false, isChainable: false, readyWhen: [], includeWhen: [],
+    hasReadyWhen: false, celExpressions: [],
+  }
+
+  const entry = (state: 'alive' | 'reconciling' | 'error' | 'pending' | 'not-found') => ({
+    state, kind: 'Deployment', name: 'deploy', namespace: 'default', group: 'apps', version: 'v1',
+  })
+
+  it('returns "pending" for instance node with empty stateMap (children in-flight) — issue #230', () => {
+    // Before the fix this returned undefined, causing the root node to flash "not-found".
+    expect(nodeStateForNode(instanceNode, {})).toBe('pending')
+  })
+
+  it('returns "alive" for instance node when all children are alive', () => {
+    expect(nodeStateForNode(instanceNode, { deployment: entry('alive') })).toBe('alive')
+  })
+
+  it('returns "reconciling" for instance node when any child is reconciling', () => {
+    expect(nodeStateForNode(instanceNode, {
+      deployment: entry('reconciling'),
+      configmap: entry('alive'),
+    })).toBe('reconciling')
+  })
+
+  it('returns "error" for instance node when any child is error', () => {
+    expect(nodeStateForNode(instanceNode, {
+      deployment: entry('error'),
+      configmap: entry('alive'),
+    })).toBe('error')
+  })
+
+  it('returns stateMap entry state for a resource node by kind key', () => {
+    expect(nodeStateForNode(resourceNode, { deployment: entry('alive') })).toBe('alive')
+  })
+
+  it('returns undefined for a resource node not in stateMap', () => {
+    expect(nodeStateForNode(resourceNode, {})).toBeUndefined()
   })
 })

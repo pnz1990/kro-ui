@@ -44,6 +44,11 @@ export function usePolling<T>(
 
   useEffect(() => {
     if (!enabled) return
+    // Reset stale data when dependencies change (e.g. navigating between
+    // instances). Without this reset, the previous resource's data is briefly
+    // shown for the new route while the first fetch is in-flight. Fixes #234.
+    setData(null)
+    setError(null)
     setLoading(true)
     fetch_()
     if (intervalMs > 0) {

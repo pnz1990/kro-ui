@@ -24,9 +24,14 @@ interface RGDCardProps {
    * Spec: .specify/specs/031-deletion-debugger/ FR-007
    */
   terminatingCount?: number
+  /**
+   * Pre-computed health summary from Home.tsx's background fan-out.
+   * When provided, RGDCard skips its own listInstances fetch (issue #235).
+   */
+  healthSummary?: HealthSummary
 }
 
-export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
+export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSummaryProp }: RGDCardProps) {
   const name = extractRGDName(rgd)
   const kind = extractRGDKind(rgd)
   const resourceCount = extractResourceCount(rgd)
@@ -35,19 +40,27 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
 
   const encodedName = encodeURIComponent(name)
 
-  // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004)
-  const [chipSummary, setChipSummary] = useState<HealthSummary | null>(null)
-  const [chipLoading, setChipLoading] = useState(true)
+  // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004).
+  // When healthSummaryProp is provided (from Home.tsx fan-out), use it directly and skip
+  // the per-card listInstances fetch. Falls back to its own fetch when prop is absent.
+  const [fetchedSummary, setFetchedSummary] = useState<HealthSummary | null>(null)
+  const [chipLoading, setChipLoading] = useState(Boolean(name))
 
   useEffect(() => {
+    // If the parent passed a pre-computed summary, no need to fetch.
+    if (healthSummaryProp !== undefined) {
+      setChipLoading(false)
+      return
+    }
     if (!name) {
       setChipLoading(false)
       return
     }
+    setChipLoading(true)
     const ac = new AbortController()
     listInstances(name, undefined, { signal: ac.signal })
       .then((list) => {
-        setChipSummary(aggregateHealth(list.items ?? []))
+        setFetchedSummary(aggregateHealth(list.items ?? []))
       })
       .catch(() => {
         // Silently swallow — chip simply absent on any error (constitution §XII)
@@ -56,7 +69,10 @@ export default function RGDCard({ rgd, terminatingCount }: RGDCardProps) {
         if (!ac.signal.aborted) setChipLoading(false)
       })
     return () => ac.abort()
-  }, [name])
+  }, [name, healthSummaryProp])
+
+  // Use the prop when available (updated reactively), fall back to the fetched value.
+  const chipSummary = healthSummaryProp ?? fetchedSummary
 
   return (
     <article className="rgd-card" data-testid={`rgd-card-${name}`}>
