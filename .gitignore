@@ -45,5 +45,6 @@ Thumbs.db
 # ── Temporary kubeconfigs created by e2e setup ────────────────────────
 /tmp/kro-ui-e2e-kubeconfig.yaml
 
-kro-ui
+# Stale binary at repo root (should be bin/kro-ui — covered by bin/ above)
+/kro-ui
 web/tsconfig.tsbuildinfo

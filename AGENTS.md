@@ -78,6 +78,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `042-rgd-designer-nav` | #196 | RGD Designer — promote /author to nav, remove New RGD mode, add live DAG preview | Merged (PR #206) |
 | `fix/issue-183` | #183 | Static DAG overlay svgHeight — use graph.height directly, SVG display:block | Merged (PR #209) |
 | `fix/issue-210` | #210 | Live YAML resolve child resource by kro.run/node-id label | Merged (PR #211) |
+| `043-upstream-fixture-generator` | #222 | Upstream fixture generator — cmd/dump-fixtures, full kro feature coverage, contagious includeWhen fix | Merged (PR #224) |
 
 ### Worktrunk (required workflow)
 
@@ -379,6 +380,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - N/A — no persistent storage (043-upstream-fixture-generator)
 
 ## Recent Changes
+- v0.4.3: upstream fixture generator (`cmd/dump-fixtures`, `make dump-fixtures`) covering all kro node types; contagious `includeWhen` BFS propagation fix in `dag.ts`; 6 new E2E journey files (43 total); `GetInstanceChildren` scoped to RGD resource types; spec-audit fixes (isItemReady isolation, FetchEffectiveRules deadline, extractInstanceHealth negation-polarity); demo/E2E setup hardened for kro v0.8.5 (non-fatal applies for v0.9.0+ fixtures); unit test coverage for InstanceDetail, Fleet, AuthorPage, NotFound, LiveDAG, format, collection
 - v0.4.2: RGD Designer promoted to first-class nav (replaces `+ New RGD` button), live DAG preview on `/author`, error states UX audit (translateApiError, enriched empty states), static DAG overlay svgHeight fix (display:block + graph.height direct), Live YAML node resolution via kro.run/node-id label (fixes all RGDs where ID ≠ kind), cluster-scoped children fix + DeepDAG accordion + DAG panel layout
 - v0.4.1: 9-issue bug-fix batch — breadcrumb rename (Overview), FieldTable scrollbar, OptimizationAdvisor layout, context-switch navigation, ValidationTab condition types (kro v0.4+), cluster-scoped Live YAML (Namespace/ClusterRole/PV), DAG tooltip hover persistence, DiscoverPlural discovery cache + Fleet errgroup fan-out + 5s server timeout, test coverage (access handler, 4 lib modules, 3 E2E journeys)
 - v0.4.0: Overview/Catalog IA differentiation (Home renamed to Overview), live DAG per-node state with pending/per-child conditions + tooltip wiring, global `/author` RGD authoring entrypoint + `+ New RGD` top bar, per-context controller metrics via pod-proxy discovery (removes `--metrics-url`), Fleet per-cluster metrics column

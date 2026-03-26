@@ -302,42 +302,57 @@ export default async function globalSetup() {
     })(),
 
     // ── 6j. upstream-cluster-scoped RGD (no instance — cluster-scoped) ─────
+    // Requires kro v0.9.0+ (scope field). Non-fatal on older kro builds.
     (async () => {
-      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cluster-scoped-rgd.yaml')])
-      await execFileAsync('kubectl', [
-        '--kubeconfig', KUBECONFIG_PATH,
-        'wait', 'rgd/upstream-cluster-scoped',
-        '--for=condition=Ready', '--timeout=120s',
-      ])
-      fixtureState.clusterScopedReady = true
-      console.log('[setup] ✓ upstream-cluster-scoped ready')
+      try {
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cluster-scoped-rgd.yaml')])
+        await execFileAsync('kubectl', [
+          '--kubeconfig', KUBECONFIG_PATH,
+          'wait', 'rgd/upstream-cluster-scoped',
+          '--for=condition=Ready', '--timeout=120s',
+        ])
+        fixtureState.clusterScopedReady = true
+        console.log('[setup] ✓ upstream-cluster-scoped ready')
+      } catch (e) {
+        console.warn('[setup] upstream-cluster-scoped skipped (requires kro v0.9.0+ for scope field):', (e as Error).message?.split('\n')[0])
+      }
     })(),
 
     // ── 6k. upstream-external-collection RGD + instance ────────────────────
+    // Requires kro v0.9.0+ (externalRef.metadata.selector). Non-fatal on older builds.
     // prereq ConfigMaps were applied in step 5 before this parallel block.
     (async () => {
-      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-rgd.yaml')])
-      await execFileAsync('kubectl', [
-        '--kubeconfig', KUBECONFIG_PATH,
-        'wait', 'rgd/upstream-external-collection',
-        '--for=condition=Ready', '--timeout=120s',
-      ])
-      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-instance.yaml')])
-      fixtureState.externalCollectionReady = true
-      console.log('[setup] ✓ upstream-external-collection ready')
+      try {
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-rgd.yaml')])
+        await execFileAsync('kubectl', [
+          '--kubeconfig', KUBECONFIG_PATH,
+          'wait', 'rgd/upstream-external-collection',
+          '--for=condition=Ready', '--timeout=120s',
+        ])
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-external-collection-instance.yaml')])
+        fixtureState.externalCollectionReady = true
+        console.log('[setup] ✓ upstream-external-collection ready')
+      } catch (e) {
+        console.warn('[setup] upstream-external-collection skipped (requires kro v0.9.0+ for externalRef selector):', (e as Error).message?.split('\n')[0])
+      }
     })(),
 
     // ── 6l. upstream-cel-comprehensions RGD + instance ─────────────────────
+    // Requires kro v0.9.0+ (transformMap/transformList/transformMapEntry CEL macros).
     (async () => {
-      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-rgd.yaml')])
-      await execFileAsync('kubectl', [
-        '--kubeconfig', KUBECONFIG_PATH,
-        'wait', 'rgd/upstream-cel-comprehensions',
-        '--for=condition=Ready', '--timeout=120s',
-      ])
-      execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-instance.yaml')])
-      fixtureState.celComprehensionsReady = true
-      console.log('[setup] ✓ upstream-cel-comprehensions ready')
+      try {
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-rgd.yaml')])
+        await execFileAsync('kubectl', [
+          '--kubeconfig', KUBECONFIG_PATH,
+          'wait', 'rgd/upstream-cel-comprehensions',
+          '--for=condition=Ready', '--timeout=120s',
+        ])
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'upstream-cel-comprehensions-instance.yaml')])
+        fixtureState.celComprehensionsReady = true
+        console.log('[setup] ✓ upstream-cel-comprehensions ready')
+      } catch (e) {
+        console.warn('[setup] upstream-cel-comprehensions skipped (requires kro v0.9.0+ for CEL comprehension macros):', (e as Error).message?.split('\n')[0])
+      }
     })(),
 
   ])

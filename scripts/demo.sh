@@ -206,18 +206,21 @@ info "Applying upstream-contagious-include-when RGD + instance…"
 wait_rgd_ready upstream-contagious-include-when 120s optional
 "${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-contagious-include-when-instance.yaml" 2>/dev/null || true
 
-info "Applying upstream-cluster-scoped RGD (no instance)…"
-"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cluster-scoped-rgd.yaml"
+info "Applying upstream-cluster-scoped RGD (no instance — requires kro v0.9.0+)…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cluster-scoped-rgd.yaml" 2>/dev/null || \
+  { warn "upstream-cluster-scoped skipped (kro < v0.9.0 does not support scope field)"; true; }
 wait_rgd_ready upstream-cluster-scoped 120s optional
 
-info "Applying upstream-external-collection prereq + RGD + instance…"
+info "Applying upstream-external-collection prereq + RGD + instance (requires kro v0.9.0+)…"
 "${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-prereq.yaml" 2>/dev/null || true
-"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-rgd.yaml"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-rgd.yaml" 2>/dev/null || \
+  { warn "upstream-external-collection skipped (kro < v0.9.0 does not support externalRef.metadata.selector)"; true; }
 wait_rgd_ready upstream-external-collection 120s optional
 "${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-external-collection-instance.yaml" 2>/dev/null || true
 
-info "Applying upstream-cel-comprehensions RGD + instance…"
-"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cel-comprehensions-rgd.yaml"
+info "Applying upstream-cel-comprehensions RGD + instance (requires kro v0.9.0+)…"
+"${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cel-comprehensions-rgd.yaml" 2>/dev/null || \
+  { warn "upstream-cel-comprehensions skipped (kro < v0.9.0 does not support transformMap/transformList)"; true; }
 wait_rgd_ready upstream-cel-comprehensions 120s optional
 "${KC[@]}" apply -f "${FIXTURES_DIR}/upstream-cel-comprehensions-instance.yaml" 2>/dev/null || true
 
