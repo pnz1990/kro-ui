@@ -175,7 +175,7 @@ func ResolveInstanceGVR(ctx context.Context, clients K8sClients, rgdName string)
 // fan-out via goroutines with per-resource deadline.
 func ListChildResources(ctx context.Context, clients K8sClients, instanceName string) ([]map[string]any, error) {
 	log := zerolog.Ctx(ctx)
-	labelSelector := fmt.Sprintf("kro.run/instance-name=%s", instanceName)
+	labelSelector := fmt.Sprintf("%s=%s", LabelInstanceName, instanceName)
 
 	// Use cached discovery — avoids per-request ServerGroupsAndResources() call.
 	apiLists, err := clients.CachedServerGroupsAndResources()
@@ -317,7 +317,7 @@ func ListChildResourcesForRGD(ctx context.Context, clients K8sClients, instanceN
 					Str("rgd", rgdName).
 					Int("gvrs", len(gvrs)).
 					Msg("using RGD-scoped child listing")
-				labelSelector := fmt.Sprintf("kro.run/instance-name=%s", instanceName)
+				labelSelector := fmt.Sprintf("%s=%s", LabelInstanceName, instanceName)
 				return listWithLabelSelector(ctx, log, clients.Dynamic(), gvrs, labelSelector)
 			}
 		} else {
