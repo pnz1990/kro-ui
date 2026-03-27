@@ -236,15 +236,39 @@ export function buildNodeStateMap(
   // ── Step 3: enumerate every non-state, non-instance RGD node ─────────────
   // Absent nodes receive 'pending' when the node has includeWhen expressions
   // (meaning it is actively excluded by a condition), or 'not-found' otherwise.
+  //
+  // Special case — NodeTypeExternal and NodeTypeExternalCollection:
+  // External ref resources are pre-existing and never created (or labelled)
+  // by kro. GetInstanceChildren only returns kro-labelled resources, so
+  // external nodes will always be absent from the stateMap after step 2.
+  // Showing 'not-found' (grey) for them is misleading when the CR is
+  // Ready=True — if the instance is healthy, the external ref was successfully
+  // accessed. Map external nodes to globalState instead so they reflect the
+  // actual CR health:
+  //   globalState=alive       → 'alive'  (green  — ref was accessed, instance ready)
+  //   globalState=reconciling → 'reconciling'  (amber — kro is resolving the ref)
+  //   globalState=error       → 'not-found'    (grey  — unknown if ref is reachable)
   for (const node of rgdNodes) {
     if (node.nodeType === 'instance' || node.nodeType === 'state') continue
     const nodeId = node.id  // use the RGD resource id, matching kro.run/node-id
     if (!nodeId) continue
     if (nodeId in result) continue // already set by an observed child
 
-    const hasIncludeWhen = node.includeWhen.some((e) => e.trim() !== '')
+    const isExternalNode =
+      node.nodeType === 'external' || node.nodeType === 'externalCollection'
+
+    let nodeState: NodeLiveState
+    if (isExternalNode) {
+      // External refs are watched, not created — their health is inferred from
+      // the CR-level state rather than from a kro.run/node-id label on the resource.
+      nodeState = globalState === 'error' ? 'not-found' : globalState
+    } else {
+      const hasIncludeWhen = node.includeWhen.some((e) => e.trim() !== '')
+      nodeState = hasIncludeWhen ? 'pending' : 'not-found'
+    }
+
     result[nodeId] = {
-      state: hasIncludeWhen ? 'pending' : 'not-found',
+      state: nodeState,
       kind: node.kind || node.label || nodeId,
       name: '',
       namespace: '',

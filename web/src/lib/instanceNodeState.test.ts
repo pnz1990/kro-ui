@@ -375,4 +375,58 @@ describe('buildNodeStateMap', () => {
       expect(map['state-node']).toBeUndefined()
     })
   })
+
+  // ── T020: External ref nodes use globalState, not 'not-found' ────────────
+  // External refs are pre-existing resources that kro watches but does not
+  // create. They never receive kro.run/node-id labels, so they will always be
+  // absent from the stateMap after step 2. Instead of showing 'not-found' (grey),
+  // external nodes should reflect the CR-level globalState.
+
+  describe('T020 — external ref node state inferred from globalState', () => {
+    const externalNode = makeNode('inputConfig', 'ConfigMap', 'external')
+    const externalCollectionNode = makeNode('teamConfigs', 'ConfigMap', 'externalCollection')
+    const managedNode = makeNode('appOutput', 'ConfigMap', 'resource')
+
+    it('T020-01: external node shows alive when CR is Ready=True (globalState=alive)', () => {
+      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+      const children = [makeChild('ConfigMap', 'output', 'appOutput')]
+
+      const map = buildNodeStateMap(instance, children, [externalNode, managedNode])
+
+      expect(map['inputConfig']?.state).toBe('alive')
+      expect(map['appOutput']?.state).toBe('alive')
+    })
+
+    it('T020-02: external node shows reconciling when globalState=reconciling', () => {
+      const instance = makeInstance([{ type: 'Progressing', status: 'True' }])
+
+      const map = buildNodeStateMap(instance, [], [externalNode])
+
+      expect(map['inputConfig']?.state).toBe('reconciling')
+    })
+
+    it('T020-03: external node shows not-found when globalState=error (CR failed)', () => {
+      const instance = makeInstance([{ type: 'Ready', status: 'False' }])
+
+      const map = buildNodeStateMap(instance, [], [externalNode])
+
+      expect(map['inputConfig']?.state).toBe('not-found')
+    })
+
+    it('T020-04: externalCollection node follows same rule as external', () => {
+      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+
+      const map = buildNodeStateMap(instance, [], [externalCollectionNode])
+
+      expect(map['teamConfigs']?.state).toBe('alive')
+    })
+
+    it('T020-05: normal resource node still gets not-found when absent', () => {
+      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+
+      const map = buildNodeStateMap(instance, [], [managedNode])
+
+      expect(map['appOutput']?.state).toBe('not-found')
+    })
+  })
 })
