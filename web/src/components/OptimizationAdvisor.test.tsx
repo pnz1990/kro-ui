@@ -116,7 +116,7 @@ describe('OptimizationAdvisor — US3 (expand, explanation, docs link)', () => {
     fireEvent.click(screen.getByTestId('advisor-item-Deployment-expand'))
     const link = screen.getByTestId('advisor-item-Deployment-docs-link')
     expect(link).toBeInTheDocument()
-    expect(link).toHaveAttribute('href', 'https://kro.run/docs/concepts/forEach')
+    expect(link).toHaveAttribute('href', 'https://kro.run/docs/concepts/collections')
   })
 
   it('docs link has target=_blank', () => {

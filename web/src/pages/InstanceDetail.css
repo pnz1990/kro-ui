@@ -91,6 +91,35 @@
 
 /* ── Refresh indicator ────────────────────────────────────────────────────── */
 
+/* Manual refresh button — sits next to the refresh indicator in the header */
+.instance-detail-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.instance-detail-refresh-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-3);
+  border-color: var(--color-border);
+}
+
+.instance-detail-refresh-btn:active {
+  background: var(--color-surface);
+}
+
 .refresh-indicator {
   font-size: 12px;
   color: var(--color-text-faint);

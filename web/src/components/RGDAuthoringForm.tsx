@@ -446,7 +446,10 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
           />
 
           {/* US7: Scope toggle */}
-          <span className="rgd-authoring-form__label">Scope</span>
+          <span
+            className="rgd-authoring-form__label"
+            title="Namespaced: instances are created in a specific namespace (the default for most RGDs). Cluster: instances are cluster-scoped with no namespace (for platform-wide resources like ClusterRoles)."
+          >Scope</span>
           <div className="rgd-authoring-form__scope-group">
             <label className="rgd-authoring-form__scope-label">
               <input
@@ -649,7 +652,10 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                   data-testid={`status-field-expr-${sf.id}`}
                   aria-label="Status field CEL expression"
                 />
-                <span className="rgd-authoring-form__cel-badge">CEL</span>
+                <span
+                  className="rgd-authoring-form__cel-badge"
+                  title="CEL — Common Expression Language. References schema fields with ${schema.spec.fieldName}. Example: ${schema.spec.replicas}"
+                >CEL</span>
               </div>
               <button
                 type="button"
@@ -864,7 +870,10 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                           data-testid={`foreach-expr-${res._key}-${i}`}
                           aria-label="Iterator CEL expression"
                         />
-                        <span className="rgd-authoring-form__cel-badge">CEL</span>
+                        <span
+                          className="rgd-authoring-form__cel-badge"
+                          title="CEL — Common Expression Language. The forEach iterator references a schema array field. Example: schema.spec.regions"
+                        >CEL</span>
                       </div>
                       {/* FR-060: Hide Remove button when there is only 1 iterator.
                           Prevents accidentally leaving a forEach with 0 iterators. */}
@@ -1042,7 +1051,10 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                 <div className="rgd-authoring-form__advanced-section">
                   {/* US3: includeWhen */}
                   <div className="rgd-authoring-form__advanced-row">
-                    <label className="rgd-authoring-form__sublabel">includeWhen</label>
+                    <label
+                      className="rgd-authoring-form__sublabel"
+                      title="includeWhen — a CEL expression that controls whether this resource is created at all. When false, the resource is excluded (shown as violet in the DAG). Example: ${schema.spec.enableCache}"
+                    >includeWhen</label>
                     <div className="rgd-authoring-form__cel-wrap">
                       <input
                         type="text"
@@ -1055,13 +1067,19 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                         data-testid={`resource-include-when-${res._key}`}
                         aria-label="includeWhen CEL expression"
                       />
-                      <span className="rgd-authoring-form__cel-badge">CEL</span>
+                      <span
+                        className="rgd-authoring-form__cel-badge"
+                        title="CEL — Common Expression Language. When this expression evaluates to false, the resource is not created. Example: ${schema.spec.enableCache} == true"
+                      >CEL</span>
                     </div>
                   </div>
 
                   {/* US4: readyWhen repeatable rows */}
                   <div className="rgd-authoring-form__advanced-row">
-                    <label className="rgd-authoring-form__sublabel">readyWhen</label>
+                    <label
+                      className="rgd-authoring-form__sublabel"
+                      title="readyWhen — one or more CEL expressions that must ALL evaluate to true before kro considers this resource Ready. The instance stays in 'Reconciling' state until all readyWhen conditions pass. Example: ${web.status.availableReplicas} >= 1"
+                    >readyWhen</label>
                     <div className="rgd-authoring-form__readywhen-rows">
                       {(res.readyWhen ?? []).map((rw, i) => (
                         <div key={i} className="rgd-authoring-form__readywhen-row">
@@ -1075,7 +1093,10 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                               data-testid={`readywhen-expr-${res._key}-${i}`}
                               aria-label={`readyWhen expression ${i + 1}`}
                             />
-                            <span className="rgd-authoring-form__cel-badge">CEL</span>
+                            <span
+                              className="rgd-authoring-form__cel-badge"
+                              title="CEL — Common Expression Language. This expression must evaluate to true for the resource to be considered Ready. Example: ${web.status.availableReplicas} >= 1"
+                            >CEL</span>
                           </div>
                           <button
                             type="button"

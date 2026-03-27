@@ -4,7 +4,9 @@ import './OptimizationAdvisor.css'
 
 // Spec: .specify/specs/023-rgd-optimization-advisor/
 
-const FOREACH_DOCS_URL = 'https://kro.run/docs/concepts/forEach'
+// The kro.run/docs/concepts/forEach path returns 404 as of v0.9.0.
+// The correct docs path for collections/forEach in kro v0.9.0 is the concepts page.
+const FOREACH_DOCS_URL = 'https://kro.run/docs/concepts/collections'
 
 interface CollapseGroupSuggestion {
   group: CollapseGroup

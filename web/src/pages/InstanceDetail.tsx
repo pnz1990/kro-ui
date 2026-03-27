@@ -183,7 +183,7 @@ export default function InstanceDetail() {
     return { instance, events }
   }, [namespace, instanceName, rgdName])
 
-  const { data: fastData, error: pollError, loading: pollLoading, lastRefresh } = usePolling(
+  const { data: fastData, error: pollError, loading: pollLoading, lastRefresh, refresh: pollRefresh } = usePolling(
     fetcher,
     [namespace, instanceName, rgdName],
     { intervalMs: 5000 },
@@ -340,6 +340,16 @@ export default function InstanceDetail() {
         <div className="instance-detail-meta">
           {namespace && <span className="instance-detail-ns">{namespace}</span>}
           <RefreshIndicator lastRefresh={lastRefresh} error={instanceGone ? null : (pollError && !pollLoading ? pollError : null)} />
+          <button
+            type="button"
+            className="instance-detail-refresh-btn"
+            onClick={pollRefresh}
+            aria-label="Refresh now"
+            title="Refresh now — trigger an immediate poll instead of waiting for the next 5-second cycle"
+            data-testid="instance-refresh-btn"
+          >
+            ↻
+          </button>
         </div>
       </div>
 
