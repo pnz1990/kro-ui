@@ -41,10 +41,19 @@ function buildInitialFormState(
     const pt = field.parsedType
     const isArray = pt?.type === 'array'
     // Use key-existence check for default detection (issue #61 guard)
-    const defaultVal = ('default' in (pt ?? {})) ? (pt!.default ?? '') : ''
+    const hasDefault = 'default' in (pt ?? {})
+    const defaultVal = hasDefault ? (pt!.default ?? '') : ''
+
+    // For map/object types with no explicit default, use '{}' as the
+    // placeholder — an empty string would produce `labels: ""` in the manifest
+    // which is invalid YAML for a map field. Using '{}' is the correct
+    // empty-map YAML literal. See: fix/schema-object-type-generate.
+    const isMap = pt?.type === 'map' || pt?.type === 'object'
+    const initValue = isArray ? '' : isMap && !hasDefault ? '{}' : defaultVal
+
     return {
       name: field.name,
-      value: isArray ? '' : defaultVal,
+      value: initValue,
       items: [],
       isArray,
     }

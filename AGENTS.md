@@ -92,7 +92,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/extref-live-state` | — | External ref DAG nodes show alive/reconciling instead of not-found when CR is healthy | Merged (PR #285) |
 | `fix/ux-polish-round2` | — | ErrorsTab skips IN_PROGRESS instances; CollectionPanel empty state shows forEach expr; stuck reconciliation escalation banner | Merged (PR #286) |
 | `fix/finalizer-escalation` | #289 | Terminating banner shows kubectl patch command when finalizers block deletion > 5 minutes | Merged (PR #290) |
-| `fix/yaml-clean-display` | — | YAML tab: strip managedFields, last-applied-configuration, resourceVersion, uid from displayed YAML | In progress |
+| `fix/yaml-clean-display` | — | YAML tab: strip managedFields, last-applied-configuration, resourceVersion, uid from displayed YAML | Merged (PR #291) |
+| `fix/schema-object-type-generate` | — | GenerateTab: map/object fields initialize with {} not "" | In progress |
 
 ### Worktrunk (required workflow)
 

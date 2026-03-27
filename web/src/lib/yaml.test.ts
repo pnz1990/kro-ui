@@ -34,6 +34,13 @@ describe('toYaml', () => {
     expect(toYaml('# comment')).toBe('"# comment"')
   })
 
+  it('renders {} and [] as unquoted YAML collection literals (not as strings)', () => {
+    // {} as a string would be quoted as "{}" — but {} as an empty-map literal
+    // should serialize unquoted so kubectl/kro parse it as an empty map.
+    expect(toYaml('{}')).toBe('{}')
+    expect(toYaml('[]')).toBe('[]')
+  })
+
   it('renders empty string as ""', () => {
     expect(toYaml('')).toBe('""')
   })
