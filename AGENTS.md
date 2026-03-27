@@ -97,7 +97,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `051-instance-diff` | #287 | Instance spec diff — select 2 instances and compare spec fields side-by-side | Merged (PR #293) |
 | `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | Merged (PR #294) |
 | `fix/collection-legacy-remove` | — | CollectionPanel legacy kro < 0.8.0 warning removed; allChildrenLabelless dead code cleaned up | Merged (PR #295) |
-| `fix/instances-inactive-rgd` | — | ListInstances returns empty list (not 500) for inactive RGDs; health chip now shows "no instances" | In progress |
+| `fix/instances-inactive-rgd` | — | ListInstances returns empty list (not 500) for inactive RGDs; health chip now shows "no instances" | Merged (PR #296) |
 
 ### Worktrunk (required workflow)
 
@@ -400,7 +400,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
  ## Recent Changes
-- v0.4.11 (cutting): TerminatingBanner unit tests (PR #294); CollectionPanel legacy kro < 0.8.0 warning removed (PR #295)
+- v0.4.12 (cutting): ListInstances returns empty list (not 500) for Inactive RGDs; health chip now shows "no instances" (PR #296)
+- v0.4.11: TerminatingBanner unit tests (PR #294); CollectionPanel legacy kro < 0.8.0 warning removed (PR #295)
 - v0.4.10: instance spec diff (PR #293); GenerateTab map/object fields {} fix (PR #292)
 - v0.4.9: YAML tab strips managedFields, last-applied-configuration, resourceVersion, uid (PR #291)
 - v0.4.8: ErrorsTab skips IN_PROGRESS instances (PR #286); CollectionPanel empty state shows forEach expression (PR #286); stuck reconcile escalation banner >5m (PR #286); stuck finalizer kubectl patch command >5m (PR #290)
