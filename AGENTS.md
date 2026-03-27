@@ -87,7 +87,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `049-designer-ux-refresh-button` | — | Refresh now button; Designer CEL/scope help text; optimizer docs URL fix | Merged (PR #280) |
 | `050-kro-v090-phase2` | #274 | kro v0.9.0 phase 2 — reconcile-paused banner, cluster-scoped namespace display, displayNamespace utility | Merged (PR #281) |
 | `fix/errortab-dedup-chip` | — | ErrorsTab unique-instance dedup in summary; OptimizationAdvisor emoji removed | Merged (PR #282) |
-| `fix/schema-object-type` | — | DocsTab: JSON Schema object fields render as map/array type, not [object Object] | In progress |
+| `fix/schema-object-type` | — | DocsTab: JSON Schema object fields render as map/array type, not [object Object] | Merged (PR #283) |
+| `fix/collection-item-ready` | — | isItemReady: stateless resources (ConfigMap etc.) are healthy by existence | In progress |
 
 ### Worktrunk (required workflow)
 
