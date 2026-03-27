@@ -39,3 +39,24 @@
   outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
+
+.yaml-preview__kubectl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Dry-run validate result (spec 045 US9) ──────────────────────────── */
+
+.yaml-preview__validate-result {
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.yaml-preview__validate-ok {
+  color: var(--color-ready);
+  font-weight: 500;
+}
+
+.yaml-preview__validate-err {
+  color: var(--color-error);
+}

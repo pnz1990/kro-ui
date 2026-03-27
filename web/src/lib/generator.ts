@@ -147,7 +147,673 @@ export interface RGDAuthoringState {
   resources: AuthoringResource[]
 }
 
+// ── Validation types (spec 045) ───────────────────────────────────────────
+
+/**
+ * A single validation issue attached to a specific form field.
+ *
+ * type: 'error' = definite problem (required field missing, etc.)
+ *       'warning' = advisory (format hint, constraint inconsistency, etc.)
+ */
+export interface ValidationIssue {
+  type: 'error' | 'warning'
+  /** Human-readable message shown beneath the affected input. */
+  message: string
+}
+
+/**
+ * Complete validation state derived from RGDAuthoringState.
+ *
+ * All records are keyed by the stable React key of the affected row:
+ *   - resourceIssues:    keyed by AuthoringResource._key
+ *   - specFieldIssues:   keyed by AuthoringField.id
+ *   - statusFieldIssues: keyed by AuthoringStatusField.id
+ *
+ * Invariant:
+ *   totalCount === (rgdName ? 1 : 0) + (kind ? 1 : 0)
+ *                + Object.keys(resourceIssues).length
+ *                + Object.keys(specFieldIssues).length
+ *                + Object.keys(statusFieldIssues).length
+ */
+export interface ValidationState {
+  /** Issue on the rgdName metadata field (required or DNS subdomain format). */
+  rgdName?: ValidationIssue
+  /** Issue on the kind metadata field (required or PascalCase format). */
+  kind?: ValidationIssue
+  /** Per-resource issues keyed by AuthoringResource._key.
+   *  Covers: duplicate ID, forEach-no-iterator. */
+  resourceIssues: Record<string, ValidationIssue>
+  /** Per-spec-field issues keyed by AuthoringField.id.
+   *  Covers: duplicate name, minimum > maximum. */
+  specFieldIssues: Record<string, ValidationIssue>
+  /** Per-status-field issues keyed by AuthoringStatusField.id.
+   *  Covers: duplicate name. */
+  statusFieldIssues: Record<string, ValidationIssue>
+  /** Total count of all issues across all fields. Drives the summary badge. */
+  totalCount: number
+}
+
+// ── validateRGDState ──────────────────────────────────────────────────────
+
+/** RFC 1123 DNS subdomain: lowercase alphanumeric and single hyphens, dots for subdomain parts.
+ * Each label: starts/ends with alphanumeric, no consecutive hyphens. */
+const DNS_SUBDOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?))*$/
+
+/** Returns true if the string contains consecutive hyphens (--). */
+function hasConsecutiveHyphens(s: string): boolean {
+  return s.includes('--')
+}
+
+/** Kubernetes kind PascalCase: starts with uppercase, followed by alphanumeric. */
+const PASCAL_CASE_RE = /^[A-Z][a-zA-Z0-9]*$/
+
+/**
+ * Derive a ValidationState from RGDAuthoringState.
+ *
+ * Pure function — never throws, never mutates the input.
+ * STARTER_RGD_STATE always produces { totalCount: 0 } (no false positives on load).
+ *
+ * Validation rules:
+ *   1. rgdName: required (error) → DNS subdomain format (warning)
+ *   2. kind: required (error) → PascalCase format (warning)
+ *   3. Duplicate resource IDs (non-empty ids appearing > 1 time) → warning
+ *   4. forEach resource with no valid iterator → warning
+ *      (duplicate ID takes priority on same resource _key)
+ *   5. Duplicate spec field names (non-empty) → warning
+ *   6. Spec field minimum > maximum (when both set) → warning
+ *      (skipped if field already has a duplicate-name issue)
+ *   7. Duplicate status field names (non-empty) → warning
+ *
+ * Spec: .specify/specs/045-rgd-designer-validation-optimizer/
+ */
+export function validateRGDState(state: RGDAuthoringState): ValidationState {
+  const resourceIssues: Record<string, ValidationIssue> = {}
+  const specFieldIssues: Record<string, ValidationIssue> = {}
+  const statusFieldIssues: Record<string, ValidationIssue> = {}
+  let rgdNameIssue: ValidationIssue | undefined
+  let kindIssue: ValidationIssue | undefined
+
+  // ── 1. rgdName ──────────────────────────────────────────────────────────
+  if (!state.rgdName) {
+    rgdNameIssue = { type: 'error', message: 'RGD name is required' }
+  } else if (!DNS_SUBDOMAIN_RE.test(state.rgdName) || hasConsecutiveHyphens(state.rgdName)) {
+    rgdNameIssue = {
+      type: 'warning',
+      message: 'RGD name should be a valid DNS subdomain (lowercase alphanumeric and hyphens)',
+    }
+  }
+
+  // ── 2. kind ─────────────────────────────────────────────────────────────
+  if (!state.kind) {
+    kindIssue = { type: 'error', message: 'Kind is required' }
+  } else if (!PASCAL_CASE_RE.test(state.kind)) {
+    kindIssue = {
+      type: 'warning',
+      message: 'Kind should be PascalCase (e.g. WebApp, MyService)',
+    }
+  }
+
+  // ── 3. Duplicate resource IDs ────────────────────────────────────────────
+  const idFreq: Record<string, number> = {}
+  for (const res of state.resources) {
+    if (res.id) {
+      idFreq[res.id] = (idFreq[res.id] ?? 0) + 1
+    }
+  }
+  for (const res of state.resources) {
+    if (res.id && (idFreq[res.id] ?? 0) > 1) {
+      resourceIssues[res._key] = { type: 'warning', message: 'Duplicate resource ID' }
+    }
+  }
+
+  // ── 4. forEach-no-iterator ───────────────────────────────────────────────
+  for (const res of state.resources) {
+    // Duplicate ID takes priority — skip if already has an issue
+    if (resourceIssues[res._key]) continue
+    if (res.resourceType === 'forEach') {
+      const validIterators = (res.forEachIterators ?? []).filter(
+        (it) => it.variable.trim() && it.expression.trim(),
+      )
+      if (validIterators.length === 0) {
+        resourceIssues[res._key] = {
+          type: 'warning',
+          message: 'forEach resources require at least one iterator',
+        }
+      }
+    }
+  }
+
+  // ── 5. Duplicate spec field names ────────────────────────────────────────
+  const specNameFreq: Record<string, number> = {}
+  for (const field of state.specFields) {
+    if (field.name) {
+      specNameFreq[field.name] = (specNameFreq[field.name] ?? 0) + 1
+    }
+  }
+  for (const field of state.specFields) {
+    if (field.name && (specNameFreq[field.name] ?? 0) > 1) {
+      specFieldIssues[field.id] = { type: 'warning', message: 'Duplicate spec field name' }
+    }
+  }
+
+  // ── 6. min > max constraint ──────────────────────────────────────────────
+  for (const field of state.specFields) {
+    // Skip if field already has a duplicate-name issue
+    if (specFieldIssues[field.id]) continue
+    const min = field.minimum
+    const max = field.maximum
+    if (min && min !== '' && max && max !== '') {
+      if (Number(min) > Number(max)) {
+        specFieldIssues[field.id] = {
+          type: 'warning',
+          message: 'minimum must be \u2264 maximum',
+        }
+      }
+    }
+  }
+
+  // ── 7. Duplicate status field names ─────────────────────────────────────
+  const statusNameFreq: Record<string, number> = {}
+  for (const sf of state.statusFields ?? []) {
+    if (sf.name) {
+      statusNameFreq[sf.name] = (statusNameFreq[sf.name] ?? 0) + 1
+    }
+  }
+  for (const sf of state.statusFields ?? []) {
+    if (sf.name && (statusNameFreq[sf.name] ?? 0) > 1) {
+      statusFieldIssues[sf.id] = { type: 'warning', message: 'Duplicate status field name' }
+    }
+  }
+
+  // ── 8. totalCount ────────────────────────────────────────────────────────
+  const totalCount =
+    (rgdNameIssue !== undefined ? 1 : 0) +
+    (kindIssue !== undefined ? 1 : 0) +
+    Object.keys(resourceIssues).length +
+    Object.keys(specFieldIssues).length +
+    Object.keys(statusFieldIssues).length
+
+  return {
+    ...(rgdNameIssue !== undefined ? { rgdName: rgdNameIssue } : {}),
+    ...(kindIssue !== undefined ? { kind: kindIssue } : {}),
+    resourceIssues,
+    specFieldIssues,
+    statusFieldIssues,
+    totalCount,
+  }
+}
+
+// ── parseSimpleSchemaStr (spec 045 US8) ───────────────────────────────────
+
+/**
+ * Parse a kro SimpleSchema type string back into AuthoringField-compatible fields.
+ *
+ * Handles the format produced by buildSimpleSchemaStr:
+ *   'string | required | default=X | minimum=1 | maximum=100 | enum=a,b | pattern=^[a-z]+'
+ *
+ * Also handles quoted strings (surrounding double-quotes are stripped first).
+ * Unknown modifier tokens are silently ignored (graceful degradation).
+ *
+ * Not exported — internal helper used only by parseRGDYAML.
+ */
+function parseSimpleSchemaStr(raw: string): {
+  type: string
+  required: boolean
+  defaultValue: string
+  minimum: string
+  maximum: string
+  enum: string
+  pattern: string
+} {
+  // Strip surrounding double-quotes if present
+  const s = raw.startsWith('"') && raw.endsWith('"') ? raw.slice(1, -1) : raw
+
+  const parts = s.split(' | ')
+  const baseType = parts[0]?.trim() || 'string'
+
+  let required = false
+  let defaultValue = ''
+  let minimum = ''
+  let maximum = ''
+  let enumVal = ''
+  let pattern = ''
+
+  for (let i = 1; i < parts.length; i++) {
+    const token = parts[i].trim()
+    if (token === 'required') {
+      required = true
+    } else if (token.startsWith('default=')) {
+      defaultValue = token.slice('default='.length)
+    } else if (token.startsWith('minimum=')) {
+      minimum = token.slice('minimum='.length)
+    } else if (token.startsWith('maximum=')) {
+      maximum = token.slice('maximum='.length)
+    } else if (token.startsWith('enum=')) {
+      enumVal = token.slice('enum='.length)
+    } else if (token.startsWith('pattern=')) {
+      pattern = token.slice('pattern='.length)
+    }
+    // Unknown tokens are silently ignored
+  }
+
+  return { type: baseType, required, defaultValue, minimum, maximum, enum: enumVal, pattern }
+}
+
+// ── ParseResult (spec 045 US8) ────────────────────────────────────────────
+
+/**
+ * Result of parsing a ResourceGraphDefinition YAML string.
+ *
+ * On success: { ok: true, state: RGDAuthoringState }
+ * On failure: { ok: false, error: string }
+ *
+ * parseRGDYAML never throws — all errors are returned as { ok: false }.
+ */
+export type ParseResult =
+  | { ok: true; state: RGDAuthoringState }
+  | { ok: false; error: string }
+
+// ── parseRGDYAML (spec 045 US8) ───────────────────────────────────────────
+
+/** Counter for generating stable IDs during a single parseRGDYAML call. */
+let _parseCounter = 0
+
+/** Generate a fresh field id for use during parsing. */
+function freshFieldId(): string {
+  return `import-f-${++_parseCounter}`
+}
+
+/** Generate a fresh resource key for use during parsing. */
+function freshResKey(): string {
+  return `import-r-${++_parseCounter}`
+}
+
+/** Generate a fresh iterator key for use during parsing. */
+function freshIterKey(): string {
+  return `import-i-${++_parseCounter}`
+}
+
+/** Generate a fresh selector label key for use during parsing. */
+function freshLabelKey(): string {
+  return `import-l-${++_parseCounter}`
+}
+
+/**
+ * Grab the value after the first `:` on a line, trimmed.
+ * Returns '' if no colon is found.
+ */
+function lineValue(line: string): string {
+  const idx = line.indexOf(':')
+  if (idx === -1) return ''
+  return line.slice(idx + 1).trim()
+}
+
+/**
+ * Parse a ResourceGraphDefinition YAML string into RGDAuthoringState.
+ *
+ * Uses a line-by-line state machine targeting the fixed-indent format produced
+ * by generateRGDYAML. Also handles kubectl get output (extra fields ignored).
+ *
+ * Never throws — all errors are returned as { ok: false, error }.
+ *
+ * Spec: .specify/specs/045-rgd-designer-validation-optimizer/ US8, FR-011–FR-016
+ */
+export function parseRGDYAML(yaml: string): ParseResult {
+  try {
+    // Reset parse counter for stable IDs per call
+    _parseCounter = 0
+
+    // ── Guard: empty input ───────────────────────────────────────────────
+    if (!yaml.trim()) {
+      return { ok: false, error: 'Empty input' }
+    }
+
+    // ── Guard: must be a ResourceGraphDefinition ─────────────────────────
+    if (!yaml.includes('kind: ResourceGraphDefinition')) {
+      return { ok: false, error: 'Not a ResourceGraphDefinition' }
+    }
+
+    const lines = yaml.split('\n')
+
+    // ── Extract metadata.name ────────────────────────────────────────────
+    let rgdName = 'my-rgd'
+    for (const line of lines) {
+      // metadata.name is at 2-space indent
+      if (/^  name:\s/.test(line)) {
+        rgdName = lineValue(line)
+        break
+      }
+    }
+
+    // ── Find spec.schema block boundaries ────────────────────────────────
+    const schemaStartIdx = lines.findIndex((l) => /^  schema:/.test(l))
+    if (schemaStartIdx === -1) {
+      return { ok: false, error: 'Missing spec.schema' }
+    }
+
+    // ── Extract schema-level fields (4-space indent under schema:) ────────
+    let kind = 'MyApp'
+    let apiVersion = 'v1alpha1'
+    let group = 'kro.run'
+    let scope: 'Namespaced' | 'Cluster' = 'Namespaced'
+
+    // Walk schema-level keys (lines starting with exactly 4 spaces that are
+    // direct children of schema:, i.e. not deeper indent)
+    for (let i = schemaStartIdx + 1; i < lines.length; i++) {
+      const line = lines[i]
+      // Stop at a sibling section (2-space indent non-empty line that isn't 4-space)
+      if (/^  \S/.test(line)) break
+      if (/^    kind:\s/.test(line)) kind = lineValue(line)
+      else if (/^    apiVersion:\s/.test(line)) apiVersion = lineValue(line)
+      else if (/^    group:\s/.test(line)) group = lineValue(line)
+      else if (/^    scope:\s/.test(line)) {
+        if (lineValue(line) === 'Cluster') scope = 'Cluster'
+      }
+    }
+
+    // ── Extract spec.schema.spec fields (6-space indent) ──────────────────
+    const specFields: AuthoringField[] = []
+    const specSectionIdx = lines.findIndex((l, i) =>
+      i > schemaStartIdx && /^    spec:/.test(l),
+    )
+    if (specSectionIdx !== -1) {
+      for (let i = specSectionIdx + 1; i < lines.length; i++) {
+        const line = lines[i]
+        // 6-space indent = direct children of spec:
+        if (/^      \S/.test(line) && !/^        /.test(line)) {
+          const colon = line.indexOf(':')
+          if (colon === -1) continue
+          const name = line.slice(6, colon).trim()
+          const rawType = line.slice(colon + 1).trim()
+          if (!name) continue
+          const parsed = parseSimpleSchemaStr(rawType)
+          specFields.push({
+            id: freshFieldId(),
+            name,
+            type: parsed.type,
+            defaultValue: parsed.defaultValue,
+            required: parsed.required,
+            minimum: parsed.minimum || undefined,
+            maximum: parsed.maximum || undefined,
+            enum: parsed.enum || undefined,
+            pattern: parsed.pattern || undefined,
+          })
+        } else if (/^    \S/.test(line)) {
+          // Left spec: section
+          break
+        }
+      }
+    }
+
+    // ── Extract spec.schema.status fields (6-space indent) ────────────────
+    const statusFields: AuthoringStatusField[] = []
+    const statusSectionIdx = lines.findIndex((l, i) =>
+      i > schemaStartIdx && /^    status:/.test(l),
+    )
+    if (statusSectionIdx !== -1) {
+      for (let i = statusSectionIdx + 1; i < lines.length; i++) {
+        const line = lines[i]
+        if (/^      \S/.test(line) && !/^        /.test(line)) {
+          const colon = line.indexOf(':')
+          if (colon === -1) continue
+          const name = line.slice(6, colon).trim()
+          const expression = line.slice(colon + 1).trim()
+          if (!name) continue
+          // Strip surrounding quotes from the expression
+          const expr = expression.startsWith('"') && expression.endsWith('"')
+            ? expression.slice(1, -1)
+            : expression
+          statusFields.push({ id: freshFieldId(), name, expression: expr })
+        } else if (/^    \S/.test(line)) {
+          break
+        }
+      }
+    }
+
+    // ── Extract spec.resources[] ───────────────────────────────────────────
+    const resources: AuthoringResource[] = []
+    const resourcesSectionIdx = lines.findIndex((l) => /^  resources:/.test(l))
+
+    if (resourcesSectionIdx !== -1) {
+      // Each resource block starts with "    - id:" at 4-space indent
+      // Collect line ranges for each resource block
+      const blockStarts: number[] = []
+      for (let i = resourcesSectionIdx + 1; i < lines.length; i++) {
+        const line = lines[i]
+        // Stop at a sibling of resources: (2-space indent non-empty)
+        if (/^  \S/.test(line)) break
+        if (/^    - /.test(line)) blockStarts.push(i)
+      }
+
+      for (let b = 0; b < blockStarts.length; b++) {
+        const start = blockStarts[b]
+        const end = b + 1 < blockStarts.length ? blockStarts[b + 1] : lines.length
+
+        const blockLines = lines.slice(start, end)
+
+        // Detect resource id
+        let resId = ''
+        // id can be on the first line "    - id: web" or on a subsequent line "      id: web"
+        const firstLine = blockLines[0]
+        if (/^    - id:\s/.test(firstLine)) {
+          resId = lineValue(firstLine.replace('    - ', '    '))
+        } else {
+          for (const bl of blockLines) {
+            if (/^      id:\s/.test(bl)) { resId = lineValue(bl); break }
+          }
+        }
+
+        // Detect node type
+        const hasExternalRef = blockLines.some((l) => /^      externalRef:/.test(l))
+        const hasForEach = blockLines.some((l) => /^      forEach:/.test(l))
+
+        const _key = freshResKey()
+
+        if (hasExternalRef) {
+          // ── externalRef resource ────────────────────────────────────────
+          let extApiVersion = ''
+          let extKind = ''
+          let extNamespace = ''
+          let extName = ''
+          const selectorLabels: { _key: string; labelKey: string; labelValue: string }[] = []
+
+          let inExtRef = false
+          let inMetadata = false
+          let inSelector = false
+          for (const bl of blockLines) {
+            if (/^      externalRef:/.test(bl)) { inExtRef = true; continue }
+            if (!inExtRef) continue
+            if (/^        apiVersion:\s/.test(bl)) extApiVersion = lineValue(bl)
+            else if (/^        kind:\s/.test(bl)) extKind = lineValue(bl)
+            else if (/^        metadata:/.test(bl)) inMetadata = true
+            else if (inMetadata && /^          namespace:\s/.test(bl)) extNamespace = lineValue(bl)
+            else if (inMetadata && /^          name:\s/.test(bl)) extName = lineValue(bl)
+            else if (inMetadata && /^          selector:/.test(bl)) inSelector = true
+            else if (inSelector && /^            matchLabels:/.test(bl)) { /* continue */ }
+            else if (inSelector && /^              \S/.test(bl)) {
+              // matchLabels key: value
+              const colon = bl.indexOf(':')
+              if (colon !== -1) {
+                const lk = bl.slice(0, colon).trim()
+                const lv = bl.slice(colon + 1).trim()
+                selectorLabels.push({ _key: freshLabelKey(), labelKey: lk, labelValue: lv })
+              }
+            } else if (/^      \S/.test(bl) && !/^        /.test(bl)) break
+          }
+
+          // Extract includeWhen / readyWhen
+          const includeWhen = extractIncludeWhen(blockLines)
+          const readyWhen = extractReadyWhen(blockLines)
+
+          resources.push({
+            _key,
+            id: resId,
+            apiVersion: extApiVersion,
+            kind: extKind,
+            resourceType: 'externalRef',
+            templateYaml: '',
+            includeWhen,
+            readyWhen,
+            forEachIterators: [{ _key: freshIterKey(), variable: '', expression: '' }],
+            externalRef: {
+              apiVersion: extApiVersion,
+              kind: extKind,
+              namespace: extNamespace,
+              name: extName,
+              selectorLabels,
+            },
+          })
+        } else if (hasForEach) {
+          // ── forEach resource ─────────────────────────────────────────────
+          const forEachIterators: ForEachIterator[] = []
+          let inForEach = false
+          for (const bl of blockLines) {
+            if (/^      forEach:/.test(bl)) { inForEach = true; continue }
+            if (!inForEach) continue
+            // Each iterator: "        - varName: ${expression}"
+            if (/^        - \S/.test(bl)) {
+              const dashContent = bl.slice(bl.indexOf('- ') + 2)
+              const colon = dashContent.indexOf(':')
+              if (colon !== -1) {
+                const variable = dashContent.slice(0, colon).trim()
+                const expression = dashContent.slice(colon + 1).trim()
+                forEachIterators.push({ _key: freshIterKey(), variable, expression })
+              }
+            } else if (/^      \S/.test(bl) && !/^        /.test(bl)) break
+          }
+          if (forEachIterators.length === 0) {
+            forEachIterators.push({ _key: freshIterKey(), variable: '', expression: '' })
+          }
+
+          const { resApiVersion, resKind, templateYaml } = extractTemplate(blockLines)
+          const includeWhen = extractIncludeWhen(blockLines)
+          const readyWhen = extractReadyWhen(blockLines)
+
+          resources.push({
+            _key,
+            id: resId,
+            apiVersion: resApiVersion,
+            kind: resKind,
+            resourceType: 'forEach',
+            templateYaml,
+            includeWhen,
+            readyWhen,
+            forEachIterators,
+            externalRef: { apiVersion: '', kind: '', namespace: '', name: '', selectorLabels: [] },
+          })
+        } else {
+          // ── managed resource ─────────────────────────────────────────────
+          const { resApiVersion, resKind, templateYaml } = extractTemplate(blockLines)
+          const includeWhen = extractIncludeWhen(blockLines)
+          const readyWhen = extractReadyWhen(blockLines)
+
+          resources.push({
+            _key,
+            id: resId,
+            apiVersion: resApiVersion,
+            kind: resKind,
+            resourceType: 'managed',
+            templateYaml,
+            includeWhen,
+            readyWhen,
+            forEachIterators: [{ _key: freshIterKey(), variable: '', expression: '' }],
+            externalRef: { apiVersion: '', kind: '', namespace: '', name: '', selectorLabels: [] },
+          })
+        }
+      }
+    }
+
+    const state: RGDAuthoringState = {
+      rgdName,
+      kind,
+      group,
+      apiVersion,
+      scope,
+      specFields,
+      statusFields,
+      resources,
+    }
+
+    return { ok: true, state }
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Parse failed: ${err instanceof Error ? err.message : String(err)}`,
+    }
+  }
+}
+
+// ── parseRGDYAML helpers ──────────────────────────────────────────────────
+
+function extractTemplate(blockLines: string[]): {
+  resApiVersion: string
+  resKind: string
+  templateYaml: string
+} {
+  let resApiVersion = ''
+  let resKind = ''
+  const templateBodyLines: string[] = []
+  let inTemplate = false
+  let templateKindFound = false
+
+  for (const bl of blockLines) {
+    if (/^      template:/.test(bl)) { inTemplate = true; continue }
+    if (!inTemplate) continue
+    // apiVersion + kind are at 8-space indent inside template:
+    if (/^        apiVersion:\s/.test(bl)) {
+      resApiVersion = lineValue(bl)
+      continue
+    }
+    if (/^        kind:\s/.test(bl)) {
+      resKind = lineValue(bl)
+      templateKindFound = true
+      continue
+    }
+    // Remaining lines of template body (after kind:): collect verbatim, strip 8 leading spaces
+    if (templateKindFound && /^        /.test(bl)) {
+      templateBodyLines.push(bl.slice(8))
+    } else if (inTemplate && /^      \S/.test(bl) && !/^        /.test(bl)) {
+      // Left template: section
+      break
+    }
+  }
+
+  return {
+    resApiVersion,
+    resKind,
+    templateYaml: templateBodyLines.join('\n').trimEnd(),
+  }
+}
+
+function extractIncludeWhen(blockLines: string[]): string {
+  let inIncludeWhen = false
+  for (const bl of blockLines) {
+    if (/^      includeWhen:/.test(bl)) { inIncludeWhen = true; continue }
+    if (!inIncludeWhen) continue
+    // First list entry: "        - 'expression'"
+    if (/^        - /.test(bl)) {
+      return bl.slice(bl.indexOf('- ') + 2).trim().replace(/^'|'$/g, '')
+    }
+    if (/^      \S/.test(bl)) break
+  }
+  return ''
+}
+
+function extractReadyWhen(blockLines: string[]): string[] {
+  const result: string[] = []
+  let inReadyWhen = false
+  for (const bl of blockLines) {
+    if (/^      readyWhen:/.test(bl)) { inReadyWhen = true; continue }
+    if (!inReadyWhen) continue
+    if (/^        - /.test(bl)) {
+      result.push(bl.slice(bl.indexOf('- ') + 2).trim().replace(/^'|'$/g, ''))
+    } else if (/^      \S/.test(bl)) break
+  }
+  return result
+}
+
 // ── kindToSlug ────────────────────────────────────────────────────────────
+
 
 /**
  * Convert a PascalCase kind string to a lowercase-hyphenated slug.

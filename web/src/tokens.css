@@ -122,6 +122,9 @@
   /* readyWhen indicator — amber, semantically "waiting on condition" */
   --color-ready-when: #f59e0b;
 
+  /* Form validation warning — amber, advisory messages and summary badge */
+  --color-warning: #f59e0b;
+
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);
 
@@ -226,6 +229,9 @@
 
   /* readyWhen indicator — darker amber for light bg */
   --color-ready-when: #d97706;
+
+  /* Form validation warning — darker amber for light bg */
+  --color-warning: #d97706;
 
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);

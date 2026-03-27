@@ -13,12 +13,17 @@ import type {
   AuthoringResource,
   AuthoringStatusField,
   ForEachIterator,
+  ValidationState,
 } from '@/lib/generator'
+import { validateRGDState } from '@/lib/generator'
+import type { StaticIssue } from '@/lib/api'
 import './RGDAuthoringForm.css'
 
 export interface RGDAuthoringFormProps {
   state: RGDAuthoringState
   onChange: (state: RGDAuthoringState) => void
+  /** Offline static validation issues from POST /api/v1/rgds/validate/static (spec 045 US10). */
+  staticIssues?: StaticIssue[]
 }
 
 const FIELD_TYPE_OPTIONS = [
@@ -87,11 +92,14 @@ function makeNewResource(): AuthoringResource {
  *              externalRef fields, advanced options (includeWhen/readyWhen)
  *              (US1, US3, US4, US5, US6)
  */
-export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormProps) {
+export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDAuthoringFormProps) {
   // ── Local UI state (not persisted to RGDAuthoringState) ──────────────────
   const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set())
   const [expandedAdvanced, setExpandedAdvanced] = useState<Set<string>>(new Set())
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set())
+
+  // ── Validation (spec 045) — computed on every render, O(N) ──────────────
+  const validation: ValidationState = validateRGDState(state)
 
   // ── Metadata handlers ────────────────────────────────────────────────────
 
@@ -325,6 +333,34 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
 
   return (
     <div className="rgd-authoring-form" data-testid="rgd-authoring-form">
+      {/* Spec 045: validation summary badge — shown when any issue exists */}
+      {validation.totalCount > 0 && (
+        <div
+          className="rgd-authoring-form__validation-summary"
+          data-testid="validation-summary"
+          role="status"
+          aria-live="polite"
+        >
+          ⚠ {validation.totalCount} {validation.totalCount === 1 ? 'warning' : 'warnings'}
+        </div>
+      )}
+
+      {/* Spec 045 US10: deep validation issues from kro-library static check */}
+      {staticIssues && staticIssues.length > 0 && (
+        <div
+          className="rgd-authoring-form__deep-validation"
+          data-testid="static-validation-section"
+        >
+          <p className="rgd-authoring-form__deep-validation-title">Deep validation</p>
+          {staticIssues.map((issue, idx) => (
+            <div key={idx} className="rgd-authoring-form__deep-issue">
+              <span className="rgd-authoring-form__deep-issue-field">{issue.field}</span>
+              <span className="rgd-authoring-form__deep-issue-msg">{issue.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Section 1 — Metadata */}
       <section className="rgd-authoring-form__section">
         <h3 className="rgd-authoring-form__section-title">Metadata</h3>
@@ -332,26 +368,58 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
           <label className="rgd-authoring-form__label" htmlFor="rgd-name">
             RGD name
           </label>
-          <input
-            id="rgd-name"
-            className="rgd-authoring-form__input"
-            type="text"
-            value={state.rgdName}
-            onChange={(e) => setMeta({ rgdName: e.target.value })}
-            aria-label="RGD name"
-          />
+          <div>
+            <input
+              id="rgd-name"
+              className="rgd-authoring-form__input"
+              type="text"
+              value={state.rgdName}
+              onChange={(e) => setMeta({ rgdName: e.target.value })}
+              aria-label="RGD name"
+            />
+            {/* Spec 045: inline validation message for rgdName */}
+            <span
+              role="alert"
+              aria-live="polite"
+              className={
+                validation.rgdName
+                  ? validation.rgdName.type === 'error'
+                    ? 'rgd-authoring-form__field-msg'
+                    : 'rgd-authoring-form__field-msg rgd-authoring-form__field-msg--warn'
+                  : 'rgd-authoring-form__field-msg'
+              }
+            >
+              {validation.rgdName?.message ?? ''}
+            </span>
+          </div>
 
           <label className="rgd-authoring-form__label" htmlFor="rgd-kind">
             Kind
           </label>
-          <input
-            id="rgd-kind"
-            className="rgd-authoring-form__input"
-            type="text"
-            value={state.kind}
-            onChange={(e) => setMeta({ kind: e.target.value })}
-            aria-label="Kind"
-          />
+          <div>
+            <input
+              id="rgd-kind"
+              className="rgd-authoring-form__input"
+              type="text"
+              value={state.kind}
+              onChange={(e) => setMeta({ kind: e.target.value })}
+              aria-label="Kind"
+            />
+            {/* Spec 045: inline validation message for kind */}
+            <span
+              role="alert"
+              aria-live="polite"
+              className={
+                validation.kind
+                  ? validation.kind.type === 'error'
+                    ? 'rgd-authoring-form__field-msg'
+                    : 'rgd-authoring-form__field-msg rgd-authoring-form__field-msg--warn'
+                  : 'rgd-authoring-form__field-msg'
+              }
+            >
+              {validation.kind?.message ?? ''}
+            </span>
+          </div>
 
           <label className="rgd-authoring-form__label" htmlFor="rgd-group">
             Group
@@ -472,6 +540,16 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
                 ×
               </button>
             </div>
+            {/* Spec 045: inline message for duplicate spec field name */}
+            {validation.specFieldIssues[field.id]?.message !== 'minimum must be \u2264 maximum' && (
+              <span
+                role="alert"
+                aria-live="polite"
+                className="rgd-authoring-form__field-msg rgd-authoring-form__field-msg--warn"
+              >
+                {validation.specFieldIssues[field.id]?.message ?? ''}
+              </span>
+            )}
             {/* US8: constraint expansion area */}
             {expandedFields.has(field.id) && (
               <div className="rgd-authoring-form__field-constraints">
@@ -523,6 +601,16 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
                     aria-label="Pattern"
                   />
                 </label>
+                {/* Spec 045: inline message for min > max constraint */}
+                {validation.specFieldIssues[field.id]?.message === 'minimum must be \u2264 maximum' && (
+                  <span
+                    role="alert"
+                    aria-live="polite"
+                    className="rgd-authoring-form__field-msg rgd-authoring-form__field-msg--warn"
+                  >
+                    {validation.specFieldIssues[field.id]?.message}
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -540,37 +628,47 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
       <section className="rgd-authoring-form__section" data-testid="status-fields-section">
         <h3 className="rgd-authoring-form__section-title">Status Fields</h3>
         {(state.statusFields ?? []).map((sf) => (
-          <div key={sf.id} className="rgd-authoring-form__status-row">
-            <input
-              type="text"
-              className="rgd-authoring-form__input rgd-authoring-form__input--name"
-              placeholder="fieldName"
-              value={sf.name}
-              onChange={(e) => updateStatusField(sf.id, { name: e.target.value })}
-              data-testid={`status-field-name-${sf.id}`}
-              aria-label="Status field name"
-            />
-            <div className="rgd-authoring-form__cel-wrap">
+          <div key={sf.id}>
+            <div className="rgd-authoring-form__status-row">
               <input
                 type="text"
-                className="rgd-authoring-form__input rgd-authoring-form__input--cel"
-                placeholder="${resource.status.field}"
-                value={sf.expression}
-                onChange={(e) => updateStatusField(sf.id, { expression: e.target.value })}
-                data-testid={`status-field-expr-${sf.id}`}
-                aria-label="Status field CEL expression"
+                className="rgd-authoring-form__input rgd-authoring-form__input--name"
+                placeholder="fieldName"
+                value={sf.name}
+                onChange={(e) => updateStatusField(sf.id, { name: e.target.value })}
+                data-testid={`status-field-name-${sf.id}`}
+                aria-label="Status field name"
               />
-              <span className="rgd-authoring-form__cel-badge">CEL</span>
+              <div className="rgd-authoring-form__cel-wrap">
+                <input
+                  type="text"
+                  className="rgd-authoring-form__input rgd-authoring-form__input--cel"
+                  placeholder="${resource.status.field}"
+                  value={sf.expression}
+                  onChange={(e) => updateStatusField(sf.id, { expression: e.target.value })}
+                  data-testid={`status-field-expr-${sf.id}`}
+                  aria-label="Status field CEL expression"
+                />
+                <span className="rgd-authoring-form__cel-badge">CEL</span>
+              </div>
+              <button
+                type="button"
+                className="rgd-authoring-form__remove-btn"
+                onClick={() => removeStatusField(sf.id)}
+                data-testid={`status-field-remove-${sf.id}`}
+                aria-label="Remove status field"
+              >
+                ×
+              </button>
             </div>
-            <button
-              type="button"
-              className="rgd-authoring-form__remove-btn"
-              onClick={() => removeStatusField(sf.id)}
-              data-testid={`status-field-remove-${sf.id}`}
-              aria-label="Remove status field"
+            {/* Spec 045: inline message for duplicate status field name */}
+            <span
+              role="alert"
+              aria-live="polite"
+              className="rgd-authoring-form__field-msg rgd-authoring-form__field-msg--warn"
             >
-              ×
-            </button>
+              {validation.statusFieldIssues[sf.id]?.message ?? ''}
+            </span>
           </div>
         ))}
         <button
@@ -671,6 +769,16 @@ export default function RGDAuthoringForm({ state, onChange }: RGDAuthoringFormPr
                   ×
                 </button>
               </div>
+              {/* Spec 045: inline message for duplicate resource ID or forEach-no-iterator */}
+              {validation.resourceIssues[res._key] && (
+                <span
+                  role="alert"
+                  aria-live="polite"
+                  className="rgd-authoring-form__field-msg rgd-authoring-form__field-msg--warn"
+                >
+                  {validation.resourceIssues[res._key]?.message}
+                </span>
+              )}
 
               {/* Resource action buttons row */}
               <div className="rgd-authoring-form__resource-actions">

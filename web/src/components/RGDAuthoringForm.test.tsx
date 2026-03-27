@@ -408,3 +408,197 @@ describe('Spec field constraints (US8)', () => {
     )
   })
 })
+
+// ── Spec 045 US10: static validation section ──────────────────────────────
+
+describe('Static validation section (spec 045 US10)', () => {
+  it('staticIssues=[] → static-validation-section absent', () => {
+    renderForm(makeState(), vi.fn())
+    expect(screen.queryByTestId('static-validation-section')).not.toBeInTheDocument()
+  })
+
+  it('staticIssues=[{field,message}] → section visible with field path and message', () => {
+    const issues: import('@/lib/api').StaticIssue[] = [
+      { field: 'spec.schema.spec.replicas', message: 'unknown type' },
+    ]
+    render(<RGDAuthoringForm state={makeState()} onChange={vi.fn()} staticIssues={issues} />)
+    expect(screen.getByTestId('static-validation-section')).toBeInTheDocument()
+    expect(screen.getByText('spec.schema.spec.replicas')).toBeInTheDocument()
+    expect(screen.getByText('unknown type')).toBeInTheDocument()
+  })
+
+  it('multiple issues → multiple rows rendered', () => {
+    const issues: import('@/lib/api').StaticIssue[] = [
+      { field: 'spec.schema.spec.replicas', message: 'unknown type' },
+      { field: 'spec.resources[web].id', message: 'resource ID must be lowerCamelCase' },
+    ]
+    render(<RGDAuthoringForm state={makeState()} onChange={vi.fn()} staticIssues={issues} />)
+    expect(screen.getByText('spec.schema.spec.replicas')).toBeInTheDocument()
+    expect(screen.getByText('spec.resources[web].id')).toBeInTheDocument()
+  })
+})
+
+// T006: metadata validation messages (US1)
+describe('Validation: metadata messages (spec 045 US1)', () => {
+  it('shows "Kind is required" when kind is empty', () => {
+    renderForm(makeState({ kind: '' }))
+    expect(screen.getByText('Kind is required')).toBeInTheDocument()
+  })
+
+  it('shows PascalCase warning when kind is lowercase-first', () => {
+    renderForm(makeState({ kind: 'webApp' }))
+    expect(screen.getByText(/PascalCase/)).toBeInTheDocument()
+  })
+
+  it('shows no kind message when kind is valid PascalCase', () => {
+    renderForm(makeState({ kind: 'WebApp' }))
+    expect(screen.queryByText(/Kind is required/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/PascalCase/)).not.toBeInTheDocument()
+  })
+
+  it('shows "RGD name is required" when rgdName is empty', () => {
+    renderForm(makeState({ rgdName: '' }))
+    expect(screen.getByText('RGD name is required')).toBeInTheDocument()
+  })
+
+  it('YAML preview still renders even when validation errors exist', () => {
+    // AuthorPage wraps YAMLPreview; in RGDAuthoringForm tests we just confirm
+    // the form renders without crashing when kind is empty
+    const { container } = renderForm(makeState({ kind: '' }))
+    expect(container).not.toBeEmptyDOMElement()
+  })
+})
+
+// T011: duplicate resource ID rendering (US2)
+describe('Validation: duplicate resource ID (spec 045 US2)', () => {
+  it('shows "Duplicate resource ID" on both rows when two resources share the same id', () => {
+    const r1 = makeRes({ _key: 'r1', id: 'deployment' })
+    const r2 = makeRes({ _key: 'r2', id: 'deployment' })
+    renderForm(makeState({ resources: [r1, r2] }))
+    const msgs = screen.getAllByText('Duplicate resource ID')
+    expect(msgs).toHaveLength(2)
+  })
+
+  it('does not show duplicate message when ids are distinct', () => {
+    const r1 = makeRes({ _key: 'r1', id: 'deployment' })
+    const r2 = makeRes({ _key: 'r2', id: 'service' })
+    renderForm(makeState({ resources: [r1, r2] }))
+    expect(screen.queryByText('Duplicate resource ID')).not.toBeInTheDocument()
+  })
+})
+
+// T014: duplicate spec/status field name rendering (US3)
+describe('Validation: duplicate field names (spec 045 US3)', () => {
+  it('shows "Duplicate spec field name" on both spec field rows with same name', () => {
+    const f1: import('@/lib/generator').AuthoringField = {
+      id: 'f1', name: 'replicas', type: 'integer', defaultValue: '', required: false,
+    }
+    const f2: import('@/lib/generator').AuthoringField = {
+      id: 'f2', name: 'replicas', type: 'string', defaultValue: '', required: false,
+    }
+    renderForm(makeState({ specFields: [f1, f2] }))
+    const msgs = screen.getAllByText('Duplicate spec field name')
+    expect(msgs).toHaveLength(2)
+  })
+
+  it('shows "Duplicate status field name" on both status field rows with same name', () => {
+    const sf1: import('@/lib/generator').AuthoringStatusField = {
+      id: 'sf1', name: 'endpoint', expression: '${svc.spec.clusterIP}',
+    }
+    const sf2: import('@/lib/generator').AuthoringStatusField = {
+      id: 'sf2', name: 'endpoint', expression: '${svc.spec.clusterIP}',
+    }
+    renderForm(makeState({ statusFields: [sf1, sf2] }))
+    const msgs = screen.getAllByText('Duplicate status field name')
+    expect(msgs).toHaveLength(2)
+  })
+})
+
+// T018: min > max constraint rendering (US4)
+describe('Validation: min > max constraint (spec 045 US4)', () => {
+  it('shows "minimum must be ≤ maximum" inside expanded constraints panel', () => {
+    const f: import('@/lib/generator').AuthoringField = {
+      id: 'f1', name: 'count', type: 'integer', defaultValue: '',
+      required: false, minimum: '10', maximum: '5',
+    }
+    renderForm(makeState({ specFields: [f] }))
+    // Expand constraints
+    fireEvent.click(screen.getByTestId('field-expand-f1'))
+    expect(screen.getByText('minimum must be \u2264 maximum')).toBeInTheDocument()
+  })
+})
+
+// T021: forEach no-iterator rendering (US5)
+describe('Validation: forEach requires iterator (spec 045 US5)', () => {
+  it('shows "forEach resources require at least one iterator" for forEach resource with no valid iterators', () => {
+    const r = makeRes({
+      _key: 'r1',
+      id: 'configmap',
+      resourceType: 'forEach',
+      forEachIterators: [{ _key: 'fe1', variable: '', expression: '' }],
+    })
+    renderForm(makeState({ resources: [r] }))
+    expect(
+      screen.getByText('forEach resources require at least one iterator'),
+    ).toBeInTheDocument()
+  })
+
+  it('does not show iterator warning when forEach resource has a valid iterator', () => {
+    const r = makeRes({
+      _key: 'r1',
+      id: 'configmap',
+      resourceType: 'forEach',
+      forEachIterators: [{ _key: 'fe1', variable: 'region', expression: '${schema.spec.regions}' }],
+    })
+    renderForm(makeState({ resources: [r] }))
+    expect(
+      screen.queryByText('forEach resources require at least one iterator'),
+    ).not.toBeInTheDocument()
+  })
+})
+
+// T023: validation summary badge rendering (US6)
+describe('Validation: summary badge (spec 045 US6)', () => {
+  it('does not show validation-summary when state is valid (kind=TestApp, rgdName=test-app)', () => {
+    renderForm(makeState())
+    expect(screen.queryByTestId('validation-summary')).not.toBeInTheDocument()
+  })
+
+  it('shows validation-summary with count when kind is empty', () => {
+    renderForm(makeState({ kind: '' }))
+    const badge = screen.getByTestId('validation-summary')
+    expect(badge).toBeInTheDocument()
+    expect(badge.textContent).toMatch(/1/)
+  })
+
+  it('shows correct count for multiple issues (empty kind + empty rgdName)', () => {
+    renderForm(makeState({ kind: '', rgdName: '' }))
+    const badge = screen.getByTestId('validation-summary')
+    expect(badge.textContent).toMatch(/2/)
+  })
+
+  // US1/5 + US6/3: validation is advisory only — form and YAML remain functional
+  it('form still renders (not crashed/blocked) when validation errors are present (US1/5)', () => {
+    const { container } = renderForm(makeState({ kind: '', rgdName: '' }))
+    // The form element must still be in the DOM — errors do not prevent rendering
+    expect(container.querySelector('[data-testid="rgd-authoring-form"]')).not.toBeNull()
+    // The validation badge is present but no element is disabled that shouldn't be
+    expect(screen.getByTestId('validation-summary')).toBeInTheDocument()
+  })
+})
+
+// ── US10/7: graceful degradation when staticIssues is undefined ────────────
+
+describe('Static validation section: graceful degradation (spec 045 US10/7)', () => {
+  it('staticIssues undefined → section absent (silent degradation)', () => {
+    // When the endpoint is unavailable, AuthorPage keeps staticIssues=[]
+    // and does not pass the prop. Verify the section stays hidden.
+    renderForm(makeState())
+    expect(screen.queryByTestId('static-validation-section')).not.toBeInTheDocument()
+  })
+
+  it('staticIssues=[] (empty after endpoint failure) → section absent', () => {
+    render(<RGDAuthoringForm state={makeState()} onChange={vi.fn()} staticIssues={[]} />)
+    expect(screen.queryByTestId('static-validation-section')).not.toBeInTheDocument()
+  })
+})

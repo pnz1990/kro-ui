@@ -122,3 +122,26 @@ type ControllerMetricsResponse struct {
 	// ScrapedAt is the RFC3339 timestamp when the upstream endpoint responded.
 	ScrapedAt string `json:"scrapedAt"`
 }
+
+// DryRunResult is the response payload for POST /api/v1/rgds/validate.
+// Valid=true means kro's admission webhook accepted the object in dry-run mode.
+// Valid=false means the webhook (or API server) rejected it; Error carries the reason.
+// The operation does NOT persist any state to etcd.
+type DryRunResult struct {
+	Valid bool   `json:"valid"`
+	Error string `json:"error,omitempty"`
+}
+
+// StaticIssue is a single validation issue from offline kro-library validation.
+// Field is a dot-path identifying the affected schema location (e.g. "spec.schema.spec.replicas").
+// Message is kro's error text for the violation.
+type StaticIssue struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+// StaticValidationResult is the response payload for POST /api/v1/rgds/validate/static.
+// Issues is always a non-nil array — empty when no issues are found.
+type StaticValidationResult struct {
+	Issues []StaticIssue `json:"issues"`
+}

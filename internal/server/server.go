@@ -99,6 +99,9 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			r.Get("/rgds/{name}", h.GetRGD)
 			r.Get("/rgds/{name}/instances", h.ListInstances)
 			r.Get("/rgds/{name}/access", h.GetRGDAccess)
+			// Validate endpoints (spec 045 — US9: dry-run, US10: offline static)
+			r.Post("/rgds/validate", h.ValidateRGD)
+			r.Post("/rgds/validate/static", h.ValidateRGDStatic)
 
 			// Instances
 			r.Get("/instances/{namespace}/{name}", h.GetInstance)

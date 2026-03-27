@@ -203,3 +203,64 @@ export interface VersionResponse {
 }
 
 export const getVersion = () => get<VersionResponse>('/version')
+
+// ── RGD Designer Validation (spec 045) ───────────────────────────────────
+
+/**
+ * Result of a dry-run cluster validation (POST /api/v1/rgds/validate).
+ * Valid=true means kro's admission webhook accepted the object in dry-run mode.
+ * Nothing is persisted to the cluster.
+ */
+export type DryRunResult =
+  | { valid: true }
+  | { valid: false; error: string }
+
+/**
+ * A single issue from offline kro-library static validation.
+ * field: dot-path identifying the affected schema location.
+ * message: kro's error text.
+ */
+export interface StaticIssue {
+  field: string
+  message: string
+}
+
+/** Response payload for POST /api/v1/rgds/validate/static. */
+export interface StaticValidationResult {
+  issues: StaticIssue[]
+}
+
+/**
+ * Dry-run cluster validate — sends the YAML to the backend which performs a
+ * dryRun=All apply via the dynamic client. Nothing is persisted.
+ * Throws on non-OK HTTP responses.
+ */
+export async function validateRGD(yaml: string): Promise<DryRunResult> {
+  const res = await fetch(BASE + '/rgds/validate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: yaml,
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json() as Promise<DryRunResult>
+}
+
+/**
+ * Offline static validate — uses kro's own Go libraries to check SimpleSchema
+ * types, CEL syntax, and resource ID format without contacting the cluster.
+ * Best-effort: never throws — returns { issues: [] } on any error.
+ */
+export async function validateRGDStatic(yaml: string): Promise<StaticValidationResult> {
+  try {
+    const res = await fetch(BASE + '/rgds/validate/static', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: yaml,
+    })
+    if (!res.ok) return { issues: [] }
+    return res.json() as Promise<StaticValidationResult>
+  } catch {
+    // Silent degradation — static validation must not crash the form
+    return { issues: [] }
+  }
+}

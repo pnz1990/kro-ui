@@ -130,6 +130,11 @@ type stubNamespaceableResource struct {
 	// labelItems is used by cluster-scoped List() calls (no .Namespace() wrapper). Issue #202.
 	labelItems   map[string][]unstructured.Unstructured
 	createResult *unstructured.Unstructured
+	// applyConfigured / applyResult / applyErr allow validate handler tests to control Apply.
+	// Set applyConfigured=true to prevent the panic and return applyResult/applyErr instead.
+	applyConfigured bool
+	applyResult     *unstructured.Unstructured
+	applyErr        error
 }
 
 func (s *stubNamespaceableResource) Namespace(ns string) dynamic.ResourceInterface {
@@ -196,7 +201,10 @@ func (s *stubNamespaceableResource) Watch(context.Context, metav1.ListOptions) (
 func (s *stubNamespaceableResource) Patch(context.Context, string, types.PatchType, []byte, metav1.PatchOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("read-only stub")
 }
-func (s *stubNamespaceableResource) Apply(context.Context, string, *unstructured.Unstructured, metav1.ApplyOptions, ...string) (*unstructured.Unstructured, error) {
+func (s *stubNamespaceableResource) Apply(_ context.Context, _ string, _ *unstructured.Unstructured, _ metav1.ApplyOptions, _ ...string) (*unstructured.Unstructured, error) {
+	if s.applyConfigured {
+		return s.applyResult, s.applyErr
+	}
 	panic("read-only stub")
 }
 func (s *stubNamespaceableResource) ApplyStatus(context.Context, string, *unstructured.Unstructured, metav1.ApplyOptions) (*unstructured.Unstructured, error) {

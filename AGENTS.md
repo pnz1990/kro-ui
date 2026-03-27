@@ -378,6 +378,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 - Go 1.25 (backend) + TypeScript 5.x / Node (E2E setup script) + Playwright (E2E), kubectl, kind, helm (043-upstream-fixture-generator)
 - N/A — no persistent storage (043-upstream-fixture-generator)
+- TypeScript 5.x (frontend); Go 1.25 (backend — no changes needed) + React 19, Vite, plain CSS — no new npm or Go packages (045-rgd-designer-validation-optimizer)
+- N/A — all state is local React `useState`; no persistence (045-rgd-designer-validation-optimizer)
 
 ## Recent Changes
 - v0.4.3: upstream fixture generator (`cmd/dump-fixtures`, `make dump-fixtures`) covering all kro node types; contagious `includeWhen` BFS propagation fix in `dag.ts`; 6 new E2E journey files (43 total); `GetInstanceChildren` scoped to RGD resource types; spec-audit fixes (isItemReady isolation, FetchEffectiveRules deadline, extractInstanceHealth negation-polarity); demo/E2E setup hardened for kro v0.8.5 (non-fatal applies for v0.9.0+ fixtures); unit test coverage for InstanceDetail, Fleet, AuthorPage, NotFound, LiveDAG, format, collection
