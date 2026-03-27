@@ -169,3 +169,194 @@
   cursor: pointer;
   accent-color: var(--color-error);
 }
+
+/* ── Row selection (GH #287 instance diff) ─────────────────────────────── */
+
+.instance-table__th--check,
+.instance-table__td--check {
+  width: 32px;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.instance-table__td--check {
+  cursor: pointer;
+}
+
+.instance-table__row--selected {
+  background: var(--color-surface-2);
+  outline: 1px solid var(--color-primary, var(--color-alive));
+  outline-offset: -1px;
+}
+
+/* Compare action bar */
+.instance-table-compare-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  font-size: 12px;
+}
+
+.instance-table-compare-btn {
+  padding: 3px 10px;
+  border: 1px solid var(--color-alive);
+  border-radius: var(--radius-sm);
+  background: var(--node-alive-bg);
+  color: var(--color-alive);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+
+.instance-table-compare-btn:hover {
+  background: var(--color-alive);
+  color: var(--color-surface);
+}
+
+.instance-table-compare-hint {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.instance-table-compare-clear {
+  padding: 2px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ── Spec diff panel ──────────────────────────────────────────────────────── */
+
+.spec-diff-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.spec-diff-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.spec-diff-panel__title {
+  font-weight: 500;
+  flex: 1;
+  min-width: 200px;
+}
+
+.spec-diff-panel__count--diff {
+  color: var(--color-status-error);
+}
+
+.spec-diff-panel__count--same {
+  color: var(--color-status-ready);
+}
+
+.spec-diff-panel__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.spec-diff-panel__close {
+  padding: 3px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.spec-diff-panel__close:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.spec-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.spec-diff-table__th {
+  padding: 6px 12px;
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.spec-diff-table__th--field {
+  width: 30%;
+}
+
+.spec-diff-table__th--value {
+  width: 35%;
+}
+
+.spec-diff-table__td {
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+
+.spec-diff-table__td--field {
+  color: var(--color-text-muted);
+}
+
+.spec-diff-table__td--value code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.spec-diff-table__row--same .spec-diff-table__td {
+  opacity: 0.6;
+}
+
+.spec-diff-table__row--diff {
+  background: var(--node-error-bg);
+}
+
+.spec-diff-table__td--differs code {
+  color: var(--color-status-error);
+  font-weight: 600;
+}
+
+.spec-diff-table__absent {
+  color: var(--color-text-faint);
+}
+
+.spec-diff-table__empty {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  font-style: italic;
+}
