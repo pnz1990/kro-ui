@@ -651,8 +651,11 @@ export function liveStateClass(state: NodeLiveState | undefined): string {
  * Rules:
  *   - Root CR (nodeType 'instance'): aggregate over all entries in stateMap.
  *     Precedence: reconciling > error > alive > undefined.
- *   - All other nodes: direct lookup by lowercase kind (node.kind || node.label).
- *     Returns undefined when no matching child resource was found.
+ *   - All other nodes: look up by node.id (= kro.run/node-id label value).
+ *     The state map is keyed by node-id so this is the authoritative lookup.
+ *     Falls back to kind-based lookup for backward compat with any callers
+ *     that may pass a state map built by older code.
+ *     Returns undefined when no matching entry was found.
  *
  * Extracted from LiveDAG.tsx and DeepDAG.tsx to a single source of truth.
  * Constitution §IX: shared graph helpers must live in @/lib/dag.ts — never
@@ -674,8 +677,10 @@ export function nodeStateForNode(
     // undefined which maps to 'not-found' (gray). Fixes issue #230.
     return 'pending'
   }
+  // Primary: look up by node id (= kro.run/node-id label value).
+  // Fallback: kind-based lookup for compat with any stale callers.
   const kindKey = (node.kind || node.label).toLowerCase()
-  return stateMap[kindKey]?.state
+  return stateMap[node.id]?.state ?? stateMap[kindKey]?.state
 }
 
 // ── Chaining detection ────────────────────────────────────────────────────

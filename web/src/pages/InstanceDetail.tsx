@@ -102,11 +102,13 @@ function isReconciling(instance: K8sObject | null): boolean {
   if (!instance) return false
   const status = instance.status as Record<string, unknown> | undefined
   if (!status) return false
+  // kro v0.8.5: status.state === 'IN_PROGRESS' when readyWhen is unmet —
+  // does NOT emit Progressing=True; without this the banner is invisible.
+  if (status.state === 'IN_PROGRESS') return true
   const conditions = status.conditions
   if (!Array.isArray(conditions)) return false
   return (conditions as Array<{ type: string; status: string }>).some(
     // Issue #243: kro v0.8.x uses 'GraphProgressing'; v0.9.x+ uses 'Progressing'.
-    // Support both to avoid the reconciling banner being invisible on older clusters.
     (c) =>
       (c.type === 'Progressing' || c.type === 'GraphProgressing') &&
       c.status === 'True',

@@ -2,10 +2,33 @@
 //
 // This is the ONLY place that knows how to derive a live node state from
 // Kubernetes conditions and child resource presence.
+//
+// Key design: the state map is keyed by kro.run/node-id label, NOT by
+// resource kind. This is the same authoritative key used by resolveChildResourceInfo
+// and avoids two classes of bugs:
+//   1. Kube-generated resources (EndpointSlice, ReplicaSet, etc.) that are
+//      returned by GetInstanceChildren but lack kro.run/node-id are silently
+//      skipped — they don't pollute the state map or confuse the DAG overlay.
+//   2. Nodes where the RGD id differs from the resource kind (e.g. id="appNamespace",
+//      kind="Namespace") are correctly matched because the label is the id, not
+//      the kind.
+//   3. Two nodes of the same kind with different IDs (e.g. two ConfigMaps with
+//      id="appConfig" and id="appStatus") both get their correct state.
 
 import type { K8sObject } from './api'
 import { isTerminating, getFinalizers, getDeletionTimestamp } from './k8s'
 import type { DAGNode } from './dag'
+
+const LABEL_NODE_ID = 'kro.run/node-id'
+
+/** Read kro.run/node-id from a child resource's metadata labels. Returns '' if absent. */
+function nodeIdLabel(child: K8sObject): string {
+  const meta = child.metadata as Record<string, unknown> | undefined
+  const labels = meta?.labels
+  if (typeof labels !== 'object' || labels === null) return ''
+  const val = (labels as Record<string, unknown>)[LABEL_NODE_ID]
+  return typeof val === 'string' ? val : ''
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -115,24 +138,27 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
  *
  * Algorithm:
  * 1. Determine the global state from instance conditions:
- *    - Progressing=True → globalState = 'reconciling'
- *    - Ready=False      → globalState = 'error'
- *    - Otherwise        → globalState = 'alive'
- * 2. Build a presence map from children, keyed by lowercase kind.
+ *    - kro status.state === 'IN_PROGRESS' → globalState = 'reconciling'
+ *      (kro v0.8.5 uses this field when readyWhen is unmet — does not emit
+ *      Progressing=True in this case, only ResourcesReady=False + Ready=False)
+ *    - Progressing=True OR GraphProgressing=True → globalState = 'reconciling'
+ *      (kro v0.9.x+ condition; GraphProgressing is the v0.8.x predecessor)
+ *    - Ready=False → globalState = 'error'
+ *    - Otherwise  → globalState = 'alive'
+ *    Precedence: reconciling > error > alive
+ * 2. Build a presence map from children, keyed by kro.run/node-id label.
+ *    - Children lacking kro.run/node-id (kube-generated: EndpointSlice,
+ *      ReplicaSet, etc.) are silently skipped — not kro-managed nodes.
+ *    - First child for each node-id wins (handles rare duplicates).
  *    - Terminating children always get state 'error'.
  *    - When globalState is 'reconciling' or 'error', all present children
  *      inherit that global state (CR-level signal wins).
  *    - When globalState is 'alive', each child's own status.conditions are
- *      inspected individually via deriveChildState() — enabling per-node
- *      health differentiation even when the CR itself is healthy.
+ *      inspected individually via deriveChildState().
  * 3. Enumerate every non-state, non-instance RGD node and emit an explicit
  *    entry for absent nodes:
  *    - Node has includeWhen expressions → state = 'pending' (excluded by cond)
  *    - Node has no includeWhen          → state = 'not-found' (not yet created)
- *
- * The `rgdNodes` parameter (GH #165 fix) ensures every DAG node has an entry
- * so that absent nodes receive the correct CSS class rather than being
- * silently unstyled. Pass `dagGraph.nodes` from the call site.
  */
 export function buildNodeStateMap(
   instance: K8sObject,
@@ -147,34 +173,36 @@ export function buildNodeStateMap(
   if (hasCondition(conditions, 'Ready', 'False')) {
     globalState = 'error'
   }
-  // Progressing=True wins over error — kro actively working
-  if (hasCondition(conditions, 'Progressing', 'True')) {
+  // kro v0.8.5: status.state === 'IN_PROGRESS' when readyWhen is unmet.
+  // Does NOT emit Progressing=True in this state — must check status.state directly.
+  const kroState = (instance.status as Record<string, unknown> | undefined)?.state
+  if (kroState === 'IN_PROGRESS') {
+    globalState = 'reconciling'
+  }
+  // Progressing=True OR GraphProgressing=True wins — kro actively working.
+  // GraphProgressing is the kro v0.8.x predecessor to Progressing.
+  if (
+    hasCondition(conditions, 'Progressing', 'True') ||
+    hasCondition(conditions, 'GraphProgressing', 'True')
+  ) {
     globalState = 'reconciling'
   }
 
   const result: NodeStateMap = {}
 
-  // ── Step 2: build result from observed children ───────────────────────────
-  // Key by lowercase kind; first child of each kind wins.
+  // ── Step 2: build result from observed children, keyed by kro.run/node-id ──
+  // Children without kro.run/node-id (kube-generated: EndpointSlice, ReplicaSet,
+  // etc.) are skipped entirely — they are not kro-managed DAG nodes.
+  // First child for each node-id wins (handles rare duplicate labels gracefully).
   for (const child of children) {
+    const nodeId = nodeIdLabel(child)
+    if (!nodeId) continue // not a kro-managed resource — skip
+    if (nodeId in result) continue // first child for this node-id wins
+
     const meta = child.metadata as Record<string, unknown> | undefined
     if (!meta) continue
 
-    // Prefer the top-level .kind field; fall back to resource-id label (kro ≤0.2 quirk)
-    const kindRaw =
-      typeof child.kind === 'string' && child.kind
-        ? child.kind
-        : typeof (meta.labels as Record<string, unknown> | undefined)?.[
-            'kro.run/resource-id'
-          ] === 'string'
-        ? String((meta.labels as Record<string, unknown>)['kro.run/resource-id'])
-        : ''
-
-    if (!kindRaw) continue
-
-    const key = kindRaw.toLowerCase()
-    if (key in result) continue // first child of each kind wins
-
+    const kindRaw = typeof child.kind === 'string' && child.kind ? child.kind : ''
     const name = typeof meta.name === 'string' ? meta.name : ''
     const namespace = typeof meta.namespace === 'string' ? meta.namespace : ''
     const { group, version } = parseApiVersion(child.apiVersion)
@@ -183,9 +211,6 @@ export function buildNodeStateMap(
     const childFinalizers = getFinalizers(child)
     const childDeletionTimestamp = getDeletionTimestamp(child)
 
-    // Terminating children force error state regardless of global or per-node state.
-    // When globalState is 'reconciling' or 'error', it propagates to all present nodes.
-    // When globalState is 'alive', inspect the child's own conditions for per-node state.
     let nodeState: NodeLiveState
     if (childTerminating) {
       nodeState = 'error'
@@ -195,7 +220,7 @@ export function buildNodeStateMap(
       nodeState = deriveChildState(getChildConditions(child))
     }
 
-    result[key] = {
+    result[nodeId] = {
       state: nodeState,
       kind: kindRaw,
       name,
@@ -210,19 +235,17 @@ export function buildNodeStateMap(
 
   // ── Step 3: enumerate every non-state, non-instance RGD node ─────────────
   // Absent nodes receive 'pending' when the node has includeWhen expressions
-  // (meaning it is actively excluded by a condition), or 'not-found' otherwise
-  // (meaning the resource hasn't been created yet).
-  // This guarantees every DAG node has an entry when the overlay is active.
+  // (meaning it is actively excluded by a condition), or 'not-found' otherwise.
   for (const node of rgdNodes) {
     if (node.nodeType === 'instance' || node.nodeType === 'state') continue
-    const kindKey = (node.kind || node.label || '').toLowerCase()
-    if (!kindKey) continue
-    if (kindKey in result) continue // already set by an observed child
+    const nodeId = node.id  // use the RGD resource id, matching kro.run/node-id
+    if (!nodeId) continue
+    if (nodeId in result) continue // already set by an observed child
 
     const hasIncludeWhen = node.includeWhen.some((e) => e.trim() !== '')
-    result[kindKey] = {
+    result[nodeId] = {
       state: hasIncludeWhen ? 'pending' : 'not-found',
-      kind: node.kind || node.label || kindKey,
+      kind: node.kind || node.label || nodeId,
       name: '',
       namespace: '',
       group: '',

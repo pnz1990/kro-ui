@@ -90,6 +90,10 @@ func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Coerce nil to empty slice so the response is always {"items":[]} not {"items":null}.
+	if children == nil {
+		children = []map[string]any{}
+	}
 	log.Debug().Int("count", len(children)).Str("namespace", namespace).Str("name", name).Str("rgd", rgdName).Msg("listed instance children")
 	respond(w, http.StatusOK, types.ChildrenResponse{Items: children})
 }

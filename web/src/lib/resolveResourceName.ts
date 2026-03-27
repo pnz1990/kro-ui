@@ -107,6 +107,9 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
  *
  * Match order (fix #210):
  *   1. child.metadata.labels["kro.run/node-id"] === nodeLabel  (kro ≥ 0.8.0, exact)
+ *      When multiple children share the same node-id (e.g. kube auto-creates an
+ *      EndpointSlice alongside a Service, both labelled with the same kro node-id),
+ *      prefer the child whose kind matches nodeKind. Falls back to first match.
  *   2. child.kind.toLowerCase() === kindHint from nodeLabel     (kro < 0.8.0, by kind)
  *   3. child.kind.toLowerCase() === nodeKind?.toLowerCase()     (caller-supplied kind)
  *   4. Inference fallback
@@ -114,7 +117,7 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
  * @param nodeLabel    - DAG node label (= resource ID, e.g. "appNamespace")
  * @param instanceName - CR instance name for the inference fallback
  * @param children     - Child resources from getInstanceChildren
- * @param nodeKind     - Optional: DAGNode.kind (e.g. "Namespace") for step-3 fallback
+ * @param nodeKind     - Optional: DAGNode.kind (e.g. "Service") for tie-break and step-3
  */
 export function resolveChildResourceInfo(
   nodeLabel: string,
@@ -122,11 +125,20 @@ export function resolveChildResourceInfo(
   children: K8sObject[],
   nodeKind?: string,
 ): ChildResourceInfo | null {
-  // Step 1: match by kro.run/node-id label (authoritative — kro ≥ 0.8.0)
-  for (const child of children) {
-    if (nodeIdLabel(child) === nodeLabel) {
-      return childToInfo(child)
+  // Step 1: match by kro.run/node-id label (authoritative — kro ≥ 0.8.0).
+  // Collect all matches, then prefer the one whose kind matches nodeKind.
+  // This handles kube-generated resources (EndpointSlice, etc.) that inherit
+  // kro labels from their parent Service.
+  const nodeIdMatches = children.filter((c) => nodeIdLabel(c) === nodeLabel)
+  if (nodeIdMatches.length > 0) {
+    if (nodeKind) {
+      const kindLower = nodeKind.toLowerCase()
+      const kindMatch = nodeIdMatches.find(
+        (c) => typeof c.kind === 'string' && c.kind.toLowerCase() === kindLower,
+      )
+      if (kindMatch) return childToInfo(kindMatch)
     }
+    return childToInfo(nodeIdMatches[0])
   }
 
   const kindHint = kindHintFromLabel(nodeLabel).toLowerCase()
