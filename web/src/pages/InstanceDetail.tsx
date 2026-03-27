@@ -29,7 +29,7 @@ import type { NodeLiveState } from '@/lib/instanceNodeState'
 import { buildDAGGraph } from '@/lib/dag'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
-import { extractInstanceHealth, applyDegradedState } from '@/lib/format'
+import { extractInstanceHealth, applyDegradedState, displayNamespace } from '@/lib/format'
 import { countHealthyChildren } from '@/lib/telemetry'
 import { usePolling } from '@/hooks/usePolling'
 import { isTerminating, getDeletionTimestamp, getFinalizers } from '@/lib/k8s'
@@ -94,6 +94,20 @@ function RefreshIndicator({
       refreshed {secondsAgo}s ago
     </span>
   )
+}
+
+// ── Reconcile-paused detection ────────────────────────────────────────────
+// kro v0.9.0 changed from a label to an annotation:
+//   Annotation: metadata.annotations["kro.run/reconcile"] === "disabled"
+// When present, kro stops reconciling the instance until the annotation is removed.
+
+function isReconcilePaused(instance: K8sObject | null): boolean {
+  if (!instance) return false
+  const meta = instance.metadata as Record<string, unknown> | undefined
+  if (!meta) return false
+  const annotations = meta.annotations
+  if (typeof annotations !== 'object' || annotations === null) return false
+  return (annotations as Record<string, unknown>)['kro.run/reconcile'] === 'disabled'
 }
 
 // ── Reconciling banner ─────────────────────────────────────────────────────
@@ -338,7 +352,7 @@ export default function InstanceDetail() {
         ) : null} />
         {fastData && <CopySpecButton instance={fastData.instance} />}
         <div className="instance-detail-meta">
-          {namespace && <span className="instance-detail-ns">{namespace}</span>}
+          {namespace && <span className="instance-detail-ns">{displayNamespace(namespace)}</span>}
           <RefreshIndicator lastRefresh={lastRefresh} error={instanceGone ? null : (pollError && !pollLoading ? pollError : null)} />
           <button
             type="button"
@@ -359,6 +373,21 @@ export default function InstanceDetail() {
           deletionTimestamp={getDeletionTimestamp(fastData.instance) ?? ''}
           tick={pollTick}
         />
+      )}
+
+      {/* Reconciliation paused banner (kro v0.9.0 — annotation kro.run/reconcile=disabled) */}
+      {fastData && isReconcilePaused(fastData.instance) && (
+        <div
+          className="reconcile-paused-banner"
+          role="status"
+          aria-live="polite"
+          title="kro.run/reconcile: disabled annotation is present. Remove the annotation to resume reconciliation: kubectl annotate <kind> <name> kro.run/reconcile-"
+        >
+          <span className="reconcile-paused-banner__icon" aria-hidden="true">⏸</span>
+          Reconciliation paused — kro will not apply changes until the{' '}
+          <code className="reconcile-paused-banner__code">kro.run/reconcile: disabled</code>
+          {' '}annotation is removed.
+        </div>
       )}
 
       {/* Reconciling banner (FR-003) — only when NOT terminating */}

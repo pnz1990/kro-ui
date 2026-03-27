@@ -132,6 +132,30 @@
 
 /* ── Banners ─────────────────────────────────────────────────────────────── */
 
+/* Reconciliation paused banner — kro.run/reconcile: disabled annotation detected */
+.reconcile-paused-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--node-pending-bg);
+  border: 1px solid var(--node-pending-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-pending);
+}
+
+.reconcile-paused-banner__icon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.reconcile-paused-banner__code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  color: var(--color-pending);
+}
+
 .reconciling-banner {
   display: flex;
   align-items: center;

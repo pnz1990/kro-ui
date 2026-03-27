@@ -9,6 +9,7 @@ import {
   extractInstanceHealth,
   aggregateHealth,
   abbreviateContext,
+  displayNamespace,
 } from './format'
 
 // ── formatAge ────────────────────────────────────────────────────────
@@ -500,5 +501,31 @@ describe('abbreviateContext', () => {
   it('returns non-EKS ARN-format contexts as-is (no guessing)', () => {
     const oidcCtx = 'kubernetes-admin@my.cluster.example.com'
     expect(abbreviateContext(oidcCtx)).toBe(oidcCtx)
+  })
+})
+
+// ── displayNamespace ─────────────────────────────────────────────────
+
+describe('displayNamespace', () => {
+  it('returns "cluster-scoped" for the _ URL sentinel', () => {
+    expect(displayNamespace('_')).toBe('cluster-scoped')
+  })
+
+  it('returns "cluster-scoped" for empty string', () => {
+    expect(displayNamespace('')).toBe('cluster-scoped')
+  })
+
+  it('returns "cluster-scoped" for undefined', () => {
+    expect(displayNamespace(undefined)).toBe('cluster-scoped')
+  })
+
+  it('returns "cluster-scoped" for null', () => {
+    expect(displayNamespace(null)).toBe('cluster-scoped')
+  })
+
+  it('returns the namespace unchanged for a real namespace', () => {
+    expect(displayNamespace('kro-ui-demo')).toBe('kro-ui-demo')
+    expect(displayNamespace('default')).toBe('default')
+    expect(displayNamespace('kube-system')).toBe('kube-system')
   })
 })

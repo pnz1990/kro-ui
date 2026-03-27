@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
-import { extractInstanceHealth, formatAge, extractCreationTimestamp } from '@/lib/format'
+import { extractInstanceHealth, formatAge, extractCreationTimestamp, displayNamespace } from '@/lib/format'
 import { isTerminating } from '@/lib/k8s'
 import ReadinessBadge from './ReadinessBadge'
 import './InstanceTable.css'
@@ -211,7 +211,7 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
                   className="instance-table__td"
                   data-testid="instance-namespace"
                 >
-                  {namespace}
+                  {displayNamespace(namespace)}
                 </td>
                 <td className="instance-table__td" data-testid="instance-age">
                   {age}
