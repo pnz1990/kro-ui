@@ -86,7 +86,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `048-ui-polish-and-docs` | — | 26-gap UI polish: tooltips, legends, help text, abbr expansions, token fixes, AGENTS.md update | Merged (PR #279) |
 | `049-designer-ux-refresh-button` | — | Refresh now button; Designer CEL/scope help text; optimizer docs URL fix | Merged (PR #280) |
 | `050-kro-v090-phase2` | #274 | kro v0.9.0 phase 2 — reconcile-paused banner, cluster-scoped namespace display, displayNamespace utility | Merged (PR #281) |
-| `fix/errortab-dedup-chip` | — | ErrorsTab unique-instance dedup in summary; OptimizationAdvisor emoji removed | In progress |
+| `fix/errortab-dedup-chip` | — | ErrorsTab unique-instance dedup in summary; OptimizationAdvisor emoji removed | Merged (PR #282) |
+| `fix/schema-object-type` | — | DocsTab: JSON Schema object fields render as map/array type, not [object Object] | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -389,7 +390,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
 ## Recent Changes
-- v0.4.7 (in progress): kro v0.9.0 phase 2 — reconcile-paused banner (`kro.run/reconcile: disabled` annotation), `displayNamespace()` utility (`_` → "cluster-scoped" in InstanceTable, InstanceDetail meta, OverlayBar picker)
+- v0.4.8 (in progress): DocsTab JSON Schema object field rendering fix (`[object Object]` → `map[string]string`); `/pdca-improvements` slash command
+- v0.4.7: kro v0.9.0 phase 2 — reconcile-paused banner, cluster-scoped namespace display (PR #281); ErrorsTab unique-instance dedup, optimizer emoji (PR #282)
 - v0.4.6: 26-gap UI polish (PR #279) + refresh button + Designer help text + optimizer URL fix (PR #280)
 - v0.4.5: degraded health state (6th InstanceHealthState) + multi-segment HealthChip bar (✗/⚠/↻ counts) + copy instance YAML button; state map keyed by kro.run/node-id (fixes two-Deployment node collision, EndpointSlice pollution); IN_PROGRESS kro state → reconciling pill+banner; items:null→[] on zero children; GraphProgressing compat (kro v0.8.x)
 - v0.4.4: RGD Designer full kro feature coverage — all 5 node types, includeWhen, readyWhen CEL, schema field editor

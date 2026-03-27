@@ -197,7 +197,65 @@ function parseBaseType(base: string): ParsedType {
   return { type: base }
 }
 
-// ── Status type inference ─────────────────────────────────────────────────
+// ── JSON Schema object → kro SimpleSchema type string ────────────────────
+
+/**
+ * Convert a raw spec field value to a display type string.
+ *
+ * kro SimpleSchema fields are normally strings like "string | default=foo"
+ * or "integer | required". However, when a field is defined using full
+ * JSON Schema syntax (e.g. `type: object` with `additionalProperties`),
+ * the value is a plain JavaScript object — NOT a string.
+ *
+ * Calling String() on such an object produces "[object Object]" which
+ * violates constitution §XII (graceful degradation: never render raw JS
+ * object coercions). This function produces a human-readable type label
+ * instead.
+ *
+ * Supported JSON Schema shapes → output:
+ *   { type: "object" }                            → "object"
+ *   { type: "object", additionalProperties: {type:"string"} } → "map[string]string"
+ *   { type: "array", items: {type: "string"} }    → "[]string"
+ *   { type: "array", items: "string" }             → "[]string"
+ *   { type: "boolean" }                            → "boolean"
+ *   anything else (unknown structure)              → JSON.stringify(value) truncated to 40 chars
+ */
+function rawSchemaValueToString(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value !== 'object' || value === null) return String(value)
+
+  const obj = value as Record<string, unknown>
+  const t = obj.type
+
+  if (t === 'object') {
+    const ap = obj.additionalProperties
+    if (ap && typeof ap === 'object') {
+      const apObj = ap as Record<string, unknown>
+      const valueType = typeof apObj.type === 'string' ? apObj.type : 'string'
+      return `map[string]${valueType}`
+    }
+    return 'object'
+  }
+
+  if (t === 'array') {
+    const items = obj.items
+    if (items && typeof items === 'object') {
+      const itemsObj = items as Record<string, unknown>
+      const itemType = typeof itemsObj.type === 'string' ? itemsObj.type : 'any'
+      return `[]${itemType}`
+    }
+    if (typeof items === 'string') return `[]${items}`
+    return '[]'
+  }
+
+  if (typeof t === 'string') return t
+
+  // Unknown JSON Schema shape — show compact JSON, capped at 40 chars.
+  const compact = JSON.stringify(value)
+  return compact.length > 40 ? compact.slice(0, 37) + '…' : compact
+}
+
+
 
 /**
  * Infer the display type for a status field from its CEL expression.
@@ -242,7 +300,11 @@ export function buildSchemaDoc(rgd: K8sObject): SchemaDoc {
 
   const specFields: ParsedField[] = Object.entries(rawSpec).map(
     ([name, value]) => {
-      const raw = typeof value === 'string' ? value : String(value)
+      // Use rawSchemaValueToString instead of String(value) to avoid
+      // "[object Object]" for fields defined with full JSON Schema syntax
+      // (e.g. { type: "object", additionalProperties: { type: "string" } }).
+      // Constitution §XII: graceful degradation — never render raw JS coercions.
+      const raw = rawSchemaValueToString(value)
       return {
         name,
         raw,
@@ -253,7 +315,7 @@ export function buildSchemaDoc(rgd: K8sObject): SchemaDoc {
 
   const statusFields: ParsedField[] = Object.entries(rawStatus).map(
     ([name, value]) => {
-      const raw = typeof value === 'string' ? value : String(value)
+      const raw = rawSchemaValueToString(value)
       return {
         name,
         raw,
