@@ -362,6 +362,10 @@ export default function CollectionPanel({
             <span
               data-testid="collection-count"
               className="collection-panel-count"
+              title={expectedTotal > 0 && expectedTotal !== items.length
+                ? `Expected ${expectedTotal} items (from kro.run/collection-size label) — showing ${items.length}. Remaining items may still be reconciling.`
+                : `${items.length} item${items.length === 1 ? '' : 's'} in this forEach collection`
+              }
             >
               {expectedTotal > 0 ? expectedTotal : items.length}
             </span>
@@ -386,7 +390,8 @@ export default function CollectionPanel({
             data-testid="collection-empty-state"
             className="collection-empty-state"
           >
-            Empty collection. The forEach expression evaluated to an empty list. Check the forEach CEL expression above.
+            Empty collection — the forEach expression evaluated to an empty list.
+            Verify that the spec field referenced in the forEach expression is non-empty for this instance.
           </div>
         ) : (
           <div className="collection-table-wrapper">

@@ -57,15 +57,15 @@ export default function FleetMatrix({ clusters, rgdsByContext }: FleetMatrixProp
   return (
     <div className="fleet-matrix" role="region" aria-label="RGD presence matrix">
       <div className="fleet-matrix__legend" aria-label="Matrix legend">
-        <span className="fleet-matrix__legend-entry">
+        <span className="fleet-matrix__legend-entry" title="This RGD has at least one healthy (Ready) instance in this cluster">
           <span className="fleet-matrix__dot fleet-matrix__dot--present" aria-hidden="true" />
           Present
         </span>
-        <span className="fleet-matrix__legend-entry">
+        <span className="fleet-matrix__legend-entry" title="This RGD has instances but at least one is in an error or reconciling state">
           <span className="fleet-matrix__dot fleet-matrix__dot--degraded" aria-hidden="true" />
           Degraded
         </span>
-        <span className="fleet-matrix__legend-entry">
+        <span className="fleet-matrix__legend-entry" title="No instances of this RGD exist in this cluster">
           <span className="fleet-matrix__absent-dash" aria-hidden="true">–</span>
           Absent
         </span>

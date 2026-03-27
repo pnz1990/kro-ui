@@ -221,6 +221,8 @@ export default function AccessTab({ rgdName }: AccessTabProps) {
       </div>
 
       <p className="access-tab-note">
+        This tab checks whether kro's service account has the <abbr title="Role-Based Access Control">RBAC</abbr> permissions
+        required to create, update, and delete the resources defined in this <abbr title="ResourceGraphDefinition">RGD</abbr>.
         kro-ui checks kro's service account permissions, not its own.
       </p>
 

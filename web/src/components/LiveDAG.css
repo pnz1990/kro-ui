@@ -205,6 +205,15 @@
 .dag-tooltip__state--pending     { color: var(--color-pending); }
 .dag-tooltip__state--notfound    { color: var(--color-text-faint); }
 
+/* State hint — secondary explanation line below the state label in tooltips */
+.dag-tooltip__state-hint {
+  display: block;
+  font-size: 0.75em;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
 /* Live-state legend (L-2, issue #167) */
 .live-dag-state-legend {
   display: flex;

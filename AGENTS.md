@@ -79,7 +79,11 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/issue-183` | #183 | Static DAG overlay svgHeight — use graph.height directly, SVG display:block | Merged (PR #209) |
 | `fix/issue-210` | #210 | Live YAML resolve child resource by kro.run/node-id label | Merged (PR #211) |
 | `043-upstream-fixture-generator` | #222 | Upstream fixture generator — cmd/dump-fixtures, full kro feature coverage, contagious includeWhen fix | Merged (PR #224) |
-| `046-kro-v090-upgrade` | — | kro v0.9.0 upgrade — GraphRevision API, scope badge, DocsTab types, capabilities baseline update | In progress |
+| `045-rgd-designer-validation-optimizer` | — | RGD Designer YAML validation, editable YAML panel, expanded optimization advisor | Merged (PR #273) |
+| `046-kro-v090-upgrade` | — | kro v0.9.0 upgrade — GraphRevision API, scope badge, DocsTab types, capabilities baseline update | Merged (PR #275) |
+| `047-ux-improvements` | #276 | Degraded health state (6th state), multi-segment health bar, copy instance YAML button | Merged (PR #277) |
+| `fix/node-id-state-map` | — | State map keyed by kro.run/node-id; IN_PROGRESS→reconciling; items:null→[]; EndpointSlice fix | Merged (PR #278) |
+| `048-ui-polish-and-docs` | — | 26-gap UI polish: tooltips, legends, help text, abbr expansions, token fixes, AGENTS.md update | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -377,21 +381,20 @@ Always read the spec before writing code. Always run `go vet ./...` and
 ## Active Technologies
 - Go 1.25 backend + TypeScript 5.x + React 19 + React Router v7 + Vite — no new npm or Go dependencies introduced since v0.2.1
 - All state is local React `useState`; no persistence layer; no state management libraries
-- Go 1.25 (backend) + TypeScript 5.x / Node (E2E setup script) + Playwright (E2E), kubectl, kind, helm (043-upstream-fixture-generator)
-- N/A — no persistent storage (043-upstream-fixture-generator)
-- TypeScript 5.x (frontend); Go 1.25 (backend — no changes needed) + React 19, Vite, plain CSS — no new npm or Go packages (045-rgd-designer-validation-optimizer)
-- N/A — all state is local React `useState`; no persistence (045-rgd-designer-validation-optimizer)
-- Go 1.25 (backend) + TypeScript 5.x / React 19 (frontend) + chi v5, zerolog, client-go dynamic, React 19 + Vite — no new deps (046-kro-v090-upgrade)
-- N/A — all state in React `useState`; no persistence (046-kro-v090-upgrade)
+- 6-state `InstanceHealthState` (ready/degraded/reconciling/error/pending/unknown); state map keyed by `kro.run/node-id` label (not by kind)
+- kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
+- Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
 ## Recent Changes
-- v0.4.6 (in progress): kro v0.9.0 upgrade — `GET /api/v1/kro/graph-revisions` API (unblocks spec 009-rgd-graph-diff); `hasGraphRevisions` + `hasExternalRefSelector:true` capabilities baseline; "Cluster" scope badge on RGD cards and detail header; DocsTab Types section (spec.schema.types); `lastIssuedRevision` Rev #N chip; forEach Designer cartesian Remove-button guard; CEL comprehension regression guard; E2E journeys 046 + updates to 008/020/036
-- v0.4.3: upstream fixture generator (`cmd/dump-fixtures`, `make dump-fixtures`) covering all kro node types; contagious `includeWhen` BFS propagation fix in `dag.ts`; 6 new E2E journey files (43 total); `GetInstanceChildren` scoped to RGD resource types; spec-audit fixes (isItemReady isolation, FetchEffectiveRules deadline, extractInstanceHealth negation-polarity); demo/E2E setup hardened for kro v0.8.5 (non-fatal applies for v0.9.0+ fixtures); unit test coverage for InstanceDetail, Fleet, AuthorPage, NotFound, LiveDAG, format, collection
-- v0.4.2: RGD Designer promoted to first-class nav (replaces `+ New RGD` button), live DAG preview on `/author`, error states UX audit (translateApiError, enriched empty states), static DAG overlay svgHeight fix (display:block + graph.height direct), Live YAML node resolution via kro.run/node-id label (fixes all RGDs where ID ≠ kind), cluster-scoped children fix + DeepDAG accordion + DAG panel layout
-- v0.4.1: 9-issue bug-fix batch — breadcrumb rename (Overview), FieldTable scrollbar, OptimizationAdvisor layout, context-switch navigation, ValidationTab condition types (kro v0.4+), cluster-scoped Live YAML (Namespace/ClusterRole/PV), DAG tooltip hover persistence, DiscoverPlural discovery cache + Fleet errgroup fan-out + 5s server timeout, test coverage (access handler, 4 lib modules, 3 E2E journeys)
-- v0.4.0: Overview/Catalog IA differentiation (Home renamed to Overview), live DAG per-node state with pending/per-child conditions + tooltip wiring, global `/author` RGD authoring entrypoint + `+ New RGD` top bar, per-context controller metrics via pod-proxy discovery (removes `--metrics-url`), Fleet per-cluster metrics column
-- v0.3.4: negation-polarity condition fix (ReconciliationSuspended=False renders healthy), overlay node-mapping fix (all DAG nodes covered), Children denominator tooltip, condition inversion + schema defaults + catalog shimmer + home/fleet UX fixes, E2E journey backfill
-- v0.3.3: cluster-wide child resource search (per-instance namespaces), parallel events fan-out with 2s timeout, DAG width fitted to node bounding boxes, null items guard for kro serialization edge cases, uniform card min-height
-- v0.3.2: Docker image now includes aws CLI v2 for EKS exec credential plugin; mount `~/.aws` alongside `~/.kube/config`
-- v0.3.1: DAG legend component, required-field a11y improvements, overlay crash fix, expand accordion fix, demo environment hardening (idempotent kind cluster, safe kubeconfig fallback, non-fatal CEL/collection waits)
-- v0.3.0: instance telemetry panel, cross-instance error aggregation (Errors tab), instance health roll-up (5-state badges), DAG instance overlay, global footer, first-time onboarding + version API, deletion debugger, RBAC SA auto-detection, RGD detail header enrichment, 14 UX/bug fixes (catalog, fleet, events, schema parser, ARN disambiguation)
+- v0.4.6: 26-gap UI polish — tooltips on every TelemetryPanel cell, MetricsStrip, HealthPill fallback tooltip, DAGTooltip state hints, live-DAG legend tooltips (Pending renamed Excluded), FleetMatrix legend tooltips, ClusterCard stat tooltips, CollectionPanel items count tooltip, ConditionItem per-type tooltips, ValidationTab section description, AccessTab RBAC explanation, ErrorsTab summary tooltip, instances empty state links to Generate tab; `--node-degraded-bg` token (fixes rgba() anti-pattern); AGENTS.md spec inventory updated through PR #278
+- v0.4.5: degraded health state (6th InstanceHealthState) + multi-segment HealthChip bar (✗/⚠/↻ counts) + copy instance YAML button; state map keyed by kro.run/node-id (fixes two-Deployment node collision, EndpointSlice pollution); IN_PROGRESS kro state → reconciling pill+banner; items:null→[] on zero children; GraphProgressing compat (kro v0.8.x)
+- v0.4.4: RGD Designer full kro feature coverage — all 5 node types, includeWhen, readyWhen CEL, schema field editor
+- v0.4.3: upstream fixture generator (cmd/dump-fixtures); contagious includeWhen BFS fix; 43 E2E journeys; GetInstanceChildren scoped; demo/E2E hardened for kro v0.8.5
+- v0.4.2: RGD Designer promoted to nav; live DAG preview; error states UX audit; static DAG overlay svgHeight fix; Live YAML by kro.run/node-id; cluster-scoped children fix
+- v0.4.1: 9-issue bug-fix batch — breadcrumb, FieldTable, OptimizationAdvisor, context-switch nav, ValidationTab conditions, DAG tooltip persistence, DiscoverPlural cache, Fleet errgroup+timeout
+- v0.4.0: Overview/Catalog IA differentiation; live DAG per-node state; global /author entrypoint; per-context controller metrics; Fleet metrics column
+- v0.3.4: negation-polarity condition fix; overlay node-mapping fix; Children denominator tooltip; catalog/home/fleet UX fixes
+- v0.3.3: cluster-wide child resource search; parallel events fan-out; DAG width fitted; null items guard
+- v0.3.2: Docker image includes aws CLI v2 for EKS exec credential plugin
+- v0.3.1: DAG legend; required-field a11y; overlay crash fix; expand accordion fix; demo hardening
+- v0.3.0: instance telemetry panel; cross-instance error aggregation (Errors tab); instance health roll-up; DAG instance overlay; global footer; first-time onboarding; deletion debugger; RBAC SA auto-detection; RGD detail header enrichment

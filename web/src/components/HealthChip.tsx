@@ -35,14 +35,15 @@ interface SegmentDef {
   state: InstanceHealthState
   icon: string
   label: string
+  description: string
 }
 
 const SEGMENTS: SegmentDef[] = [
-  { state: 'error',       icon: '✗', label: 'error'       },
-  { state: 'degraded',    icon: '⚠', label: 'degraded'    },
-  { state: 'reconciling', icon: '↻', label: 'reconciling' },
-  { state: 'pending',     icon: '…', label: 'pending'      },
-  { state: 'unknown',     icon: '?', label: 'unknown'      },
+  { state: 'error',       icon: '✗', label: 'error',       description: 'Ready=False — failed condition' },
+  { state: 'degraded',    icon: '⚠', label: 'degraded',    description: 'CR is ready but child resources have errors' },
+  { state: 'reconciling', icon: '↻', label: 'reconciling', description: 'kro is applying changes' },
+  { state: 'pending',     icon: '…', label: 'pending',      description: 'conditions are Unknown — not yet processed' },
+  { state: 'unknown',     icon: '?', label: 'unknown',      description: 'no conditions reported' },
 ]
 
 /**
@@ -107,7 +108,7 @@ export default function HealthChip({ summary, loading = false }: HealthChipProps
         <span
           key={seg.state}
           className={`health-chip__segment health-chip__segment--${seg.state}`}
-          title={`${summary[seg.state]} ${seg.label}`}
+          title={`${summary[seg.state]} instance${summary[seg.state] === 1 ? '' : 's'} — ${seg.description}`}
         >
           {seg.icon} {summary[seg.state]}
         </span>
