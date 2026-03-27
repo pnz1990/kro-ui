@@ -124,3 +124,19 @@
   cursor: default;
   white-space: nowrap;
 }
+
+/* ── Cluster-scope badge (spec 046-kro-v090-upgrade FR-020) ────────────────── */
+
+/* Violet pill shown on cluster-scoped RGDs only. Hidden when scope === 'Namespaced'
+ * (the default) — no badge in the common case. See tokens.css for color tokens. */
+.rgd-scope-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background: var(--badge-cluster-bg);
+  color: var(--badge-cluster-fg);
+  cursor: default;
+  white-space: nowrap;
+}

@@ -866,15 +866,19 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                         />
                         <span className="rgd-authoring-form__cel-badge">CEL</span>
                       </div>
-                      <button
-                        type="button"
-                        className="rgd-authoring-form__remove-btn"
-                        onClick={() => removeForEachIterator(res._key, it._key)}
-                        data-testid={`foreach-remove-${res._key}-${i}`}
-                        aria-label="Remove iterator"
-                      >
-                        ×
-                      </button>
+                      {/* FR-060: Hide Remove button when there is only 1 iterator.
+                          Prevents accidentally leaving a forEach with 0 iterators. */}
+                      {(res.forEachIterators?.length ?? 0) > 1 && (
+                        <button
+                          type="button"
+                          className="rgd-authoring-form__remove-btn"
+                          onClick={() => removeForEachIterator(res._key, it._key)}
+                          data-testid={`foreach-remove-${res._key}-${i}`}
+                          aria-label="Remove iterator"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   ))}
                   <button

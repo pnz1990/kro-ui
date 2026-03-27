@@ -344,3 +344,41 @@ describe("tokenize — performance", () => {
     expect(elapsed).toBeLessThan(10)
   })
 })
+
+// ── T028: CEL Comprehension Macros Regression Guard (spec 046) ─────────────
+// These are regression tests — no code change to highlighter.ts was made.
+// The existing ${...} pattern already produces celExpression tokens.
+// This suite ensures future refactors do not accidentally break that behaviour.
+
+describe("tokenize — CEL comprehension macros (kro v0.9.0 regression guard)", () => {
+  const comprehensionCases = [
+    {
+      macro: "transformMap",
+      input: '    result: ${schema.spec.items.transformMap(k, v, {k: string(v)})}',
+    },
+    {
+      macro: "transformList",
+      input: '    tagList: ${schema.spec.tags.transformList(i, v, v).join(",")}',
+    },
+    {
+      macro: "transformMapEntry",
+      input: '    tagIndex: ${schema.spec.tags.transformMapEntry(i, v, string(i), v)}',
+    },
+  ]
+
+  for (const { macro, input } of comprehensionCases) {
+    it(`tokenises ${macro}(...) inside \${...} as celExpression`, () => {
+      const tokens = tokenize(input)
+      const celTokens = tokens.filter((t) => t.type === "celExpression")
+      expect(celTokens.length).toBeGreaterThan(0)
+      const combined = celTokens.map((t) => t.text).join("")
+      expect(combined).toContain(macro)
+    })
+
+    it(`tokenize(input) is complete for ${macro} case`, () => {
+      const tokens = tokenize(input)
+      const reconstructed = tokens.map((t: Token) => t.text).join("")
+      expect(reconstructed).toBe(input)
+    })
+  }
+})

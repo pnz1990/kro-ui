@@ -22,9 +22,10 @@ export const BASELINE: KroCapabilities = {
   schema: {
     hasForEach: true,
     hasExternalRef: true,
-    hasExternalRefSelector: false,
+    hasExternalRefSelector: true,
     hasScope: false,
     hasTypes: false,
+    hasGraphRevisions: false,
   },
 }
 

@@ -66,6 +66,31 @@
   margin-bottom: 12px;
 }
 
+/* ── Scope badge and revision chip (spec 046-kro-v090-upgrade) ─────────────── */
+
+/* .rgd-scope-badge is defined in RGDCard.css and shared via global class.
+ * We add a margin here so it sits correctly in the detail header row. */
+.rgd-detail-header .rgd-scope-badge {
+  margin-bottom: 12px;
+  margin-left: 6px;
+}
+
+/* Revision chip — shows "Rev #N" from status.lastIssuedRevision (kro v0.9.0+).
+ * Absent / 0: chip not rendered (guard in RGDDetail.tsx, constitution §XII). */
+.rgd-revision-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  background: var(--chip-revision-bg);
+  color: var(--chip-revision-fg);
+  cursor: default;
+  white-space: nowrap;
+  margin-bottom: 12px;
+  margin-left: 6px;
+}
+
 /* ── Tab bar ──────────────────────────────────────────────────────────────── */
 
 .rgd-tab-bar {

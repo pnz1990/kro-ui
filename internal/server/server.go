@@ -114,6 +114,10 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			// kro capabilities detection
 			r.Get("/kro/capabilities", h.GetCapabilities)
 
+			// GraphRevision list and get (kro v0.9.0+, internal.kro.run/v1alpha1)
+			r.Get("/kro/graph-revisions", h.ListGraphRevisions)
+			r.Get("/kro/graph-revisions/{name}", h.GetGraphRevision)
+
 			// Smart event stream — kro-filtered Kubernetes Events
 			r.Get("/events", h.ListEvents)
 

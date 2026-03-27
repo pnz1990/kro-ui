@@ -2,24 +2,33 @@
 
 **Feature Branch**: `009-rgd-graph-diff`
 **Created**: 2026-03-20
-**Status**: Blocked (needs upstream kro KREP-013) — BLOCKED (requires kro KREP-013 Graph Revisions, expected v0.9.0)
-**Depends on**: `003-rgd-detail-dag` (merged)
+**Updated**: 2026-03-26 (unblocked — kro v0.9.0 shipped GraphRevision CRD)
+**Status**: Unblocked — ready to implement (kro v0.9.0 ships GraphRevision CRD)
+**Depends on**: `003-rgd-detail-dag` (merged), `046-kro-v090-upgrade` (in progress — provides `GET /api/v1/kro/graph-revisions` API)
 **Constitution ref**: §II (Cluster Adaptability), §V (Simplicity), §IX (Theme)
 
 ---
 
-## Blocked Status
+## Unblocked Status
 
-This spec CANNOT be implemented until kro merges KREP-013 (Graph Revisions),
-which introduces a `GraphRevision` CRD that tracks versioned snapshots of RGD
-resource graphs. Without revisions, there is no second graph to diff against.
+kro v0.9.0 (released 2026-03-24) ships the `GraphRevision` CRD in the
+`internal.kro.run/v1alpha1` API group. Each RGD now creates `GraphRevision`
+objects immutably capturing its spec at each generation change.
 
+**API**: `internal.kro.run/v1alpha1/graphrevisions`
+**Field selector**: `spec.snapshot.name=<rgd-name>` (CRD selectable field)
+**kro-ui backend**: `GET /api/v1/kro/graph-revisions?rgd=<name>` — provided by spec 046
+
+The backend API needed by this spec is available after spec 046 merges.
+Implement this spec after spec `046-kro-v090-upgrade` is merged.
+
+---
+
+## Previously Blocked
+
+This spec was previously blocked by KREP-013 (Graph Revisions).
 **KREP-013 PR**: https://github.com/kubernetes-sigs/kro/pull/1174
-**Expected release**: kro v0.9.0
-
-Once Graph Revisions land, this spec should be updated with the actual CRD
-schema and API surface. The user stories and acceptance scenarios below are
-written against the expected KREP-013 design.
+**Resolved**: kro v0.9.0 (2026-03-24)
 
 ---
 

@@ -79,6 +79,13 @@ export interface SchemaDoc {
   specFields: ParsedField[]
   /** Status fields with CEL source expressions. */
   statusFields: ParsedField[]
+  /**
+   * Named custom type sections from spec.schema.types (kro v0.9.0+).
+   * Each entry is a named type with its parsed fields.
+   * Empty array when spec.schema.types is absent, null, or empty.
+   * Optional for backward compatibility with test helpers that construct SchemaDoc manually.
+   */
+  typeSections?: Array<{ name: string; fields: ParsedField[] }>
 }
 
 // ── Parsing ───────────────────────────────────────────────────────────────
@@ -231,6 +238,7 @@ export function buildSchemaDoc(rgd: K8sObject): SchemaDoc {
 
   const rawSpec = (schema.spec ?? {}) as Record<string, unknown>
   const rawStatus = (schema.status ?? {}) as Record<string, unknown>
+  const rawTypes = schema.types
 
   const specFields: ParsedField[] = Object.entries(rawSpec).map(
     ([name, value]) => {
@@ -255,5 +263,23 @@ export function buildSchemaDoc(rgd: K8sObject): SchemaDoc {
     },
   )
 
-  return { kind, apiVersion, group, specFields, statusFields }
+  // Parse spec.schema.types — a map of named types (kro v0.9.0+).
+  // Each key is a type name, each value is a SimpleSchema object (same format as spec).
+  // Graceful degradation: absent, null, non-object → empty array.
+  const typeSections: Array<{ name: string; fields: ParsedField[] }> = []
+  if (rawTypes !== null && rawTypes !== undefined && typeof rawTypes === 'object' && !Array.isArray(rawTypes)) {
+    for (const [typeName, typeValue] of Object.entries(rawTypes as Record<string, unknown>)) {
+      if (typeValue !== null && typeof typeValue === 'object' && !Array.isArray(typeValue)) {
+        const fields: ParsedField[] = Object.entries(typeValue as Record<string, unknown>).map(
+          ([fieldName, fieldValue]) => {
+            const raw = typeof fieldValue === 'string' ? fieldValue : String(fieldValue)
+            return { name: fieldName, raw, parsedType: parseSimpleSchema(raw) }
+          },
+        )
+        typeSections.push({ name: typeName, fields })
+      }
+    }
+  }
+
+  return { kind, apiVersion, group, specFields, statusFields, typeSections }
 }

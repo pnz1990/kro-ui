@@ -77,4 +77,24 @@ test.describe('Journey 036 — RGD Detail Header', () => {
     expect(text?.trim()).not.toBe('?')
     expect(text?.trim()).not.toBe('')
   })
+
+  test('Step 6: Namespaced RGD does not show scope badge (FR-022)', async ({ page }) => {
+    // test-app is Namespaced — no scope badge should appear (constitution §XII: no noise).
+    await page.goto(`${BASE}/rgds/test-app`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-scope-badge')).toHaveCount(0)
+  })
+
+  test('Step 7: revision chip absent or well-formed (FR-050 graceful degradation)', async ({ page }) => {
+    // status.lastIssuedRevision may be absent on pre-v0.9.0 kro installations.
+    // When absent/zero: chip must not appear. When present: must show "Rev #N" (N > 0).
+    await page.goto(`${BASE}/rgds/test-app`)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 10000 })
+    const chip = page.getByTestId('rgd-revision-chip')
+    const count = await chip.count()
+    if (count > 0) {
+      const chipText = await chip.textContent()
+      expect(chipText).toMatch(/^Rev #[1-9][0-9]*$/)
+    }
+  })
 })

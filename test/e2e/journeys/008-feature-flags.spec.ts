@@ -44,6 +44,7 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
         hasExternalRefSelector: boolean
         hasScope: boolean
         hasTypes: boolean
+        hasGraphRevisions: boolean
       }
     }
 
@@ -62,6 +63,8 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     expect(typeof body.schema.hasExternalRefSelector).toBe('boolean')
     expect(typeof body.schema.hasScope).toBe('boolean')
     expect(typeof body.schema.hasTypes).toBe('boolean')
+    // kro v0.9.0+ GraphRevision CRD detection — always a boolean, true only on v0.9.0+
+    expect(typeof body.schema.hasGraphRevisions).toBe('boolean')
 
     // Feature gates — default kro installation has no gates enabled.
     expect(body.featureGates.CELOmitFunction).toBe(false)
@@ -120,6 +123,23 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     // Collection nodes are dag-node--collection
     const collectionNode = page.locator('[class*="dag-node--collection"]')
     await expect(collectionNode).toBeVisible()
+  })
+
+  test('Step 6: GET /api/v1/kro/graph-revisions returns 200 (graceful on any kro version)', async ({ request }) => {
+    // On kro < v0.9.0 (no GraphRevision CRD): returns {"items":[]}.
+    // On kro v0.9.0+: returns actual GraphRevision objects.
+    // Both are valid — the endpoint must never return 500 due to absent CRD.
+    const res = await request.get(`${BASE}/api/v1/kro/graph-revisions?rgd=test-app`)
+    expect(res.status()).toBe(200)
+    const body = await res.json() as { items: unknown[] }
+    expect(Array.isArray(body.items)).toBe(true)
+  })
+
+  test('Step 7: GET /api/v1/kro/graph-revisions without rgd param returns 400', async ({ request }) => {
+    const res = await request.get(`${BASE}/api/v1/kro/graph-revisions`)
+    expect(res.status()).toBe(400)
+    const body = await res.json() as { error: string }
+    expect(body.error).toContain('rgd parameter is required')
   })
 
 })

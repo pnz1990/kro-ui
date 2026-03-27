@@ -531,6 +531,56 @@ func TestForbiddenCapabilitiesList(t *testing.T) {
 	assert.Contains(t, forbidden, "stateFields")
 }
 
+// TestDetectsGraphRevisions verifies that HasGraphRevisions is set to true when
+// the internal.kro.run/v1alpha1 API group exposes a "graphrevisions" resource.
+func TestDetectsGraphRevisions(t *testing.T) {
+	disc := newCapStubDiscovery()
+	// Simulate kro.run group so DetectCapabilities proceeds past Step 1.
+	disc.resources[kroAPIVersion] = &metav1.APIResourceList{
+		APIResources: []metav1.APIResource{
+			{Name: "resourcegraphdefinitions"},
+		},
+	}
+	// Simulate internal.kro.run/v1alpha1 with graphrevisions available.
+	disc.resources[internalKroAPIVersion] = &metav1.APIResourceList{
+		APIResources: []metav1.APIResource{
+			{Name: "graphrevisions"},
+		},
+	}
+
+	caps := DetectCapabilities(t.Context(), newCapStubDynamic(), disc)
+	assert.True(t, caps.Schema.HasGraphRevisions, "HasGraphRevisions should be true when graphrevisions CRD is present")
+}
+
+// TestGraphRevisionsAbsentOnPreV090Cluster verifies that HasGraphRevisions is false
+// when the internal.kro.run API group is not registered (pre-v0.9.0 cluster).
+func TestGraphRevisionsAbsentOnPreV090Cluster(t *testing.T) {
+	disc := newCapStubDiscovery()
+	disc.resources[kroAPIVersion] = &metav1.APIResourceList{
+		APIResources: []metav1.APIResource{
+			{Name: "resourcegraphdefinitions"},
+		},
+	}
+	// No entry for internalKroAPIVersion — simulates pre-v0.9.0.
+
+	caps := DetectCapabilities(t.Context(), newCapStubDynamic(), disc)
+	assert.False(t, caps.Schema.HasGraphRevisions, "HasGraphRevisions should be false when CRD is absent")
+}
+
+// TestBaselineHasExternalRefSelectorTrue asserts that the v0.9.0 baseline
+// has HasExternalRefSelector set to true (changed from false in v0.8.x).
+func TestBaselineHasExternalRefSelectorTrue(t *testing.T) {
+	b := Baseline()
+	assert.True(t, b.Schema.HasExternalRefSelector, "Baseline().Schema.HasExternalRefSelector must be true for kro v0.9.0+")
+}
+
+// TestBaselineHasGraphRevisionsFalse asserts that the baseline (conservative
+// fallback) has HasGraphRevisions set to false — it requires live cluster detection.
+func TestBaselineHasGraphRevisionsFalse(t *testing.T) {
+	b := Baseline()
+	assert.False(t, b.Schema.HasGraphRevisions, "Baseline().Schema.HasGraphRevisions must be false (requires detection)")
+}
+
 func TestParseFeatureGateString(t *testing.T) {
 	tests := []struct {
 		name   string

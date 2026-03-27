@@ -59,7 +59,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `021-collection-node-cardinality` | #81 | forEach cardinality badge and expression on DAG nodes | Merged (PR #81) |
 | `025-rgd-static-chain-graph` | #82 | RGD static chaining graph — detect, expand, navigate | Merged (PR #82) |
 | `021-readywhen-cel-dag` | #83 | Surface readyWhen CEL expressions on DAG nodes | Merged (PR #83) |
-| `009-rgd-graph-diff` | #13 | RGD graph revision diff | Blocked (needs kro KREP-013) |
+| `009-rgd-graph-diff` | #13 | RGD graph revision diff | Unblocked (kro v0.9.0 ships GraphRevision CRD) |
 | `027-instance-telemetry-panel` | — | Per-instance telemetry panel (age, state, children health) | Merged (PR #134) |
 | `030-error-patterns-tab` | — | Cross-instance error aggregation — Errors tab on RGD detail | Merged (PR #135) |
 | `028-instance-health-rollup` | — | Instance health roll-up — 5-state badges, error count on cards | Merged (PR #136) |
@@ -79,6 +79,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/issue-183` | #183 | Static DAG overlay svgHeight — use graph.height directly, SVG display:block | Merged (PR #209) |
 | `fix/issue-210` | #210 | Live YAML resolve child resource by kro.run/node-id label | Merged (PR #211) |
 | `043-upstream-fixture-generator` | #222 | Upstream fixture generator — cmd/dump-fixtures, full kro feature coverage, contagious includeWhen fix | Merged (PR #224) |
+| `046-kro-v090-upgrade` | — | kro v0.9.0 upgrade — GraphRevision API, scope badge, DocsTab types, capabilities baseline update | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -380,8 +381,11 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - N/A — no persistent storage (043-upstream-fixture-generator)
 - TypeScript 5.x (frontend); Go 1.25 (backend — no changes needed) + React 19, Vite, plain CSS — no new npm or Go packages (045-rgd-designer-validation-optimizer)
 - N/A — all state is local React `useState`; no persistence (045-rgd-designer-validation-optimizer)
+- Go 1.25 (backend) + TypeScript 5.x / React 19 (frontend) + chi v5, zerolog, client-go dynamic, React 19 + Vite — no new deps (046-kro-v090-upgrade)
+- N/A — all state in React `useState`; no persistence (046-kro-v090-upgrade)
 
 ## Recent Changes
+- v0.4.6 (in progress): kro v0.9.0 upgrade — `GET /api/v1/kro/graph-revisions` API (unblocks spec 009-rgd-graph-diff); `hasGraphRevisions` + `hasExternalRefSelector:true` capabilities baseline; "Cluster" scope badge on RGD cards and detail header; DocsTab Types section (spec.schema.types); `lastIssuedRevision` Rev #N chip; forEach Designer cartesian Remove-button guard; CEL comprehension regression guard; E2E journeys 046 + updates to 008/020/036
 - v0.4.3: upstream fixture generator (`cmd/dump-fixtures`, `make dump-fixtures`) covering all kro node types; contagious `includeWhen` BFS propagation fix in `dag.ts`; 6 new E2E journey files (43 total); `GetInstanceChildren` scoped to RGD resource types; spec-audit fixes (isItemReady isolation, FetchEffectiveRules deadline, extractInstanceHealth negation-polarity); demo/E2E setup hardened for kro v0.8.5 (non-fatal applies for v0.9.0+ fixtures); unit test coverage for InstanceDetail, Fleet, AuthorPage, NotFound, LiveDAG, format, collection
 - v0.4.2: RGD Designer promoted to first-class nav (replaces `+ New RGD` button), live DAG preview on `/author`, error states UX audit (translateApiError, enriched empty states), static DAG overlay svgHeight fix (display:block + graph.height direct), Live YAML node resolution via kro.run/node-id label (fixes all RGDs where ID ≠ kind), cluster-scoped children fix + DeepDAG accordion + DAG panel layout
 - v0.4.1: 9-issue bug-fix batch — breadcrumb rename (Overview), FieldTable scrollbar, OptimizationAdvisor layout, context-switch navigation, ValidationTab condition types (kro v0.4+), cluster-scoped Live YAML (Namespace/ClusterRole/PV), DAG tooltip hover persistence, DiscoverPlural discovery cache + Fleet errgroup fan-out + 5s server timeout, test coverage (access handler, 4 lib modules, 3 E2E journeys)
