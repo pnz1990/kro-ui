@@ -109,6 +109,14 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
   const status = obj.status
   if (typeof status !== 'object' || status === null) return UNKNOWN_INSTANCE_HEALTH
 
+  // Step 2: kro status.state === 'IN_PROGRESS' → reconciling.
+  // kro v0.8.5 sets this field when readyWhen is unmet — does NOT emit
+  // Progressing=True in that case, only ResourcesReady=False + Ready=False.
+  const kroState = (status as Record<string, unknown>).state
+  if (kroState === 'IN_PROGRESS') {
+    return { state: 'reconciling', reason: 'InProgress', message: 'kro is reconciling this instance' }
+  }
+
   const conditions = (status as Record<string, unknown>).conditions
   if (!Array.isArray(conditions) || conditions.length === 0) return UNKNOWN_INSTANCE_HEALTH
 
@@ -116,8 +124,11 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
   const valid = conditions.filter((c): c is K8sCondition => isCondition(c))
   if (valid.length === 0) return UNKNOWN_INSTANCE_HEALTH
 
-  // Step 2: Progressing=True → reconciling
-  const progressing = valid.find((c) => c.type === 'Progressing' && c.status === 'True')
+  // Step 3: Progressing=True OR GraphProgressing=True → reconciling.
+  // GraphProgressing is the kro v0.8.x predecessor; support both for compat.
+  const progressing = valid.find(
+    (c) => (c.type === 'Progressing' || c.type === 'GraphProgressing') && c.status === 'True',
+  )
   if (progressing) {
     return {
       state: 'reconciling',
@@ -126,8 +137,7 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
     }
   }
 
-  // Step 3a: Ready condition (the primary health signal for kro instances).
-  // Use the first Ready condition as the authoritative answer.
+  // Step 4a: Ready condition (the primary health signal for kro instances).
   const ready = valid.find((c) => c.type === 'Ready')
   if (ready) {
     if (isHealthyCondition('Ready', ready.status)) {
@@ -138,7 +148,7 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
     }
   }
 
-  // Step 3b: Check negation-polarity conditions (e.g. ReconciliationSuspended=True → error).
+  // Step 4b: Check negation-polarity conditions (e.g. ReconciliationSuspended=True → error).
   // These are not covered by the Ready=False path above. Issue #220 (028-F3).
   for (const c of valid) {
     if (c.type === 'Ready' || c.status === 'Unknown') continue
@@ -147,7 +157,7 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
     }
   }
 
-  // Step 4: All conditions have status=Unknown → pending
+  // Step 5: All conditions have status=Unknown → pending
   if (valid.every((c) => c.status === 'Unknown')) {
     return { state: 'pending', reason: '', message: '' }
   }

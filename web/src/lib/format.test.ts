@@ -246,6 +246,53 @@ describe('extractInstanceHealth', () => {
     expect(extractInstanceHealth(obj).state).toBe('reconciling')
   })
 
+  it("returns 'reconciling' when GraphProgressing=True (kro v0.8.x compat)", () => {
+    const obj = {
+      status: {
+        conditions: [
+          { type: 'GraphProgressing', status: 'True' },
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('reconciling')
+  })
+
+  it("returns 'reconciling' when kro status.state is IN_PROGRESS (Bug D-1 fix)", () => {
+    const obj = {
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [
+          { type: 'InstanceManaged', status: 'True' },
+          { type: 'GraphResolved', status: 'True' },
+          { type: 'ResourcesReady', status: 'False' },
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('reconciling')
+  })
+
+  it("IN_PROGRESS wins over Ready=False (reconciling > error)", () => {
+    const obj = {
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [{ type: 'Ready', status: 'False' }],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('reconciling')
+  })
+
+  it("ACTIVE kro status.state with Ready=True returns ready (not affected)", () => {
+    const obj = {
+      status: {
+        state: 'ACTIVE',
+        conditions: [{ type: 'Ready', status: 'True' }],
+      },
+    }
+    expect(extractInstanceHealth(obj).state).toBe('ready')
+  })
+
   it("returns 'error' when Ready=False and Progressing absent", () => {
     const obj = {
       status: {

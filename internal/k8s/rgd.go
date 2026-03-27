@@ -339,7 +339,7 @@ func listWithLabelSelector(
 ) ([]map[string]any, error) {
 	var (
 		mu      sync.Mutex
-		results []map[string]any
+		results = make([]map[string]any, 0) // always a non-nil slice so JSON encodes as [] not null
 	)
 
 	var wg sync.WaitGroup

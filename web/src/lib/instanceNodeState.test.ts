@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // instanceNodeState.test.ts — unit tests for buildNodeStateMap.
-// Maps child resources + instance conditions → per-node live state.
+// State map is keyed by kro.run/node-id label (not by kind).
 
 import { describe, it, expect } from 'vitest'
 import { buildNodeStateMap } from './instanceNodeState'
@@ -22,11 +22,52 @@ import type { DAGNode } from './dag'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function makeChild(kind: string, name: string, namespace = 'default'): K8sObject {
+/** Child WITH kro.run/node-id label (kro ≥ 0.8.0 — the normal case). */
+function makeChild(
+  kind: string,
+  name: string,
+  nodeId: string,
+  namespace = 'default',
+  apiVersion = 'v1',
+): K8sObject {
+  return {
+    apiVersion,
+    kind,
+    metadata: {
+      name,
+      namespace,
+      labels: { 'kro.run/node-id': nodeId },
+    },
+  }
+}
+
+/** Child WITHOUT kro.run/node-id (kube-generated or kro < 0.8.0). */
+function makeChildNoLabel(kind: string, name: string, namespace = 'default'): K8sObject {
   return {
     apiVersion: 'v1',
     kind,
     metadata: { name, namespace },
+  }
+}
+
+/** Instance with kro status.state set (kro v0.8.5 field). */
+function makeInstanceWithKroState(
+  kroState: string,
+  conditions: Array<{ type: string; status: string }>,
+): K8sObject {
+  return {
+    metadata: { name: 'my-instance', namespace: 'default' },
+    spec: {},
+    status: {
+      state: kroState,
+      conditions: conditions.map((c) => ({
+        type: c.type,
+        status: c.status,
+        reason: 'SomeReason',
+        message: '',
+        lastTransitionTime: '2026-03-21T00:00:00Z',
+      })),
+    },
   }
 }
 
@@ -46,16 +87,21 @@ function makeInstance(conditions: Array<{ type: string; status: string }>): K8sO
   }
 }
 
-function makeNode(id: string, kind: string, nodeType: DAGNode['nodeType'] = 'resource'): DAGNode {
+function makeNode(
+  id: string,
+  kind: string,
+  nodeType: DAGNode['nodeType'] = 'resource',
+  includeWhen: string[] = [],
+): DAGNode {
   return {
     id,
     label: id,
     nodeType,
     kind,
-    isConditional: false,
+    isConditional: includeWhen.length > 0,
     hasReadyWhen: false,
     celExpressions: [],
-    includeWhen: [],
+    includeWhen,
     readyWhen: [],
     isChainable: false,
     x: 0,
@@ -66,32 +112,109 @@ function makeNode(id: string, kind: string, nodeType: DAGNode['nodeType'] = 'res
 }
 
 describe('buildNodeStateMap', () => {
-  // ── T010: alive when child exists + no error condition ─────────────────
+  // ── T010: alive when child has node-id + no error condition ───────────────
 
-  it('T010: returns alive when child resource exists and Ready=True', () => {
+  it('T010: returns alive for a child keyed by kro.run/node-id', () => {
     const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    const configmapEntry = Object.entries(stateMap).find(([, v]) => v.kind === 'ConfigMap')
-    expect(configmapEntry).toBeDefined()
-    expect(configmapEntry![1].state).toBe('alive')
+    expect(stateMap['appConfig']?.state).toBe('alive')
+    expect(stateMap['appConfig']?.kind).toBe('ConfigMap')
+  })
+
+  // ── T010b: children WITHOUT node-id are silently skipped ─────────────────
+
+  it('T010b: children without kro.run/node-id (kube-generated) are silently skipped', () => {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const children = [
+      makeChild('Service', 'my-svc', 'appService'),
+      makeChildNoLabel('EndpointSlice', 'my-svc-abc12'),
+    ]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(Object.keys(stateMap)).toHaveLength(1)
+    expect(stateMap['appService']?.state).toBe('alive')
+    expect(stateMap['endpointslice']).toBeUndefined()
   })
 
   // ── T011: reconciling when Progressing=True ────────────────────────────
 
   it('T011: returns reconciling for all nodes when Progressing=True', () => {
     const instance = makeInstance([{ type: 'Progressing', status: 'True' }])
-    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    const configmapEntry = Object.entries(stateMap).find(([, v]) => v.kind === 'ConfigMap')
-    expect(configmapEntry![1].state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('reconciling')
   })
 
-  // ── T012: map is empty when children and rgdNodes are empty ───────────
+  // ── T011b: GraphProgressing=True (kro v0.8.x compat) ────────────────────
+
+  it('T011b: returns reconciling when GraphProgressing=True (kro v0.8.x compat)', () => {
+    const instance = makeInstance([{ type: 'GraphProgressing', status: 'True' }])
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('reconciling')
+  })
+
+  // ── T011c: GraphProgressing takes precedence over Ready=False ───────────
+
+  it('T011c: GraphProgressing=True wins over Ready=False (reconciling > error)', () => {
+    const instance = makeInstance([
+      { type: 'Ready', status: 'False' },
+      { type: 'GraphProgressing', status: 'True' },
+    ])
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('reconciling')
+  })
+
+  // ── T011d: kro status.state === 'IN_PROGRESS' → reconciling ─────────────
+
+  it('T011d: returns reconciling when kro status.state is IN_PROGRESS', () => {
+    const instance = makeInstanceWithKroState('IN_PROGRESS', [
+      { type: 'InstanceManaged', status: 'True' },
+      { type: 'GraphResolved', status: 'True' },
+      { type: 'ResourcesReady', status: 'False' },
+      { type: 'Ready', status: 'False' },
+    ])
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('reconciling')
+  })
+
+  it('T011e: IN_PROGRESS wins over Ready=False (reconciling > error)', () => {
+    const instance = makeInstanceWithKroState('IN_PROGRESS', [
+      { type: 'Ready', status: 'False' },
+    ])
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('reconciling')
+  })
+
+  it('T011f: ACTIVE kro state with Ready=True stays alive', () => {
+    const instance = makeInstanceWithKroState('ACTIVE', [
+      { type: 'Ready', status: 'True' },
+    ])
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('alive')
+  })
+
+  // ── T012: empty inputs ────────────────────────────────────────────────────
 
   it('T012: map is empty when both children and rgdNodes are empty', () => {
     const instance = makeInstance([{ type: 'Ready', status: 'True' }])
@@ -103,30 +226,28 @@ describe('buildNodeStateMap', () => {
 
   it('T012b: child present maps to alive; absent node in rgdNodes maps to not-found', () => {
     const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
     const nodes = [
       makeNode('schema', 'WebApp', 'instance'),
-      makeNode('configmap', 'ConfigMap'),
-      makeNode('namespace', 'Namespace'),
+      makeNode('appConfig', 'ConfigMap'),
+      makeNode('appNamespace', 'Namespace'),
     ]
 
     const stateMap = buildNodeStateMap(instance, children, nodes)
 
-    expect(stateMap['configmap']?.state).toBe('alive')
-    // Namespace was NOT in children → not-found (GH #165 fix)
-    expect(stateMap['namespace']?.state).toBe('not-found')
+    expect(stateMap['appConfig']?.state).toBe('alive')
+    expect(stateMap['appNamespace']?.state).toBe('not-found')
   })
 
   // ── T013: error when Ready=False ──────────────────────────────────────
 
   it('T013: returns error when Ready=False', () => {
     const instance = makeInstance([{ type: 'Ready', status: 'False' }])
-    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    const configmapEntry = Object.entries(stateMap).find(([, v]) => v.kind === 'ConfigMap')
-    expect(configmapEntry![1].state).toBe('error')
+    expect(stateMap['appConfig']?.state).toBe('error')
   })
 
   // ── T014: handles absent conditions gracefully ─────────────────────────
@@ -137,13 +258,12 @@ describe('buildNodeStateMap', () => {
       spec: {},
       status: {},
     }
-    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     expect(() => buildNodeStateMap(instance, children, [])).not.toThrow()
 
     const stateMap = buildNodeStateMap(instance, children, [])
-    const configmapEntry = Object.entries(stateMap).find(([, v]) => v.kind === 'ConfigMap')
-    expect(configmapEntry![1].state).toBe('alive')
+    expect(stateMap['appConfig']?.state).toBe('alive')
   })
 
   // ── T015: Progressing takes precedence over Ready ─────────────────────
@@ -153,97 +273,106 @@ describe('buildNodeStateMap', () => {
       { type: 'Ready', status: 'True' },
       { type: 'Progressing', status: 'True' },
     ])
-    const children = [makeChild('ConfigMap', 'my-instance-configmap')]
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    const configmapEntry = Object.entries(stateMap).find(([, v]) => v.kind === 'ConfigMap')
-    expect(configmapEntry![1].state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('reconciling')
   })
 
-  // ── AC-019: multi-resource RGD, 6 nodes, 2 present → all 6 entries ────
-  // Spec 029 AC-019 — GH #165 fix verification.
+  // ── T016: two ConfigMaps with different node-ids (the core bug) ───────────
 
-  describe('AC-019 — multi-resource RGD: all node entries present, absent nodes are not-found', () => {
-    const rgdNodes: DAGNode[] = [
-      makeNode('schema', 'WebApp', 'instance'),
-      makeNode('deployment', 'Deployment'),
-      makeNode('service', 'Service'),
-      makeNode('configmap', 'ConfigMap'),
-      makeNode('secret', 'Secret'),
-      makeNode('ingress', 'Ingress'),
-      makeNode('hpa', 'HorizontalPodAutoscaler'),
+  it('T016: two ConfigMaps with different node-ids both get correct independent state', () => {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const children = [
+      makeChild('ConfigMap', 'my-app-config', 'appConfig'),
+      makeChild('ConfigMap', 'my-app-status', 'appStatus'),
     ]
 
-    it('emits an entry for every non-state non-instance RGD node', () => {
-      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-      const children = [makeChild('Deployment', 'app-dep'), makeChild('Service', 'app-svc')]
+    const stateMap = buildNodeStateMap(instance, children, [])
 
-      const map = buildNodeStateMap(instance, children, rgdNodes)
-
-      expect(map).toHaveProperty('deployment')
-      expect(map).toHaveProperty('service')
-      expect(map).toHaveProperty('configmap')
-      expect(map).toHaveProperty('secret')
-      expect(map).toHaveProperty('ingress')
-      expect(map).toHaveProperty('horizontalpodautoscaler')
-    })
-
-    it('2 present children are alive, 4 absent nodes are not-found', () => {
-      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-      const children = [makeChild('Deployment', 'app-dep'), makeChild('Service', 'app-svc')]
-
-      const map = buildNodeStateMap(instance, children, rgdNodes)
-
-      expect(map['deployment'].state).toBe('alive')
-      expect(map['service'].state).toBe('alive')
-      expect(map['configmap'].state).toBe('not-found')
-      expect(map['secret'].state).toBe('not-found')
-      expect(map['ingress'].state).toBe('not-found')
-      expect(map['horizontalpodautoscaler'].state).toBe('not-found')
-    })
-
-    it('empty children list → all 6 resource nodes are not-found', () => {
-      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-
-      const map = buildNodeStateMap(instance, [], rgdNodes)
-
-      const resourceNodes = rgdNodes.filter(
-        (n) => n.nodeType !== 'instance' && n.nodeType !== 'state',
-      )
-      expect(Object.keys(map)).toHaveLength(resourceNodes.length)
-      for (const node of resourceNodes) {
-        const key = (node.kind || node.label).toLowerCase()
-        expect(map[key]?.state).toBe('not-found')
-      }
-    })
-
-    it('state-type nodes are not emitted in the map', () => {
-      const nodesWithState: DAGNode[] = [
-        ...rgdNodes,
-        makeNode('state-node', 'State', 'state'),
-      ]
-      const instance = makeInstance([])
-      const map = buildNodeStateMap(instance, [], nodesWithState)
-      expect(map['state']).toBeUndefined()
-    })
+    expect(stateMap['appConfig']?.name).toBe('my-app-config')
+    expect(stateMap['appStatus']?.name).toBe('my-app-status')
+    expect(stateMap['appConfig']?.state).toBe('alive')
+    expect(stateMap['appStatus']?.state).toBe('alive')
   })
 
-  // ── kind fallback from kro.run/resource-id label ───────────────────────
+  // ── T017: EndpointSlice does not corrupt appService node state ────────────
 
-  it('uses resource-id label when .kind is absent on child resource', () => {
+  it('T017: EndpointSlice without node-id does not affect Service state lookup', () => {
     const instance = makeInstance([{ type: 'Ready', status: 'True' }])
-    const childWithoutKind: K8sObject = {
-      apiVersion: 'apps/v1',
-      metadata: {
-        name: 'dep',
-        namespace: 'default',
-        labels: { 'kro.run/resource-id': 'Deployment' },
-      },
-    } as unknown as K8sObject
-    const nodes = [makeNode('deployment', 'Deployment')]
+    const children = [
+      makeChild('Service', 'demo-proxy-svc', 'appService'),
+      makeChildNoLabel('EndpointSlice', 'demo-proxy-svc-f2hlq'),
+    ]
+    const nodes = [makeNode('appService', 'Service')]
 
-    const map = buildNodeStateMap(instance, [childWithoutKind], nodes)
-    expect(map['deployment'].state).toBe('alive')
+    const stateMap = buildNodeStateMap(instance, children, nodes)
+
+    expect(stateMap['appService']?.state).toBe('alive')
+    expect(stateMap['appService']?.kind).toBe('Service')
+    expect(stateMap['endpointslice']).toBeUndefined()
+  })
+
+  // ── T018: includeWhen absent node → 'pending' ─────────────────────────────
+
+  it('T018: absent node with includeWhen gets pending state (violet on DAG)', () => {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const nodes = [
+      makeNode('appConfig', 'ConfigMap', 'resource', ['${schema.spec.enableConfig}']),
+    ]
+
+    const map = buildNodeStateMap(instance, [], nodes)
+
+    expect(map['appConfig']?.state).toBe('pending')
+  })
+
+  // ── T019: id="appNamespace", kind="Namespace" — id ≠ kind ────────────────
+
+  it('T019: node where id differs from kind is correctly keyed by id not kind', () => {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const children = [makeChild('Namespace', 'kro-ui-test', 'appNamespace', '')]
+    const nodes = [makeNode('appNamespace', 'Namespace')]
+
+    const map = buildNodeStateMap(instance, children, nodes)
+
+    expect(map['appNamespace']?.state).toBe('alive')
+    expect(map['appNamespace']?.kind).toBe('Namespace')
+    expect(map['namespace']).toBeUndefined()
+  })
+
+  // ── AC-019: crashloop-app — two Deployments, different states ─────────────
+
+  describe('AC-019 — two same-kind nodes with different states (crashloop-app scenario)', () => {
+    it('goodDeploy=reconciling, badDeploy=error when conditions differ', () => {
+      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+      const badDeploy = {
+        apiVersion: 'apps/v1', kind: 'Deployment',
+        metadata: { name: 'bad', namespace: 'ns', labels: { 'kro.run/node-id': 'badDeploy' } },
+        status: { conditions: [{ type: 'Available', status: 'False' }, { type: 'Progressing', status: 'False' }] },
+      } as K8sObject
+      const goodDeploy = {
+        apiVersion: 'apps/v1', kind: 'Deployment',
+        metadata: { name: 'good', namespace: 'ns', labels: { 'kro.run/node-id': 'goodDeploy' } },
+        status: { conditions: [{ type: 'Available', status: 'True' }, { type: 'Progressing', status: 'True' }] },
+      } as K8sObject
+
+      const map = buildNodeStateMap(instance, [badDeploy, goodDeploy], [
+        makeNode('badDeploy', 'Deployment'),
+        makeNode('goodDeploy', 'Deployment'),
+      ])
+
+      expect(map['badDeploy']?.state).toBe('error')
+      expect(map['goodDeploy']?.state).toBe('reconciling')
+    })
+
+    it('state-type nodes are never emitted in the map', () => {
+      const instance = makeInstance([])
+      const map = buildNodeStateMap(instance, [], [
+        makeNode('appConfig', 'ConfigMap'),
+        makeNode('state-node', 'State', 'state'),
+      ])
+      expect(map['state-node']).toBeUndefined()
+    })
   })
 })

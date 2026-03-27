@@ -228,4 +228,26 @@ describe('resolveChildResourceInfo — kro.run/node-id matching (T210)', () => {
     const result = resolveResourceName('appNamespace', 'test-instance', children)
     expect(result).toBe('kro-ui-test')
   })
+
+  // T211: Service + EndpointSlice share node-id — kind tie-break ─────────────
+
+  it('T211-01: prefers Service over EndpointSlice when both share node-id and nodeKind=Service', () => {
+    const children = [
+      makeChildWithNodeId('EndpointSlice', 'demo-proxy-svc-f2hlq', 'appService', 'ns', 'discovery.k8s.io/v1'),
+      makeChildWithNodeId('Service', 'demo-proxy-svc', 'appService', 'ns', 'v1'),
+    ]
+    const withHint = resolveChildResourceInfo('appService', 'autoscaled-proxy', children, 'Service')
+    expect(withHint?.kind).toBe('Service')
+    expect(withHint?.name).toBe('demo-proxy-svc')
+  })
+
+  it('T211-02: when only Service has node-id label, returns Service regardless', () => {
+    const children = [
+      makeChild('EndpointSlice', 'demo-proxy-svc-f2hlq', 'ns'),
+      makeChildWithNodeId('Service', 'demo-proxy-svc', 'appService', 'ns', 'v1'),
+    ]
+    const result = resolveChildResourceInfo('appService', 'autoscaled-proxy', children, 'Service')
+    expect(result?.kind).toBe('Service')
+    expect(result?.name).toBe('demo-proxy-svc')
+  })
 })
