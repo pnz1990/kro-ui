@@ -10,7 +10,7 @@ import type { DAGNode } from '@/lib/dag'
 import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
 import { formatAge } from '@/lib/format'
-import { toYaml } from '@/lib/yaml'
+import { toYaml, cleanK8sObject } from '@/lib/yaml'
 import { translateApiError } from '@/lib/errors'
 import { LABEL_NODE_ID, LABEL_COLL_INDEX, LABEL_COLL_SIZE } from '@/lib/kro'
 import KroCodeBlock from './KroCodeBlock'
@@ -151,7 +151,7 @@ function ItemYamlView({ item, namespace, onBack }: ItemYamlViewProps) {
       .then((obj) => {
         if (signal.aborted) return
         clearTimeout(timeoutId)
-        setViewState({ status: 'loaded', yaml: toYaml(obj), kubectl })
+        setViewState({ status: 'loaded', yaml: toYaml(cleanK8sObject(obj)), kubectl })
       })
       .catch((err: Error) => {
         if (signal.aborted) return

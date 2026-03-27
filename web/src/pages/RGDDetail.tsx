@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useLocation, Link } from "react-router-dom"
 import { getRGD, listRGDs, listInstances, getInstance, getInstanceChildren } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { translateApiError } from "@/lib/errors"
-import { toYaml } from "@/lib/yaml"
+import { toYaml, cleanK8sObject } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
 import { extractRGDKind, extractReadyStatus } from "@/lib/format"
 import { buildNodeStateMap } from "@/lib/instanceNodeState"
@@ -629,7 +629,7 @@ export default function RGDDetail() {
 
         {activeTab === "yaml" && (
           <div className="rgd-tab-panel">
-            <KroCodeBlock code={toYaml(rgd)} title="ResourceGraphDefinition" />
+            <KroCodeBlock code={toYaml(cleanK8sObject(rgd))} title="ResourceGraphDefinition" />
           </div>
         )}
 
