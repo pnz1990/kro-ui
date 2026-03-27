@@ -264,7 +264,10 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
       {!loading && !error && groups.length > 0 && (
         <>
           {/* Summary */}
-          <div className="errors-tab__summary">
+          <div
+            className="errors-tab__summary"
+            title="Error patterns are grouped by condition type and reason across all instances. Counts reflect the state at the last fetch."
+          >
             {groups.length} error {groups.length === 1 ? 'pattern' : 'patterns'} across{' '}
             {totalAffected} {totalAffected === 1 ? 'instance' : 'instances'}
           </div>

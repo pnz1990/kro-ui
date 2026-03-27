@@ -88,8 +88,16 @@ const STATE_LABEL: Record<NodeLiveState, string> = {
   alive: 'Alive',
   reconciling: 'Reconciling',
   error: 'Error',
-  pending: 'Pending',
+  pending: 'Excluded',    // renamed from 'Pending' — matches LiveDAG legend and LiveNodeDetailPanel
   'not-found': 'Not found',
+}
+
+/** Explanatory subtitle for each live state, shown below the state label. */
+const STATE_HINT: Partial<Record<NodeLiveState, string>> = {
+  reconciling: 'kro is applying changes — resource may not be stable yet',
+  error:       'A condition failed (e.g. Available=False). Click node to inspect.',
+  pending:     'includeWhen evaluated to false — resource was not created',
+  'not-found': 'Resource not yet present in the cluster',
 }
 
 /**
@@ -209,9 +217,16 @@ export default function DAGTooltip({
           {nodeTypeLabel(node.nodeType)}
         </span>
         {nodeState && (
-          <span className={`dag-tooltip__state dag-tooltip__state--${stateClass(nodeState)}`}>
-            {STATE_LABEL[nodeState]}
-          </span>
+          <>
+            <span className={`dag-tooltip__state dag-tooltip__state--${stateClass(nodeState)}`}>
+              {STATE_LABEL[nodeState]}
+            </span>
+            {STATE_HINT[nodeState] && (
+              <span className="dag-tooltip__state-hint">
+                {STATE_HINT[nodeState]}
+              </span>
+            )}
+          </>
         )}
       </div>
 

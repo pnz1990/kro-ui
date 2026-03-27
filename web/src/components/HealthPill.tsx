@@ -25,6 +25,16 @@ function pillLabel(state: string): string {
   }
 }
 
+/** Per-state fallback tooltip when health.reason is absent. */
+const STATE_TOOLTIP: Record<string, string> = {
+  ready:       'All managed resources are healthy and readyWhen conditions are met.',
+  degraded:    'Instance is ready at the CR level, but one or more child resources have errors (e.g. Available=False). Check the DAG for the affected nodes.',
+  reconciling: 'kro is actively applying changes to this instance\'s managed resources. This is normal during creation and after updates.',
+  error:       'A condition on this instance has failed. Check the Conditions panel for details.',
+  pending:     'All conditions are Unknown — kro has not yet processed this instance.',
+  unknown:     'No conditions have been reported yet for this instance.',
+}
+
 /**
  * HealthPill — status pill rendered in the instance detail page header.
  *
@@ -45,7 +55,10 @@ export default function HealthPill({ health }: HealthPillProps) {
   }
 
   const label = pillLabel(health.state)
-  const tooltip = health.reason ? `${health.reason}${health.message ? `: ${health.message}` : ''}` : undefined
+  // Prefer the reason/message from the condition; fall back to a static explanation.
+  const tooltip = health.reason
+    ? `${health.reason}${health.message ? `: ${health.message}` : ''}`
+    : STATE_TOOLTIP[health.state]
 
   return (
     <span

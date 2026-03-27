@@ -62,6 +62,7 @@
   --node-pending-border:   #8b5cf6;
   --node-error-bg:         rgba(244, 63, 94, 0.12);
   --node-error-border:     #f43f5e;
+  --node-degraded-bg:      rgba(249, 115, 22, 0.10);   /* Degraded — CR ready, child errors — orange */
   --node-notfound-bg:      var(--color-surface);
   --node-notfound-border:  var(--color-border);
 
@@ -193,6 +194,7 @@
   --node-pending-border:   #7c3aed;
   --node-error-bg:         rgba(225, 29, 72, 0.10);
   --node-error-border:     #e11d48;
+  --node-degraded-bg:      rgba(234, 88, 12, 0.10);    /* Degraded — darker orange for light mode */
   --node-notfound-bg:      var(--color-surface);
   --node-notfound-border:  var(--color-border);
 

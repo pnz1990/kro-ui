@@ -59,6 +59,19 @@ function formatTime(ts: string | undefined): string {
   }
 }
 
+/** Per-condition-type explanations shown on hover over the label. */
+const CONDITION_DESCRIPTIONS: Record<string, string> = {
+  ResourceGraphAccepted: 'kro validated the ResourceGraphDefinition structure, resolved all resource dependencies, and accepted it for processing.',
+  KindReady:             'The CRD (Custom Resource Definition) for this RGD\'s Kind has been successfully registered with the Kubernetes API server.',
+  ControllerReady:       'The kro controller has started watching and reconciling instances of this RGD\'s Kind.',
+  Ready:                 'All preceding conditions are healthy and the RGD is fully operational. Instances can be created and will be reconciled.',
+  ReconciliationSuspended: 'When True, kro has suspended reconciliation for instances of this RGD. This is the healthy (False) state — reconciliation is running.',
+  // Instance-level conditions
+  InstanceManaged:       'The CR instance has been claimed by kro with the required finalizers and labels.',
+  GraphResolved:         'The runtime resource graph for this instance has been built and all CEL expressions resolved.',
+  ResourcesReady:        'All managed resources have been created and their readyWhen conditions are satisfied.',
+}
+
 /**
  * ConditionItem — renders one row of the validation checklist.
  *
@@ -79,7 +92,10 @@ export default function ConditionItem({ condition, label, isAbsent }: ConditionI
       >
         <div className="condition-item__header">
           <span className="condition-item__icon" aria-hidden="true">–</span>
-          <span className="condition-item__label">{label}</span>
+        <span
+          className="condition-item__label"
+          title={CONDITION_DESCRIPTIONS[condition.type]}
+        >{label}</span>
           <span className="condition-item__status-label">Not reported</span>
         </div>
         <div className="condition-item__message">

@@ -128,8 +128,8 @@ export default function CopySpecButton({ instance }: CopySpecButtonProps) {
       type="button"
       className={`copy-spec-btn${copied ? ' copy-spec-btn--copied' : ''}`}
       onClick={handleCopy}
-      aria-label="Copy instance spec as YAML"
-      title="Copy spec as YAML"
+      aria-label="Copy instance YAML to clipboard"
+      title="Copy instance YAML — copies apiVersion, kind, metadata and spec as YAML"
       data-testid="copy-spec-btn"
     >
       {copied ? '✓ Copied!' : '⎘ Copy YAML'}

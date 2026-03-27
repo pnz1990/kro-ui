@@ -84,7 +84,11 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
   return (
     <div data-testid="conditions-panel" className="conditions-panel">
       <div className="panel-heading">Conditions</div>
-      <div data-testid="conditions-summary" className="conditions-summary">
+      <div
+        data-testid="conditions-summary"
+        className="conditions-summary"
+        title="A condition is 'healthy' when it is in its expected positive state. For most conditions True=healthy; for ReconciliationSuspended, False=healthy."
+      >
         {trueCount} / {conditions.length} conditions healthy
       </div>
       <div className="conditions-list">

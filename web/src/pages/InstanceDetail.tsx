@@ -353,7 +353,12 @@ export default function InstanceDetail() {
 
       {/* Reconciling banner (FR-003) — only when NOT terminating */}
       {fastData && !isTerminating(fastData.instance) && isReconciling(fastData.instance) && (
-        <div className="reconciling-banner" role="status" aria-live="polite">
+        <div
+          className="reconciling-banner"
+          role="status"
+          aria-live="polite"
+          title="kro is actively applying changes to this instance's managed resources. This is normal during creation and after spec changes. If this persists, check the Conditions panel for details."
+        >
           <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
           kro is reconciling this instance
         </div>
@@ -362,7 +367,8 @@ export default function InstanceDetail() {
       {/* Instance deleted banner */}
       {instanceGoneRef.current && (
         <div className="instance-gone-banner" role="alert">
-          Instance not found — it may have been deleted.
+          Instance not found — it may have been deleted.{' '}
+          <Link to={`/rgds/${encodeURIComponent(rgdName ?? '')}`}>View all instances →</Link>
         </div>
       )}
 
@@ -419,16 +425,42 @@ export default function InstanceDetail() {
                 />
               ) : (
                 <div className="instance-detail-dag-empty">
-                  No managed resources defined in this RGD.{' '}
+                  No managed resources defined in this <abbr title="ResourceGraphDefinition">RGD</abbr>.{' '}
                   {rgdName && (
                     <Link to={`/rgds/${rgdName}`}>
                       View the RGD&apos;s Graph tab
                     </Link>
                   )}{' '}
-                  to inspect the spec.
+                  to inspect the resource dependency graph.
                 </div>
               )}
             </div>
+
+            {/* Live node state legend — shown when nodeStateMap is non-empty */}
+            {Object.keys(nodeStateMap).length > 0 && (
+              <div className="instance-detail-live-legend" aria-label="Live node state legend">
+                <span className="live-dag-state-legend__entry" title="Resource exists and all readyWhen conditions are met">
+                  <span className="live-dag-state-legend__dot live-dag-state-legend__dot--alive" aria-hidden="true" />
+                  Alive
+                </span>
+                <span className="live-dag-state-legend__entry" title="kro is applying changes, or readyWhen is not yet satisfied">
+                  <span className="live-dag-state-legend__dot live-dag-state-legend__dot--reconciling" aria-hidden="true" />
+                  Reconciling
+                </span>
+                <span className="live-dag-state-legend__entry" title="Resource was excluded by its includeWhen condition">
+                  <span className="live-dag-state-legend__dot live-dag-state-legend__dot--pending" aria-hidden="true" />
+                  Excluded
+                </span>
+                <span className="live-dag-state-legend__entry" title="Resource has a failed condition (e.g. Available=False)">
+                  <span className="live-dag-state-legend__dot live-dag-state-legend__dot--error" aria-hidden="true" />
+                  Error
+                </span>
+                <span className="live-dag-state-legend__entry" title="Resource not yet present in the cluster">
+                  <span className="live-dag-state-legend__dot live-dag-state-legend__dot--notfound" aria-hidden="true" />
+                  Not found
+                </span>
+              </div>
+            )}
 
             {/* Below-DAG panels */}
             <div className="instance-detail-panels">

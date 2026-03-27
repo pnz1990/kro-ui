@@ -109,11 +109,13 @@ export default function TelemetryPanel({ instance, nodeStateMap, events }: Telem
       <MetricCell
         label="Age"
         value={age}
+        title="Time since this instance was created (metadata.creationTimestamp)"
         testId="telemetry-cell-age"
       />
       <MetricCell
         label="Time in state"
         value={timeInState}
+        title="Time since the Ready condition last changed status — how long this instance has been in its current state"
         testId="telemetry-cell-time-in-state"
       />
       <MetricCell
@@ -127,6 +129,9 @@ export default function TelemetryPanel({ instance, nodeStateMap, events }: Telem
         label="Warnings"
         value={String(warningCount)}
         colorModifier={warningsColor}
+        title={warningCount > 0
+          ? `${warningCount} Warning-severity Kubernetes event${warningCount === 1 ? '' : 's'} for this instance (events expire after ~1 hour)`
+          : 'No Warning-severity Kubernetes events found for this instance'}
         testId="telemetry-cell-warnings"
       />
     </div>

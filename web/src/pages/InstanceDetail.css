@@ -187,6 +187,16 @@
   text-align: center;
 }
 
+/* Live node state legend — shown below the DAG in instance detail */
+.instance-detail-live-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
 /* ── Panels (below DAG) ───────────────────────────────────────────────────── */
 
 .instance-detail-panels {

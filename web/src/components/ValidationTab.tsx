@@ -102,6 +102,10 @@ export default function ValidationTab({ rgd }: ValidationTabProps) {
       {/* ── Validation Checklist ──────────────────────────────────────── */}
       <section className="validation-tab__section">
         <h2 className="validation-tab__section-title">Validation Conditions</h2>
+        <p className="validation-tab__section-desc">
+          These conditions are set by the kro controller on this <abbr title="ResourceGraphDefinition">RGD</abbr>'s{' '}
+          <code>status.conditions</code> and reflect the state of its schema, <abbr title="Custom Resource Definition">CRD</abbr>, and controller registration.
+        </p>
         <div className="validation-tab__checklist">
           {displayConditions.map(({ condition, label, isAbsent }) => (
             <ConditionItem

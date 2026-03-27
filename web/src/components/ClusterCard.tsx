@@ -51,10 +51,10 @@ export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
       <div className="cluster-card__body">
         {health === 'healthy' || health === 'degraded' ? (
           <>
-            <div className="cluster-card__stat">
+            <div className="cluster-card__stat" title="ResourceGraphDefinitions — kro's composable application blueprints">
               {rgdCount} RGDs
             </div>
-            <div className="cluster-card__stat">
+            <div className="cluster-card__stat" title="Custom Resource instances of all ResourceGraphDefinitions in this cluster">
               {instanceCount} instances
             </div>
             {kroVersion && (

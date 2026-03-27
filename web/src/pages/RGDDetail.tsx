@@ -391,7 +391,7 @@ export default function RGDDetail() {
         {lastIssuedRevision !== null && (
           <span
             className="rgd-revision-chip"
-            title={`Graph revision ${lastIssuedRevision}`}
+            title={`Graph revision ${lastIssuedRevision} — a GraphRevision CR snapshot is created each time kro re-processes this RGD. This is the most recently issued revision number.`}
             data-testid="rgd-revision-chip"
           >
             Rev #{lastIssuedRevision}
@@ -605,7 +605,16 @@ export default function RGDDetail() {
                   className="rgd-instances-empty"
                   data-testid="instance-empty-state"
                 >
-                  No instances found. Create one with{" "}
+                  No instances found.{' '}
+                  Use the{' '}
+                  <button
+                    type="button"
+                    className="rgd-instances-empty__tab-link"
+                    onClick={() => setSearchParams({ tab: 'generate' })}
+                  >
+                    Generate tab
+                  </button>
+                  {' '}to scaffold the YAML, then apply it with{' '}
                   <code>kubectl apply</code>.
                 </div>
               ) : (

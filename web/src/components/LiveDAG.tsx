@@ -305,23 +305,23 @@ export default function LiveDAG({
 
       {/* Live-state legend (L-2, issue #167) */}
       <div className="live-dag-state-legend" aria-label="Live node state legend">
-        <span className="live-dag-state-legend__entry">
+        <span className="live-dag-state-legend__entry" title="Resource exists and all readyWhen conditions are met">
           <span className="live-dag-state-legend__dot live-dag-state-legend__dot--alive" aria-hidden="true" />
           Alive
         </span>
-        <span className="live-dag-state-legend__entry">
+        <span className="live-dag-state-legend__entry" title="kro is applying the resource template, or readyWhen is not yet satisfied">
           <span className="live-dag-state-legend__dot live-dag-state-legend__dot--reconciling" aria-hidden="true" />
           Reconciling
         </span>
-        <span className="live-dag-state-legend__entry">
+        <span className="live-dag-state-legend__entry" title="Resource was not created because its includeWhen condition evaluated to false">
           <span className="live-dag-state-legend__dot live-dag-state-legend__dot--pending" aria-hidden="true" />
-          Pending
+          Excluded
         </span>
-        <span className="live-dag-state-legend__entry">
+        <span className="live-dag-state-legend__entry" title="Resource has a failed condition (e.g. Available=False or Ready=False)">
           <span className="live-dag-state-legend__dot live-dag-state-legend__dot--error" aria-hidden="true" />
           Error
         </span>
-        <span className="live-dag-state-legend__entry">
+        <span className="live-dag-state-legend__entry" title="Resource not yet present in the cluster — kro may still be creating it">
           <span className="live-dag-state-legend__dot live-dag-state-legend__dot--notfound" aria-hidden="true" />
           Not found
         </span>

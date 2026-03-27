@@ -13,16 +13,17 @@ import './MetricsStrip.css'
 interface CounterCellProps {
   label: string
   value: number | null | undefined
+  title?: string
 }
 
-function CounterCell({ label, value }: CounterCellProps) {
+function CounterCell({ label, value, title }: CounterCellProps) {
   const display =
     value === null || value === undefined
       ? 'Not reported'
       : value.toLocaleString()
 
   return (
-    <div className="metrics-strip__cell">
+    <div className="metrics-strip__cell" title={title}>
       <span className="metrics-strip__value" aria-label={label}>
         {display}
       </span>
@@ -97,10 +98,26 @@ export default function MetricsStrip() {
   // Healthy (or stale-ok: error but prior data still shown silently)
   return (
     <div className="metrics-strip" role="status" aria-label="Controller metrics">
-      <CounterCell label="Active watches" value={data?.watchCount} />
-      <CounterCell label="GVRs served" value={data?.gvrCount} />
-      <CounterCell label="Queue depth (kro)" value={data?.queueDepth} />
-      <CounterCell label="Queue depth (client-go)" value={data?.workqueueDepth} />
+      <CounterCell
+        label="Active watches"
+        value={data?.watchCount}
+        title="Number of Kubernetes resources currently being watched by the kro controller for change events"
+      />
+      <CounterCell
+        label="GVRs served"
+        value={data?.gvrCount}
+        title="GVRs served — number of Kubernetes resource types (Group/Version/Resource) that kro is currently managing across all ResourceGraphDefinitions"
+      />
+      <CounterCell
+        label="Queue depth (kro)"
+        value={data?.queueDepth}
+        title="Number of reconciliation requests waiting in kro's internal work queue — a sustained high value may indicate reconciliation bottlenecks"
+      />
+      <CounterCell
+        label="Queue depth (client-go)"
+        value={data?.workqueueDepth}
+        title="Number of events waiting in the client-go work queue — this is the lower-level Kubernetes client event queue feeding the kro controller"
+      />
       {data?.scrapedAt && (
         <span className="metrics-strip__updated">
           Updated {formatAge(data.scrapedAt)}

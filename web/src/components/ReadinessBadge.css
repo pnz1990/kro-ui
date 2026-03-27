@@ -26,7 +26,7 @@
 /* Ready=True but a child resource has errors — orange */
 .readiness-badge--degraded {
   color: var(--color-status-degraded);
-  background: rgba(249, 115, 22, 0.10);
+  background: var(--node-degraded-bg);
   border: 1px solid var(--color-status-degraded);
 }
 
