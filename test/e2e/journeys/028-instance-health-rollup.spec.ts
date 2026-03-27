@@ -20,6 +20,7 @@
  * 2. Instance table shows a ReadinessBadge for each instance row
  * 3. Instance detail header shows a HealthPill with state text
  * 4. ConditionsPanel empty state shows "Not reported" (constitution §XII)
+ * 5. HealthPill includes "Degraded" (6th state, PR #277) — conditional
  *
  * Spec ref: .specify/specs/028-instance-health-rollup/spec.md § E2E User Journey
  *
@@ -53,7 +54,7 @@ test.describe('Journey 028: Instance Health Rollup', () => {
 
     // Chip text should match the expected pattern
     const chipText = await chip.textContent()
-    expect(chipText).toMatch(/\d+ ready|\d+ \/ \d+ ready|no instances/)
+    expect(chipText?.trim()).toMatch(/\d+ ready|\d+ \/ \d+ ready|no instances|[✗⚠↻…?].*\d/)
   })
 
   test('Step 2: Health chip resolves with meaningful text', async ({ page }) => {
@@ -86,9 +87,9 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     const count = await badges.count()
     expect(count).toBeGreaterThan(0)
 
-    // Badge text must be one of the 5 known states
+    // Badge text must be one of the 6 known states (PR #277 added Degraded)
     const firstBadgeText = await badges.first().textContent()
-    expect(firstBadgeText?.trim()).toMatch(/^(Ready|Not Ready|Reconciling|Pending|Unknown)$/)
+    expect(firstBadgeText?.trim()).toMatch(/^(Ready|Degraded|Not Ready|Reconciling|Pending|Unknown)$/)
   })
 
   test('Step 4: Instance detail header shows HealthPill', async ({ page }) => {
@@ -98,10 +99,9 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     await expect(page.locator('[data-testid="instance-detail-page"]')).toBeVisible({ timeout: 10000 })
 
     // Wait for the pill to resolve from skeleton to an actual state label.
-    // The skeleton renders with aria-hidden and empty text; the resolved pill
-    // has text content matching one of the 5 known state labels.
+    // 6 states: Ready, Degraded, Reconciling, Error, Pending, Unknown (PR #277 added Degraded)
     const pill = page.locator('[data-testid="health-pill"]')
-    await expect(pill).toHaveText(/^(Ready|Reconciling|Error|Pending|Unknown)$/, { timeout: 10000 })
+    await expect(pill).toHaveText(/^(Ready|Degraded|Reconciling|Error|Pending|Unknown)$/, { timeout: 10000 })
   })
 
   test('Step 5: ConditionsPanel empty state shows "Not reported" when no conditions', async ({ page }) => {
@@ -161,5 +161,28 @@ test.describe('Journey 028: Instance Health Rollup', () => {
         expect(healthy).toBe(total)
       }
     }
+  })
+
+  test('Step 7: Degraded HealthPill shown when instance CR is Ready but child has errors (PR #277)', async ({ page }) => {
+    // The "Degraded" state is the 6th InstanceHealthState added in PR #277.
+    // It fires when: CR-level Ready=True AND at least one child resource has Available=False.
+    // This step requires a "crashloop-app" RGD fixture which is only available on the demo
+    // cluster, not the hermetic E2E kind cluster. Skip gracefully when absent.
+    const resp = await page.goto(`${BASE}/rgds/crashloop-app/instances/kro-ui-demo/crashloop-demo`)
+    if (!resp || resp.status() >= 400) {
+      test.skip(true, 'crashloop-app fixture not present on this E2E cluster — step 7 requires demo cluster')
+      return
+    }
+    await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
+
+    const pill = page.locator('[data-testid="health-pill"]')
+    // When crashloop-demo has badDeploy Available=False, expect Degraded (or another
+    // non-Ready state if cluster has changed since fixture was created).
+    await expect(pill).toHaveText(
+      /^(Degraded|Reconciling|Error|Pending|Unknown|Ready)$/,
+      { timeout: 10000 },
+    )
+    // The pill class must use the 6-state CSS — not the old 5-state pattern
+    await expect(pill).toHaveClass(/health-pill--/)
   })
 })

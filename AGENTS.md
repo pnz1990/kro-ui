@@ -98,6 +98,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | Merged (PR #294) |
 | `fix/collection-legacy-remove` | — | CollectionPanel legacy kro < 0.8.0 warning removed; allChildrenLabelless dead code cleaned up | Merged (PR #295) |
 | `fix/instances-inactive-rgd` | — | ListInstances returns empty list (not 500) for inactive RGDs; health chip now shows "no instances" | Merged (PR #296) |
+| `fix/e2e-journey-backfill` | — | E2E journeys for PRs #277-#296: 047-ux-improvements, 047b-live-dag-state-map, updates to 028/031/011/002 + playwright chunk-7 | In progress |
 
 ### Worktrunk (required workflow)
 

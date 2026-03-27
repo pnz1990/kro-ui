@@ -117,6 +117,16 @@ export default defineConfig({
       workers: 4,
       fullyParallel: true,
     },
+    {
+      // chunk-7 covers journeys added in specs 041, 045, 046, 047, 047b
+      // (UX audit, RGD Designer validation, kro v0.9.0 upgrade, ux-improvements,
+      //  live-dag state-map fixes)
+      name: 'chunk-7',
+      testMatch: /(041|045|046|047[a-z]?)-.*\.spec\.ts/,
+      ...PARALLEL_OPTS,
+      workers: 4,
+      fullyParallel: true,
+    },
 
     // ── Serial: context-switcher (depends on all parallel chunks) ─────────
     // Journey 007 calls POST /api/v1/contexts/switch — global server state.
@@ -124,7 +134,7 @@ export default defineConfig({
     {
       name: 'serial',
       testMatch: /007-.*\.spec\.ts/,
-      dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6'],
+      dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6', 'chunk-7'],
       ...PARALLEL_OPTS,
       workers: 1,
       fullyParallel: false,
