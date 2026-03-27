@@ -175,33 +175,43 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     await expect(page).toHaveURL(`${BASE}/rgds/multi-resource`)
   })
 
-  test('Step 10: Inactive RGD cards show "no instances" chip not blank (PR #296)', async ({ page }) => {
-    // Prior to PR #296, GET /rgds/{inactive}/instances returned 500 → chip was blank.
-    // Now it returns 200 with {items:[]} → chip shows "no instances".
+  test('Step 10: All visible RGD cards eventually show a health chip (not blank) — PR #296 regression guard', async ({ page }) => {
+    // Prior to PR #296, GET /rgds/{inactive}/instances returned 500 → health chip was blank.
+    // Now it returns 200 {items:[]} → chip shows "no instances".
+    // This test verifies no card has a permanently blank chip area after full load.
     await page.goto(BASE)
     await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
 
-    // cel-functions is Inactive in the hermetic E2E cluster (uses quantity() CEL
-    // which kro v0.8.5 doesn't support).
+    // Wait for async chip fetches to settle (some RGDs have many instances, slower fetch)
     await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
+    await page.waitForTimeout(5000) // allow remaining chips to settle
 
-    const celCard = page.getByTestId('rgd-card-cel-functions')
-    const celChip = celCard.locator('[data-testid="health-chip"]')
+    // Every chip that IS visible must have non-blank text (not blank due to 500 error)
+    const chips = page.locator('[data-testid="health-chip"]')
+    const count = await chips.count()
+    expect(count).toBeGreaterThan(0)
 
-    // After the async fetch settles, the chip must be present and show "no instances"
-    // (not a blank render which would indicate a 500 error from the API).
-    await page.waitForTimeout(4000) // allow async chip fetches to fully resolve
-
-    const chipVisible = await celChip.isVisible()
-    if (chipVisible) {
-      const chipText = await celChip.textContent()
-      expect(chipText?.trim()).toBe('no instances')
+    for (let i = 0; i < count; i++) {
+      const text = await chips.nth(i).textContent()
+      // Must not be blank — blank means the API returned an error (PR #296 regression)
+      expect(text?.trim().length).toBeGreaterThan(0)
+      // Must not contain raw JS coercion artifacts (constitution §XII)
+      expect(text).not.toContain('[object')
     }
-    // If not visible: loading skeleton still showing (not a failure — test is timing-sensitive)
-    // The key regression guard is that we do NOT see an error state or blank
-    await expect(celCard.locator('.health-chip--skeleton')).not.toBeVisible({ timeout: 3000 }).catch(() => {
-      // Skeleton still showing is acceptable — just not blank after full load
-    })
+
+    // Additionally verify the API itself returns 200 for all RGDs visible in the UI.
+    // Fetch the RGD list and check instances for all of them.
+    const rgdListResp = await page.request.get(`${BASE}/api/v1/rgds`)
+    const rgdList = await rgdListResp.json()
+    const rgdNames: string[] = (rgdList.items ?? []).map(
+      (r: Record<string, Record<string, string>>) => r.metadata?.name,
+    ).filter(Boolean)
+
+    // Spot-check: pick up to 3 RGDs and verify /instances returns 200 (not 500)
+    for (const name of rgdNames.slice(0, 3)) {
+      const resp = await page.request.get(`${BASE}/api/v1/rgds/${name}/instances`)
+      expect(resp.status(), `GET /rgds/${name}/instances should not return 500`).not.toBe(500)
+    }
   })
 
   test('Step 11: Overview subtitle text is present (PR #279 section description)', async ({ page }) => {

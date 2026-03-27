@@ -166,23 +166,29 @@ test.describe('Journey 028: Instance Health Rollup', () => {
   test('Step 7: Degraded HealthPill shown when instance CR is Ready but child has errors (PR #277)', async ({ page }) => {
     // The "Degraded" state is the 6th InstanceHealthState added in PR #277.
     // It fires when: CR-level Ready=True AND at least one child resource has Available=False.
-    // This step requires a "crashloop-app" RGD fixture which is only available on the demo
-    // cluster, not the hermetic E2E kind cluster. Skip gracefully when absent.
-    const resp = await page.goto(`${BASE}/rgds/crashloop-app/instances/kro-ui-demo/crashloop-demo`)
-    if (!resp || resp.status() >= 400) {
-      test.skip(true, 'crashloop-app fixture not present on this E2E cluster — step 7 requires demo cluster')
+    // Requires crashloop-app RGD + crashloop-demo instance (demo cluster only, not E2E cluster).
+    // Use the API to check existence — the SPA always returns HTTP 200 for any route.
+    const rgdCheck = await page.request.get(`${BASE}/api/v1/rgds/crashloop-app`)
+    if (!rgdCheck.ok()) {
+      test.skip(true, 'crashloop-app RGD not present on this cluster')
       return
     }
+    const instCheck = await page.request.get(
+      `${BASE}/api/v1/instances/kro-ui-demo/crashloop-demo?rgd=crashloop-app`,
+    )
+    if (!instCheck.ok()) {
+      test.skip(true, 'crashloop-demo instance not present on this cluster')
+      return
+    }
+
+    await page.goto(`${BASE}/rgds/crashloop-app/instances/kro-ui-demo/crashloop-demo`)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
 
     const pill = page.locator('[data-testid="health-pill"]')
-    // When crashloop-demo has badDeploy Available=False, expect Degraded (or another
-    // non-Ready state if cluster has changed since fixture was created).
     await expect(pill).toHaveText(
       /^(Degraded|Reconciling|Error|Pending|Unknown|Ready)$/,
       { timeout: 10000 },
     )
-    // The pill class must use the 6-state CSS — not the old 5-state pattern
     await expect(pill).toHaveClass(/health-pill--/)
   })
 })
