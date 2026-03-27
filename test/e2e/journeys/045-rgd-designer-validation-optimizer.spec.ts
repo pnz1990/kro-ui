@@ -202,11 +202,17 @@ test.describe('Journey 045 — RGD Designer Validation & Optimizer', () => {
     // Click validate — button should briefly show loading state
     await page.getByTestId('dry-run-btn').click()
 
-    // Either loading state or result must appear within 10s
-    // (actual result depends on cluster — we just verify it doesn't hang)
-    await expect(
-      page.getByTestId('dry-run-btn').or(page.getByTestId('dry-run-result')),
-    ).toBeVisible({ timeout: 10000 })
+    // Either the loading state (button still visible) or the result appears within 10s.
+    // Use waitForFunction to avoid the Playwright locator.or() ambiguity when both
+    // elements are visible simultaneously.
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector('[data-testid="dry-run-btn"]')
+        const result = document.querySelector('[data-testid="dry-run-result"]')
+        return btn !== null || result !== null
+      },
+      { timeout: 10000 },
+    )
   })
 
   // ── Step 9: YAML copy buttons remain functional (US9/7 + US6/3) ─────────
