@@ -110,6 +110,29 @@ function isReconcilePaused(instance: K8sObject | null): boolean {
   return (annotations as Record<string, unknown>)['kro.run/reconcile'] === 'disabled'
 }
 
+// ── Reconciling duration ──────────────────────────────────────────────────
+// Returns the number of minutes the instance has been in a non-Ready state,
+// derived from the earliest failing condition's lastTransitionTime.
+// Returns null when the transition time is unavailable.
+
+function reconcilingSinceMinutes(instance: K8sObject | null): number | null {
+  if (!instance) return null
+  const status = instance.status as Record<string, unknown> | undefined
+  if (!status) return null
+  const conditions = status.conditions
+  if (!Array.isArray(conditions)) return null
+  let oldest: number | null = null
+  for (const c of conditions as Array<Record<string, unknown>>) {
+    if (c.status !== 'False' && c.status !== 'Unknown') continue
+    const t = c.lastTransitionTime
+    if (typeof t !== 'string') continue
+    const ms = Date.parse(t)
+    if (!isNaN(ms) && (oldest === null || ms < oldest)) oldest = ms
+  }
+  if (oldest === null) return null
+  return Math.floor((Date.now() - oldest) / 60_000)
+}
+
 // ── Reconciling banner ─────────────────────────────────────────────────────
 
 function isReconciling(instance: K8sObject | null): boolean {
@@ -391,17 +414,24 @@ export default function InstanceDetail() {
       )}
 
       {/* Reconciling banner (FR-003) — only when NOT terminating */}
-      {fastData && !isTerminating(fastData.instance) && isReconciling(fastData.instance) && (
-        <div
-          className="reconciling-banner"
-          role="status"
-          aria-live="polite"
-          title="kro is actively applying changes to this instance's managed resources. This is normal during creation and after spec changes. If this persists, check the Conditions panel for details."
-        >
-          <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
-          kro is reconciling this instance
-        </div>
-      )}
+      {fastData && !isTerminating(fastData.instance) && isReconciling(fastData.instance) && (() => {
+        const mins = reconcilingSinceMinutes(fastData.instance)
+        const isStuck = mins !== null && mins >= 5
+        return (
+          <div
+            className={`reconciling-banner${isStuck ? ' reconciling-banner--stuck' : ''}`}
+            role="status"
+            aria-live="polite"
+            title="kro is actively applying changes to this instance's managed resources. This is normal during creation and after spec changes. If this persists, check the Conditions panel for details."
+          >
+            <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
+            {isStuck
+              ? <>kro has been reconciling this instance for {mins}m — check the Conditions panel and <code>kubectl describe</code> the child resources for errors.</>
+              : 'kro is reconciling this instance'
+            }
+          </div>
+        )
+      })()}
 
       {/* Instance deleted banner */}
       {instanceGoneRef.current && (
