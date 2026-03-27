@@ -85,7 +85,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/node-id-state-map` | — | State map keyed by kro.run/node-id; IN_PROGRESS→reconciling; items:null→[]; EndpointSlice fix | Merged (PR #278) |
 | `048-ui-polish-and-docs` | — | 26-gap UI polish: tooltips, legends, help text, abbr expansions, token fixes, AGENTS.md update | Merged (PR #279) |
 | `049-designer-ux-refresh-button` | — | Refresh now button; Designer CEL/scope help text; optimizer docs URL fix | Merged (PR #280) |
-| `050-kro-v090-phase2` | #274 | kro v0.9.0 phase 2 — reconcile-paused banner, cluster-scoped namespace display, displayNamespace utility | In progress |
+| `050-kro-v090-phase2` | #274 | kro v0.9.0 phase 2 — reconcile-paused banner, cluster-scoped namespace display, displayNamespace utility | Merged (PR #281) |
+| `fix/errortab-dedup-chip` | — | ErrorsTab unique-instance dedup in summary; OptimizationAdvisor emoji removed | In progress |
 
 ### Worktrunk (required workflow)
 

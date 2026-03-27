@@ -209,7 +209,16 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  const totalAffected = groups.reduce((s, g) => s + g.count, 0)
+  // Count unique affected instances across all groups.
+  // groups.reduce((s, g) => s + g.count) would double-count instances that
+  // have multiple failing conditions (e.g. both Ready=False and ResourcesReady=False).
+  const affectedSet = new Set<string>()
+  for (const g of groups) {
+    for (const inst of g.instances) {
+      affectedSet.add(`${inst.namespace}/${inst.name}`)
+    }
+  }
+  const totalAffected = affectedSet.size
 
   return (
     <div className="errors-tab" data-testid="errors-tab">
