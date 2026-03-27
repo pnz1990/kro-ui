@@ -168,6 +168,17 @@
   color: var(--color-reconciling);
 }
 
+/* Escalated variant — shown when reconciling for > 5 minutes */
+.reconciling-banner--stuck {
+  background: var(--node-error-bg);
+  border-color: var(--node-error-border);
+  color: var(--color-error);
+}
+
+.reconciling-banner--stuck .reconciling-banner-pulse {
+  animation-duration: 0.8s;
+}
+
 .reconciling-banner-pulse {
   animation: reconciling-pulse 1.5s ease-in-out infinite;
   font-size: 10px;

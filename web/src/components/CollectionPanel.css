@@ -191,7 +191,19 @@
   text-align: center;
   font-size: 13px;
   color: var(--color-text-muted);
+}
+
+.collection-empty-state p {
+  margin: 0 0 6px;
   font-style: italic;
+}
+
+.collection-empty-state p:last-child {
+  margin-bottom: 0;
+}
+
+.collection-empty-state__expr {
+  font-style: normal;
 }
 
 /* ── Legacy fallback ──────────────────────────────────────────────────────── */

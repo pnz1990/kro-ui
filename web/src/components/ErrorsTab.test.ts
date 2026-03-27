@@ -155,3 +155,82 @@ describe('groupErrorPatterns', () => {
     expect(groups[1].count).toBe(1)
   })
 })
+
+// ── IN_PROGRESS skip ────────────────────────────────────────────────────────
+
+describe('groupErrorPatterns — IN_PROGRESS instances are not aggregated', () => {
+  function makeInProgressInstance(name: string): K8sObject {
+    return {
+      metadata: { name, namespace: 'default' },
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [
+          { type: 'InstanceManaged', status: 'True', reason: 'Managed' },
+          { type: 'GraphResolved',   status: 'True', reason: 'Resolved' },
+          { type: 'ResourcesReady',  status: 'False', reason: 'NotReady', message: 'awaiting resource readiness' },
+          { type: 'Ready',           status: 'False', reason: 'NotReady', message: 'awaiting resource readiness' },
+        ],
+      },
+    }
+  }
+
+  function makeProgressingInstance(name: string): K8sObject {
+    return {
+      metadata: { name, namespace: 'default' },
+      status: {
+        conditions: [
+          { type: 'Progressing', status: 'True', reason: 'NewReplicaSet' },
+          { type: 'Ready',       status: 'False', reason: 'Progressing' },
+        ],
+      },
+    }
+  }
+
+  it('skips instances with status.state=IN_PROGRESS (never-ready pattern)', () => {
+    const instances = [
+      makeInProgressInstance('never-ready-prod'),
+      makeInProgressInstance('never-ready-staging'),
+      makeInProgressInstance('never-ready-dev'),
+    ]
+    const groups = groupErrorPatterns(instances)
+    expect(groups).toHaveLength(0)
+  })
+
+  it('skips instances with Progressing=True condition', () => {
+    const instances = [makeProgressingInstance('rolling-update')]
+    const groups = groupErrorPatterns(instances)
+    expect(groups).toHaveLength(0)
+  })
+
+  it('includes genuinely errored instances (no IN_PROGRESS state, no Progressing)', () => {
+    const instances = [
+      makeInProgressInstance('reconciling-1'),  // skipped
+      {
+        metadata: { name: 'broken', namespace: 'default' },
+        status: {
+          state: 'FAILED',
+          conditions: [
+            { type: 'Ready', status: 'False', reason: 'CrashLoopBackOff' },
+          ],
+        },
+      } as K8sObject,
+    ]
+    const groups = groupErrorPatterns(instances)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].instances[0].name).toBe('broken')
+  })
+
+  it('skips GraphProgressing=True instances (kro v0.8.x compat)', () => {
+    const instances = [{
+      metadata: { name: 'old-kro', namespace: 'default' },
+      status: {
+        conditions: [
+          { type: 'GraphProgressing', status: 'True', reason: 'Reconciling' },
+          { type: 'Ready',            status: 'False', reason: 'Reconciling' },
+        ],
+      },
+    } as K8sObject]
+    const groups = groupErrorPatterns(instances)
+    expect(groups).toHaveLength(0)
+  })
+})
