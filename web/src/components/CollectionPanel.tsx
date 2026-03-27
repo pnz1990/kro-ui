@@ -297,17 +297,9 @@ export default function CollectionPanel({
       ? parseInt(getLabels(items[0])[LABEL_COLL_SIZE] ?? String(items.length), 10)
       : 0
 
-  // Issue #257: the legacy notice should fire when THIS node's items are
-  // completely unlabelled. The original code checked `children.every(...)` which
-  // caused a false-negative in mixed-label clusters (other nodes' labelled children
-  // made `every` return false for a node whose children truly lack labels).
-  //
-  // Correct fix: check whether there are any children that have NO kro.run/node-id
-  // label at all AND items (filtered by this node's id) is empty.
-  // This handles both the pure-legacy case (all children unlabelled) and the
-  // mixed case (some children for other nodes are labelled; this node's are not).
-  const unlabelledChildren = children.filter((child) => !getLabels(child)[LABEL_NODE_ID])
-  const allChildrenLabelless = items.length === 0 && unlabelledChildren.length > 0
+  // Issue #257: the legacy notice was for kro < 0.8.0 which lacked kro.run/node-id labels.
+  // kro >= 0.8.0 (all supported versions) sets this label — the legacy path is unreachable.
+  // Removed in fix/collection-legacy-remove to reduce dead code.
 
   const forEachExpr = node.forEach ?? ''
 
@@ -379,12 +371,6 @@ export default function CollectionPanel({
             namespace={namespace}
             onBack={handleBack}
           />
-        ) : allChildrenLabelless ? (
-          /* Legacy: kro < 0.8.0 — no kro.run/node-id labels */
-          <div className="collection-legacy-notice">
-            <span className="collection-legacy-icon" aria-hidden="true">⚠</span>
-            <span>Legacy collection — labels unavailable. kro &lt; 0.8.0 lacks <code>kro.run/node-id</code> labels — upgrade kro to enable collection drill-down.</span>
-          </div>
         ) : items.length === 0 ? (
           <div
             data-testid="collection-empty-state"

@@ -95,7 +95,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/yaml-clean-display` | — | YAML tab: strip managedFields, last-applied-configuration, resourceVersion, uid from displayed YAML | Merged (PR #291) |
 | `fix/schema-object-type-generate` | — | GenerateTab: map/object fields initialize with {} not "" | Merged (PR #292) |
 | `051-instance-diff` | #287 | Instance spec diff — select 2 instances and compare spec fields side-by-side | Merged (PR #293) |
-| `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | In progress |
+| `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | Merged (PR #294) |
+| `fix/collection-legacy-remove` | — | CollectionPanel legacy kro < 0.8.0 warning removed; allChildrenLabelless dead code cleaned up | In progress |
 
 ### Worktrunk (required workflow)
 
