@@ -16,7 +16,7 @@ import { NODE_TYPE_LABEL } from '@/lib/dag'
 import type { NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import { getResource } from '@/lib/api'
-import { toYaml } from '@/lib/yaml'
+import { toYaml, cleanK8sObject } from '@/lib/yaml'
 import { isTerminating, getDeletionTimestamp, getFinalizers, formatRelativeTime } from '@/lib/k8s'
 import { translateApiError } from '@/lib/errors'
 import KroCodeBlock from './KroCodeBlock'
@@ -132,7 +132,7 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
         clearTimeout(timeoutId)
         // Notify parent with the raw object for deletion metadata extraction
         onRawObj?.(obj)
-        const yamlText = toYaml(obj)
+        const yamlText = toYaml(cleanK8sObject(obj))
         setYamlState({ status: 'loaded', yaml: yamlText, kubectl })
       })
       .catch((err: Error) => {

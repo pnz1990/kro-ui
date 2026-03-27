@@ -9,6 +9,76 @@
  * Zero dependencies. Constitution §V compliant.
  */
 
+// ── Clean Kubernetes object ───────────────────────────────────────────────
+
+/**
+ * cleanK8sObject — strip Kubernetes server-side noise from a resource
+ * before displaying in the YAML tab.
+ *
+ * Removes fields that are verbose, unhelpful to users, or injected by the
+ * Kubernetes API server:
+ *   metadata.managedFields       — internal server-side apply tracking
+ *   metadata.resourceVersion     — internal version counter
+ *   metadata.uid                 — internal UUID
+ *   metadata.generation          — internal counter
+ *   metadata.creationTimestamp   — shown separately in the UI
+ *   metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
+ *     — full JSON blob of the last-applied spec; ~1000 chars of noise
+ *
+ * Retains everything meaningful:
+ *   metadata.name, metadata.namespace, metadata.labels,
+ *   metadata.annotations (other than last-applied), metadata.finalizers
+ *   spec, status (for transparency)
+ *
+ * Never mutates the input. Returns a shallow-cleaned copy.
+ * Never throws — graceful degradation returns the original on any error.
+ */
+export function cleanK8sObject(obj: unknown): unknown {
+  if (typeof obj !== 'object' || obj === null) return obj
+
+  const raw = obj as Record<string, unknown>
+  const result: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (key === 'metadata' && typeof value === 'object' && value !== null) {
+      const meta = value as Record<string, unknown>
+      const cleanMeta: Record<string, unknown> = {}
+
+      for (const [mk, mv] of Object.entries(meta)) {
+        // Strip server-side noise fields
+        if (mk === 'managedFields') continue
+        if (mk === 'resourceVersion') continue
+        if (mk === 'uid') continue
+        if (mk === 'generation') continue
+        if (mk === 'creationTimestamp') continue
+
+        // Strip last-applied-configuration annotation (huge JSON blob)
+        if (mk === 'annotations' && typeof mv === 'object' && mv !== null) {
+          const annotations = mv as Record<string, unknown>
+          const cleanAnnotations: Record<string, unknown> = {}
+          for (const [ak, av] of Object.entries(annotations)) {
+            if (ak === 'kubectl.kubernetes.io/last-applied-configuration') continue
+            cleanAnnotations[ak] = av
+          }
+          // Only include annotations if there are any left after cleanup
+          if (Object.keys(cleanAnnotations).length > 0) {
+            cleanMeta[mk] = cleanAnnotations
+          }
+          continue
+        }
+
+        cleanMeta[mk] = mv
+      }
+
+      result[key] = cleanMeta
+    } else {
+      result[key] = value
+    }
+  }
+
+  return result
+}
+
 /**
  * Convert a JavaScript value to a YAML string.
  *
