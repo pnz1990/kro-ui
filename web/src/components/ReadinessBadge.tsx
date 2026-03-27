@@ -5,10 +5,11 @@ interface ReadinessBadgeProps {
   status: ReadyStatus | InstanceHealth
 }
 
-/** Map any 5-state value to its display label. */
+/** Map any 6-state value to its display label. */
 function stateLabel(state: string): string {
   switch (state) {
     case 'ready':       return 'Ready'
+    case 'degraded':    return 'Degraded'
     case 'error':       return 'Not Ready'
     case 'reconciling': return 'Reconciling'
     case 'pending':     return 'Pending'
@@ -19,14 +20,15 @@ function stateLabel(state: string): string {
 /**
  * ReadinessBadge — colored pill badge derived from the Ready condition.
  *
- * States (5):
+ * States (6):
  *   ready       → green "Ready"
+ *   degraded    → orange "Degraded" + tooltip (CR ready but child errors)
  *   error       → rose "Not Ready" + tooltip showing reason/message
  *   reconciling → amber "Reconciling" + tooltip showing reason
  *   pending     → violet "Pending"
  *   unknown     → gray "Unknown"
  *
- * Accepts both ReadyStatus (3-state) and InstanceHealth (5-state) since
+ * Accepts both ReadyStatus (3-state) and InstanceHealth (6-state) since
  * they share the same { state, reason, message } shape.
  *
  * Spec: .specify/specs/028-instance-health-rollup/ US2 FR-006
@@ -34,7 +36,7 @@ function stateLabel(state: string): string {
 export default function ReadinessBadge({ status }: ReadinessBadgeProps) {
   const label = stateLabel(status.state)
 
-  const showTooltip = (status.state === 'error' || status.state === 'reconciling') && status.reason
+  const showTooltip = (status.state === 'error' || status.state === 'reconciling' || status.state === 'degraded') && status.reason
   const tooltip = showTooltip
     ? `${status.reason}${status.message ? `: ${status.message}` : ''}`
     : label

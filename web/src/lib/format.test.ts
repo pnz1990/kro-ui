@@ -378,7 +378,7 @@ describe('extractInstanceHealth', () => {
 describe('aggregateHealth', () => {
   it('returns all zeros for empty items array', () => {
     const summary = aggregateHealth([])
-    expect(summary).toEqual({ total: 0, ready: 0, error: 0, reconciling: 0, pending: 0, unknown: 0 })
+    expect(summary).toEqual({ total: 0, ready: 0, degraded: 0, error: 0, reconciling: 0, pending: 0, unknown: 0 })
   })
 
   it('counts totals correctly across mixed states', () => {

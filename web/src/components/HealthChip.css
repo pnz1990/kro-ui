@@ -23,6 +23,11 @@
   color: var(--color-alive);
 }
 
+/* Any instance degraded (CR ready but child errors) — orange */
+.health-chip--degraded {
+  color: var(--color-status-degraded);
+}
+
 /* Any instance has Ready=False — rose */
 .health-chip--error {
   color: var(--color-status-error);
@@ -47,6 +52,24 @@
 .health-chip--empty {
   color: var(--color-text-muted);
 }
+
+/* Multi-segment bar layout — shown when health is mixed */
+.health-chip--bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.health-chip__segment {
+  white-space: nowrap;
+}
+
+.health-chip__segment--error       { color: var(--color-status-error); }
+.health-chip__segment--degraded     { color: var(--color-status-degraded); }
+.health-chip__segment--reconciling  { color: var(--color-status-reconciling); }
+.health-chip__segment--pending      { color: var(--color-status-pending); }
+.health-chip__segment--unknown      { color: var(--color-status-unknown); }
+.health-chip__segment--ready        { color: var(--color-text-muted); }
 
 /* Loading skeleton */
 .health-chip--skeleton {

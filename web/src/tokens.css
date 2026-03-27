@@ -46,6 +46,7 @@
 
   /* Semantic: UI status badges (same hue, separate tokens for semantics) */
   --color-status-ready:          #10b981;
+  --color-status-degraded:       #f97316;   /* Degraded: CR ready but child has errors — orange */
   --color-status-error:          #f43f5e;
   --color-status-unknown:        #6b7280;
   --color-status-warning:        #f59e0b;
@@ -176,6 +177,7 @@
 
   /* Semantic: UI status */
   --color-status-ready:          #059669;
+  --color-status-degraded:       #ea580c;   /* Degraded — darker orange for dark mode */
   --color-status-error:          #e11d48;
   --color-status-unknown:        #6b7280;
   --color-status-warning:        #d97706;

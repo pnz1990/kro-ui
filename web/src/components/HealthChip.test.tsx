@@ -9,6 +9,7 @@ function makeSummary(overrides: Partial<HealthSummary> = {}): HealthSummary {
   return {
     total: 0,
     ready: 0,
+    degraded: 0,
     error: 0,
     reconciling: 0,
     pending: 0,
@@ -42,27 +43,39 @@ describe('HealthChip', () => {
     expect(chip).toHaveAttribute('data-state', 'ready')
   })
 
-  it('renders "{ready} / {total} ready" when error > 0, uses data-state="error"', () => {
+  it('renders bar segments when error > 0, uses data-state="error"', () => {
     const summary = makeSummary({ total: 5, ready: 3, error: 2 })
     render(<HealthChip summary={summary} />)
     const chip = screen.getByTestId('health-chip')
-    expect(chip).toHaveTextContent('3 / 5 ready')
+    expect(chip).toHaveTextContent('✗ 2')
+    expect(chip).toHaveTextContent('3 ready')
     expect(chip).toHaveAttribute('data-state', 'error')
   })
 
-  it('renders "{ready} / {total} ready" when reconciling > 0 (no errors), uses data-state="reconciling"', () => {
+  it('renders bar segments when reconciling > 0 (no errors), uses data-state="reconciling"', () => {
     const summary = makeSummary({ total: 5, ready: 3, reconciling: 2 })
     render(<HealthChip summary={summary} />)
     const chip = screen.getByTestId('health-chip')
-    expect(chip).toHaveTextContent('3 / 5 ready')
+    expect(chip).toHaveTextContent('↻ 2')
+    expect(chip).toHaveTextContent('3 ready')
     expect(chip).toHaveAttribute('data-state', 'reconciling')
   })
 
-  it('renders "{ready} / {total} ready" when only unknown, uses data-state="unknown"', () => {
+  it('renders bar segments when degraded > 0, uses data-state="degraded"', () => {
+    const summary = makeSummary({ total: 3, ready: 2, degraded: 1 })
+    render(<HealthChip summary={summary} />)
+    const chip = screen.getByTestId('health-chip')
+    expect(chip).toHaveTextContent('⚠ 1')
+    expect(chip).toHaveTextContent('2 ready')
+    expect(chip).toHaveAttribute('data-state', 'degraded')
+  })
+
+  it('renders bar segments when only unknown, uses data-state="unknown"', () => {
     const summary = makeSummary({ total: 3, ready: 1, unknown: 2 })
     render(<HealthChip summary={summary} />)
     const chip = screen.getByTestId('health-chip')
-    expect(chip).toHaveTextContent('1 / 3 ready')
+    expect(chip).toHaveTextContent('? 2')
+    expect(chip).toHaveTextContent('1 ready')
     expect(chip).toHaveAttribute('data-state', 'unknown')
   })
 
@@ -71,6 +84,18 @@ describe('HealthChip', () => {
     render(<HealthChip summary={summary} />)
     const chip = screen.getByTestId('health-chip')
     expect(chip).toHaveAttribute('data-state', 'error')
+  })
+
+  it('degraded takes precedence over reconciling but not error', () => {
+    const summary = makeSummary({ total: 6, ready: 2, degraded: 2, reconciling: 2 })
+    render(<HealthChip summary={summary} />)
+    expect(screen.getByTestId('health-chip')).toHaveAttribute('data-state', 'degraded')
+    const summary2 = makeSummary({ total: 6, ready: 1, error: 1, degraded: 2, reconciling: 2 })
+    const { unmount } = render(<HealthChip summary={summary2} />)
+    // error wins over degraded
+    const chips = screen.getAllByTestId('health-chip')
+    expect(chips[chips.length - 1]).toHaveAttribute('data-state', 'error')
+    unmount()
   })
 
   it('always renders data-testid="health-chip" when summary is present', () => {
