@@ -61,13 +61,21 @@ test.describe('Journey 015 — RGD Catalog', () => {
     const card = page.getByTestId('catalog-card-test-app')
     await expect(card).toBeVisible({ timeout: 10000 })
 
-    // Wait for the count cell to resolve — starts as a shimmer (issue #168: was "…"),
-    // then becomes "N instances" or "— instances" (failed fetch).
-    // The shimmer <span> has class catalog-card__count-skeleton and no text content,
-    // so we wait for the skeleton to disappear before reading the text.
-    await expect(card.locator('.catalog-card__count-skeleton')).toHaveCount(0, { timeout: 15000 })
+    // Wait for the instance count cell to show actual text.
+    // The shimmer/skeleton disappears once the async fetch resolves.
+    // Use waitForFunction for resilience on slow CI runners (previously used
+    // toHaveCount(0) with 15s which was too tight — flaky under load).
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="catalog-card-test-app"] [data-testid="catalog-card-instances"]')
+        if (!el) return false
+        const text = el.textContent ?? ''
+        // Valid: "N instance", "N instances", "— instances"
+        return /(\d+|—) instance/.test(text)
+      },
+      { timeout: 25000 },
+    )
     const instancesText = await card.getByTestId('catalog-card-instances').textContent()
-    // Valid outcomes: "N instance", "N instances", "— instances" (failed fetch)
     expect(instancesText).toMatch(/(\d+|—) instance/)
   })
 

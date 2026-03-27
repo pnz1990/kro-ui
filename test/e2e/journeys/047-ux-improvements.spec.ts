@@ -216,36 +216,49 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   test('Step 9: Degraded HealthPill shows on instance detail when child has errors (crashloop-app)', async ({ page }) => {
     // This step requires the crashloop-app RGD and crashloop-demo instance.
     // They are present on the demo cluster but NOT in the hermetic E2E kind cluster.
-    // Skip gracefully when not present.
-    const checkRes = await page.goto(`${BASE}/rgds/crashloop-app/instances/kro-ui-demo/crashloop-demo`)
-    if (checkRes?.status() === 404 || checkRes?.url().includes('not-found')) {
-      test.skip(true, 'crashloop-app fixture not available on this cluster')
+    // Use the API (not page.goto) to check for existence — the SPA always returns
+    // HTTP 200 even for nonexistent routes, so resp.status() is unreliable.
+    const apiCheck = await page.request.get(`${BASE}/api/v1/rgds/crashloop-app`)
+    if (!apiCheck.ok()) {
+      test.skip(true, 'crashloop-app RGD not present on this cluster')
+      return
+    }
+    const instanceCheck = await page.request.get(
+      `${BASE}/api/v1/instances/kro-ui-demo/crashloop-demo?rgd=crashloop-app`,
+    )
+    if (!instanceCheck.ok()) {
+      test.skip(true, 'crashloop-demo instance not present on this cluster')
+      return
     }
 
+    await page.goto(`${BASE}/rgds/crashloop-app/instances/kro-ui-demo/crashloop-demo`)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
 
-    // The crashloop-demo instance is ACTIVE (CR-level Ready=True) but has a
-    // child Deployment (badDeploy) with Available=False. The HealthPill must
-    // show "Degraded" (orange), not "Ready" (green).
     const pill = page.locator('[data-testid="health-pill"]')
     await expect(pill).toHaveText(/^(Degraded|Ready|Reconciling|Error|Pending|Unknown)$/, { timeout: 10000 })
-    // When crashloop-demo is truly degraded, it must NOT show plain "Ready"
-    // We only assert this when the fixture is confirmed present and healthy
     const text = await pill.textContent()
-    // Either Degraded (expected) or some other state (acceptable if cluster state changed)
     expect(['Degraded', 'Reconciling', 'Error', 'Ready', 'Pending', 'Unknown']).toContain(text?.trim())
   })
 
   test('Step 10: Reconciling HealthPill shows on IN_PROGRESS instance (never-ready)', async ({ page }) => {
-    // Requires the never-ready RGD and never-ready-prod instance.
-    const checkRes = await page.goto(`${BASE}/rgds/never-ready/instances/kro-ui-demo/never-ready-prod`)
-    if (checkRes?.status() === 404 || checkRes?.url().includes('not-found')) {
-      test.skip(true, 'never-ready fixture not available on this cluster')
+    // Requires the never-ready RGD and never-ready-prod instance (demo cluster only).
+    // Use the API to check existence — the SPA always returns HTTP 200.
+    const apiCheck = await page.request.get(`${BASE}/api/v1/rgds/never-ready`)
+    if (!apiCheck.ok()) {
+      test.skip(true, 'never-ready RGD not present on this cluster')
+      return
+    }
+    const instanceCheck = await page.request.get(
+      `${BASE}/api/v1/instances/kro-ui-demo/never-ready-prod?rgd=never-ready`,
+    )
+    if (!instanceCheck.ok()) {
+      test.skip(true, 'never-ready-prod instance not present on this cluster')
+      return
     }
 
+    await page.goto(`${BASE}/rgds/never-ready/instances/kro-ui-demo/never-ready-prod`)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
 
-    // never-ready-prod has status.state=IN_PROGRESS — must show Reconciling
     const pill = page.locator('[data-testid="health-pill"]')
     await expect(pill).toHaveText(/Reconciling/, { timeout: 10000 })
 
