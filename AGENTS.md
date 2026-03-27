@@ -95,6 +95,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/yaml-clean-display` | — | YAML tab: strip managedFields, last-applied-configuration, resourceVersion, uid from displayed YAML | Merged (PR #291) |
 | `fix/schema-object-type-generate` | — | GenerateTab: map/object fields initialize with {} not "" | Merged (PR #292) |
 | `051-instance-diff` | #287 | Instance spec diff — select 2 instances and compare spec fields side-by-side | Merged (PR #293) |
+| `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -397,7 +398,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
  ## Recent Changes
-- v0.4.10 (cutting): instance spec diff — select 2 instances, compare spec fields side-by-side (PR #293); GenerateTab map/object fields initialize with {} not "" (PR #292)
+- v0.4.10: instance spec diff (PR #293); GenerateTab map/object fields {} fix (PR #292)
 - v0.4.9: YAML tab strips managedFields, last-applied-configuration, resourceVersion, uid (PR #291)
 - v0.4.8: ErrorsTab skips IN_PROGRESS instances (PR #286); CollectionPanel empty state shows forEach expression (PR #286); stuck reconcile escalation banner >5m (PR #286); stuck finalizer kubectl patch command >5m (PR #290)
 - v0.4.7: isItemReady stateless-resource fix (PR #284); external ref DAG nodes show alive/reconciling not not-found (PR #285)
