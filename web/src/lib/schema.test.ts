@@ -14,8 +14,8 @@ import type { K8sObject } from '@/lib/api'
 
 /** Build a minimal RGD K8sObject for testing buildSchemaDoc. */
 function makeRGD(
-  schemaSpec: Record<string, string>,
-  schemaStatus: Record<string, string> = {},
+  schemaSpec: Record<string, unknown>,
+  schemaStatus: Record<string, unknown> = {},
   kind = 'WebApplication',
 ): K8sObject {
   return {
@@ -458,5 +458,57 @@ describe('buildSchemaDoc', () => {
 
     expect(doc.kind).toBe('')
     expect(doc.specFields).toHaveLength(0)
+  })
+
+  // JSON Schema object fields — kro v0.9.0 allows full JSON Schema in spec
+  // Previously these produced "[object Object]" via String(value) (AGENTS anti-pattern #77 / §XII)
+
+  it('parses JSON Schema object with additionalProperties as map type', () => {
+    const rgd = makeRGD({
+      labels: { type: 'object', additionalProperties: { type: 'string' } },
+    })
+    const doc = buildSchemaDoc(rgd)
+
+    const labelsField = doc.specFields.find((f) => f.name === 'labels')
+    expect(labelsField).toBeDefined()
+    expect(labelsField?.raw).toBe('map[string]string')
+    expect(labelsField?.parsedType).toEqual({ type: 'map', key: 'string', value: 'string' })
+    // Must NOT contain "[object Object]"
+    expect(labelsField?.raw).not.toContain('[object Object]')
+  })
+
+  it('parses JSON Schema array field with items type', () => {
+    const rgd = makeRGD({
+      tags: { type: 'array', items: { type: 'string' } },
+    })
+    const doc = buildSchemaDoc(rgd)
+
+    const tagsField = doc.specFields.find((f) => f.name === 'tags')
+    expect(tagsField?.raw).toBe('[]string')
+    expect(tagsField?.parsedType).toEqual({ type: 'array', items: 'string' })
+  })
+
+  it('parses bare JSON Schema type object', () => {
+    const rgd = makeRGD({
+      metadata: { type: 'object' },
+    })
+    const doc = buildSchemaDoc(rgd)
+
+    const metaField = doc.specFields.find((f) => f.name === 'metadata')
+    expect(metaField?.raw).toBe('object')
+    expect(metaField?.parsedType).toEqual({ type: 'object' })
+  })
+
+  it('never produces [object Object] for any spec field value', () => {
+    const rgd = makeRGD({
+      str: 'string',
+      map: { type: 'object', additionalProperties: { type: 'integer' } },
+      arr: { type: 'array', items: { type: 'boolean' } },
+    })
+    const doc = buildSchemaDoc(rgd)
+
+    for (const f of doc.specFields) {
+      expect(f.raw).not.toContain('[object Object]')
+    }
   })
 })
