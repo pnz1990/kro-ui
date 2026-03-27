@@ -1,0 +1,252 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# stress-test-instances.yaml — CR instances for the stress-test RGDs.
+# Applied after stress-test-rgds.yaml by scripts/demo.sh.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# never-ready instances — stick in Progressing=True
+# Gap 1.2: amber reconciling banner, amber-pulsing DAG nodes
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: NeverReadyApp
+metadata:
+  name: never-ready-prod
+  namespace: kro-ui-demo
+spec:
+  name: never-ready-prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: NeverReadyApp
+metadata:
+  name: never-ready-staging
+  namespace: kro-ui-demo
+spec:
+  name: never-ready-staging
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: NeverReadyApp
+metadata:
+  name: never-ready-dev
+  namespace: kro-ui-demo
+spec:
+  name: never-ready-dev
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# typed-schema instances — exercises DocsTab Types section
+# Gap 6.5: spec.schema (well-typed fields, multiple types, object type)
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: TypedApp
+metadata:
+  name: typed-prod
+  namespace: kro-ui-demo
+spec:
+  appName: typed-prod
+  replicas: 3
+  port: 8080
+  enableTLS: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: TypedApp
+metadata:
+  name: typed-staging
+  namespace: kro-ui-demo
+spec:
+  appName: typed-staging
+  replicas: 1
+  port: 8443
+  enableTLS: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: TypedApp
+metadata:
+  name: typed-dev
+  namespace: kro-ui-demo
+spec:
+  appName: typed-dev
+  replicas: 1
+  port: 3000
+  enableTLS: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# optimization-candidate instances — exercises OptimizationAdvisor
+# Gap 7.1: 2 same-kind nodes → advisor "Consider a forEach collection" visible
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: DualConfigApp
+metadata:
+  name: dual-config-prod
+  namespace: kro-ui-demo
+spec:
+  appName: dual-config-prod
+  env: prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: DualConfigApp
+metadata:
+  name: dual-config-staging
+  namespace: kro-ui-demo
+spec:
+  appName: dual-config-staging
+  env: staging
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: DualConfigApp
+metadata:
+  name: dual-config-dev
+  namespace: kro-ui-demo
+spec:
+  appName: dual-config-dev
+  env: dev
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# triple-config instances — exercises OptimizationAdvisor (3+ rule)
+# Gap 7.2: 3×same-kind → advisor fires unconditionally (no Jaccard threshold)
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: TripleConfigApp
+metadata:
+  name: triple-config-prod
+  namespace: kro-ui-demo
+spec:
+  appName: triple-prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: TripleConfigApp
+metadata:
+  name: triple-config-staging
+  namespace: kro-ui-demo
+spec:
+  appName: triple-staging
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# crashloop instances — exercises error node state + telemetry warnings cell
+# Gap 3.1: badDeploy has Available=False → red ring on that DAG node
+#          goodDeploy is green → mixed per-node state visible in same instance
+#          ImagePullBackOff events → TelemetryPanel warnings > 0
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CrashloopApp
+metadata:
+  name: crashloop-demo
+  namespace: kro-ui-demo
+spec:
+  appName: crashloop-demo
+  badImage: thisimage/doesnotexist:v999
+  goodImage: nginx:stable-alpine
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CrashloopApp
+metadata:
+  name: crashloop-custom
+  namespace: kro-ui-demo
+spec:
+  appName: crashloop-custom
+  badImage: registry.example.com/private/image:latest
+  goodImage: nginx:1.25-alpine
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# multi-ns-app instances in kro-ui-demo — exercises NamespaceFilter
+# Gap 12: instances in 2 namespaces → dropdown shows both, filter works
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiNsApp
+metadata:
+  name: multi-ns-prod-demo
+  namespace: kro-ui-demo
+spec:
+  appName: multi-ns-prod
+  env: prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiNsApp
+metadata:
+  name: multi-ns-staging-demo
+  namespace: kro-ui-demo
+spec:
+  appName: multi-ns-staging
+  env: staging
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiNsApp
+metadata:
+  name: multi-ns-dev-demo
+  namespace: kro-ui-demo
+spec:
+  appName: multi-ns-dev
+  env: dev
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# multi-ns-app instances in kro-ui-e2e (second namespace)
+# Gap 12: NamespaceFilter dropdown must show "kro-ui-demo" and "kro-ui-e2e"
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiNsApp
+metadata:
+  name: multi-ns-e2e-prod
+  namespace: kro-ui-e2e
+spec:
+  appName: multi-ns-e2e-prod
+  env: prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiNsApp
+metadata:
+  name: multi-ns-e2e-staging
+  namespace: kro-ui-e2e
+spec:
+  appName: multi-ns-e2e-staging
+  env: staging
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WebApp instances with enableConfig=false — exercises 'pending' state node
+# Gap 4.2: appConfig node excluded (includeWhen=false) → dim/grey on live DAG
+# Already covered by demo-instances.yaml (webapp-catalog, etc.) but making
+# explicit named instances for the stress-test audit.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-no-config-1
+  namespace: kro-ui-demo
+spec:
+  appName: no-config-one
+  enableConfig: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-no-config-2
+  namespace: kro-ui-demo
+spec:
+  appName: no-config-two
+  enableConfig: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# RegionalDeployment instances — requires test-collection RGD to be Active
+# Gap 5.1/5.5: empty and large collections. Skipped when RGD is Inactive.
+# These are applied separately in demo.sh after checking test-collection is Ready.
+# ═══════════════════════════════════════════════════════════════════════════════
+# (regional-empty and regional-large are not included here — apply via:
+#  kubectl apply -f test/e2e/fixtures/stress-test-regional.yaml
+#  once test-collection RGD is Active)

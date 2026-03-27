@@ -393,7 +393,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
-## Recent Changes
+ ## Recent Changes
+- v0.4.8 (cutting): ErrorsTab skips IN_PROGRESS instances (PR #286); CollectionPanel empty state shows forEach expression (PR #286); stuck reconcile escalation banner >5m (PR #286); stuck finalizer kubectl patch command >5m (PR #290)
 - v0.4.7: isItemReady stateless-resource fix (PR #284); external ref DAG nodes show alive/reconciling not not-found (PR #285)
 - v0.4.6: kro v0.9.0 upgrade (PR #275); RGD Designer validation (PR #273); degraded health state + health bar + copy YAML (PR #277); state map node-id keying + IN_PROGRESS fix (PR #278); 26-gap UI polish (PR #279); refresh button + Designer CEL help (PR #280); reconcile-paused banner + cluster-scoped namespace (PR #281); ErrorsTab dedup + optimizer emoji (PR #282); DocsTab JSON Schema object types (PR #283)
 - v0.4.5: degraded health state (6th InstanceHealthState) + multi-segment HealthChip bar (✗/⚠/↻ counts) + copy instance YAML button; state map keyed by kro.run/node-id (fixes two-Deployment node collision, EndpointSlice pollution); IN_PROGRESS kro state → reconciling pill+banner; items:null→[] on zero children; GraphProgressing compat (kro v0.8.x)

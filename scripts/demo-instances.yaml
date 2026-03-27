@@ -1,0 +1,1077 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# demo-instances.yaml — rich set of demo instances applied by scripts/demo.sh.
+#
+# Goals:
+#   - Dozens of instances across all RGD kinds so the Overview page feels alive
+#   - Varied field values so health badges, instance lists, and DAGs are interesting
+#   - Cover every node type: NodeTypeResource, NodeTypeCollection, NodeTypeExternal,
+#     NodeTypeExternalCollection (via upstream RGDs), includeWhen, readyWhen, forEach
+#   - Interesting CEL expressions visible in the YAML tab and Designer
+#   - Some instances intentionally in degraded/incomplete states (e.g. enableParent: false)
+#     so health roll-up badges show non-Ready states
+#
+# All instances target the kro-ui-demo namespace (created by demo.sh).
+# Cluster-scoped instances (ClusterApp) have no namespace.
+
+# ── WebApp instances (test-app RGD) ──────────────────────────────────────────
+# 20 instances — varied appName, some with enableConfig disabled
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-api-gateway
+  namespace: kro-ui-demo
+spec:
+  appName: api-gateway
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-auth-service
+  namespace: kro-ui-demo
+spec:
+  appName: auth-service
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-billing
+  namespace: kro-ui-demo
+spec:
+  appName: billing
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-catalog
+  namespace: kro-ui-demo
+spec:
+  appName: catalog
+  enableConfig: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-checkout
+  namespace: kro-ui-demo
+spec:
+  appName: checkout
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-dashboard
+  namespace: kro-ui-demo
+spec:
+  appName: dashboard
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-events
+  namespace: kro-ui-demo
+spec:
+  appName: events
+  enableConfig: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-feed
+  namespace: kro-ui-demo
+spec:
+  appName: feed
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-graphql
+  namespace: kro-ui-demo
+spec:
+  appName: graphql
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-healthcheck
+  namespace: kro-ui-demo
+spec:
+  appName: healthcheck
+  enableConfig: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-indexer
+  namespace: kro-ui-demo
+spec:
+  appName: indexer
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-jobs
+  namespace: kro-ui-demo
+spec:
+  appName: jobs
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-kafka-consumer
+  namespace: kro-ui-demo
+spec:
+  appName: kafka-consumer
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-logging
+  namespace: kro-ui-demo
+spec:
+  appName: logging
+  enableConfig: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-metrics
+  namespace: kro-ui-demo
+spec:
+  appName: metrics
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-notifications
+  namespace: kro-ui-demo
+spec:
+  appName: notifications
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-orders
+  namespace: kro-ui-demo
+spec:
+  appName: orders
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-payments
+  namespace: kro-ui-demo
+spec:
+  appName: payments
+  enableConfig: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-recommendations
+  namespace: kro-ui-demo
+spec:
+  appName: recommendations
+  enableConfig: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: WebApp
+metadata:
+  name: webapp-search
+  namespace: kro-ui-demo
+spec:
+  appName: search
+  enableConfig: true
+
+# ── AutoscaledApp instances (multi-resource RGD) ─────────────────────────────
+# 15 instances — varied replicas, CPU targets, images
+# Exercises: 4-node DAG (ConfigMap → Service → Deployment → HPA), inter-resource
+# CEL refs, autoscaling config permutations
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-api
+  namespace: kro-ui-demo
+spec:
+  appName: demo-api
+  image: nginx:1.25-alpine
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilization: 70
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-worker
+  namespace: kro-ui-demo
+spec:
+  appName: demo-worker
+  image: nginx:stable-alpine
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilization: 60
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-frontend
+  namespace: kro-ui-demo
+spec:
+  appName: demo-frontend
+  image: nginx:1.24-alpine
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilization: 80
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-backend
+  namespace: kro-ui-demo
+spec:
+  appName: demo-backend
+  image: nginx:stable-alpine
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilization: 75
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-cache
+  namespace: kro-ui-demo
+spec:
+  appName: demo-cache
+  image: nginx:alpine
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilization: 90
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-ingest
+  namespace: kro-ui-demo
+spec:
+  appName: demo-ingest
+  image: nginx:1.25-alpine
+  minReplicas: 3
+  maxReplicas: 12
+  targetCPUUtilization: 55
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-processor
+  namespace: kro-ui-demo
+spec:
+  appName: demo-processor
+  image: nginx:stable-alpine
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilization: 65
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-exporter
+  namespace: kro-ui-demo
+spec:
+  appName: demo-exporter
+  image: nginx:1.24-alpine
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilization: 85
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-sync
+  namespace: kro-ui-demo
+spec:
+  appName: demo-sync
+  image: nginx:alpine
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilization: 70
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-proxy
+  namespace: kro-ui-demo
+spec:
+  appName: demo-proxy
+  image: nginx:1.25-alpine
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilization: 75
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-router
+  namespace: kro-ui-demo
+spec:
+  appName: demo-router
+  image: nginx:stable-alpine
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilization: 80
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-reconciler
+  namespace: kro-ui-demo
+spec:
+  appName: demo-reconciler
+  image: nginx:1.24-alpine
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilization: 50
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-scheduler
+  namespace: kro-ui-demo
+spec:
+  appName: demo-scheduler
+  image: nginx:alpine
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilization: 60
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-transformer
+  namespace: kro-ui-demo
+spec:
+  appName: demo-transformer
+  image: nginx:1.25-alpine
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilization: 70
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: AutoscaledApp
+metadata:
+  name: autoscaled-validator
+  namespace: kro-ui-demo
+spec:
+  appName: demo-validator
+  image: nginx:stable-alpine
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilization: 80
+
+# ── RegionalDeployment instances (test-collection RGD) ───────────────────────
+# 8 instances — varied region arrays; exercises forEach cardinality badges
+# 2 regions → badge shows "2", 5 regions → badge shows "5", etc.
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-us
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - us-east-1
+    - us-west-2
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-eu
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - eu-west-1
+    - eu-central-1
+    - eu-north-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-apac
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - ap-southeast-1
+    - ap-northeast-1
+    - ap-south-1
+    - ap-east-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-global
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - us-east-1
+    - us-west-2
+    - eu-west-1
+    - eu-central-1
+    - ap-southeast-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-americas
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - us-east-1
+    - us-west-1
+    - ca-central-1
+    - sa-east-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-staging
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - us-east-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-prod-full
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - us-east-1
+    - us-west-2
+    - eu-west-1
+    - eu-central-1
+    - eu-north-1
+    - ap-southeast-1
+    - ap-northeast-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: RegionalDeployment
+metadata:
+  name: regional-latam
+  namespace: kro-ui-demo
+spec:
+  regions:
+    - sa-east-1
+    - mx-central-1
+    - br-south-1
+
+# ── CelFunctionsApp instances (cel-functions RGD) ────────────────────────────
+# 8 instances — varied DNS names; exercises all CEL token types in the highlighter:
+# .split(), .slice(), .join(), json.marshal(), quantity(), size(), ternary
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-api-prod
+  namespace: kro-ui-demo
+spec:
+  name: api-prod
+  fullDNSName: api.prod.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-api-staging
+  namespace: kro-ui-demo
+spec:
+  name: api-staging
+  fullDNSName: api.staging.internal.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-auth-prod
+  namespace: kro-ui-demo
+spec:
+  name: auth-prod
+  fullDNSName: auth.prod.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-metrics-prod
+  namespace: kro-ui-demo
+spec:
+  name: metrics-prod
+  fullDNSName: metrics.observability.prod.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-search-eu
+  namespace: kro-ui-demo
+spec:
+  name: search-eu
+  fullDNSName: search.eu.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-events-prod
+  namespace: kro-ui-demo
+spec:
+  name: events-prod
+  fullDNSName: events.stream.prod.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-graphql-prod
+  namespace: kro-ui-demo
+spec:
+  name: graphql-prod
+  fullDNSName: graphql.api.example.com
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelFunctionsApp
+metadata:
+  name: cel-grpc-prod
+  namespace: kro-ui-demo
+spec:
+  name: grpc-prod
+  fullDNSName: grpc.internal.example.com
+
+# ── CartesianApp instances (upstream-cartesian-foreach RGD) ──────────────────
+# 6 instances — 2D cartesian forEach: regions × tiers
+# Exercises: multi-dimension forEach, configCount status CEL, cardinality badges
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CartesianApp
+metadata:
+  name: cartesian-platform-full
+  namespace: kro-ui-demo
+spec:
+  name: platform-full
+  regions:
+    - us-east-1
+    - eu-west-1
+    - ap-southeast-1
+  tiers:
+    - web
+    - api
+    - worker
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CartesianApp
+metadata:
+  name: cartesian-platform-staging
+  namespace: kro-ui-demo
+spec:
+  name: platform-staging
+  regions:
+    - us-east-1
+  tiers:
+    - web
+    - api
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CartesianApp
+metadata:
+  name: cartesian-services-eu
+  namespace: kro-ui-demo
+spec:
+  name: services-eu
+  regions:
+    - eu-west-1
+    - eu-central-1
+  tiers:
+    - frontend
+    - backend
+    - cache
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CartesianApp
+metadata:
+  name: cartesian-data-pipeline
+  namespace: kro-ui-demo
+spec:
+  name: data-pipeline
+  regions:
+    - us-east-1
+    - us-west-2
+  tiers:
+    - ingest
+    - transform
+    - export
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CartesianApp
+metadata:
+  name: cartesian-canary-rollout
+  namespace: kro-ui-demo
+spec:
+  name: canary-rollout
+  regions:
+    - us-east-1
+  tiers:
+    - canary
+    - stable
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CartesianApp
+metadata:
+  name: cartesian-global-cdn
+  namespace: kro-ui-demo
+spec:
+  name: global-cdn
+  regions:
+    - us-east-1
+    - eu-west-1
+    - ap-southeast-1
+    - sa-east-1
+  tiers:
+    - edge
+    - origin
+
+# ── CollectionChain instances (upstream-collection-chain RGD) ────────────────
+# 6 instances — chained forEach: base resource gating a downstream collection
+# Exercises: has() CEL guard, inter-resource reference in forEach expression,
+# conditional forEach fan-out (empty list yields 0 children)
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CollectionChain
+metadata:
+  name: chain-envs-prod
+  namespace: kro-ui-demo
+spec:
+  name: envs-prod
+  values:
+    - production
+    - dr-primary
+    - dr-secondary
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CollectionChain
+metadata:
+  name: chain-envs-staging
+  namespace: kro-ui-demo
+spec:
+  name: envs-staging
+  values:
+    - staging
+    - staging-canary
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CollectionChain
+metadata:
+  name: chain-envs-dev
+  namespace: kro-ui-demo
+spec:
+  name: envs-dev
+  values:
+    - dev
+    - dev-alice
+    - dev-bob
+    - dev-charlie
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CollectionChain
+metadata:
+  name: chain-features
+  namespace: kro-ui-demo
+spec:
+  name: features
+  values:
+    - feature-payments-v2
+    - feature-search-ml
+    - feature-dark-mode
+    - feature-new-onboarding
+    - feature-graphql-v2
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CollectionChain
+metadata:
+  name: chain-regions-apac
+  namespace: kro-ui-demo
+spec:
+  name: regions-apac
+  values:
+    - ap-southeast-1
+    - ap-northeast-1
+    - ap-south-1
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CollectionChain
+metadata:
+  name: chain-empty
+  namespace: kro-ui-demo
+spec:
+  name: empty-chain
+  values: []
+
+# ── ContagiousApp instances (upstream-contagious-include-when RGD) ───────────
+# 8 instances — mix of enableParent true/false
+# Exercises: contagious includeWhen BFS propagation; when enableParent=false,
+# both parentDeploy AND childConfig are excluded (contagious conditional)
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-api-enabled
+  namespace: kro-ui-demo
+spec:
+  name: api-enabled
+  enableParent: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-api-disabled
+  namespace: kro-ui-demo
+spec:
+  name: api-disabled
+  enableParent: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-worker-enabled
+  namespace: kro-ui-demo
+spec:
+  name: worker-enabled
+  enableParent: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-worker-disabled
+  namespace: kro-ui-demo
+spec:
+  name: worker-disabled
+  enableParent: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-frontend-enabled
+  namespace: kro-ui-demo
+spec:
+  name: frontend-enabled
+  enableParent: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-backend-enabled
+  namespace: kro-ui-demo
+spec:
+  name: backend-enabled
+  enableParent: true
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-cache-disabled
+  namespace: kro-ui-demo
+spec:
+  name: cache-disabled
+  enableParent: false
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ContagiousApp
+metadata:
+  name: contagious-scheduler-enabled
+  namespace: kro-ui-demo
+spec:
+  name: scheduler-enabled
+  enableParent: true
+
+# ── CelComprehensionsApp instances (upstream-cel-comprehensions RGD) ─────────
+# 6 instances — varied tags and items maps
+# Exercises: transformMapEntry, transformList, transformMap — v0.9.0 CEL comprehensions
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelComprehensionsApp
+metadata:
+  name: comprehensions-services
+  namespace: kro-ui-demo
+spec:
+  name: services
+  tags:
+    - auth
+    - api
+    - worker
+    - scheduler
+  items:
+    cpu: "100"
+    memory: "256"
+    replicas: "3"
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelComprehensionsApp
+metadata:
+  name: comprehensions-infra
+  namespace: kro-ui-demo
+spec:
+  name: infra
+  tags:
+    - network
+    - storage
+    - compute
+  items:
+    nodes: "5"
+    vcpus: "16"
+    gb: "64"
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelComprehensionsApp
+metadata:
+  name: comprehensions-pipelines
+  namespace: kro-ui-demo
+spec:
+  name: pipelines
+  tags:
+    - ingest
+    - transform
+    - validate
+    - export
+    - archive
+  items:
+    throughput: "1000"
+    partitions: "8"
+    retention: "7"
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelComprehensionsApp
+metadata:
+  name: comprehensions-envs
+  namespace: kro-ui-demo
+spec:
+  name: envs
+  tags:
+    - prod
+    - staging
+    - dev
+  items:
+    prod_replicas: "5"
+    staging_replicas: "2"
+    dev_replicas: "1"
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelComprehensionsApp
+metadata:
+  name: comprehensions-regions
+  namespace: kro-ui-demo
+spec:
+  name: regions
+  tags:
+    - us-east
+    - eu-west
+    - ap-southeast
+  items:
+    latency_us: "12"
+    latency_eu: "18"
+    latency_ap: "45"
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: CelComprehensionsApp
+metadata:
+  name: comprehensions-minimal
+  namespace: kro-ui-demo
+spec:
+  name: minimal
+  tags:
+    - only-tag
+  items:
+    key: "42"
+
+# ── EchoApp instances (external-ref RGD) ─────────────────────────────────────
+# 5 instances — varied names; all reference the same external ConfigMap
+# Exercises: NodeTypeExternal, optional chaining orValue() CEL, external ref
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: EchoApp
+metadata:
+  name: echo-prod
+  namespace: kro-ui-demo
+spec:
+  name: echo-prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: EchoApp
+metadata:
+  name: echo-staging
+  namespace: kro-ui-demo
+spec:
+  name: echo-staging
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: EchoApp
+metadata:
+  name: echo-dev
+  namespace: kro-ui-demo
+spec:
+  name: echo-dev
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: EchoApp
+metadata:
+  name: echo-canary
+  namespace: kro-ui-demo
+spec:
+  name: echo-canary
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: EchoApp
+metadata:
+  name: echo-dr
+  namespace: kro-ui-demo
+spec:
+  name: echo-dr
+
+# ── ExternalCollectionApp instances (upstream-external-collection RGD) ────────
+# 3 instances — different target namespaces matching label selector
+# Exercises: NodeTypeExternalCollection, matchLabels selector, size() CEL,
+# reactive external ref watching
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ExternalCollectionApp
+metadata:
+  name: extcol-demo-ns
+  namespace: kro-ui-demo
+spec:
+  name: extcol-demo
+  targetNamespace: kro-ui-demo
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ExternalCollectionApp
+metadata:
+  name: extcol-e2e-ns
+  namespace: kro-ui-demo
+spec:
+  name: extcol-e2e
+  targetNamespace: kro-ui-e2e
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ExternalCollectionApp
+metadata:
+  name: extcol-system-ns
+  namespace: kro-ui-demo
+spec:
+  name: extcol-system
+  targetNamespace: kro-system
+
+# ── ClusterApp instances (upstream-cluster-scoped RGD) ───────────────────────
+# 5 cluster-scoped instances (no namespace — ClusterApp is scope: Cluster)
+# Exercises: cluster-scoped instance display, namespace=_ sentinel handling,
+# breadcrumb showing "cluster-scoped", KREP-010 support
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ClusterApp
+metadata:
+  name: clusterapp-networking
+spec:
+  name: networking
+  targetNamespace: kro-ui-demo
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ClusterApp
+metadata:
+  name: clusterapp-storage
+spec:
+  name: storage
+  targetNamespace: kro-ui-demo
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ClusterApp
+metadata:
+  name: clusterapp-observability
+spec:
+  name: observability
+  targetNamespace: kro-ui-demo
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ClusterApp
+metadata:
+  name: clusterapp-security
+spec:
+  name: security
+  targetNamespace: kro-system
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ClusterApp
+metadata:
+  name: clusterapp-platform
+spec:
+  name: platform
+  targetNamespace: kro-ui-demo
+
+# ── ChainParent instances (chain-parent RGD) ──────────────────────────────────
+# 5 instances — exercises static RGD chaining graph and deep-graph expansion
+# chain-parent embeds a ChainChild CR, which kro chains to the chain-child RGD
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ChainParent
+metadata:
+  name: chain-prod
+  namespace: kro-ui-demo
+spec:
+  name: prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ChainParent
+metadata:
+  name: chain-staging
+  namespace: kro-ui-demo
+spec:
+  name: staging
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ChainParent
+metadata:
+  name: chain-dev
+  namespace: kro-ui-demo
+spec:
+  name: dev
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ChainParent
+metadata:
+  name: chain-canary
+  namespace: kro-ui-demo
+spec:
+  name: canary
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: ChainParent
+metadata:
+  name: chain-dr
+  namespace: kro-ui-demo
+spec:
+  name: dr

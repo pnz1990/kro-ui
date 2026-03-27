@@ -1,0 +1,389 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# stress-test-fixtures.yaml — exercises every UI edge case not covered by the
+# standard demo fixtures. Applied by scripts/demo.sh via the stress-test target.
+#
+# What this covers (gap numbers reference the survey):
+#
+#   Gap 1.2  — never-ready RGD (Progressing=True stable → reconciling banner)
+#   Gap 1.3  — invalid-rgd (ResourceGraphAccepted=False → ValidationTab red)
+#   Gap 2.1  — typed-schema-rgd (spec.schema.types → DocsTab Types section)
+#   Gap 4.2  — WebApp with enableConfig=false (pending node on live DAG)
+#   Gap 5.1  — RegionalDeployment with regions=[] (CollectionPanel empty state)
+#   Gap 5.5  — RegionalDeployment with 10 regions (large cardinality badge)
+#   Gap 7.1  — optimization-candidate (2×ConfigMap same kind → advisor visible)
+#   Gap 7.2  — triple-config (3×ConfigMap → advisor fires unconditionally)
+#   Gap 8.1  — 3 instances of invalid-rgd (ErrorsTab multi-instance grouping)
+#   Gap 3.1  — crashloop-app (Deployment with bad image → Available=False → error node)
+#   Gap 12   — multi-namespace (same RGD instances in 2 namespaces → NamespaceFilter)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. NEVER-READY RGD
+#    Gap 1.2 — reconciling banner (Progressing=True stable)
+#    The readyWhen expression is perpetually false → kro keeps Progressing=True.
+#    Exercises: amber reconciling banner, all DAG nodes amber-pulse.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: never-ready
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: NeverReadyApp
+    group: e2e.kro-ui.dev
+    spec:
+      name: string | default=never-ready-test
+    status:
+      phase: ${appConfig.data.status}
+  resources:
+    - id: appConfig
+      # readyWhen references a label that will never be set on the ConfigMap.
+      # The ConfigMap itself is created fine, but this condition is always false
+      # → kro emits Progressing=True indefinitely.
+      readyWhen:
+        - ${appConfig.metadata.labels["kro.run/manually-ready"] == "true"}
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.name}-config
+          namespace: kro-ui-demo
+        data:
+          status: waiting
+          note: "This instance intentionally never becomes Ready"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2. INVALID RGD (CEL references unknown identifier)
+#    Gap 6.1, 6.3, 8.1, 8.2 — ValidationTab red, CRD-not-provisioned message
+#    in Instances tab, ErrorsTab multi-instance grouping, rewrite + Show-raw toggle.
+#    kro emits ResourceGraphAccepted=False, reason=InvalidCELExpression.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: invalid-cel-rgd
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: BrokenCelApp
+    group: e2e.kro-ui.dev
+    spec:
+      name: string | default=broken-cel
+    status:
+      value: ${appConfig.data.val}
+  resources:
+    - id: appConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.name}-config
+          namespace: kro-ui-demo
+        data:
+          # References `nonexistent` which is not a known resource id or schema field.
+          # kro will reject this at graph-build time with InvalidCELExpression.
+          val: ${nonexistent.field.deep.path}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 3. TYPED-SCHEMA RGD (spec.schema.types populated)
+#    Gap 6.5 — DocsTab Types section. Renders only when schema.types is non-empty.
+#    Also exercises: structured schema fields, nested type references in CEL.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: typed-schema
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: TypedApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=typed-test
+      replicas: integer | default=2
+      port: integer | default=8080
+      enableTLS: boolean | default=false
+      labels:
+        type: "object"
+        additionalProperties:
+          type: "string"
+    status:
+      deploymentName: ${appDeployment.metadata.name}
+      available: ${appDeployment.status.availableReplicas}
+  resources:
+    - id: appDeployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-typed
+          namespace: kro-ui-demo
+        spec:
+          replicas: ${schema.spec.replicas}
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}
+            spec:
+              containers:
+                - name: app
+                  image: nginx:stable-alpine
+                  ports:
+                    - containerPort: ${schema.spec.port}
+
+    - id: appService
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.appName}-svc
+          namespace: kro-ui-demo
+        spec:
+          selector:
+            app: ${schema.spec.appName}
+          ports:
+            - port: ${schema.spec.port}
+              targetPort: ${schema.spec.port}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 4. OPTIMIZATION-CANDIDATE RGD
+#    Gap 7.1 — 2×ConfigMap same kind, ≥70% Jaccard similarity → advisor visible.
+#    Gap 7.2 — triple-config below adds a 3rd ConfigMap (unconditional trigger).
+#    Exercises: OptimizationAdvisor panel, dismiss button, "Learn more" expand.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: optimization-candidate
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: DualConfigApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=dual-config
+      env: string | default=prod
+    status:
+      primaryName: ${primaryConfig.metadata.name}
+      secondaryName: ${secondaryConfig.metadata.name}
+  resources:
+    - id: primaryConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-primary
+          namespace: kro-ui-demo
+        data:
+          role: primary
+          app: ${schema.spec.appName}
+          env: ${schema.spec.env}
+          tier: frontend
+
+    - id: secondaryConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-secondary
+          namespace: kro-ui-demo
+        data:
+          role: secondary
+          app: ${schema.spec.appName}
+          env: ${schema.spec.env}
+          tier: backend
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 5. TRIPLE-CONFIG RGD
+#    Gap 7.2 — 3×ConfigMap → detectCollapseGroups fires unconditionally (no Jaccard).
+#    Exercises: multi-item advisor, separate dismiss per group.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: triple-config
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: TripleConfigApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=triple
+    status:
+      aName: ${configA.metadata.name}
+      bName: ${configB.metadata.name}
+      cName: ${configC.metadata.name}
+  resources:
+    - id: configA
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-a
+          namespace: kro-ui-demo
+        data:
+          slot: a
+          app: ${schema.spec.appName}
+          description: "First config — should be a forEach"
+
+    - id: configB
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-b
+          namespace: kro-ui-demo
+        data:
+          slot: b
+          app: ${schema.spec.appName}
+          description: "Second config — should be a forEach"
+
+    - id: configC
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-c
+          namespace: kro-ui-demo
+        data:
+          slot: c
+          app: ${schema.spec.appName}
+          description: "Third config — advisor fires unconditionally at 3+"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 6. CRASHLOOP RGD
+#    Gap 3.1 — child Deployment has bad image → Available=False on Deployment
+#    → deriveChildState returns 'error' → red node ring in live DAG.
+#    Also exercises: TelemetryPanel children error cell (X/Y red).
+#    Warning-type events from ImagePullBackOff exercise the warnings cell.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: crashloop-app
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: CrashloopApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=crashloop
+      # badImage deliberately references a non-existent image to force error state
+      badImage: string | default=thisimage/doesnotexist:v999
+      goodImage: string | default=nginx:stable-alpine
+    status:
+      goodDeployReady: ${goodDeploy.status.availableReplicas}
+  resources:
+    # A healthy ConfigMap — always alive (green)
+    - id: appConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-config
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+          note: "This resource is healthy"
+
+    # A healthy Deployment — always alive (green)
+    - id: goodDeploy
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-good
+          namespace: kro-ui-demo
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}-good
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}-good
+            spec:
+              containers:
+                - name: app
+                  image: ${schema.spec.goodImage}
+
+    # A crashlooping Deployment — Available=False → error state node (red ring)
+    # ImagePullBackOff events → TelemetryPanel warnings cell non-zero
+    - id: badDeploy
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-bad
+          namespace: kro-ui-demo
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}-bad
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}-bad
+            spec:
+              containers:
+                - name: bad
+                  image: ${schema.spec.badImage}
+                  # Short restart policy makes it fail fast
+              restartPolicy: Always
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 7. MULTI-NAMESPACE RGD
+#    Gap 12 — same RGD instances in 2 namespaces → NamespaceFilter dropdown
+#    shows 2 entries; switching between them filters the instance table.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: multi-ns-app
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: MultiNsApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=multi-ns
+      env: string | default=dev
+    status:
+      configName: ${nsConfig.metadata.name}
+  resources:
+    - id: nsConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-${schema.spec.env}
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+          env: ${schema.spec.env}
+          note: "Config in kro-ui-demo namespace"
