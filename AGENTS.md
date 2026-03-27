@@ -399,6 +399,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
  ## Recent Changes
+- v0.4.11 (cutting): TerminatingBanner unit tests (PR #294); CollectionPanel legacy kro < 0.8.0 warning removed (PR #295)
 - v0.4.10: instance spec diff (PR #293); GenerateTab map/object fields {} fix (PR #292)
 - v0.4.9: YAML tab strips managedFields, last-applied-configuration, resourceVersion, uid (PR #291)
 - v0.4.8: ErrorsTab skips IN_PROGRESS instances (PR #286); CollectionPanel empty state shows forEach expression (PR #286); stuck reconcile escalation banner >5m (PR #286); stuck finalizer kubectl patch command >5m (PR #290)
