@@ -79,4 +79,13 @@ test.describe('Journey 020 — Schema Doc Generator', () => {
     // Content must be non-empty (not a blank tab)
     expect(content?.trim().length).toBeGreaterThan(0)
   })
+
+  test('Step 6: Types section absent for RGD with no spec.schema.types (FR-030)', async ({ page }) => {
+    // test-app has no spec.schema.types — Types section must not be rendered.
+    // This is the common case; the section only appears for RGDs with custom types.
+    await page.goto(`${BASE}/rgds/test-app?tab=docs`)
+    await expect(page.getByTestId('docs-tab')).toBeVisible({ timeout: 10000 })
+    // docs-types-section must not exist for this RGD.
+    await expect(page.getByTestId('docs-types-section')).toHaveCount(0)
+  })
 })

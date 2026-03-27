@@ -128,6 +128,14 @@
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);
 
+  /* Scope badge — cluster-scoped RGDs (violet family, distinct from status colors) */
+  --badge-cluster-bg: color-mix(in srgb, var(--color-pending) 15%, transparent);
+  --badge-cluster-fg: var(--color-pending);
+
+  /* Revision chip — lastIssuedRevision display in RGD detail header */
+  --chip-revision-bg: color-mix(in srgb, var(--color-text-faint) 12%, transparent);
+  --chip-revision-fg: var(--color-text-secondary);
+
   /* Z-index scale */
   --z-tooltip: 200;
 }
@@ -236,11 +244,17 @@
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);
 
+  /* Scope badge — cluster-scoped RGDs (inherits pending violet, lighter for light mode) */
+  --badge-cluster-bg: color-mix(in srgb, var(--color-pending) 12%, transparent);
+  --badge-cluster-fg: var(--color-pending);
+
+  /* Revision chip — lastIssuedRevision display in RGD detail header */
+  --chip-revision-bg: color-mix(in srgb, var(--color-text-faint) 10%, transparent);
+  --chip-revision-fg: var(--color-text-secondary);
+
   /* Z-index scale */
   --z-tooltip: 200;
 }
-
-/* ── Reset ──────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { font-size: 14px; }

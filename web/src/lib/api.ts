@@ -91,10 +91,21 @@ export interface KroCapabilities {
     hasExternalRefSelector: boolean
     hasScope: boolean
     hasTypes: boolean
+    hasGraphRevisions: boolean
   }
 }
 
 export const getCapabilities = () => get<KroCapabilities>('/kro/capabilities')
+
+// ── GraphRevisions (kro v0.9.0+) ─────────────────────────────────────
+
+/** List GraphRevision objects for a given RGD name, sorted descending by spec.revision. */
+export const listGraphRevisions = (rgdName: string) =>
+  get<K8sList>(`/kro/graph-revisions?rgd=${encodeURIComponent(rgdName)}`)
+
+/** Fetch a single GraphRevision by its Kubernetes resource name. */
+export const getGraphRevision = (name: string) =>
+  get<K8sObject>(`/kro/graph-revisions/${encodeURIComponent(name)}`)
 
 // ── Events ───────────────────────────────────────────────────────────
 

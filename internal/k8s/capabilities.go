@@ -45,6 +45,7 @@ type SchemaCapabilities struct {
 	HasExternalRefSelector bool `json:"hasExternalRefSelector"`
 	HasScope               bool `json:"hasScope"`
 	HasTypes               bool `json:"hasTypes"`
+	HasGraphRevisions      bool `json:"hasGraphRevisions"`
 }
 
 // forbiddenCapabilities are fork-only concepts that must never appear in feature gates.
@@ -65,9 +66,10 @@ func Baseline() *KroCapabilities {
 		Schema: SchemaCapabilities{
 			HasForEach:             true,
 			HasExternalRef:         true,
-			HasExternalRefSelector: false,
+			HasExternalRefSelector: true,
 			HasScope:               false,
 			HasTypes:               false,
+			HasGraphRevisions:      false,
 		},
 	}
 }
@@ -85,6 +87,17 @@ var deployGVR = schema.GroupVersionResource{
 	Version:  "v1",
 	Resource: "deployments",
 }
+
+// GraphRevisionGVR is the GVR for GraphRevision objects (internal.kro.run/v1alpha1).
+// Available in kro v0.9.0+. Used by ListGraphRevisions and GetGraphRevision handlers.
+var GraphRevisionGVR = schema.GroupVersionResource{
+	Group:    "internal.kro.run",
+	Version:  "v1alpha1",
+	Resource: "graphrevisions",
+}
+
+// internalKroAPIVersion is the internal kro API group/version for GraphRevision.
+const internalKroAPIVersion = "internal.kro.run/v1alpha1"
 
 // kroAPIVersion is the kro API group/version to query.
 const kroAPIVersion = "kro.run/v1alpha1"
@@ -132,13 +145,15 @@ func DetectCapabilities(ctx context.Context, dyn dynamic.Interface, disc discove
 	}
 	caps.APIVersion = kroAPIVersion
 
-	// Steps 2 + 3 run concurrently: CRD schema introspection and Deployment args parsing.
+	// Steps 2 + 3 + 4 run concurrently: CRD schema introspection, Deployment args
+	// parsing, and internal kro CRD detection (GraphRevision).
 	var wg sync.WaitGroup
 	var schemaCaps SchemaCapabilities
 	var featureGates map[string]bool
 	var version string
+	var hasGraphRevisions bool
 
-	wg.Add(2)
+	wg.Add(3)
 
 	// Step 2: CRD schema introspection for schema capabilities.
 	go func() {
@@ -152,9 +167,16 @@ func DetectCapabilities(ctx context.Context, dyn dynamic.Interface, disc discove
 		featureGates, version = detectFeatureGatesAndVersion(ctx, dyn)
 	}()
 
+	// Step 4: Detect internal kro CRDs (GraphRevision, internal.kro.run/v1alpha1).
+	go func() {
+		defer wg.Done()
+		hasGraphRevisions = detectInternalKroCRDs(ctx, disc)
+	}()
+
 	wg.Wait()
 
 	caps.Schema = schemaCaps
+	caps.Schema.HasGraphRevisions = hasGraphRevisions
 	if featureGates != nil {
 		caps.FeatureGates = featureGates
 	}
@@ -374,6 +396,26 @@ func enforceForkGuard(caps *KroCapabilities) {
 	for _, forbidden := range forbiddenCapabilities {
 		delete(caps.FeatureGates, forbidden)
 	}
+}
+
+// detectInternalKroCRDs probes the internal.kro.run/v1alpha1 API group and
+// returns true when the graphrevisions CRD is registered in the cluster.
+// Returns false on any error (graceful degradation — pre-v0.9.0 clusters simply
+// have no internal.kro.run API group).
+func detectInternalKroCRDs(ctx context.Context, disc discovery.DiscoveryInterface) bool {
+	log := zerolog.Ctx(ctx)
+	rl, err := disc.ServerResourcesForGroupVersion(internalKroAPIVersion)
+	if err != nil {
+		log.Debug().Err(err).Msg("internal.kro.run API group not found; GraphRevisions not available")
+		return false
+	}
+	for _, r := range rl.APIResources {
+		if r.Name == GraphRevisionResource {
+			log.Debug().Msg("detected GraphRevision CRD (internal.kro.run/v1alpha1)")
+			return true
+		}
+	}
+	return false
 }
 
 // --- Unstructured navigation helpers ---

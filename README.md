@@ -25,7 +25,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **YAML tab** — syntax-highlighted RGD manifest with CEL expression highlighting and copy-to-clipboard
   - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
-  - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, and a copyable example manifest
+  - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, custom type definitions (kro v0.9.0+ `spec.schema.types`), and a copyable example manifest
   - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
 - **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error/pending/not-found), node YAML inspection, spec/conditions/events/telemetry panels
   - Per-node state derived from each child resource's own `status.conditions` — not just the root CR; `includeWhen`-excluded nodes shown in violet (pending), not-yet-created in gray (not-found)
@@ -41,7 +41,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 - **Controller metrics panel** — kro controller metrics auto-discovered via pod proxy (zero configuration); per-context correct after context switch; powers Fleet metrics column via `?context=` fan-out
 - **Context switcher** — switch kubeconfig contexts at runtime without restart
 - **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types)
-- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly
+- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API, cluster-scoped RGD badges, custom type definitions
 - **First-time onboarding** — Overview page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
 - **Dark/light theme** — dark default, full design token system, SVG favicon
 
@@ -118,6 +118,8 @@ All endpoints are read-only. No mutating k8s API calls are ever issued.
 | `/api/v1/resources/{ns}/{group}/{ver}/{kind}/{name}` | GET | Raw resource YAML |
 | `/api/v1/kro/capabilities` | GET | Detected kro capabilities and feature gates |
 | `/api/v1/kro/metrics` | GET | kro controller metrics auto-discovered via pod proxy; `?context=<name>` for per-cluster Fleet fan-out |
+| `/api/v1/kro/graph-revisions` | GET | List GraphRevision objects for an RGD (`?rgd=<name>`); requires kro v0.9.0+, returns `{items:[]}` on older clusters |
+| `/api/v1/kro/graph-revisions/{name}` | GET | Get a single GraphRevision by Kubernetes name; requires kro v0.9.0+ |
 | `/api/v1/events` | GET | kro-filtered Kubernetes events (`?namespace=`, `?rgd=`) |
 | `/api/v1/fleet/summary` | GET | Multi-cluster summary across all kubeconfig contexts |
 

@@ -348,6 +348,15 @@ export default function RGDDetail() {
   const rgdKind = extractRGDKind(rgd)
   const readyState = extractReadyStatus(rgd)
 
+  // FR-020: Cluster scope badge — shown only when spec.schema.scope === 'Cluster'.
+  const schemaObj = (rgd?.spec as Record<string, unknown> | undefined)
+    ?.schema as Record<string, unknown> | undefined
+  const isClusterScoped = (schemaObj?.scope as string | undefined) === 'Cluster'
+
+  // FR-050: lastIssuedRevision chip — shown when the value is a positive integer.
+  const rawRevision = (rgd?.status as Record<string, unknown> | undefined)?.lastIssuedRevision
+  const lastIssuedRevision = typeof rawRevision === 'number' && rawRevision > 0 ? rawRevision : null
+
   return (
     <div className="rgd-detail">
       {/* Breadcrumb — shown when navigated via "View RGD →" (spec 025) */}
@@ -367,6 +376,26 @@ export default function RGDDetail() {
         </div>
         {rgdKind && (
           <span className="rgd-detail-kind" data-testid="rgd-detail-kind">{rgdKind}</span>
+        )}
+        {/* FR-020: Cluster scope badge — hidden for Namespaced (default) */}
+        {isClusterScoped && (
+          <span
+            className="rgd-scope-badge"
+            aria-label="Cluster-scoped resource"
+            data-testid="rgd-scope-badge"
+          >
+            Cluster
+          </span>
+        )}
+        {/* FR-050: lastIssuedRevision chip — shown only when > 0 (kro v0.9.0+) */}
+        {lastIssuedRevision !== null && (
+          <span
+            className="rgd-revision-chip"
+            title={`Graph revision ${lastIssuedRevision}`}
+            data-testid="rgd-revision-chip"
+          >
+            Rev #{lastIssuedRevision}
+          </span>
         )}
       </div>
 

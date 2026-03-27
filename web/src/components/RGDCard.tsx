@@ -40,6 +40,12 @@ export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSu
 
   const encodedName = encodeURIComponent(name)
 
+  // Extract scope for cluster-scoped badge (FR-020).
+  // Absent or 'Namespaced' → no badge (default); 'Cluster' → show badge.
+  const scope = (rgd?.spec as Record<string, unknown> | undefined)
+    ?.schema as Record<string, unknown> | undefined
+  const isClusterScoped = (scope?.scope as string | undefined) === 'Cluster'
+
   // Async instance health chip — fire-and-forget, never blocks card render (FR-001, FR-004).
   // When healthSummaryProp is provided (from Home.tsx fan-out), use it directly and skip
   // the per-card listInstances fetch. Falls back to its own fetch when prop is absent.
@@ -93,6 +99,16 @@ export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSu
           {kind && (
             <span className="rgd-card__kind" data-testid="rgd-kind">
               {kind}
+            </span>
+          )}
+          {/* FR-020: Cluster scope badge — shown only when spec.schema.scope === 'Cluster' */}
+          {isClusterScoped && (
+            <span
+              className="rgd-scope-badge"
+              aria-label="Cluster-scoped resource"
+              data-testid="rgd-scope-badge"
+            >
+              Cluster
             </span>
           )}
           {/* FR-007: Terminating badge — only when count > 0 (AC-015) */}

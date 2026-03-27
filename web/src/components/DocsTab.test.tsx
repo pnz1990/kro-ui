@@ -53,10 +53,20 @@ beforeEach(() => {
   })
 })
 
-// Mock useCapabilities (used inside KroCodeBlock)
+// Mock useCapabilities (used inside KroCodeBlock and DocsTab for types section)
 vi.mock('@/lib/features', () => ({
   useCapabilities: () => ({
-    capabilities: { featureGates: { CELOmitFunction: false } },
+    capabilities: {
+      featureGates: { CELOmitFunction: false },
+      schema: {
+        hasForEach: true,
+        hasExternalRef: true,
+        hasExternalRefSelector: true,
+        hasScope: false,
+        hasTypes: true,
+        hasGraphRevisions: false,
+      },
+    },
     loading: false,
     error: null,
   }),
@@ -145,6 +155,71 @@ describe('DocsTab', () => {
     // Use role-based query to target the h3 section heading specifically
     expect(screen.getByRole('heading', { level: 3, name: 'Example Manifest' })).toBeInTheDocument()
     expect(screen.getByTestId('example-yaml')).toBeInTheDocument()
+  })
+})
+
+// ── DocsTab Types section tests (spec 046-kro-v090-upgrade T027) ──────────
+
+/** Build an RGD with spec.schema.types. */
+function makeRGDWithTypes(
+  types: Record<string, Record<string, string>>,
+): K8sObject {
+  return {
+    apiVersion: 'kro.run/v1alpha1',
+    kind: 'ResourceGraphDefinition',
+    metadata: { name: 'typed-app' },
+    spec: {
+      schema: {
+        kind: 'TypedApp',
+        apiVersion: 'v1alpha1',
+        group: 'kro.run',
+        spec: { name: 'string' },
+        types,
+      },
+      resources: [],
+    },
+  }
+}
+
+describe('DocsTab — Types section (kro v0.9.0 FR-030, FR-031)', () => {
+  it('renders Types section when spec.schema.types is non-empty and hasTypes=true', () => {
+    // The mock above sets hasTypes: true globally for this describe file.
+    const rgd = makeRGDWithTypes({ Server: { host: 'string', port: 'integer' } })
+    render(<DocsTab rgd={rgd} />)
+    expect(screen.getByTestId('docs-types-section')).toBeInTheDocument()
+    expect(screen.getByTestId('docs-type-Server')).toBeInTheDocument()
+    expect(screen.getByTestId('docs-type-Server').textContent).toBe('Server')
+  })
+
+  it('renders fields of each named type', () => {
+    const rgd = makeRGDWithTypes({ Server: { host: 'string', port: 'integer' } })
+    render(<DocsTab rgd={rgd} />)
+    // FieldTable renders each field as a row — check for field names
+    const typeSection = screen.getByTestId('docs-types-section')
+    expect(typeSection.textContent).toContain('host')
+    expect(typeSection.textContent).toContain('port')
+  })
+
+  it('hides Types section when spec.schema.types is null', () => {
+    const rgd: K8sObject = {
+      ...makeRGDWithTypes({}),
+      spec: {
+        schema: {
+          kind: 'TypedApp', apiVersion: 'v1alpha1', group: 'kro.run',
+          spec: { name: 'string' },
+          types: null,
+        },
+        resources: [],
+      },
+    }
+    render(<DocsTab rgd={rgd} />)
+    expect(screen.queryByTestId('docs-types-section')).not.toBeInTheDocument()
+  })
+
+  it('hides Types section when spec.schema.types is an empty object', () => {
+    const rgd = makeRGDWithTypes({})
+    render(<DocsTab rgd={rgd} />)
+    expect(screen.queryByTestId('docs-types-section')).not.toBeInTheDocument()
   })
 })
 

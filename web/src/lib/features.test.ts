@@ -19,6 +19,23 @@ describe('BASELINE', () => {
     expect(BASELINE.schema.hasExternalRef).toBe(true)
   })
 
+  it('has v0.9.0 schema defaults: hasExternalRefSelector true, hasGraphRevisions false', () => {
+    // hasExternalRefSelector changed from false (v0.8.x) to true (v0.9.0 GA).
+    expect(BASELINE.schema.hasExternalRefSelector).toBe(true)
+    // hasGraphRevisions requires live cluster detection — baseline is false.
+    expect(BASELINE.schema.hasGraphRevisions).toBe(false)
+  })
+
+  it('has all 6 schema capability fields', () => {
+    const s = BASELINE.schema
+    expect(typeof s.hasForEach).toBe('boolean')
+    expect(typeof s.hasExternalRef).toBe('boolean')
+    expect(typeof s.hasExternalRefSelector).toBe('boolean')
+    expect(typeof s.hasScope).toBe('boolean')
+    expect(typeof s.hasTypes).toBe('boolean')
+    expect(typeof s.hasGraphRevisions).toBe('boolean')
+  })
+
   it('has unknown version by default', () => {
     expect(BASELINE.version).toBe('unknown')
   })
