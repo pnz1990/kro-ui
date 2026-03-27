@@ -113,6 +113,11 @@ export function toYaml(value: unknown, indent: number = 0): string {
 function formatString(s: string): string {
   if (s === "") return '""'
 
+  // Empty YAML collection literals — emit unquoted so they parse as actual
+  // empty mappings/sequences rather than as literal strings.
+  if (s === "{}") return '{}'
+  if (s === "[]") return '[]'
+
   // Values containing special chars or that look like other YAML types need quoting
   if (
     s.includes(": ") ||
