@@ -18,6 +18,7 @@
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth } from '@/lib/format'
+import { displayNamespace } from '@/lib/format'
 import type { InstanceHealthState } from '@/lib/format'
 import { translateApiError } from '@/lib/errors'
 import './InstanceOverlayBar.css'
@@ -143,7 +144,9 @@ export default function InstanceOverlayBar({
           <option value="">No overlay</option>
           {items.map((item) => {
             const value = item.namespace ? `${item.namespace}/${item.name}` : item.name
-            const label = item.namespace ? `${item.namespace}/${item.name}` : item.name
+            const label = item.namespace
+              ? `${displayNamespace(item.namespace)}/${item.name}`
+              : item.name
             return (
               <option key={value} value={value}>
                 {label}

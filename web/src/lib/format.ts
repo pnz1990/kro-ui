@@ -381,3 +381,24 @@ export function abbreviateContext(ctx: string): string {
   // risks ambiguity. The full value is always on the title attribute.
   return ctx
 }
+
+// ── Namespace display ────────────────────────────────────────────────────────
+
+/**
+ * displayNamespace — translate the internal `_` cluster-scoped sentinel to the
+ * human-readable string "cluster-scoped".
+ *
+ * kro-ui uses `_` as a URL routing sentinel for cluster-scoped instances
+ * (e.g. /rgds/my-rgd/instances/_/my-instance). This sentinel must NEVER be
+ * shown to users in rendered text. Every place that renders a namespace string
+ * must call this function.
+ *
+ * Also handles the empty string case for graceful degradation.
+ *
+ * Per constitution §XIII §XII: "cluster-scoped" is the correct human-readable
+ * label; `_` and `""` must never appear in UI text for namespace fields.
+ */
+export function displayNamespace(ns: string | undefined | null): string {
+  if (!ns || ns === '_') return 'cluster-scoped'
+  return ns
+}
