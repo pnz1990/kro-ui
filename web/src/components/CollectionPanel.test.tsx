@@ -269,7 +269,11 @@ describe('CollectionPanel', () => {
     expect(screen.queryByTestId('collection-yaml-view')).not.toBeInTheDocument()
   })
 
-  it('shows legacy fallback when kro.run/node-id labels are absent', () => {
+  it('shows empty-collection state when no items match the current node-id (legacy kro < 0.8.0 path)', () => {
+    // With kro < 0.8.0, children had no kro.run/node-id labels so items array is empty.
+    // Previously this showed a "Legacy collection" warning. Now it shows the empty state.
+    // The legacy warning was removed in fix/collection-legacy-remove since kro >= 0.8.0
+    // always sets kro.run/node-id labels.
     const legacyItem: K8sObject = {
       kind: 'Pod',
       metadata: { name: 'legacy-pod', namespace: 'default', labels: {} },
@@ -284,8 +288,9 @@ describe('CollectionPanel', () => {
       />,
     )
 
-    // All children have no kro.run/node-id label → legacy notice is shown
-    expect(screen.getByText(/Legacy collection — labels unavailable/)).toBeInTheDocument()
+    // Legacy notice removed — shows empty-collection state instead
+    expect(screen.queryByText(/Legacy collection/)).not.toBeInTheDocument()
+    expect(screen.getByTestId('collection-empty-state')).toBeInTheDocument()
   })
 
   it('shows index, name, kind, status, age columns in table', () => {
