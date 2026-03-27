@@ -1,11 +1,12 @@
 /* TerminatingBanner.css — styles for the Terminating state banner.
  * All colour values use named tokens from tokens.css (no raw hex or rgba).
  * Spec: .specify/specs/031-deletion-debugger/ FR-001
+ * GH #289: stuck finalizer escalation styles
  */
 
 .terminating-banner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 8px 16px;
   background: var(--node-error-bg);
@@ -19,10 +20,44 @@
   font-size: 14px;
   font-weight: 700;
   flex-shrink: 0;
-  line-height: 1;
+  line-height: 1.5;
 }
 
 .terminating-banner-text {
   flex: 1;
   min-width: 0;
+  line-height: 1.6;
+}
+
+/* Escalation section shown when finalizers block deletion > 5 minutes */
+.terminating-banner-escalation {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-error);
+  opacity: 0.9;
+}
+
+.terminating-banner-finalizers {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+}
+
+/* The kubectl patch command — monospace, user-selectable */
+.terminating-banner-cmd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  color: var(--color-text);
+  margin-top: 2px;
+  user-select: all;
+  cursor: text;
+  word-break: break-all;
 }

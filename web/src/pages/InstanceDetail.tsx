@@ -395,6 +395,10 @@ export default function InstanceDetail() {
         <TerminatingBanner
           deletionTimestamp={getDeletionTimestamp(fastData.instance) ?? ''}
           tick={pollTick}
+          instanceKind={typeof fastData.instance.kind === 'string' ? fastData.instance.kind : undefined}
+          instanceName={instanceName}
+          instanceNamespace={namespace === '_' ? '' : namespace}
+          finalizers={getFinalizers(fastData.instance)}
         />
       )}
 

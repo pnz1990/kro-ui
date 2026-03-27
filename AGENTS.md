@@ -90,7 +90,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/schema-object-type` | — | DocsTab: JSON Schema object fields render as map/array type, not [object Object] | Merged (PR #283) |
 | `fix/collection-item-ready` | — | isItemReady: stateless resources (ConfigMap etc.) are healthy by existence | Merged (PR #284) |
 | `fix/extref-live-state` | — | External ref DAG nodes show alive/reconciling instead of not-found when CR is healthy | Merged (PR #285) |
-| `fix/ux-polish-round2` | — | ErrorsTab skips IN_PROGRESS instances; CollectionPanel empty state shows forEach expr; stuck reconciliation escalation banner | In progress |
+| `fix/ux-polish-round2` | — | ErrorsTab skips IN_PROGRESS instances; CollectionPanel empty state shows forEach expr; stuck reconciliation escalation banner | Merged (PR #286) |
+| `fix/finalizer-escalation` | #289 | Terminating banner shows kubectl patch command when finalizers block deletion > 5 minutes | In progress |
 
 ### Worktrunk (required workflow)
 
