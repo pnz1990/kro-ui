@@ -60,7 +60,7 @@ export default function OptimizationAdvisor({ groups }: OptimizationAdvisorProps
   return (
     <div className="optimization-advisor" data-testid="optimization-advisor">
       <div className="optimization-advisor__header">
-        <span className="optimization-advisor__icon" aria-hidden="true">💡</span>
+        <span className="optimization-advisor__icon" aria-hidden="true">⚙</span>
         <span className="optimization-advisor__title">Optimization suggestions</span>
       </div>
       {suggestions.map((suggestion, idx) => {
