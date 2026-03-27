@@ -93,7 +93,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/ux-polish-round2` | — | ErrorsTab skips IN_PROGRESS instances; CollectionPanel empty state shows forEach expr; stuck reconciliation escalation banner | Merged (PR #286) |
 | `fix/finalizer-escalation` | #289 | Terminating banner shows kubectl patch command when finalizers block deletion > 5 minutes | Merged (PR #290) |
 | `fix/yaml-clean-display` | — | YAML tab: strip managedFields, last-applied-configuration, resourceVersion, uid from displayed YAML | Merged (PR #291) |
-| `fix/schema-object-type-generate` | — | GenerateTab: map/object fields initialize with {} not "" | In progress |
+| `fix/schema-object-type-generate` | — | GenerateTab: map/object fields initialize with {} not "" | Merged (PR #292) |
+| `051-instance-diff` | #287 | Instance spec diff — select 2 instances and compare spec fields side-by-side | In progress |
 
 ### Worktrunk (required workflow)
 

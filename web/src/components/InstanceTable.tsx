@@ -40,12 +40,10 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
     const bTs = extractCreationTimestamp(b)
     const aMs = aTs ? new Date(aTs).getTime() : 0
     const bMs = bTs ? new Date(bTs).getTime() : 0
-    // Newest first by default (desc): higher timestamp = smaller age
     cmp = bMs - aMs
   } else if (key === 'ready') {
     const { state: aState } = extractInstanceHealth(a)
     const { state: bState } = extractInstanceHealth(b)
-    // Worst first: error=0, degraded=1, reconciling=2, pending=3, unknown=4, ready=5
     const order: Record<string, number> = {
       error: 0, degraded: 1, reconciling: 2, pending: 3, unknown: 4, ready: 5,
     }
@@ -53,6 +51,146 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
   }
   return dir === 'asc' ? cmp : -cmp
 }
+
+// ── Spec diff helpers ─────────────────────────────────────────────────────
+
+/** Flatten a spec object into key → stringified-value entries. */
+function flattenSpec(obj: unknown, prefix = ''): Record<string, string> {
+  if (typeof obj !== 'object' || obj === null) {
+    return prefix ? { [prefix]: String(obj) } : {}
+  }
+  const result: Record<string, string> = {}
+  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+    const path = prefix ? `${prefix}.${k}` : k
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      Object.assign(result, flattenSpec(v, path))
+    } else {
+      result[path] = Array.isArray(v) ? JSON.stringify(v) : String(v ?? '')
+    }
+  }
+  return result
+}
+
+interface DiffRow {
+  key: string
+  aVal: string | undefined
+  bVal: string | undefined
+  differs: boolean
+}
+
+function buildDiff(a: K8sObject, b: K8sObject): DiffRow[] {
+  const aSpec = flattenSpec((a.spec as Record<string, unknown>) ?? {})
+  const bSpec = flattenSpec((b.spec as Record<string, unknown>) ?? {})
+  const keys = Array.from(new Set([...Object.keys(aSpec), ...Object.keys(bSpec)])).sort()
+  return keys.map((key) => ({
+    key,
+    aVal: aSpec[key],
+    bVal: bSpec[key],
+    differs: aSpec[key] !== bSpec[key],
+  }))
+}
+
+// ── SpecDiffPanel ─────────────────────────────────────────────────────────
+
+interface SpecDiffPanelProps {
+  a: K8sObject
+  b: K8sObject
+  onClose: () => void
+}
+
+function instanceLabel(item: K8sObject): string {
+  const meta = item.metadata as Record<string, unknown> | undefined
+  const name = typeof meta?.name === 'string' ? meta.name : '?'
+  const ns = typeof meta?.namespace === 'string' ? meta.namespace : ''
+  return ns ? `${displayNamespace(ns)}/${name}` : name
+}
+
+function SpecDiffPanel({ a, b, onClose }: SpecDiffPanelProps) {
+  const rows = buildDiff(a, b)
+  const diffCount = rows.filter((r) => r.differs).length
+  const [showSame, setShowSame] = useState(false)
+
+  const visible = showSame ? rows : rows.filter((r) => r.differs)
+
+  return (
+    <div className="spec-diff-panel" data-testid="spec-diff-panel">
+      <div className="spec-diff-panel__header">
+        <span className="spec-diff-panel__title">
+          Spec diff —{' '}
+          <span className={diffCount > 0 ? 'spec-diff-panel__count--diff' : 'spec-diff-panel__count--same'}>
+            {diffCount === 0 ? 'specs are identical' : `${diffCount} field${diffCount === 1 ? '' : 's'} differ`}
+          </span>
+        </span>
+        <label className="spec-diff-panel__toggle">
+          <input
+            type="checkbox"
+            checked={showSame}
+            onChange={(e) => setShowSame(e.target.checked)}
+          />
+          Show identical fields
+        </label>
+        <button
+          type="button"
+          className="spec-diff-panel__close"
+          onClick={onClose}
+          aria-label="Close diff panel"
+        >
+          Close diff
+        </button>
+      </div>
+
+      <table className="spec-diff-table" data-testid="spec-diff-table">
+        <thead>
+          <tr>
+            <th className="spec-diff-table__th spec-diff-table__th--field">Field</th>
+            <th className="spec-diff-table__th spec-diff-table__th--value" title={instanceLabel(a)}>
+              {instanceLabel(a)}
+            </th>
+            <th className="spec-diff-table__th spec-diff-table__th--value" title={instanceLabel(b)}>
+              {instanceLabel(b)}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.length === 0 && (
+            <tr>
+              <td colSpan={3} className="spec-diff-table__empty">
+                {showSame
+                  ? 'No spec fields found.'
+                  : 'No differing fields. Enable "Show identical fields" to see all.'}
+              </td>
+            </tr>
+          )}
+          {visible.map((row) => (
+            <tr
+              key={row.key}
+              className={`spec-diff-table__row${row.differs ? ' spec-diff-table__row--diff' : ' spec-diff-table__row--same'}`}
+              data-testid={row.differs ? 'diff-row-differs' : 'diff-row-same'}
+            >
+              <td className="spec-diff-table__td spec-diff-table__td--field">
+                <code>{row.key}</code>
+              </td>
+              <td className={`spec-diff-table__td spec-diff-table__td--value${row.differs ? ' spec-diff-table__td--differs' : ''}`}>
+                {row.aVal !== undefined
+                  ? <code>{row.aVal}</code>
+                  : <span className="spec-diff-table__absent">—</span>
+                }
+              </td>
+              <td className={`spec-diff-table__td spec-diff-table__td--value${row.differs ? ' spec-diff-table__td--differs' : ''}`}>
+                {row.bVal !== undefined
+                  ? <code>{row.bVal}</code>
+                  : <span className="spec-diff-table__absent">—</span>
+                }
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ── InstanceTable ─────────────────────────────────────────────────────────
 
 /**
  * InstanceTable — renders all live CR instances of an RGD.
@@ -62,6 +200,8 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
  * Ready (worst first default — errors before healthy).
  * Paginated at PAGE_SIZE rows to stay within DOM bounds at 500+ instances.
  * "Terminating only" filter (spec 031-deletion-debugger FR-005).
+ * Selection + spec diff (GH #287): when 2 rows are selected, a Compare button
+ * opens a field-by-field spec diff panel.
  *
  * Issue #71: adds clickable column headers with sort indicators.
  * Issue #109: add pagination for 500+ instances (Constitution §XIII).
@@ -69,7 +209,6 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
  * Spec: .specify/specs/004-instance-list/spec.md
  */
 export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
-  // Default: Ready asc = errors first (worst-first per constitution §XIII)
   const [sortKey, setSortKey] = useState<SortKey>('ready')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
@@ -78,26 +217,46 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
   // FR-005: Terminating-only filter
   const [showTerminatingOnly, setShowTerminatingOnly] = useState(false)
 
+  // GH #287: row selection for spec diff
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [diffPair, setDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
+
+  function itemKey(item: K8sObject): string {
+    const meta = item.metadata as Record<string, unknown> | undefined
+    const name = typeof meta?.name === 'string' ? meta.name : ''
+    const ns = typeof meta?.namespace === 'string' ? meta.namespace : ''
+    return `${ns}/${name}`
+  }
+
+  function handleCompare() {
+    const keys = Array.from(selected)
+    if (keys.length !== 2) return
+    const a = items.find((i) => itemKey(i) === keys[0])
+    const b = items.find((i) => itemKey(i) === keys[1])
+    if (a && b) {
+      setDiffPair([a, b])
+    }
+  }
+
   function handleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortKey(key)
-      // Default directions when activating a column:
-      //   age → newest first (desc), others → asc
       setSortDir(key === 'age' ? 'desc' : 'asc')
     }
-    // Reset to first page on sort change
     setPage(0)
   }
 
-  // FR-005: Apply terminating filter before sort/pagination
   const effectiveItems = showTerminatingOnly ? items.filter(isTerminating) : items
 
   const sorted = [...effectiveItems].sort((a, b) => compareItems(a, b, sortKey, sortDir))
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages - 1)
   const pageItems = sorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+
+  // Whether to show checkboxes — only when >1 instance total
+  const showCheckboxes = items.length > 1
 
   function sortIndicator(key: SortKey) {
     if (sortKey !== key) {
@@ -117,7 +276,7 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
 
   return (
     <div className="instance-table-container">
-      {/* FR-005: Terminating only filter toggle */}
+      {/* Filters row */}
       <div className="instance-table-filters">
         <label className="instance-filter-terminating">
           <input
@@ -127,7 +286,45 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
           />
           Terminating only
         </label>
+
+        {/* Compare action — appears when exactly 2 rows selected */}
+        {showCheckboxes && selected.size > 0 && (
+          <span className="instance-table-compare-bar" data-testid="compare-bar">
+            {selected.size === 2 ? (
+              <button
+                type="button"
+                className="instance-table-compare-btn"
+                onClick={handleCompare}
+                data-testid="compare-btn"
+              >
+                Compare specs
+              </button>
+            ) : (
+              <span className="instance-table-compare-hint">
+                Select 1 more instance to compare
+              </span>
+            )}
+            <button
+              type="button"
+              className="instance-table-compare-clear"
+              onClick={() => setSelected(new Set())}
+              aria-label="Clear selection"
+              data-testid="compare-clear"
+            >
+              Clear
+            </button>
+          </span>
+        )}
       </div>
+
+      {/* Diff panel — shown when Compare is active */}
+      {diffPair && (
+        <SpecDiffPanel
+          a={diffPair[0]}
+          b={diffPair[1]}
+          onClose={() => { setDiffPair(null); setSelected(new Set()) }}
+        />
+      )}
 
       {/* AC-009: Empty state when filter is active but no matches */}
       {showTerminatingOnly && effectiveItems.length === 0 ? (
@@ -137,6 +334,9 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
         <table className="instance-table" data-testid="instance-table">
         <thead>
           <tr>
+            {showCheckboxes && (
+              <th className="instance-table__th instance-table__th--check" aria-label="Select for comparison" />
+            )}
             <th
               className="instance-table__th instance-table__th--sortable"
               aria-sort={ariaSortAttr('name')}
@@ -178,17 +378,21 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
             const age = createdAt ? formatAge(createdAt) : '—'
             const readyStatus = extractInstanceHealth(item)
             const { display, full } = truncate(name)
+            const key = itemKey(item)
+            const isSelected = selected.has(key)
 
             return (
               <tr
-                key={`${namespace}/${name}`}
-                className="instance-table__row"
+                key={key}
+                className={`instance-table__row${isSelected ? ' instance-table__row--selected' : ''}`}
                 data-testid={`instance-row-${name}`}
-                onClick={() =>
+                onClick={(e) => {
+                  // Don't navigate if the click was on the selection checkbox or its td
+                  if ((e.target as HTMLElement).closest('td.instance-table__td--check')) return
                   navigate(
                     `/rgds/${encodeURIComponent(rgdName)}/instances/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`,
                   )
-                }
+                }}
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -200,6 +404,28 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
                 }}
                 aria-label={`Open instance ${name}`}
               >
+                {showCheckboxes && (
+                  <td className="instance-table__td instance-table__td--check">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        setSelected((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(key)) {
+                            next.delete(key)
+                          } else if (next.size < 2) {
+                            next.add(key)
+                          }
+                          return next
+                        })
+                      }}
+                      aria-label={`Select ${name} for comparison`}
+                      data-testid={`select-${name}`}
+                      disabled={selected.size === 2 && !isSelected}
+                    />
+                  </td>
+                )}
                 <td
                   className="instance-table__td instance-table__td--name"
                   data-testid="instance-name"
@@ -225,6 +451,7 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
                     className="instance-table__open-link"
                     data-testid="btn-open"
                     aria-label={`Open instance ${name}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     Open
                   </Link>
