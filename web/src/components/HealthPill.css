@@ -27,6 +27,13 @@
   border: 1px solid var(--color-alive);
 }
 
+/* Ready=True but a child resource has errors — orange */
+.health-pill--degraded {
+  color: var(--color-status-degraded);
+  background: rgba(249, 115, 22, 0.10);
+  border: 1px solid var(--color-status-degraded);
+}
+
 /* Progressing=True — amber */
 .health-pill--reconciling {
   color: var(--color-status-reconciling);

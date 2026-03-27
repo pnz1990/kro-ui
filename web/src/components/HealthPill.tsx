@@ -13,10 +13,11 @@ interface HealthPillProps {
   health: InstanceHealth | null
 }
 
-/** Map 5-state value to a human-readable label. */
+/** Map 6-state value to a human-readable label. */
 function pillLabel(state: string): string {
   switch (state) {
     case 'ready':       return 'Ready'
+    case 'degraded':    return 'Degraded'
     case 'reconciling': return 'Reconciling'
     case 'error':       return 'Error'
     case 'pending':     return 'Pending'
@@ -27,8 +28,8 @@ function pillLabel(state: string): string {
 /**
  * HealthPill — status pill rendered in the instance detail page header.
  *
- * Visible states: Ready (green), Reconciling (amber), Error (rose),
- *                 Pending (violet), Unknown (gray), loading skeleton.
+ * Visible states: Ready (green), Degraded (orange), Reconciling (amber),
+ *                 Error (rose), Pending (violet), Unknown (gray), loading skeleton.
  *
  * spec: .specify/specs/028-instance-health-rollup/ US3
  */

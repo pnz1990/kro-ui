@@ -45,9 +45,9 @@ function compareItems(a: K8sObject, b: K8sObject, key: SortKey, dir: SortDir): n
   } else if (key === 'ready') {
     const { state: aState } = extractInstanceHealth(a)
     const { state: bState } = extractInstanceHealth(b)
-    // Worst first: error=0, reconciling=1, pending=2, unknown=3, ready=4
+    // Worst first: error=0, degraded=1, reconciling=2, pending=3, unknown=4, ready=5
     const order: Record<string, number> = {
-      error: 0, reconciling: 1, pending: 2, unknown: 3, ready: 4,
+      error: 0, degraded: 1, reconciling: 2, pending: 3, unknown: 4, ready: 5,
     }
     cmp = (order[aState] ?? 3) - (order[bState] ?? 3)
   }

@@ -64,6 +64,7 @@ export interface InstanceOverlayBarProps {
 
 const READINESS_LABEL: Record<InstanceHealthState, string> = {
   ready: 'Ready',
+  degraded: 'Degraded',
   reconciling: 'Reconciling',
   error: 'Error',
   pending: 'Pending',

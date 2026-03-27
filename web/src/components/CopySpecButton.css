@@ -1,0 +1,42 @@
+/* CopySpecButton.css — Copy YAML button for instance detail header.
+ * All colors via tokens.css — no hardcoded hex.
+ * F-6: Copy instance spec as YAML.
+ */
+
+.copy-spec-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition-fast),
+              border-color var(--transition-fast),
+              background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.copy-spec-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-3);
+}
+
+.copy-spec-btn:active {
+  background: var(--color-surface);
+}
+
+/* Confirmed state — brief green flash */
+.copy-spec-btn--copied {
+  color: var(--color-status-ready);
+  border-color: var(--color-alive);
+  background: var(--node-alive-bg);
+  cursor: default;
+}

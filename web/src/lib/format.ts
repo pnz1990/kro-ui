@@ -38,21 +38,27 @@ function isCondition(v: unknown): v is K8sCondition {
   return typeof obj.type === 'string' && typeof obj.status === 'string'
 }
 
-// ── Instance health (5-state) ─────────────────────────────────────────
+// ── Instance health (6-state) ─────────────────────────────────────────
 
 /**
- * Five-state health enumeration for a kro instance.
+ * Six-state health enumeration for a kro instance.
  *
- * Priority order (worst → best): error > reconciling > pending > unknown > ready
+ * Priority order (worst → best): error > degraded > reconciling > pending > unknown > ready
  *
- * - reconciling: kro is actively reconciling (Progressing=True)
- * - error:       Ready=False
- * - ready:       Ready=True
+ * - error:       Ready=False or a negation-polarity condition is unhealthy
+ * - degraded:    Ready=True (CR-level) but at least one child resource has
+ *                Available=False or its own Ready=False. CR is technically ready
+ *                but something is wrong underneath. Requires children data —
+ *                only available on the instance detail page, not the card.
+ * - reconciling: kro is actively reconciling (Progressing=True, GraphProgressing=True,
+ *                or kro status.state === 'IN_PROGRESS')
+ * - ready:       Ready=True, all children healthy (or children not checked)
  * - pending:     conditions present but all status=Unknown
  * - unknown:     conditions absent or empty array
  */
 export type InstanceHealthState =
   | 'ready'
+  | 'degraded'
   | 'reconciling'
   | 'error'
   | 'pending'
@@ -69,6 +75,7 @@ export interface InstanceHealth {
 export interface HealthSummary {
   total: number
   ready: number
+  degraded: number
   error: number
   reconciling: number
   pending: number
@@ -78,14 +85,23 @@ export interface HealthSummary {
 const UNKNOWN_INSTANCE_HEALTH: InstanceHealth = { state: 'unknown', reason: '', message: '' }
 
 /**
- * Extract a 5-state health value from an unstructured kro instance object.
+ * Extract a 6-state health value from an unstructured kro instance object.
+ *
+ * NOTE: This function only has access to the CR object (not its children), so
+ * the 'degraded' state is NOT returned here — it requires children data and
+ * is computed separately by the caller when available (InstanceDetail.tsx).
+ * Use `applyDegradedState()` to overlay the degraded state after computing it.
  *
  * Derivation order (deterministic, left-to-right):
  *  1. Absent/non-array conditions → 'unknown'
- *  2. Progressing=True → 'reconciling' (checked before Ready)
- *  3. Ready=True/False → 'ready'/'error'
- *  4. All conditions Unknown → 'pending'
- *  5. Otherwise → 'unknown'
+ *  2. kro status.state === 'IN_PROGRESS' → 'reconciling'
+ *     (kro v0.8.5 uses this field rather than a Progressing=True condition
+ *     when a resource is waiting for readyWhen to be satisfied)
+ *  3. Progressing=True OR GraphProgressing=True → 'reconciling'
+ *     (kro v0.9.x+ condition; also kro v0.8.x during active reconciliation)
+ *  4. Ready=True/False → 'ready'/'error'
+ *  5. All conditions Unknown → 'pending'
+ *  6. Otherwise → 'unknown'
  *
  * Never throws. `reason` and `message` are always strings.
  */
@@ -144,13 +160,35 @@ export function extractInstanceHealth(obj: K8sObject): InstanceHealth {
  * Used by RGDCard's async health chip.
  */
 export function aggregateHealth(items: K8sObject[]): HealthSummary {
-  const summary: HealthSummary = { total: 0, ready: 0, error: 0, reconciling: 0, pending: 0, unknown: 0 }
+  const summary: HealthSummary = { total: 0, ready: 0, degraded: 0, error: 0, reconciling: 0, pending: 0, unknown: 0 }
   for (const item of items) {
     summary.total++
     const { state } = extractInstanceHealth(item)
     summary[state]++
   }
   return summary
+}
+
+/**
+ * applyDegradedState — overlay the 'degraded' state onto an InstanceHealth
+ * when the CR itself is ready but children have errors.
+ *
+ * Called from InstanceDetail.tsx after computing the NodeStateMap.
+ * Only applies when:
+ *   - base health is 'ready' (CR-level Ready=True)
+ *   - hasChildError is true (at least one child has Available=False or error state)
+ *
+ * Returns a new InstanceHealth object — never mutates the input.
+ */
+export function applyDegradedState(health: InstanceHealth, hasChildError: boolean): InstanceHealth {
+  if (health.state === 'ready' && hasChildError) {
+    return {
+      state: 'degraded',
+      reason: 'ChildDegraded',
+      message: 'One or more child resources have errors while the CR is ready',
+    }
+  }
+  return health
 }
 
 // ── Age formatting ───────────────────────────────────────────────────

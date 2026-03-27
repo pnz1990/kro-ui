@@ -29,7 +29,8 @@ import type { NodeLiveState } from '@/lib/instanceNodeState'
 import { buildDAGGraph } from '@/lib/dag'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
-import { extractInstanceHealth } from '@/lib/format'
+import { extractInstanceHealth, applyDegradedState } from '@/lib/format'
+import { countHealthyChildren } from '@/lib/telemetry'
 import { usePolling } from '@/hooks/usePolling'
 import { isTerminating, getDeletionTimestamp, getFinalizers } from '@/lib/k8s'
 import { translateApiError } from '@/lib/errors'
@@ -43,6 +44,7 @@ import TerminatingBanner from '@/components/TerminatingBanner'
 import FinalizersPanel from '@/components/FinalizersPanel'
 import TelemetryPanel from '@/components/TelemetryPanel'
 import HealthPill from '@/components/HealthPill'
+import CopySpecButton from '@/components/CopySpecButton'
 import './InstanceDetail.css'
 
 // ── Poll result type ───────────────────────────────────────────────────────
@@ -328,7 +330,11 @@ export default function InstanceDetail() {
       {/* Header */}
       <div className="instance-detail-header">
         <h1 className="instance-detail-name">{displayName}</h1>
-        <HealthPill health={fastData ? extractInstanceHealth(fastData.instance) : null} />
+        <HealthPill health={fastData ? applyDegradedState(
+          extractInstanceHealth(fastData.instance),
+          countHealthyChildren(nodeStateMap).hasError,
+        ) : null} />
+        {fastData && <CopySpecButton instance={fastData.instance} />}
         <div className="instance-detail-meta">
           {namespace && <span className="instance-detail-ns">{namespace}</span>}
           <RefreshIndicator lastRefresh={lastRefresh} error={instanceGone ? null : (pollError && !pollLoading ? pollError : null)} />
