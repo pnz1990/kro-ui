@@ -20,6 +20,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -109,6 +110,16 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 		list, err = h.factory.Dynamic().Resource(gvr).List(r.Context(), metav1.ListOptions{})
 	}
 	if err != nil {
+		// Graceful degradation: when the CRD does not exist (RGD Inactive — KindReady=False),
+		// the Kubernetes API returns a "no kind ... is registered for version" or a 404 error.
+		// Return an empty list instead of 500 so the UI shows "no instances" not a broken chip.
+		// Constitution §XII: graceful degradation — absent data renders as safe empty state.
+		if k8serrors.IsNotFound(err) || k8serrors.IsMethodNotSupported(err) {
+			log.Debug().Str("rgd", name).Str("kind", kind).Msg("CRD not registered — returning empty instance list")
+			respond(w, http.StatusOK, map[string]interface{}{"items": []interface{}{}})
+			return
+		}
+		// For other errors (auth failure, network, etc.) still return 500.
 		log.Error().Err(err).Str("rgd", name).Str("kind", kind).Msg("failed to list instances")
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

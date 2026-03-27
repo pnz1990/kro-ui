@@ -96,7 +96,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/schema-object-type-generate` | — | GenerateTab: map/object fields initialize with {} not "" | Merged (PR #292) |
 | `051-instance-diff` | #287 | Instance spec diff — select 2 instances and compare spec fields side-by-side | Merged (PR #293) |
 | `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | Merged (PR #294) |
-| `fix/collection-legacy-remove` | — | CollectionPanel legacy kro < 0.8.0 warning removed; allChildrenLabelless dead code cleaned up | In progress |
+| `fix/collection-legacy-remove` | — | CollectionPanel legacy kro < 0.8.0 warning removed; allChildrenLabelless dead code cleaned up | Merged (PR #295) |
+| `fix/instances-inactive-rgd` | — | ListInstances returns empty list (not 500) for inactive RGDs; health chip now shows "no instances" | In progress |
 
 ### Worktrunk (required workflow)
 
