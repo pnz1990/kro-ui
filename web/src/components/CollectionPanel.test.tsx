@@ -130,10 +130,14 @@ describe('isItemReady', () => {
     expect(isItemReady(item)).toBe(false)
   })
 
-  it('returns false for missing status', () => {
+  it('returns true for missing status (stateless resources like ConfigMap are healthy by existence)', () => {
+    // Previous behavior: missing status → false.
+    // New behavior: resources with no status don't emit health conditions
+    // (ConfigMap, Secret, ServiceAccount etc.) — their existence is success.
+    // See collection.ts step 5.
     const item = makeItem(0, 1, 'pods')
     ;(item as Record<string, unknown>).status = undefined
-    expect(isItemReady(item)).toBe(false)
+    expect(isItemReady(item)).toBe(true)
   })
 })
 
