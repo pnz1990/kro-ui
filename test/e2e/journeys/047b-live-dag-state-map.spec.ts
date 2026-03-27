@@ -133,12 +133,22 @@ test.describe('Journey 047b: Live DAG state map — node-id keying and IN_PROGRE
   // ── D: IN_PROGRESS → Reconciling (PR #278) ─────────────────────────────────
 
   test('Step 5: IN_PROGRESS kro state shows Reconciling chip and banner', async ({ page }) => {
-    // Requires never-ready RGD + never-ready-prod instance (demo cluster only)
-    const resp = await page.goto(`${BASE}/rgds/never-ready/instances/kro-ui-demo/never-ready-prod`)
-    if (!resp || resp.status() >= 400) {
-      test.skip(true, 'never-ready fixture not present on this E2E cluster')
+    // Requires never-ready RGD + never-ready-prod instance (demo cluster only).
+    // Use the API to check existence — the SPA always returns HTTP 200 for any route.
+    const rgdCheck = await page.request.get(`${BASE}/api/v1/rgds/never-ready`)
+    if (!rgdCheck.ok()) {
+      test.skip(true, 'never-ready RGD not present on this cluster')
       return
     }
+    const instCheck = await page.request.get(
+      `${BASE}/api/v1/instances/kro-ui-demo/never-ready-prod?rgd=never-ready`,
+    )
+    if (!instCheck.ok()) {
+      test.skip(true, 'never-ready-prod instance not present on this cluster')
+      return
+    }
+
+    await page.goto(`${BASE}/rgds/never-ready/instances/kro-ui-demo/never-ready-prod`)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
 
     // PR #278: status.state=IN_PROGRESS must map to Reconciling pill (not Error/red)
@@ -156,12 +166,21 @@ test.describe('Journey 047b: Live DAG state map — node-id keying and IN_PROGRE
 
   test('Step 6: Stuck reconciliation escalation banner appears after >= 5 minutes (PR #286)', async ({ page }) => {
     // Requires an instance that has been IN_PROGRESS for > 5 minutes.
-    // never-ready instances are stuck indefinitely so they qualify.
-    const resp = await page.goto(`${BASE}/rgds/never-ready/instances/kro-ui-demo/never-ready-prod`)
-    if (!resp || resp.status() >= 400) {
-      test.skip(true, 'never-ready fixture not present on this E2E cluster')
+    // Use the API to check existence — the SPA always returns HTTP 200 for any route.
+    const rgdCheck = await page.request.get(`${BASE}/api/v1/rgds/never-ready`)
+    if (!rgdCheck.ok()) {
+      test.skip(true, 'never-ready RGD not present on this cluster')
       return
     }
+    const instCheck = await page.request.get(
+      `${BASE}/api/v1/instances/kro-ui-demo/never-ready-prod?rgd=never-ready`,
+    )
+    if (!instCheck.ok()) {
+      test.skip(true, 'never-ready-prod instance not present on this cluster')
+      return
+    }
+
+    await page.goto(`${BASE}/rgds/never-ready/instances/kro-ui-demo/never-ready-prod`)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
     const banner = page.locator('.reconciling-banner')
     await expect(banner).toBeVisible({ timeout: 8000 })
