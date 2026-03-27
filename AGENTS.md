@@ -89,7 +89,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/errortab-dedup-chip` | — | ErrorsTab unique-instance dedup in summary; OptimizationAdvisor emoji removed | Merged (PR #282) |
 | `fix/schema-object-type` | — | DocsTab: JSON Schema object fields render as map/array type, not [object Object] | Merged (PR #283) |
 | `fix/collection-item-ready` | — | isItemReady: stateless resources (ConfigMap etc.) are healthy by existence | Merged (PR #284) |
-| `fix/extref-live-state` | — | External ref DAG nodes show alive/reconciling instead of not-found when CR is healthy | In progress |
+| `fix/extref-live-state` | — | External ref DAG nodes show alive/reconciling instead of not-found when CR is healthy | Merged (PR #285) |
 
 ### Worktrunk (required workflow)
 
@@ -392,7 +392,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
 ## Recent Changes
-- v0.4.6 (cutting): kro v0.9.0 upgrade (PR #275); RGD Designer validation (PR #273); degraded health state + health bar + copy YAML (PR #277); state map node-id keying + IN_PROGRESS fix (PR #278); 26-gap UI polish (PR #279); refresh button + Designer CEL help (PR #280); reconcile-paused banner + cluster-scoped namespace (PR #281); ErrorsTab dedup + optimizer emoji (PR #282); DocsTab JSON Schema object types (PR #283)
+- v0.4.7 (cutting): isItemReady stateless-resource fix — ConfigMap/Secret collections now show 9/9 not 0/9 (PR #284); external ref DAG nodes show alive/reconciling not not-found when CR is healthy (PR #285)
+- v0.4.6: kro v0.9.0 upgrade (PR #275); RGD Designer validation (PR #273); degraded health state + health bar + copy YAML (PR #277); state map node-id keying + IN_PROGRESS fix (PR #278); 26-gap UI polish (PR #279); refresh button + Designer CEL help (PR #280); reconcile-paused banner + cluster-scoped namespace (PR #281); ErrorsTab dedup + optimizer emoji (PR #282); DocsTab JSON Schema object types (PR #283)
 - v0.4.5: degraded health state (6th InstanceHealthState) + multi-segment HealthChip bar (✗/⚠/↻ counts) + copy instance YAML button; state map keyed by kro.run/node-id (fixes two-Deployment node collision, EndpointSlice pollution); IN_PROGRESS kro state → reconciling pill+banner; items:null→[] on zero children; GraphProgressing compat (kro v0.8.x)
 - v0.4.4: RGD Designer full kro feature coverage — all 5 node types, includeWhen, readyWhen CEL, schema field editor
 - v0.4.3: upstream fixture generator (cmd/dump-fixtures); contagious includeWhen BFS fix; 43 E2E journeys; GetInstanceChildren scoped; demo/E2E hardened for kro v0.8.5
