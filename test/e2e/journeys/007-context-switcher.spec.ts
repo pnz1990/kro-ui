@@ -187,7 +187,7 @@ test.describe('Journey 007 — Context Switcher', () => {
   test('Step 7: all fixture RGD cards visible after switching context and back', async ({ page }) => {
     // Extend per-test timeout — the double context switch + cache flush +
     // throttled API reload can take longer than the default 60s test timeout.
-    test.setTimeout(90_000)
+    test.setTimeout(120_000)
 
     await page.goto(BASE)
 
@@ -197,6 +197,16 @@ test.describe('Journey 007 — Context Switcher', () => {
       .locator('[role="option"]', { hasText: ALT_CONTEXT })
       .click()
     await expect(page.getByTestId('context-dropdown')).not.toBeVisible({ timeout: 10000 })
+
+    // Wait for the page to stabilize after the context switch + cache flush.
+    // The <Outlet key={activeContext}> remount triggers a full page reload.
+    // On throttled E2E clusters, the new context's RGD list may take >10s.
+    // We wait for the top bar to render (it's the first thing that appears)
+    // before attempting the second context switch click.
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="context-switcher-btn"]') !== null,
+      { timeout: 30000 }
+    )
 
     // Switch back to primary
     await page.getByTestId('context-switcher-btn').click()
