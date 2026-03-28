@@ -32,8 +32,21 @@ describe('formatAge', () => {
     expect(formatAge('not-a-date')).toBe('Unknown')
   })
 
-  it('returns 0s for future timestamp', () => {
-    expect(formatAge('2026-03-20T13:00:00Z')).toBe('0s')
+  it('returns "just now" for future timestamp (clock skew)', () => {
+    expect(formatAge('2026-03-20T13:00:00Z')).toBe('just now')
+  })
+
+  it('returns "just now" for 0s elapsed (exact match)', () => {
+    expect(formatAge('2026-03-20T12:00:00Z')).toBe('just now')
+  })
+
+  it('returns "just now" for 4s elapsed (below 5s threshold)', () => {
+    // 4 seconds before the fake "now" of 12:00:00
+    expect(formatAge('2026-03-20T11:59:56Z')).toBe('just now')
+  })
+
+  it('returns seconds for 5s elapsed (at threshold boundary)', () => {
+    expect(formatAge('2026-03-20T11:59:55Z')).toBe('5s')
   })
 
   it('returns seconds for <1 minute elapsed', () => {

@@ -217,6 +217,9 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
   // FR-005: Terminating-only filter
   const [showTerminatingOnly, setShowTerminatingOnly] = useState(false)
 
+  // FR-003 (spec 054-ux-gaps): name search filter
+  const [nameFilter, setNameFilter] = useState('')
+
   // GH #287: row selection for spec diff
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [diffPair, setDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
@@ -250,7 +253,17 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
 
   const effectiveItems = showTerminatingOnly ? items.filter(isTerminating) : items
 
-  const sorted = [...effectiveItems].sort((a, b) => compareItems(a, b, sortKey, sortDir))
+  // FR-003: apply name filter (case-insensitive substring)
+  const nameQuery = nameFilter.trim().toLowerCase()
+  const filteredItems = nameQuery
+    ? effectiveItems.filter((item) => {
+        const meta = item.metadata as Record<string, unknown> | undefined
+        const name = typeof meta?.name === 'string' ? meta.name.toLowerCase() : ''
+        return name.includes(nameQuery)
+      })
+    : effectiveItems
+
+  const sorted = [...filteredItems].sort((a, b) => compareItems(a, b, sortKey, sortDir))
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages - 1)
   const pageItems = sorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
@@ -278,6 +291,24 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
     <div className="instance-table-container">
       {/* Filters row */}
       <div className="instance-table-filters">
+        {/* FR-003 (spec 054-ux-gaps): name search filter */}
+        <div className="instance-filter-search">
+          <input
+            type="search"
+            className="instance-filter-search__input"
+            placeholder="Filter by name..."
+            aria-label="Filter instances by name"
+            data-testid="instance-name-filter"
+            value={nameFilter}
+            onChange={(e) => { setNameFilter(e.target.value); setPage(0) }}
+          />
+          {nameQuery && (
+            <span className="instance-filter-search__count" aria-live="polite">
+              {filteredItems.length} of {effectiveItems.length}
+            </span>
+          )}
+        </div>
+
         <label className="instance-filter-terminating">
           <input
             type="checkbox"
@@ -329,6 +360,17 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
       {/* AC-009: Empty state when filter is active but no matches */}
       {showTerminatingOnly && effectiveItems.length === 0 ? (
         <p className="panel-empty">No instances are currently terminating.</p>
+      ) : nameQuery && filteredItems.length === 0 ? (
+        <p className="panel-empty">
+          No instances match &ldquo;{nameFilter}&rdquo;.{' '}
+          <button
+            type="button"
+            className="instance-filter-search__clear"
+            onClick={() => { setNameFilter(''); setPage(0) }}
+          >
+            Clear filter
+          </button>
+        </p>
       ) : (
         <>
         <table className="instance-table" data-testid="instance-table">

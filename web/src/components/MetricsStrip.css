@@ -36,6 +36,18 @@
   letter-spacing: -0.01em;
 }
 
+/* "Not reported" variant — distinct from numeric counter values.
+   Uses label-sized text + muted color + italic to signal absent data
+   rather than a data value. */
+.metrics-strip__value--not-reported {
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: italic;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  letter-spacing: 0;
+}
+
 .metrics-strip__label {
   font-size: 0.6875rem;
   font-weight: 500;

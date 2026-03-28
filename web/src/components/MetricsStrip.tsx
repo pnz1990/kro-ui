@@ -17,14 +17,15 @@ interface CounterCellProps {
 }
 
 function CounterCell({ label, value, title }: CounterCellProps) {
-  const display =
-    value === null || value === undefined
-      ? 'Not reported'
-      : value.toLocaleString()
+  const isNotReported = value === null || value === undefined
+  const display = isNotReported ? 'Not reported' : value.toLocaleString()
 
   return (
     <div className="metrics-strip__cell" title={title}>
-      <span className="metrics-strip__value" aria-label={label}>
+      <span
+        className={`metrics-strip__value${isNotReported ? ' metrics-strip__value--not-reported' : ''}`}
+        aria-label={label}
+      >
         {display}
       </span>
       <span className="metrics-strip__label">{label}</span>
