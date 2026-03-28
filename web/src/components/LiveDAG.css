@@ -241,4 +241,42 @@
 .live-dag-state-legend__dot--reconciling { background: var(--color-reconciling); }
 .live-dag-state-legend__dot--pending     { background: var(--color-pending); }
 .live-dag-state-legend__dot--error       { background: var(--color-error); }
+.live-dag-state-legend__dot--notfound    { background: var(--color-text-faint); }
+
+/* Snoozed node — muted grey with ⊘ indicator (GH #276 F-8) */
+.dag-node--snoozed .dag-node-rect {
+  stroke: var(--color-border);
+  fill: var(--color-surface-2);
+  opacity: 0.6;
+}
+
+/* ── Snooze button in DAGTooltip (GH #276 F-8) ──────────────────────────── */
+
+.dag-tooltip__snooze-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  margin-top: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.dag-tooltip__snooze-btn:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.dag-tooltip__snooze-btn--active {
+  color: var(--color-alive);
+  border-color: var(--color-alive);
+  background: var(--node-alive-bg);
+}
+.live-dag-state-legend__dot--error       { background: var(--color-error); }
 .live-dag-state-legend__dot--notfound    { background: var(--color-not-found); }
