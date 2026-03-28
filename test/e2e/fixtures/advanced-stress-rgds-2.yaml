@@ -1,0 +1,164 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# advanced-stress-fixtures-2.yaml — second wave of complex stress-test RGDs.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. MULTI-CONDITIONAL RGD — 3 resources each with includeWhen
+#    Exercises: multiple violet "Excluded" nodes visible simultaneously in live DAG
+#    when different feature flags are off. Tests the pending-node visual quality.
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: multi-conditional
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: MultiConditionalApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=multi-cond
+      enableCache: boolean | default=true
+      enableMetrics: boolean | default=true
+      enableTracing: boolean | default=false
+    status:
+      baseConfigName: ${baseConfig.metadata.name}
+  resources:
+    - id: baseConfig
+      # Always created — the anchor resource
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-base
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+
+    - id: cacheConfig
+      # Only created when enableCache=true
+      includeWhen:
+        - ${schema.spec.enableCache}
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-cache
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+          type: cache
+
+    - id: metricsConfig
+      # Only created when enableMetrics=true
+      includeWhen:
+        - ${schema.spec.enableMetrics}
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-metrics
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+          type: metrics
+
+    - id: tracingConfig
+      # Only created when enableTracing=true (defaults false — violet node)
+      includeWhen:
+        - ${schema.spec.enableTracing}
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-tracing
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+          type: tracing
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2. MIXED FOREACH + REGULAR RESOURCES
+#    Exercises: DAG with both collection nodes (forEach) and regular nodes,
+#    collection panel alongside regular node YAML panels
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: mixed-foreach-regular
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: MixedForEachApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=mixed-foreach
+      environments:
+        type: array
+        items:
+          type: string
+    status:
+      sharedConfigName: ${sharedConfig.metadata.name}
+      deploymentName: ${mainDeploy.metadata.name}
+  resources:
+    - id: sharedConfig
+      # Regular resource — always one
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-shared
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+
+    - id: mainDeploy
+      # Regular resource — always one Deployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-main
+          namespace: kro-ui-demo
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}
+            spec:
+              containers:
+                - name: app
+                  image: nginx:stable-alpine
+
+    - id: envConfigs
+      # forEach collection — one ConfigMap per environment
+      forEach:
+        - env: "${schema.spec.environments}"
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-${env}-config
+          namespace: kro-ui-demo
+        data:
+          app: ${schema.spec.appName}
+          environment: ${env}
+          sharedRef: ${sharedConfig.metadata.name}

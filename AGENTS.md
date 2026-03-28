@@ -424,7 +424,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
 ## Recent Changes
-- v0.5.0 (cutting): ALL GH issues resolved — snooze error DAG nodes (GH #276 F-8, PR #318); GraphRevision side-by-side YAML diff foundation (GH #13, PR #318); v0.4.15 fixes (GH #303 #299 #298 #308 #301 #300 #302 #304 #305 #306 #309 #315)
+- v0.5.1 (cutting): Fleet matrix all-kinds-degraded bug fixed (PR #320); kro version in fleet cluster cards (PR #320); kro-ui version in footer (PR #320); DocsTab required fields sorted first (PR #319); Graph tab complexity hint (PR #319); response cache 30s/10s/5min TTLs (PR #321)
+- v0.5.0: ALL GH issues resolved — snooze error DAG nodes (GH #276 F-8, PR #318); GraphRevision side-by-side YAML diff foundation (GH #13, PR #318); v0.4.15 fixes (GH #303 #299 #298 #308 #301 #300 #302 #304 #305 #306 #309 #315)
 - v0.4.15: ValidateRGD PATCH→offline static (GH #303); Fleet degraded color fix (GH #299); ContextSwitcher subtitle fix (GH #298); require.Nil in tests (GH #308); errors.New sentinels (GH #301); handler timeout docs (GH #300); README features updated (GH #302); FinalizersPanel/DAGTooltip/CopySpecButton component tests (GH #305 #304 #306); constitution §II path fix + AGENTS node-type docs (GH #309); CI fix 005 Step 10 (PR #315)
 - v0.4.14: RGD Graph Revisions tab — revision history, compiled status, age, expand YAML (PR #314, GH #274 closed)
 - v0.4.13: omit() designer help; collection limit badge 900/1000 (PR #313); condition-transition events (PR #313); fixture-state path fix 043 journeys (PR #312); constitution §XIV E2E standards (PR #311); E2E journey backfill 20 PRs (PR #297)

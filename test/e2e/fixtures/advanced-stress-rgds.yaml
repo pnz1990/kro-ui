@@ -1,0 +1,336 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# advanced-stress-fixtures.yaml
+# Complex RGDs designed to find UI gaps through deep testing.
+# Applied to kro-ui-demo namespace on kind-kro-ui-demo.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 1. DEEP DEPENDENCY CHAIN (A→B→C→D where each reads previous resource's status)
+#    Exercises: deep DAG edge routing, cross-resource CEL expressions,
+#    multi-level readyWhen chains, tooltip hover on deeply-connected nodes
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: deep-dependency-chain
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: DeepChainApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=deep-chain
+    status:
+      phase: ${configA.data.phase}
+      configBName: ${configB.metadata.name}
+      configCName: ${configC.metadata.name}
+      configDName: ${configD.metadata.name}
+  resources:
+    - id: configA
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-a
+          namespace: kro-ui-demo
+        data:
+          phase: "a"
+          app: ${schema.spec.appName}
+          level: level1
+
+    - id: configB
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-b
+          namespace: kro-ui-demo
+        data:
+          phase: "b"
+          app: ${schema.spec.appName}
+          # References configA — creates DAG dependency edge A→B
+          dependsOn: ${configA.metadata.name}
+          level: level2
+
+    - id: configC
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-c
+          namespace: kro-ui-demo
+        data:
+          phase: "c"
+          app: ${schema.spec.appName}
+          # References configB — creates DAG dependency edge B→C
+          dependsOn: ${configB.metadata.name}
+          level: level3
+
+    - id: configD
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-d
+          namespace: kro-ui-demo
+        data:
+          phase: "d-final"
+          app: ${schema.spec.appName}
+          # References configC — creates DAG dependency edge C→D
+          dependsOn: ${configC.metadata.name}
+          # Also reads configA to test multi-source references
+          rootName: ${configA.metadata.name}
+          level: level4
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 2. LARGE SCHEMA RGD (15+ spec fields of varied types)
+#    Exercises: DocsTab with many fields, GenerateTab form with many inputs,
+#    schema field type rendering (int, bool, string defaults, required fields)
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: large-schema
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: LargeSchemaApp
+    group: e2e.kro-ui.dev
+    spec:
+      # String fields
+      appName: string | default=large-schema-app
+      environment: string | default=production
+      region: string | default=us-east-1
+      team: string | default=platform
+      version: string | default=v1.0.0
+      # Integer fields
+      replicas: integer | default=2
+      maxReplicas: integer | default=10
+      port: integer | default=8080
+      healthCheckPort: integer | default=8081
+      terminationGracePeriod: integer | default=30
+      # Boolean fields
+      enableTLS: boolean | default=false
+      enableMetrics: boolean | default=true
+      enableTracing: boolean | default=false
+      debugMode: boolean | default=false
+      # Required fields (no default)
+      serviceName: string
+    status:
+      configName: ${appConfig.metadata.name}
+      deploymentName: ${appDeployment.metadata.name}
+      serviceName: ${appService.metadata.name}
+      replicaCount: ${appDeployment.status.availableReplicas}
+  resources:
+    - id: appConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-config
+          namespace: kro-ui-demo
+          labels:
+            app: ${schema.spec.appName}
+            env: ${schema.spec.environment}
+            team: ${schema.spec.team}
+        data:
+          APP_NAME: ${schema.spec.appName}
+          ENVIRONMENT: ${schema.spec.environment}
+          REGION: ${schema.spec.region}
+          VERSION: ${schema.spec.version}
+          PORT: app-port
+          ENABLE_TLS: tls-config
+          ENABLE_METRICS: metrics-config
+          ENABLE_TRACING: enabled-check
+
+    - id: appDeployment
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-${schema.spec.environment}
+          namespace: kro-ui-demo
+        spec:
+          replicas: ${schema.spec.replicas}
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}
+                env: ${schema.spec.environment}
+                version: ${schema.spec.version}
+            spec:
+              terminationGracePeriodSeconds: ${schema.spec.terminationGracePeriod}
+              containers:
+                - name: app
+                  image: nginx:stable-alpine
+                  ports:
+                    - containerPort: ${schema.spec.port}
+                  envFrom:
+                    - configMapRef:
+                        name: ${appConfig.metadata.name}
+
+    - id: appService
+      template:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: ${schema.spec.serviceName}
+          namespace: kro-ui-demo
+        spec:
+          selector:
+            app: ${schema.spec.appName}
+          ports:
+            - port: ${schema.spec.port}
+              targetPort: ${schema.spec.port}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 3. MULTI-HPA RGD — Two deployments each with their own HPA
+#    Exercises: 6-node DAG, optimization advisor (2×HPA pattern),
+#    per-node YAML inspection, degraded/reconciling mix
+# ═══════════════════════════════════════════════════════════════════════════════
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: multi-hpa-app
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: MultiHpaApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=multi-hpa
+      frontendImage: string | default=nginx:stable-alpine
+      backendImage: string | default=nginx:1.25-alpine
+      frontendReplicas: integer | default=2
+      backendReplicas: integer | default=1
+      frontendMaxReplicas: integer | default=8
+      backendMaxReplicas: integer | default=4
+    status:
+      frontendReady: ${frontendDeploy.status.availableReplicas}
+      backendReady: ${backendDeploy.status.availableReplicas}
+  resources:
+    - id: frontendDeploy
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-frontend
+          namespace: kro-ui-demo
+        spec:
+          replicas: ${schema.spec.frontendReplicas}
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}
+              tier: frontend
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}
+                tier: frontend
+            spec:
+              containers:
+                - name: frontend
+                  image: ${schema.spec.frontendImage}
+                  resources:
+                    requests:
+                      cpu: "50m"
+
+    - id: frontendHPA
+      template:
+        apiVersion: autoscaling/v2
+        kind: HorizontalPodAutoscaler
+        metadata:
+          name: ${schema.spec.appName}-frontend-hpa
+          namespace: kro-ui-demo
+        spec:
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: ${frontendDeploy.metadata.name}
+          minReplicas: ${schema.spec.frontendReplicas}
+          maxReplicas: ${schema.spec.frontendMaxReplicas}
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: 70
+
+    - id: backendDeploy
+      template:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: ${schema.spec.appName}-backend
+          namespace: kro-ui-demo
+        spec:
+          replicas: ${schema.spec.backendReplicas}
+          selector:
+            matchLabels:
+              app: ${schema.spec.appName}
+              tier: backend
+          template:
+            metadata:
+              labels:
+                app: ${schema.spec.appName}
+                tier: backend
+            spec:
+              containers:
+                - name: backend
+                  image: ${schema.spec.backendImage}
+                  resources:
+                    requests:
+                      cpu: "50m"
+
+    - id: backendHPA
+      template:
+        apiVersion: autoscaling/v2
+        kind: HorizontalPodAutoscaler
+        metadata:
+          name: ${schema.spec.appName}-backend-hpa
+          namespace: kro-ui-demo
+        spec:
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: ${backendDeploy.metadata.name}
+          minReplicas: ${schema.spec.backendReplicas}
+          maxReplicas: ${schema.spec.backendMaxReplicas}
+          metrics:
+            - type: Resource
+              resource:
+                name: cpu
+                target:
+                  type: Utilization
+                  averageUtilization: 80
+
+    - id: sharedConfig
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-shared
+          namespace: kro-ui-demo
+        data:
+          frontendName: ${frontendDeploy.metadata.name}
+          backendName: ${backendDeploy.metadata.name}
+          app: ${schema.spec.appName}

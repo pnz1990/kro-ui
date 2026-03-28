@@ -1,0 +1,125 @@
+# Advanced stress test instances — applied after advanced-stress-rgds.yaml
+
+# Deep dependency chain instances
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: DeepChainApp
+metadata:
+  name: deep-chain-prod
+  namespace: kro-ui-demo
+spec:
+  appName: deep-prod
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: DeepChainApp
+metadata:
+  name: deep-chain-staging
+  namespace: kro-ui-demo
+spec:
+  appName: deep-staging
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: DeepChainApp
+metadata:
+  name: deep-chain-dev
+  namespace: kro-ui-demo
+spec:
+  appName: deep-dev
+
+# Large schema instances — many fields to stress DocsTab/GenerateTab
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: LargeSchemaApp
+metadata:
+  name: large-schema-prod
+  namespace: kro-ui-demo
+spec:
+  appName: prod-app
+  environment: production
+  region: us-east-1
+  team: platform
+  version: v2.1.0
+  replicas: 3
+  maxReplicas: 10
+  port: 8080
+  healthCheckPort: 8081
+  terminationGracePeriod: 60
+  enableTLS: true
+  enableMetrics: true
+  enableTracing: true
+  debugMode: false
+  serviceName: prod-app-svc
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: LargeSchemaApp
+metadata:
+  name: large-schema-staging
+  namespace: kro-ui-demo
+spec:
+  appName: staging-app
+  environment: staging
+  region: us-west-2
+  team: platform
+  version: v2.2.0-rc1
+  replicas: 1
+  maxReplicas: 4
+  port: 8080
+  healthCheckPort: 8081
+  terminationGracePeriod: 30
+  enableTLS: false
+  enableMetrics: true
+  enableTracing: false
+  debugMode: true
+  serviceName: staging-app-svc
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: LargeSchemaApp
+metadata:
+  name: large-schema-dev
+  namespace: kro-ui-demo
+spec:
+  appName: dev-app
+  environment: development
+  region: eu-west-1
+  team: frontend
+  version: v2.2.0-dev
+  replicas: 1
+  maxReplicas: 2
+  port: 3000
+  healthCheckPort: 3001
+  terminationGracePeriod: 10
+  enableTLS: false
+  enableMetrics: false
+  enableTracing: false
+  debugMode: true
+  serviceName: dev-app-svc
+
+# Multi-HPA instances — 6-node DAG, optimization advisor
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiHpaApp
+metadata:
+  name: multi-hpa-prod
+  namespace: kro-ui-demo
+spec:
+  appName: multi-hpa-prod
+  frontendImage: nginx:stable-alpine
+  backendImage: nginx:1.25-alpine
+  frontendReplicas: 2
+  backendReplicas: 1
+  frontendMaxReplicas: 8
+  backendMaxReplicas: 4
+---
+apiVersion: e2e.kro-ui.dev/v1alpha1
+kind: MultiHpaApp
+metadata:
+  name: multi-hpa-staging
+  namespace: kro-ui-demo
+spec:
+  appName: multi-hpa-staging
+  frontendImage: nginx:alpine
+  backendImage: nginx:alpine
+  frontendReplicas: 1
+  backendReplicas: 1
+  frontendMaxReplicas: 3
+  backendMaxReplicas: 2
