@@ -8,6 +8,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import Catalog from './pages/Catalog'
 import Fleet from './pages/Fleet'
+import InstancesPage from './pages/Instances'
 import RGDDetail from './pages/RGDDetail'
 import InstanceDetail from './pages/InstanceDetail'
 import Events from './pages/Events'
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<Home />} />
           <Route path="/catalog" element={<Catalog />} />
           <Route path="/fleet" element={<Fleet />} />
+          <Route path="/instances" element={<InstancesPage />} />
           <Route path="/events" element={<Events />} />
           <Route path="/author" element={<AuthorPage />} />
           <Route path="/rgds/:name" element={<RGDDetail />} />

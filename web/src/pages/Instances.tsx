@@ -1,0 +1,286 @@
+// Instances — global cross-RGD instance search page.
+// Fetches all instances across all RGDs via GET /api/v1/instances (fan-out).
+// Provides search by name, namespace, kind, or RGD name.
+// Spec: .specify/specs/058-global-instance-search/spec.md
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { listAllInstances } from '@/lib/api'
+import type { InstanceSummary } from '@/lib/api'
+import { formatAge } from '@/lib/format'
+import { usePageTitle } from '@/hooks/usePageTitle'
+import { translateApiError } from '@/lib/errors'
+import StatusDot from '@/components/StatusDot'
+import './Instances.css'
+
+// Derive a StatusDot-compatible ready state from the kro instance ready field.
+function toReadyState(ready: string): 'ready' | 'error' | 'unknown' {
+  if (ready === 'True') return 'ready'
+  if (ready === 'False') return 'error'
+  return 'unknown'
+}
+
+type SortKey = 'name' | 'age' | 'rgd' | 'namespace'
+type SortDir = 'asc' | 'desc'
+
+function compareItems(a: InstanceSummary, b: InstanceSummary, key: SortKey, dir: SortDir): number {
+  let cmp = 0
+  switch (key) {
+    case 'name':
+      cmp = a.name.localeCompare(b.name)
+      break
+    case 'rgd':
+      cmp = a.rgdName.localeCompare(b.rgdName)
+      break
+    case 'namespace':
+      cmp = a.namespace.localeCompare(b.namespace)
+      break
+    case 'age': {
+      const aMs = a.creationTimestamp ? Date.parse(a.creationTimestamp) : 0
+      const bMs = b.creationTimestamp ? Date.parse(b.creationTimestamp) : 0
+      cmp = bMs - aMs // newer first by default
+      break
+    }
+  }
+  return dir === 'asc' ? cmp : -cmp
+}
+
+const PAGE_SIZE = 50
+
+export default function InstancesPage() {
+  usePageTitle('Instances')
+
+  const [items, setItems] = useState<InstanceSummary[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('age')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [page, setPage] = useState(0)
+
+  const fetchAll = useCallback(() => {
+    setIsLoading(true)
+    setError(null)
+    const ac = new AbortController()
+    listAllInstances({ signal: ac.signal })
+      .then((res) => {
+        setItems(res.items ?? [])
+      })
+      .catch((err) => {
+        if (!ac.signal.aborted) {
+          setError(String(err))
+        }
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setIsLoading(false)
+      })
+    return () => ac.abort()
+  }, [])
+
+  useEffect(() => {
+    const cleanup = fetchAll()
+    return cleanup
+  }, [fetchAll])
+
+  // Client-side filter: match query against name, namespace, kind, or rgdName
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return items
+    return items.filter(
+      (i) =>
+        i.name.toLowerCase().includes(q) ||
+        i.namespace.toLowerCase().includes(q) ||
+        i.kind.toLowerCase().includes(q) ||
+        i.rgdName.toLowerCase().includes(q),
+    )
+  }, [items, query])
+
+  const sorted = useMemo(
+    () => [...filtered].sort((a, b) => compareItems(a, b, sortKey, sortDir)),
+    [filtered, sortKey, sortDir],
+  )
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const pageItems = sorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE)
+
+  function handleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'age' ? 'desc' : 'asc')
+    }
+    setPage(0)
+  }
+
+  function sortIndicator(key: SortKey) {
+    if (sortKey !== key) return <span className="sort-indicator sort-indicator--inactive" aria-hidden="true">⇅</span>
+    return <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  return (
+    <div className="instances-page">
+      <div className="instances-page__header">
+        <div className="instances-page__heading-group">
+          <h1 className="instances-page__heading">Instances</h1>
+          <p className="instances-page__tagline">All live CR instances across all RGDs</p>
+        </div>
+        <div className="instances-page__toolbar">
+          <input
+            type="search"
+            className="instances-page__search"
+            placeholder="Search by name, namespace, kind, or RGD..."
+            aria-label="Search instances"
+            data-testid="instances-search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(0) }}
+          />
+          {!isLoading && (
+            <span className="instances-page__count" data-testid="instances-count">
+              {filtered.length === items.length
+                ? `${items.length} instances`
+                : `${filtered.length} of ${items.length}`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {isLoading && (
+        <p className="instances-page__loading" aria-busy="true">Loading instances...</p>
+      )}
+
+      {!isLoading && error !== null && (
+        <div className="instances-page__error" role="alert">
+          <p>{translateApiError(error)}</p>
+          <button className="instances-page__retry" onClick={fetchAll}>Retry</button>
+        </div>
+      )}
+
+      {!isLoading && error === null && sorted.length === 0 && (
+        <p className="panel-empty">
+          {query
+            ? `No instances match "${query}".`
+            : 'No instances found across any RGD.'}
+        </p>
+      )}
+
+      {!isLoading && error === null && sorted.length > 0 && (
+        <>
+          <table className="instances-table" data-testid="instances-table">
+            <thead>
+              <tr>
+                <th
+                  className="instances-table__th instances-table__th--state"
+                  aria-label="Health state"
+                />
+                <th
+                  className="instances-table__th"
+                  onClick={() => handleSort('name')}
+                  aria-sort={sortKey === 'name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSort('name')}
+                >
+                  Name {sortIndicator('name')}
+                </th>
+                <th
+                  className="instances-table__th"
+                  onClick={() => handleSort('namespace')}
+                  aria-sort={sortKey === 'namespace' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSort('namespace')}
+                >
+                  Namespace {sortIndicator('namespace')}
+                </th>
+                <th className="instances-table__th">Kind</th>
+                <th
+                  className="instances-table__th"
+                  onClick={() => handleSort('rgd')}
+                  aria-sort={sortKey === 'rgd' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSort('rgd')}
+                >
+                  RGD {sortIndicator('rgd')}
+                </th>
+                <th
+                  className="instances-table__th"
+                  onClick={() => handleSort('age')}
+                  aria-sort={sortKey === 'age' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSort('age')}
+                >
+                  Age {sortIndicator('age')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageItems.map((item) => {
+                const href = `/rgds/${encodeURIComponent(item.rgdName)}/instances/${encodeURIComponent(item.namespace || '_')}/${encodeURIComponent(item.name)}`
+                const readyState = toReadyState(item.ready)
+                const age = item.creationTimestamp ? formatAge(item.creationTimestamp) : '—'
+                const nsDisplay = item.namespace || '(cluster)'
+                return (
+                  <tr
+                    key={`${item.rgdName}/${item.namespace}/${item.name}`}
+                    className="instances-table__row"
+                    data-testid="instances-row"
+                    onClick={() => window.location.href = href}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td className="instances-table__td instances-table__td--state">
+                      <StatusDot state={readyState} />
+                    </td>
+                    <td className="instances-table__td instances-table__td--name">
+                      <Link to={href} className="instances-table__link" tabIndex={-1}>
+                        {item.name}
+                      </Link>
+                    </td>
+                    <td className="instances-table__td instances-table__td--ns">
+                      {nsDisplay}
+                    </td>
+                    <td className="instances-table__td instances-table__td--kind">
+                      {item.kind || item.rgdName}
+                    </td>
+                    <td className="instances-table__td instances-table__td--rgd">
+                      <Link
+                        to={`/rgds/${encodeURIComponent(item.rgdName)}`}
+                        className="instances-table__rgd-link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {item.rgdName}
+                      </Link>
+                    </td>
+                    <td className="instances-table__td instances-table__td--age">{age}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="instances-page__pagination" aria-label="Pagination">
+              <button
+                className="instances-page__page-btn"
+                disabled={safePage === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                ‹ Prev
+              </button>
+              <span className="instances-page__page-info">
+                Page {safePage + 1} of {totalPages}
+              </span>
+              <button
+                className="instances-page__page-btn"
+                disabled={safePage >= totalPages - 1}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              >
+                Next ›
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}

@@ -147,6 +147,9 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			r.Post("/rgds/validate/static", h.ValidateRGDStatic)
 
 			// Instances — NOT cached (live polling)
+			// Global instance search (spec 058): GET /instances lists ALL instances across all RGDs.
+			// Per-instance endpoints: NOT cached (5s poll, must be fresh).
+			r.With(responsecache.Middleware(rc, ttlInstanceList)).Get("/instances", h.ListAllInstances)
 			r.Get("/instances/{namespace}/{name}", h.GetInstance)
 			r.Get("/instances/{namespace}/{name}/events", h.GetInstanceEvents)
 			r.Get("/instances/{namespace}/{name}/children", h.GetInstanceChildren)
