@@ -31,7 +31,8 @@ concepts with zero or minimal code changes.
   (`discovery.ServerResourcesForGroupVersion`) as the primary mechanism;
   naive pluralization is a last-resort fallback only
 - No kro API field paths (e.g., `spec.resources[].id`) may be hardcoded outside
-  of a single, isolated `internal/kro/` mapping package
+  of a single, isolated `internal/k8s/rgd.go` mapping file
+  (CA-01: previous text said `internal/kro/` which does not exist)
 - **Only upstream features** (`kubernetes-sigs/kro`) are enabled by default.
   Fork-only concepts (`specPatch`, `stateFields`) MUST NOT appear in any spec,
   component, or UI label.
@@ -555,9 +556,10 @@ Amendments:
 2. Bump the version number (MINOR for new principles, PATCH for clarifications)
 3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.5.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-27
+**Version**: 1.5.1 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-28
 
 **Amendment log**:
+- 1.5.1 (2026-03-28): §II CA-01 fix — `internal/kro/` corrected to `internal/k8s/rgd.go` (package didn't exist).
 - 1.5.0 (2026-03-27): §XIV E2E Journey Standards added — SPA HTTP-200 pitfall,
   API-first existence checks, brace balance verification, `locator.or()` ambiguity,
   chunk registration requirement, `waitForFunction` over `toHaveCount(0)`.

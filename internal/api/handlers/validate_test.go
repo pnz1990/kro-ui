@@ -21,7 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	apitypes "github.com/pnz1990/kro-ui/internal/api/types"
@@ -52,10 +51,12 @@ spec:
 `
 
 // ── TestValidateRGD ────────────────────────────────────────────────────────
+// ValidateRGD now performs offline static validation — no cluster contact.
+// Tests verify the static-only behaviour.
 
 func TestValidateRGD(t *testing.T) {
-	t.Run("valid RGD YAML → apply succeeds → HTTP 200 valid:true", func(t *testing.T) {
-		h := newValidateHandler(nil) // apply returns (nil obj, nil err) = success
+	t.Run("valid RGD YAML → HTTP 200 valid:true (no static issues)", func(t *testing.T) {
+		h := newValidateHandler(nil)
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate", strings.NewReader(validRGDYAML))
 		req.Header.Set("Content-Type", "text/plain")
 		w := httptest.NewRecorder()
@@ -74,10 +75,29 @@ func TestValidateRGD(t *testing.T) {
 		}
 	})
 
-	t.Run("kro rejects → HTTP 200 valid:false with error message", func(t *testing.T) {
-		applyErr := k8serrors.NewBadRequest("CEL expression invalid")
-		h := newValidateHandler(applyErr)
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate", strings.NewReader(validRGDYAML))
+	t.Run("RGD with invalid field type → HTTP 200 valid:false with error message", func(t *testing.T) {
+		// validRGDYAML has a 'replicas: integer' field — if we introduce a bad type
+		// the static validator should catch it. Use a YAML with invalid CEL to trigger.
+		invalidRGD := `apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: invalid-rgd
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: TestApp
+    spec:
+      name: string
+  resources:
+    - id: "invalid id with spaces"
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: test
+`
+		h := newValidateHandler(nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate", strings.NewReader(invalidRGD))
 		w := httptest.NewRecorder()
 
 		h.ValidateRGD(w, req)
@@ -89,11 +109,12 @@ func TestValidateRGD(t *testing.T) {
 		if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
 			t.Fatalf("decode error: %v", err)
 		}
+		// Invalid resource ID "invalid id with spaces" should produce valid:false
 		if res.Valid {
-			t.Error("expected valid:false, got valid:true")
+			t.Error("expected valid:false for invalid resource ID, got valid:true")
 		}
 		if res.Error == "" {
-			t.Error("expected non-empty error message")
+			t.Error("expected non-empty error message for invalid ID")
 		}
 	})
 
@@ -126,25 +147,9 @@ metadata:
 		}
 	})
 
-	t.Run("cluster connectivity error → HTTP 503", func(t *testing.T) {
-		// A non-StatusError error (not a k8s API error) → 503
-		dyn := newStubDynamic()
-		disc := newStubDiscovery()
-		dyn.resources[rgdGVR] = &stubNamespaceableResource{
-			applyConfigured: true,
-			applyErr:        &genericClusterError{"connection refused"},
-		}
-		h := newRGDTestHandler(dyn, disc)
-
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate", strings.NewReader(validRGDYAML))
-		w := httptest.NewRecorder()
-
-		h.ValidateRGD(w, req)
-
-		if w.Code != http.StatusServiceUnavailable {
-			t.Errorf("expected 503, got %d: %s", w.Code, w.Body.String())
-		}
-	})
+	// Note: the "cluster connectivity error → HTTP 503" test case has been removed.
+	// ValidateRGD no longer contacts the cluster (GH #303 fix — PATCH verb removed).
+	// The endpoint now always responds 200 with offline validation results.
 }
 
 // genericClusterError satisfies the error interface but is not a *StatusError.

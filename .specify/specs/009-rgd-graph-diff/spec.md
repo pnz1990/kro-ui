@@ -4,7 +4,7 @@
 **Created**: 2026-03-20
 **Updated**: 2026-03-26 (unblocked — kro v0.9.0 shipped GraphRevision CRD)
 **Status**: Unblocked — ready to implement (kro v0.9.0 ships GraphRevision CRD)
-**Depends on**: `003-rgd-detail-dag` (merged), `046-kro-v090-upgrade` (in progress — provides `GET /api/v1/kro/graph-revisions` API)
+**Depends on**: `003-rgd-detail-dag` (merged), `046-kro-v090-upgrade` (merged PR #275 — `GET /api/v1/kro/graph-revisions` API satisfied; `046-kro-v090-revisions` PR #314 provides the Revisions tab UI foundation)
 **Constitution ref**: §II (Cluster Adaptability), §V (Simplicity), §IX (Theme)
 
 ---

@@ -79,6 +79,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/issue-183` | #183 | Static DAG overlay svgHeight — use graph.height directly, SVG display:block | Merged (PR #209) |
 | `fix/issue-210` | #210 | Live YAML resolve child resource by kro.run/node-id label | Merged (PR #211) |
 | `043-upstream-fixture-generator` | #222 | Upstream fixture generator — cmd/dump-fixtures, full kro feature coverage, contagious includeWhen fix | Merged (PR #224) |
+| `044-rgd-designer-full-features` | #270 | RGD Designer full kro feature coverage — all 5 node types, includeWhen, readyWhen CEL, schema field editor | Merged (PR #144) |
 | `045-rgd-designer-validation-optimizer` | — | RGD Designer YAML validation, editable YAML panel, expanded optimization advisor | Merged (PR #273) |
 | `046-kro-v090-upgrade` | — | kro v0.9.0 upgrade — GraphRevision API, scope badge, DocsTab types, capabilities baseline update | Merged (PR #275) |
 | `047-ux-improvements` | #276 | Degraded health state (6th state), multi-segment health bar, copy instance YAML button | Merged (PR #277) |
@@ -104,6 +105,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/e2e-journey-syntax-fix2` | — | fixture-state.ts: lazy Proxy read per access (fixes fixture-state race causing 043 journeys to skip) | Merged (PR #312) |
 | `fix/ux-polish-round2-continued` | #274 | omit() designer help text; collection limit badge (900/1000 warning); condition-transition event visual category | Merged (PR #313) |
 | `046-kro-v090-revisions` | #274 | RGD Graph Revisions tab — revision history, compiled status, age, expand YAML (kro v0.9.0+) | Merged (PR #314) |
+| `fix/ux-polish-round2-continued` | — | 005 Step 10 E2E fix: waitForFunction, aria-label (CI green) | Merged (PR #315) |
+| `fix/ux-polish-round2-continued` | #303 #299 #298 #308 #309 | ValidateRGD PATCH→static; Fleet degraded color; ContextSwitcher subtitle; require.Nil; AGENTS/constitution docs | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -218,15 +221,18 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | `locator.or().toBeVisible()` when both elements may be visible | #310 | Use `waitForFunction()` polling the DOM; `locator.or()` throws when multiple elements match |
 | `toHaveCount(0, {timeout:15000})` for skeleton removal | #310 | Use `waitForFunction()` polling the resolved text content; more resilient on slow CI runners |
 
-### Upstream kro node types (5 real types, from `pkg/graph/node.go`)
+### Upstream kro node types (5 real types + 1 kro-ui extension)
+
+Labels from `NODE_TYPE_LABEL` in `web/src/lib/dag.ts:37-44`.
 
 | NodeType | kro-ui label | Condition |
 |----------|-------------|-----------|
 | `NodeTypeInstance` | Root CR | ID = `schema` |
-| `NodeTypeResource` | Managed resource | has `template`, no `forEach` |
-| `NodeTypeCollection` | forEach fan-out | has `template` + `forEach` |
-| `NodeTypeExternal` | External ref | `externalRef.metadata.name` set |
-| `NodeTypeExternalCollection` | External ref collection | `externalRef.metadata.selector` set |
+| `NodeTypeResource` | Managed Resource | has `template`, no `forEach` |
+| `NodeTypeCollection` | forEach Collection | has `template` + `forEach` |
+| `NodeTypeExternal` | External Ref | `externalRef.metadata.name` set |
+| `NodeTypeExternalCollection` | External Ref Collection | `externalRef.metadata.selector` set |
+| *(kro-ui ext.)* | State Store | has `state:` key, no `template:` — pending upstream NodeTypeState formalization (CA-05) |
 
 `includeWhen` is a **modifier** on any node type, not a separate type.
 
