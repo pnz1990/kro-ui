@@ -43,6 +43,15 @@ export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProp
           Fleet
         </NavLink>
         <NavLink
+          to="/instances"
+          className={({ isActive }) =>
+            `top-bar__nav-link${isActive ? ' top-bar__nav-link--active' : ''}`
+          }
+          data-testid="topbar-instances"
+        >
+          Instances
+        </NavLink>
+        <NavLink
           to="/events"
           className={({ isActive }) =>
             `top-bar__nav-link${isActive ? ' top-bar__nav-link--active' : ''}`

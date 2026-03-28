@@ -1,0 +1,194 @@
+/* Instances — global cross-RGD instance search page.
+ * Spec: .specify/specs/058-global-instance-search/spec.md
+ */
+
+.instances-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.instances-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.instances-page__heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.instances-page__tagline {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.instances-page__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.instances-page__search {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  width: 300px;
+  outline: none;
+}
+
+.instances-page__search:focus {
+  border-color: var(--color-text-muted);
+}
+
+.instances-page__count {
+  font-size: 12px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+/* ── States ──────────────────────────────────────────────────────────────── */
+
+.instances-page__loading {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.instances-page__error {
+  color: var(--color-status-error);
+  font-size: 13px;
+}
+
+.instances-page__retry {
+  background: none;
+  border: 1px solid var(--color-status-error);
+  color: var(--color-status-error);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.instances-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.instances-table__th {
+  text-align: left;
+  padding: 8px 12px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.instances-table__th--state {
+  width: 32px;
+  cursor: default;
+}
+
+.instances-table__th:hover {
+  color: var(--color-text);
+}
+
+.instances-table__row {
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background var(--transition-fast);
+}
+
+.instances-table__row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.instances-table__td {
+  padding: 10px 12px;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.instances-table__td--state {
+  width: 32px;
+  text-align: center;
+}
+
+.instances-table__td--name {
+  font-weight: 500;
+}
+
+.instances-table__td--ns,
+.instances-table__td--kind,
+.instances-table__td--age {
+  color: var(--color-text-muted);
+}
+
+.instances-table__link {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.instances-table__link:hover {
+  text-decoration: underline;
+}
+
+.instances-table__rgd-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.instances-table__rgd-link:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────────── */
+
+.instances-page__pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.instances-page__page-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.instances-page__page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.instances-page__page-info {
+  font-size: 12px;
+  color: var(--color-text-faint);
+}

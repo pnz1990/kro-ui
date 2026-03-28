@@ -67,6 +67,32 @@ export const listInstances = (rgdName: string, namespace?: string, options?: { s
   return get<K8sList>(`/rgds/${encodeURIComponent(rgdName)}/instances${qs}`, options)
 }
 
+// ── Global instance search (spec 058) ────────────────────────────────────────
+
+/** Compact instance summary returned by GET /api/v1/instances */
+export interface InstanceSummary {
+  name: string
+  namespace: string
+  kind: string
+  rgdName: string
+  state: string
+  ready: string
+  creationTimestamp: string
+}
+
+export interface AllInstancesResponse {
+  items: InstanceSummary[]
+  total: number
+}
+
+/**
+ * List all live CR instances across ALL RGDs.
+ * Fan-out on the backend: each RGD has a 2s deadline, results merged.
+ * Spec: .specify/specs/058-global-instance-search/spec.md
+ */
+export const listAllInstances = (options?: { signal?: AbortSignal }) =>
+  get<AllInstancesResponse>('/instances', options)
+
 // ── Instances ────────────────────────────────────────────────────────
 
 export const getInstance = (namespace: string, name: string, rgd: string) =>
