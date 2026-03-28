@@ -5,6 +5,8 @@
 //   all ready   → --color-alive (emerald)
 //   partial     → --color-reconciling (amber)
 //   none ready  → --color-error (rose)
+// kro v0.9.0: collections are limited to 1,000 items. Badge warns at ≥ 900
+// (amber "limit" state) and shows "max" at 1,000 (rose "at-limit" state).
 //
 // Spec: .specify/specs/011-collection-explorer/
 
@@ -12,6 +14,13 @@ import { isItemReady } from '@/lib/collection'
 import type { K8sObject } from '@/lib/api'
 import { LABEL_NODE_ID, LABEL_COLL_SIZE } from '@/lib/kro'
 import './CollectionBadge.css'
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+/** kro v0.9.0 hard limit on collection items per forEach node. */
+const COLL_LIMIT = 1000
+/** Warn when approaching the limit. */
+const COLL_WARN_THRESHOLD = 900
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -29,9 +38,11 @@ export interface CollectionBadgeProps {
 
 // ── Badge state derivation ─────────────────────────────────────────────────
 
-type BadgeState = 'all-ready' | 'partial' | 'none-ready'
+type BadgeState = 'all-ready' | 'partial' | 'none-ready' | 'limit-warn' | 'limit-max'
 
 function badgeState(ready: number, total: number): BadgeState {
+  if (total >= COLL_LIMIT) return 'limit-max'
+  if (total >= COLL_WARN_THRESHOLD) return 'limit-warn'
   if (total === 0) return 'none-ready'
   if (ready === total) return 'all-ready'
   if (ready > 0) return 'partial'
@@ -82,7 +93,22 @@ export default function CollectionBadge({
   )
   const ready = items.filter(isItemReady).length
   const state = badgeState(ready, total)
-  const label = `${ready}/${total}`
+
+  // Label: "N/M" for health view, "N (max)" or "N ⚠" for limit view
+  const isAtLimit = total >= COLL_LIMIT
+  const isNearLimit = total >= COLL_WARN_THRESHOLD && total < COLL_LIMIT
+  const label = isAtLimit
+    ? `${total} (max)`
+    : isNearLimit
+      ? `${ready}/${total} ⚠`
+      : `${ready}/${total}`
+
+  // Title attribute for accessibility and tooltip
+  const ariaLabel = isAtLimit
+    ? `Collection at kro limit: ${total}/1000 items`
+    : isNearLimit
+      ? `Collection health: ${ready}/${total} ready — approaching 1000-item limit`
+      : `Collection health: ${ready}/${total} ready`
 
   // Position: centered horizontally, near the bottom of the node
   const x = nodeX + nodeWidth / 2
@@ -95,7 +121,7 @@ export default function CollectionBadge({
       x={x}
       y={y}
       textAnchor="middle"
-      aria-label={`Collection health: ${label}`}
+      aria-label={ariaLabel}
     >
       {label}
     </text>

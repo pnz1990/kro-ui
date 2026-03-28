@@ -29,6 +29,16 @@
   border-left-color: var(--color-border);
 }
 
+/* Condition-transition events (kro v0.9.0 HasInstanceConditionEvents):
+ * distinct blue-ish border to indicate state machine transitions.
+ * Uses --color-primary (same as the interactive link color) for a recognizable
+ * "informational state change" visual that is distinct from both warning (amber)
+ * and normal (gray). */
+.event-stream-row--condition {
+  border-left-color: var(--color-alive);
+  background: var(--node-alive-bg);
+}
+
 .event-stream-row__body {
   flex: 1;
   padding: 8px 12px;
@@ -67,6 +77,13 @@
   background: transparent;
   border-color: var(--color-border-subtle);
   color: var(--color-text-faint);
+}
+
+/* Condition-transition badge — teal/alive color to indicate state change */
+.event-stream-row__type-badge--condition {
+  background: var(--node-alive-bg);
+  border-color: var(--color-alive);
+  color: var(--color-alive);
 }
 
 .event-stream-row__reason {
