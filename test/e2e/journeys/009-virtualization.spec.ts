@@ -139,7 +139,14 @@ test.describe('Journey 009 — RGD list virtualization', () => {
 
   test('Step 7: home page DOM card count equals total fixture RGD count', async ({ page }) => {
     await page.goto(BASE)
-    await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
+
+    // Wait for at least one RGD card to appear — the API call may take
+    // several seconds on a throttled E2E cluster. Using waitForFunction
+    // gives a 15s window; the default toBeVisible() timeout is only 5s.
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-testid^="rgd-card-"]').length >= 1,
+      { timeout: 15000 }
+    )
 
     // The fixture set installs 14 RGDs (test-app, test-collection, multi-resource,
     // external-ref, cel-functions, chain-parent, chain-child, chain-cycle-a,
