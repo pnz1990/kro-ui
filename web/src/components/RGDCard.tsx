@@ -16,6 +16,19 @@ import StatusDot from './StatusDot'
 import HealthChip from './HealthChip'
 import './RGDCard.css'
 
+/** Maximum characters shown in the error hint before truncation. */
+const ERROR_HINT_MAX = 80
+
+/**
+ * Build a truncated error hint string from a reason + message.
+ * Returns empty string when both are absent.
+ */
+export function buildErrorHint(reason: string, message: string): string {
+  const raw = reason && message ? `${reason}: ${message}` : reason || message
+  if (!raw) return ''
+  return raw.length > ERROR_HINT_MAX ? raw.slice(0, ERROR_HINT_MAX) + '…' : raw
+}
+
 interface RGDCardProps {
   rgd: K8sObject
   /**
@@ -126,6 +139,16 @@ export default function RGDCard({ rgd, terminatingCount, healthSummary: healthSu
           </span>
           <span className="rgd-card__age">{formatAge(createdAt)}</span>
         </div>
+        {/* FR-001 (spec 056): error hint — one-line error reason for error-state RGDs */}
+        {state === 'error' && (reason || message) && (
+          <p
+            className="rgd-card__error-hint"
+            data-testid="rgd-card-error-hint"
+            title={reason && message ? `${reason}: ${message}` : reason || message}
+          >
+            {buildErrorHint(reason, message)}
+          </p>
+        )}
         {/* Health chip wrapper — fixed height so cards are uniform regardless
             of chip state (loading / null / "no instances" / "N ready").
             Without this, cards where the fetch returns null render shorter

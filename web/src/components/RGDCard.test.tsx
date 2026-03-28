@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import RGDCard from './RGDCard'
+import RGDCard, { buildErrorHint } from './RGDCard'
 import type { K8sObject } from '@/lib/api'
 
 // Prevent real network calls; keep the promise pending so we can inspect
@@ -123,3 +123,90 @@ describe('RGDCard', () => {
     expect(container.querySelector('.health-chip--skeleton')).toBeInTheDocument()
   })
 })
+
+// ── buildErrorHint unit tests (spec 056) ───────────────────────────────────────
+
+describe('buildErrorHint', () => {
+  it('returns empty string when both reason and message are empty', () => {
+    expect(buildErrorHint('', '')).toBe('')
+  })
+
+  it('returns reason alone when message is empty', () => {
+    expect(buildErrorHint('InvalidResourceGraph', '')).toBe('InvalidResourceGraph')
+  })
+
+  it('returns message alone when reason is empty', () => {
+    expect(buildErrorHint('', 'something went wrong')).toBe('something went wrong')
+  })
+
+  it('combines reason and message with colon', () => {
+    expect(buildErrorHint('SomethingFailed', 'details here')).toBe('SomethingFailed: details here')
+  })
+
+  it('truncates combined text at 80 characters', () => {
+    const long = 'a'.repeat(90)
+    const result = buildErrorHint('Reason', long)
+    expect(result).toHaveLength(81) // 80 chars + ellipsis
+    expect(result.endsWith('…')).toBe(true)
+  })
+
+  it('does not truncate text at exactly 80 characters', () => {
+    const reason = 'R'
+    const message = 'a'.repeat(77) // "R: " + 77 = 80 chars total
+    const result = buildErrorHint(reason, message)
+    expect(result).toHaveLength(80)
+    expect(result.endsWith('…')).toBe(false)
+  })
+})
+
+// ── RGDCard error hint rendering tests ─────────────────────────────────────────
+
+describe('RGDCard error hint', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-20T12:00:00Z'))
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  function makeErrorRGD(reason: string, message: string): K8sObject {
+    return {
+      metadata: { name: 'broken', creationTimestamp: '2026-03-15T10:00:00Z' },
+      spec: { schema: { kind: 'BrokenApp' }, resources: [{}] },
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'False', reason, message },
+        ],
+      },
+    }
+  }
+
+  it('shows error hint on error-state card', () => {
+    render(
+      <MemoryRouter>
+        <RGDCard rgd={makeErrorRGD('InvalidResourceGraph', 'references unknown identifiers: [j]')} />
+      </MemoryRouter>
+    )
+    const hint = screen.getByTestId('rgd-card-error-hint')
+    expect(hint).toBeInTheDocument()
+    expect(hint.textContent).toContain('InvalidResourceGraph')
+  })
+
+  it('does not show error hint on ready-state card', () => {
+    render(
+      <MemoryRouter>
+        <RGDCard rgd={makeErrorHint_ready()} />
+      </MemoryRouter>
+    )
+    expect(screen.queryByTestId('rgd-card-error-hint')).not.toBeInTheDocument()
+  })
+})
+
+function makeErrorHint_ready(): K8sObject {
+  return {
+    metadata: { name: 'ok-app', creationTimestamp: '2026-03-15T10:00:00Z' },
+    spec: { schema: { kind: 'OkApp' }, resources: [{}] },
+    status: {
+      conditions: [{ type: 'Ready', status: 'True', reason: 'Ready', message: '' }],
+    },
+  }
+}

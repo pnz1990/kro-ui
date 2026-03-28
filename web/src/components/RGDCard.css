@@ -15,14 +15,27 @@
 
 /* Reserved row for the health chip — always the same height whether the chip
    is a skeleton, "no instances", "3 ready", or null (fetch failed).
-   Without this fixed height the card body collapses when HealthChip returns
-   null, making that card shorter than its neighbours in the same grid row. */
+    Without this fixed height the card body collapses when HealthChip returns
+    null, making that card shorter than its neighbours in the same grid row. */
 .rgd-card__chip-row {
   min-height: 24px;
   display: flex;
   align-items: center;
   margin-bottom: 8px;
 }
+
+/* FR-001 (spec 056): one-line error hint for error-state RGDs.
+   Rendered between the meta row and health chip. */
+.rgd-card__error-hint {
+  margin: 0 0 4px;
+  font-size: 11px;
+  color: var(--color-status-error);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 
 .rgd-card:hover {
   border-color: var(--color-border-focus);
