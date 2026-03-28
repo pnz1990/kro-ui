@@ -112,6 +112,16 @@ func (c *ResponseCache) InvalidatePrefix(prefix string) int {
 	return count
 }
 
+// Flush removes ALL entries from the cache regardless of expiry.
+// Call when the cluster context changes so that stale responses from the
+// previous cluster are not served on the new one.
+// Spec: .specify/specs/057-cache-context-invalidation/spec.md
+func (c *ResponseCache) Flush() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries = make(map[string]*entry)
+}
+
 // Size returns the number of entries currently in the cache (including expired ones).
 func (c *ResponseCache) Size() int {
 	c.mu.RLock()
