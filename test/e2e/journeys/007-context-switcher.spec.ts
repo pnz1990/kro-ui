@@ -201,9 +201,15 @@ test.describe('Journey 007 — Context Switcher', () => {
       .click()
     await expect(page.getByTestId('context-dropdown')).not.toBeVisible()
 
-    // All 5 fixture cards must still be visible — guards against cache partial-clear
+    // After context switch the cache is flushed (spec 057) — the RGD list is
+    // refetched from the API. On throttled E2E clusters this may take >5s.
+    // Use waitForFunction to give up to 30s per card instead of the default 5s.
     for (const name of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
-      await expect(page.getByTestId(`rgd-card-${name}`)).toBeVisible()
+      await page.waitForFunction(
+        (cardTestId: string) => document.querySelector(`[data-testid="${cardTestId}"]`) !== null,
+        `rgd-card-${name}`,
+        { timeout: 30000 }
+      )
     }
   })
 })
