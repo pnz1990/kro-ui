@@ -427,6 +427,126 @@ from the API, or make the value configurable with a documented fallback.
 
 ---
 
+---
+
+## XIV. E2E Journey Standards (NON-NEGOTIABLE)
+
+E2E journeys run against a hermetic kind cluster. They are a required CI check
+that blocks merge. These rules prevent the class of failures discovered in
+PR #310 (lessons from 4 rounds of CI failures on a single PR).
+
+### SPA route detection — NEVER use HTTP status to detect nonexistent routes
+
+kro-ui is a single-page application (React Router). The server returns
+`HTTP 200` for **every** route regardless of whether the resource exists —
+the app shell loads and the React app decides what to render client-side.
+
+**`page.goto()` response status is unreliable for checking whether a Kubernetes
+resource (RGD, instance) exists on the cluster. It always returns 200.**
+
+❌ WRONG — `resp.status() >= 400` never fires on a SPA:
+```typescript
+const resp = await page.goto(`${BASE}/rgds/my-rgd/instances/ns/my-instance`)
+if (!resp || resp.status() >= 400) {
+  test.skip(true, 'fixture not available')  // ← never reached
+}
+// assertions run even when the RGD/instance does not exist → timeout
+```
+
+✓ CORRECT — check the API before navigating the UI:
+```typescript
+const rgdCheck = await page.request.get(`${BASE}/api/v1/rgds/my-rgd`)
+if (!rgdCheck.ok()) {
+  test.skip(true, 'my-rgd not present on this cluster')
+  return
+}
+const instCheck = await page.request.get(
+  `${BASE}/api/v1/instances/ns/my-instance?rgd=my-rgd`,
+)
+if (!instCheck.ok()) {
+  test.skip(true, 'my-instance not present on this cluster')
+  return
+}
+await page.goto(`${BASE}/rgds/my-rgd/instances/ns/my-instance`)
+// now safe to assert on UI
+```
+
+### Cluster-conditional steps: always gate with API check + `return` after skip
+
+Any step requiring a fixture only present on certain clusters (demo cluster,
+`kro-ui-demo` namespace, stress-test RGDs like `crashloop-app`, `never-ready`)
+MUST use `page.request.get()` API checks AND must `return` immediately after
+`test.skip()`. Without `return`, Playwright continues executing the step body
+in some contexts.
+
+The hermetic E2E kind cluster only has fixtures from `test/e2e/fixtures/`.
+Stress-test fixtures (`test/e2e/fixtures/stress-test-*.yaml`) are only on the
+demo cluster (`kind-kro-ui-demo`). The E2E cluster has no `kro-ui-demo` namespace.
+
+### Brace balance — verify after every journey edit
+
+A missing `})` for a `test.describe` block causes a `SyntaxError` that crashes
+the Playwright runner **before any tests run**, failing the entire CI chunk with
+no clear indication of which test failed. Always verify:
+```bash
+python3 -c "
+content = open('journey.spec.ts').read()
+d = 0
+for c in content:
+    if c == '{': d += 1
+    elif c == '}': d -= 1
+print('brace depth:', d)  # MUST be 0
+"
+```
+
+### `locator.or()` with `toBeVisible` — avoid when both elements may coexist
+
+`await expect(locA.or(locB)).toBeVisible()` fails when **both** elements are
+visible simultaneously because Playwright cannot resolve the ambiguity. Use
+`waitForFunction` instead:
+```typescript
+// ❌ Ambiguity error when both btn and result are visible
+await expect(page.getByTestId('btn').or(page.getByTestId('result'))).toBeVisible()
+
+// ✓ Unambiguous — polls the DOM directly
+await page.waitForFunction(() =>
+  document.querySelector('[data-testid="btn"]') !== null ||
+  document.querySelector('[data-testid="result"]') !== null,
+{ timeout: 10000 })
+```
+
+### New journey files MUST be added to a `testMatch` chunk in `playwright.config.ts`
+
+Journey files that don't match any chunk's `testMatch` pattern are **silently
+skipped** by the runner — no error, no warning. This means new E2E tests appear
+to pass while actually never running.
+
+When adding journeys with new number prefixes (e.g. `047-*.spec.ts`), you MUST:
+1. Add or update a chunk in `playwright.config.ts` with a matching regex
+2. Add the new chunk to the `serial` chunk's `dependencies` list
+
+Verify a file is matched: `grep testMatch test/e2e/playwright.config.ts` and
+confirm your file's prefix appears in a pattern.
+
+### Skeleton/loading-state assertions — use `waitForFunction`, not `toHaveCount(0)`
+
+Assertions like `await expect(skeleton).toHaveCount(0, { timeout: 15000 })` are
+fragile on slow CI runners. The skeleton counts as `1` until the async fetch
+resolves, and 15s may not be enough under load. Use `waitForFunction` polling
+the actual resolved content instead:
+```typescript
+// ❌ Fragile — times out on slow runners
+await expect(card.locator('.skeleton')).toHaveCount(0, { timeout: 15000 })
+
+// ✓ Resilient — polls the actual text that proves loading is done
+await page.waitForFunction(() => {
+  const el = document.querySelector('[data-testid="my-data"]')
+  return el !== null && /\d+/.test(el.textContent ?? '')
+}, { timeout: 25000 })
+```
+
+---
+
 ## Governance
 
 This constitution supersedes all other documentation when there is a conflict.
@@ -435,7 +555,11 @@ Amendments:
 2. Bump the version number (MINOR for new principles, PATCH for clarifications)
 3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.4.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+**Version**: 1.5.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-27
 
 **Amendment log**:
-- 1.4.0 (2026-03-22): §XIII Scale requirements updated from 100+ to 5,000+ RGDs for Home page and Catalog; virtualized rendering (spec `024-rgd-list-virtualization`) is now the required strategy.
+- 1.5.0 (2026-03-27): §XIV E2E Journey Standards added — SPA HTTP-200 pitfall,
+  API-first existence checks, brace balance verification, `locator.or()` ambiguity,
+  chunk registration requirement, `waitForFunction` over `toHaveCount(0)`.
+  All lessons from PR #310 (4 rounds of CI failures).
+- 1.4.0 (2026-03-22): §XIII Scale requirements updated from 100+ to 5,000+ RGDs.

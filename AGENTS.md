@@ -98,7 +98,9 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/ux-polish-round2-continued` | — | TerminatingBanner unit tests; CollectionPanel escalation improvements | Merged (PR #294) |
 | `fix/collection-legacy-remove` | — | CollectionPanel legacy kro < 0.8.0 warning removed; allChildrenLabelless dead code cleaned up | Merged (PR #295) |
 | `fix/instances-inactive-rgd` | — | ListInstances returns empty list (not 500) for inactive RGDs; health chip now shows "no instances" | Merged (PR #296) |
-| `fix/e2e-journey-backfill` | — | E2E journeys for PRs #277-#296: 047-ux-improvements, 047b-live-dag-state-map, updates to 028/031/011/002 + playwright chunk-7 | In progress |
+| `fix/e2e-journey-backfill` | — | E2E journeys for PRs #277-#296: 047-ux-improvements, 047b-live-dag-state-map, updates to 028/031/011/002 + playwright chunk-7 | Merged (PR #297) |
+| `fix/e2e-journey-syntax` | — | E2E syntax fixes: missing }), SPA HTTP-200 pitfall, locator.or() ambiguity, skeleton timeout | Merged (PR #310) |
+| `docs/learned-lessons` | — | Constitution §XIV E2E standards; AGENTS anti-patterns +6 E2E rows; pdca-improvements CI failure guide | In progress |
 
 ### Worktrunk (required workflow)
 
@@ -203,6 +205,15 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | Hardcoded `rgba()` / hex in component CSS (e.g. `box-shadow`) | #77 review | Define a named token in `tokens.css` (`--shadow-tooltip`, etc.) and reference via `var()` |
 | Portal tooltip without viewport boundary clamping | #77 review | Measure bounding box with `getBoundingClientRect()` in `useEffect`; flip left/top when tooltip overflows right or bottom edge. Apply to ALL portal tooltip components |
 | Duplicating `nodeTypeLabel` / `tokenClass` across component files | #77 review | Define once in `@/lib/dag.ts` (or appropriate `@/lib/` module) and import — never copy-paste graph helpers |
+| State map keyed by `kind` instead of `kro.run/node-id` label | #278 | Key `buildNodeStateMap` by `kro.run/node-id`; skip children without this label (kube-generated resources) |
+| `IN_PROGRESS` kro state not mapped to reconciling | #278 | Check `status.state === 'IN_PROGRESS'` BEFORE checking conditions in `extractInstanceHealth` and `isReconciling()` |
+| `items:null` in Go API responses | #278 | Init slices with `make([]T, 0)` not `var items []T`; coerce nil to `[]` before responding |
+| External ref DAG nodes showing `not-found` when instance is healthy | #285 | In `buildNodeStateMap` step 3, map `external`/`externalCollection` nodes to `globalState` not `not-found` |
+| Using `page.goto()` HTTP status to detect nonexistent SPA routes in E2E | #310 | SPA always returns 200. Use `page.request.get(apiUrl)` to check if the resource exists before navigating |
+| E2E journey files not assigned to any Playwright chunk | #310 | Every journey file prefix MUST appear in a `testMatch` pattern in `playwright.config.ts`. Files without a match are silently skipped. |
+| Missing `})` closing `test.describe` in E2E journey | #310 | Crashes the Playwright runner before any test runs. Always verify brace depth = 0 after editing journeys |
+| `locator.or().toBeVisible()` when both elements may be visible | #310 | Use `waitForFunction()` polling the DOM; `locator.or()` throws when multiple elements match |
+| `toHaveCount(0, {timeout:15000})` for skeleton removal | #310 | Use `waitForFunction()` polling the resolved text content; more resilient on slow CI runners |
 
 ### Upstream kro node types (5 real types, from `pkg/graph/node.go`)
 
@@ -400,8 +411,9 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
- ## Recent Changes
-- v0.4.12 (cutting): ListInstances returns empty list (not 500) for Inactive RGDs; health chip now shows "no instances" (PR #296)
+## Recent Changes
+- v0.4.13 (in progress): constitution §XIV E2E journey standards (SPA HTTP-200, brace balance, chunk registration, locator.or); AGENTS anti-patterns +6 E2E rows; pdca-improvements.md CI failure guide updated
+- v0.4.12: ListInstances returns empty list (not 500) for Inactive RGDs; health chip now shows "no instances" (PR #296)
 - v0.4.11: TerminatingBanner unit tests (PR #294); CollectionPanel legacy kro < 0.8.0 warning removed (PR #295)
 - v0.4.10: instance spec diff (PR #293); GenerateTab map/object fields {} fix (PR #292)
 - v0.4.9: YAML tab strips managedFields, last-applied-configuration, resourceVersion, uid (PR #291)
