@@ -21,6 +21,7 @@ import SearchBar from '@/components/SearchBar'
 import SkeletonCard from '@/components/SkeletonCard'
 import VirtualGrid from '@/components/VirtualGrid'
 import OverviewHealthBar from '@/components/OverviewHealthBar'
+import type { HealthFilterState } from '@/components/OverviewHealthBar'
 import './Home.css'
 
 // RGDCard renders at a fixed ~130px height (header + meta + actions, no-wrap text).
@@ -33,6 +34,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebounce(query, 300)
+
+  // Health filter — set by clicking OverviewHealthBar chips (spec 060-health-filter).
+  // When set, the card grid shows only RGDs with instances in that health state.
+  const [healthFilter, setHealthFilter] = useState<HealthFilterState | null>(null)
 
   // FR-007: Map from rgdName → terminating instance count.
   // Fetched in the background after the RGD list loads; absent = not yet fetched.
@@ -101,10 +106,23 @@ export default function Home() {
 
   // Client-side filter — reuses matchesSearch from catalog lib (no reimplementation).
   // Runs only after the debounce fires, not on every keystroke.
-  const filteredItems = useMemo(
-    () => items.filter((rgd) => matchesSearch(rgd, debouncedQuery)),
-    [items, debouncedQuery],
-  )
+  // Also applies the healthFilter when a chip is active.
+  const filteredItems = useMemo(() => {
+    let result = items.filter((rgd) => matchesSearch(rgd, debouncedQuery))
+
+    // Health filter (spec 060): show only RGDs with instances in the selected state.
+    if (healthFilter !== null) {
+      result = result.filter((rgd) => {
+        const name = extractRGDName(rgd)
+        const summary = healthSummaries.get(name)
+        if (!summary) return false // not yet loaded — hide until resolved
+        if (healthFilter === 'noInstances') return summary.total === 0
+        return (summary[healthFilter as keyof typeof summary] as number) > 0
+      })
+    }
+
+    return result
+  }, [items, debouncedQuery, healthFilter, healthSummaries])
 
   const emptyState =
     debouncedQuery.trim() !== '' ? (
@@ -176,6 +194,17 @@ export default function Home() {
             {!isLoading && items.length > 0 && (
               <span className="home__count">
                 {filteredItems.length} of {items.length}
+                {healthFilter !== null && (
+                  <button
+                    type="button"
+                    className="home__clear-filter"
+                    onClick={() => setHealthFilter(null)}
+                    title="Clear health filter"
+                    data-testid="clear-health-filter"
+                  >
+                    ×
+                  </button>
+                )}
               </span>
             )}
           </div>
@@ -200,7 +229,12 @@ export default function Home() {
       )}
 
       {!isLoading && error === null && healthSummaries.size > 0 && (
-        <OverviewHealthBar summaries={healthSummaries} totalRGDs={items.length} />
+        <OverviewHealthBar
+          summaries={healthSummaries}
+          totalRGDs={items.length}
+          activeFilter={healthFilter}
+          onFilter={(state) => { setHealthFilter(state); }}
+        />
       )}
 
       {!isLoading && error === null && (
