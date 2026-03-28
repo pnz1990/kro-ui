@@ -85,8 +85,22 @@ export default function FieldTable({ fields, variant }: FieldTableProps) {
   }
 
   // variant === 'spec'
+  const requiredFields = fields.filter(
+    (f) => f.parsedType?.required === true || !('default' in (f.parsedType ?? {})),
+  )
   return (
     <div className="field-table" data-testid="field-table">
+      {/* Required fields summary banner — only shown when ≥1 required field exists
+          and there are multiple fields total (trivial schemas don't need this). */}
+      {requiredFields.length > 0 && fields.length > 1 && (
+        <div className="field-table__required-summary" data-testid="field-table-required-summary">
+          <span className="field-table__required-dot field-table__required-dot--required" aria-hidden="true" />
+          {requiredFields.length === 1
+            ? `1 required field: ${requiredFields[0].name}`
+            : `${requiredFields.length} required fields: ${requiredFields.map((f) => f.name).join(', ')}`}
+          {' '}— must be provided when creating an instance.
+        </div>
+      )}
       <table className="field-table__table">
         <thead>
           <tr>
@@ -97,7 +111,15 @@ export default function FieldTable({ fields, variant }: FieldTableProps) {
           </tr>
         </thead>
         <tbody>
-          {fields.map((field) => {
+          {/* Sort required fields first so users immediately see what they must fill in.
+              This is particularly important for RGDs with many spec fields (e.g. 15+). */}
+          {[...fields].sort((a, b) => {
+            const aRequired = a.parsedType?.required === true || !('default' in (a.parsedType ?? {}))
+            const bRequired = b.parsedType?.required === true || !('default' in (b.parsedType ?? {}))
+            if (aRequired && !bRequired) return -1
+            if (!aRequired && bRequired) return 1
+            return 0
+          }).map((field) => {
             // Use key existence (not `!== undefined`) so that falsy defaults like
             // default=0, default=false, default="" are correctly detected as present.
             // See: https://github.com/pnz1990/kro-ui/issues/61

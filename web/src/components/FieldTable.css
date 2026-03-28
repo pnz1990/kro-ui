@@ -109,6 +109,20 @@
   color: var(--color-text-faint);
 }
 
+/* Required fields summary banner at top of spec field table */
+.field-table__required-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
 /* ── Default value ───────────────────────────────────────────────────── */
 
 .field-table__default-cell {

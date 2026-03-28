@@ -514,6 +514,30 @@ export default function RGDDetail() {
             {rgdLastFetched && (
               <div className="rgd-graph-refresh-hint" aria-live="polite">
                 refreshed {formatAgo(rgdLastFetched)}
+                {/* Resource kind breakdown — shows complexity at a glance when ≥2 resources */}
+                {rgd && (() => {
+                  const resources = (rgd.spec as Record<string, unknown>)?.resources
+                  if (!Array.isArray(resources) || resources.length < 2) return null
+                  const kindCounts = new Map<string, number>()
+                  for (const r of resources) {
+                    const rObj = r as Record<string, unknown>
+                    const tmpl = rObj?.template as Record<string, unknown> | undefined
+                    const kind = tmpl?.kind as string | undefined
+                    if (kind) kindCounts.set(kind, (kindCounts.get(kind) ?? 0) + 1)
+                  }
+                  const parts: string[] = []
+                  kindCounts.forEach((count, kind) => {
+                    parts.push(count > 1 ? `${count}×${kind}` : kind)
+                  })
+                  return (
+                    <span
+                      className="rgd-graph-complexity-hint"
+                      title={`${resources.length} resource${resources.length === 1 ? '' : 's'}: ${parts.join(', ')}`}
+                    >
+                      · {resources.length} resources ({parts.join(', ')})
+                    </span>
+                  )
+                })()}
               </div>
             )}
             <div
