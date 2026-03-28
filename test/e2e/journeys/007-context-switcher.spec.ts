@@ -241,14 +241,4 @@ test.describe('Journey 007 — Context Switcher', () => {
       { timeout: 45000 }
     )
   })
-
-    // After context switch the cache is flushed (spec 057) — the RGD list is
-    // refetched from the API. On throttled E2E clusters this may take >5s.
-    // Wait for ALL 5 fixture cards at once (not serially) to stay within budget.
-    await page.waitForFunction(
-      (names: string[]) => names.every((n) => document.querySelector(`[data-testid="rgd-card-${n}"]`) !== null),
-      ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions'],
-      { timeout: 45000 }
-    )
-  })
 })
