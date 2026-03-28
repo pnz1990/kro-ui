@@ -102,7 +102,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/e2e-journey-syntax` | — | E2E syntax fixes: missing }), SPA HTTP-200 pitfall, locator.or() ambiguity, skeleton timeout | Merged (PR #310) |
 | `docs/learned-lessons` | — | Constitution §XIV E2E standards; AGENTS anti-patterns +6 E2E rows; pdca-improvements CI failure guide | Merged (PR #311) |
 | `fix/e2e-journey-syntax-fix2` | — | fixture-state.ts: lazy Proxy read per access (fixes fixture-state race causing 043 journeys to skip) | Merged (PR #312) |
-| `fix/ux-polish-round2-continued` | #274 | omit() designer help text; collection limit badge (900/1000 warning); condition-transition event visual category | In progress |
+| `fix/ux-polish-round2-continued` | #274 | omit() designer help text; collection limit badge (900/1000 warning); condition-transition event visual category | Merged (PR #313) |
 
 ### Worktrunk (required workflow)
 
@@ -414,7 +414,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
 ## Recent Changes
-- v0.4.13 (in progress): constitution §XIV E2E journey standards (SPA HTTP-200, brace balance, chunk registration, locator.or); AGENTS anti-patterns +6 E2E rows; pdca-improvements.md CI failure guide updated
+- v0.4.13 (cutting): omit() designer help; collection limit badge 900/1000 (PR #313); condition-transition events (PR #313); fixture-state path fix 043 journeys (PR #312); constitution §XIV E2E standards (PR #311); E2E journey backfill 20 PRs (PR #297)
 - v0.4.12: ListInstances returns empty list (not 500) for Inactive RGDs; health chip now shows "no instances" (PR #296)
 - v0.4.11: TerminatingBanner unit tests (PR #294); CollectionPanel legacy kro < 0.8.0 warning removed (PR #295)
 - v0.4.10: instance spec diff (PR #293); GenerateTab map/object fields {} fix (PR #292)
