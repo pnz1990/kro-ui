@@ -109,6 +109,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/ux-polish-round2-continued` | #303 #299 #298 #308 #309 | ValidateRGD PATCH→static; Fleet degraded color; ContextSwitcher subtitle; require.Nil; AGENTS/constitution docs | Merged (PR #316) |
 | `fix/e2e-journey-syntax-fix2` | — | #301 errors.New sentinels; #300 handler timeout comment; #302 README features; #304 #305 #306 component tests | Merged (PR #317) |
 | `051-instance-diff` | #276 #13 | F-8 snooze error DAG nodes; GraphRevision side-by-side YAML diff foundation (spec 009) | Merged (PR #318) |
+| `fix/ux-polish-round2` | — | DocsTab required fields sorted first + summary banner; Graph tab resource complexity hint; advanced stress-test fixtures | In progress |
 
 ### Worktrunk (required workflow)
 

@@ -144,6 +144,14 @@
   text-align: right;
 }
 
+/* Inline resource complexity breakdown (e.g. "· 5 resources (2×Deployment, 2×HPA, ConfigMap)") */
+.rgd-graph-complexity-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
 .rgd-graph-area {
   flex: 1;
   overflow: auto;
