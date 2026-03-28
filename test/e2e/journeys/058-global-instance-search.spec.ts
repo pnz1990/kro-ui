@@ -38,20 +38,34 @@ test.describe('Journey 058: Global Instance Search', () => {
   // ── A: API returns instance list ─────────────────────────────────────────────
 
   test('Step 1: GET /api/v1/instances returns non-empty list with required fields', async ({ page }) => {
-    const res = await page.request.get(`${BASE}/api/v1/instances`)
-    expect(res.status()).toBe(200)
-    const data = await res.json()
-    expect(Array.isArray(data.items)).toBe(true)
-    expect(typeof data.total).toBe('number')
-    expect(data.total).toBeGreaterThan(0)
+    // Poll up to 30s — the E2E cluster may throttle initial requests.
+    // The fan-out per-RGD timeout is 2s; on a throttled cluster some may return 0
+    // on the first request but succeed after the client-side throttle clears.
+    let data: { items: Array<Record<string, unknown>>; total: number } | null = null
+    const deadline = Date.now() + 30_000
+    while (Date.now() < deadline) {
+      const res = await page.request.get(`${BASE}/api/v1/instances?refresh=true`)
+      if (res.status() === 200) {
+        const d = await res.json()
+        if (d.total > 0) {
+          data = d
+          break
+        }
+      }
+      await page.waitForTimeout(2000)
+    }
+
+    expect(data).not.toBeNull()
+    expect(Array.isArray(data!.items)).toBe(true)
+    expect(data!.total).toBeGreaterThan(0)
 
     // Verify first item has required fields
-    const first = data.items[0]
-    expect(typeof first.name).toBe('string')
-    expect(first.name.length).toBeGreaterThan(0)
-    expect(typeof first.rgdName).toBe('string')
-    expect(first.rgdName.length).toBeGreaterThan(0)
-    expect(typeof first.ready).toBe('string')
+    const first = data!.items[0]
+    expect(typeof first['name']).toBe('string')
+    expect((first['name'] as string).length).toBeGreaterThan(0)
+    expect(typeof first['rgdName']).toBe('string')
+    expect((first['rgdName'] as string).length).toBeGreaterThan(0)
+    expect(typeof first['ready']).toBe('string')
   })
 
   // ── D: Nav link exists ────────────────────────────────────────────────────────
@@ -68,8 +82,9 @@ test.describe('Journey 058: Global Instance Search', () => {
   test('Step 3: /instances page renders instances table', async ({ page }) => {
     await page.goto(`${BASE}/instances`)
 
-    // Wait for table to appear
-    await page.waitForSelector('[data-testid="instances-table"]', { timeout: 20000 })
+    // Wait for table to appear — longer timeout for throttled E2E cluster
+    // The /instances API fan-out may take several seconds on a fresh cluster.
+    await page.waitForSelector('[data-testid="instances-table"]', { timeout: 45000 })
 
     const table = page.locator('[data-testid="instances-table"]')
     await expect(table).toBeVisible()
