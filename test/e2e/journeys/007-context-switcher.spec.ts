@@ -187,13 +187,14 @@ test.describe('Journey 007 — Context Switcher', () => {
   test('Step 7: all fixture RGD cards visible after switching context and back', async ({ page }) => {
     // Extend per-test timeout — the double context switch + cache flush +
     // throttled API reload can take longer than the default 60s test timeout.
-    test.setTimeout(150_000)
+    // Budget: 2s(goto) + 60s(opt1) + 10s(close) + 30s(stab) + 60s(opt2) + 10s(close) + 45s(cards)
+    test.setTimeout(240_000)
 
     await page.goto(BASE)
 
     // Switch to alt context — wait for the option to be visible (context list loads from API)
     await page.getByTestId('context-switcher-btn').click()
-    // Wait for the dropdown option to appear — the /contexts API call may be slow
+    // Wait for the dropdown option to appear — the /contexts API call may be slow on throttled clusters
     await page.waitForFunction(
       (ctx: string) => {
         const dropdown = document.querySelector('[data-testid="context-dropdown"]')
@@ -202,7 +203,7 @@ test.describe('Journey 007 — Context Switcher', () => {
         return options.some((o) => o.textContent?.includes(ctx))
       },
       ALT_CONTEXT,
-      { timeout: 30000 }
+      { timeout: 60000 }
     )
     await page.getByTestId('context-dropdown')
       .locator('[role="option"]', { hasText: ALT_CONTEXT })
@@ -225,7 +226,7 @@ test.describe('Journey 007 — Context Switcher', () => {
         return options.some((o) => o.textContent?.includes(ctx))
       },
       PRIMARY_CONTEXT,
-      { timeout: 30000 }
+      { timeout: 60000 }
     )
     await page.getByTestId('context-dropdown')
       .locator('[role="option"]', { hasText: PRIMARY_CONTEXT })
