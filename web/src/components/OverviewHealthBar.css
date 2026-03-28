@@ -1,0 +1,59 @@
+/* OverviewHealthBar — aggregate instance health summary for Overview page.
+ * Spec: .specify/specs/055-overview-health-summary/spec.md
+ */
+
+.overview-health-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 12px;
+}
+
+/* ── Chips ─────────────────────────────────────────────────────────────────── */
+
+.overview-health-bar__chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.overview-health-bar__chip--ready {
+  color: var(--color-alive);
+  border-color: var(--color-alive);
+}
+
+.overview-health-bar__chip--reconciling {
+  color: var(--color-reconciling);
+  border-color: var(--color-reconciling);
+}
+
+.overview-health-bar__chip--degraded {
+  color: var(--color-status-degraded);
+  border-color: var(--color-status-degraded);
+}
+
+.overview-health-bar__chip--error {
+  color: var(--color-status-error);
+  border-color: var(--color-status-error);
+}
+
+.overview-health-bar__chip--pending {
+  color: var(--color-status-pending);
+  border-color: var(--color-status-pending);
+}
+
+.overview-health-bar__chip--empty {
+  color: var(--color-text-faint);
+  border-color: var(--color-border-subtle);
+}
+
+/* ── Partial load indicator ────────────────────────────────────────────────── */
+
+.overview-health-bar__loading {
+  font-size: 11px;
+  color: var(--color-text-faint);
+}

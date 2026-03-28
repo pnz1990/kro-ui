@@ -130,10 +130,10 @@ export default defineConfig({
       fullyParallel: true,
     },
     {
-      // chunk-8 covers journeys added in specs 051–054
-      // (instance diff, response cache, multi-version kro support, ux-gaps-round3)
+      // chunk-8 covers journeys added in specs 051–055
+      // (instance diff, response cache, multi-version kro, ux-gaps-round3, overview-health-summary)
       name: 'chunk-8',
-      testMatch: /(051|052|053|054)-.*\.spec\.ts/,
+      testMatch: /(051|052|053|054|055)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
