@@ -12,6 +12,17 @@
   flex-shrink: 0;
 }
 
+.footer__left {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer__version {
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
 .footer__links {
   display: flex;
   align-items: center;
