@@ -58,11 +58,11 @@ describe('extractInstanceAge', () => {
     expect(extractInstanceAge(instance)).toBe('Not reported')
   })
 
-  it('returns "0s" for a future timestamp (clock skew)', () => {
+  it('returns "just now" for a future timestamp (clock skew)', () => {
     const instance = {
       metadata: { creationTimestamp: '2026-03-23T13:00:00Z' },
     }
-    expect(extractInstanceAge(instance)).toBe('0s')
+    expect(extractInstanceAge(instance)).toBe('just now')
   })
 
   it('returns days format for old instances', () => {

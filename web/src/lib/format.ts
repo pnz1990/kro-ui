@@ -220,8 +220,11 @@ export function formatAge(isoTimestamp: string): string {
 
   const elapsedMs = Date.now() - parsed
 
-  // Future timestamp or clock skew — show 0s, don't show negative
-  if (elapsedMs < 0) return '0s'
+  // Future timestamp or clock skew — treat as "just now"
+  if (elapsedMs < 0) return 'just now'
+
+  // < 5s: human-friendly "just now" rather than jarring "0s" or "1s"
+  if (elapsedMs < 5 * SECOND) return 'just now'
 
   if (elapsedMs < MINUTE) {
     const s = Math.floor(elapsedMs / SECOND)

@@ -155,6 +155,51 @@
   padding: 4px 0;
 }
 
+/* ── Name filter (spec 054-ux-gaps FR-003) ─────────────────────────────── */
+
+.instance-filter-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.instance-filter-search__input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  width: 180px;
+  outline: none;
+}
+
+.instance-filter-search__input:focus {
+  border-color: var(--color-text-muted);
+}
+
+.instance-filter-search__count {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.instance-filter-search__clear {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.instance-filter-search__clear:hover {
+  color: var(--color-text);
+}
+
 .instance-filter-terminating {
   display: inline-flex;
   align-items: center;

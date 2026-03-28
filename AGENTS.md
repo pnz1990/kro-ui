@@ -421,9 +421,10 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - All state is local React `useState`; no persistence layer; no state management libraries
 - 6-state `InstanceHealthState` (ready/degraded/reconciling/error/pending/unknown); state map keyed by `kro.run/node-id` label (not by kind)
 - kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
-- Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
+- Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
 ## Recent Changes
+- v0.5.2: multi-version kro support — IsSupported, CompareKroVersions, version warning banner (PR #322)
 - v0.5.1 (cutting): Fleet matrix all-kinds-degraded bug fixed (PR #320); kro version in fleet cluster cards (PR #320); kro-ui version in footer (PR #320); DocsTab required fields sorted first (PR #319); Graph tab complexity hint (PR #319); response cache 30s/10s/5min TTLs (PR #321)
 - v0.5.0: ALL GH issues resolved — snooze error DAG nodes (GH #276 F-8, PR #318); GraphRevision side-by-side YAML diff foundation (GH #13, PR #318); v0.4.15 fixes (GH #303 #299 #298 #308 #301 #300 #302 #304 #305 #306 #309 #315)
 - v0.4.15: ValidateRGD PATCH→offline static (GH #303); Fleet degraded color fix (GH #299); ContextSwitcher subtitle fix (GH #298); require.Nil in tests (GH #308); errors.New sentinels (GH #301); handler timeout docs (GH #300); README features updated (GH #302); FinalizersPanel/DAGTooltip/CopySpecButton component tests (GH #305 #304 #306); constitution §II path fix + AGENTS node-type docs (GH #309); CI fix 005 Step 10 (PR #315)
