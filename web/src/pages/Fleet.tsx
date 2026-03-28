@@ -177,14 +177,20 @@ export default function Fleet() {
   // Deduplicate aliases before rendering (issue #62)
   const deduped = deduplicateClusters(clusters)
 
-  // Build rgdsByContext map for the FleetMatrix (FR-005).
+   // Build rgdsByContext map for the FleetMatrix (FR-005).
+   // IMPORTANT: Each RGD kind gets 'healthy' (present) status regardless of the
+   // cluster-level health. The cluster-level health badge already shows "3 degraded"
+   // at the top of the cluster card. Propagating that cluster-level state to ALL
+   // individual RGD kind cells was wrong — it made every kind appear degraded even
+   // when only 3 out of 88 instances had issues. The matrix is about PRESENCE, not
+   // individual instance health. (GH #299 variant — Fleet matrix degraded dot fix)
   const rgdsByContext: Record<string, Array<{ kind: string; health: 'healthy' | 'degraded' }>> =
     {}
   for (const c of deduped) {
     if (c.rgdKinds && c.rgdKinds.length > 0) {
       rgdsByContext[c.context] = c.rgdKinds.map((kind) => ({
         kind,
-        health: c.health === 'degraded' ? 'degraded' : 'healthy',
+        health: 'healthy',
       }))
     }
   }

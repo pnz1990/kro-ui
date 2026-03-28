@@ -202,6 +202,15 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	} else {
 		summary.Health = types.ClusterHealthy
 	}
+
+	// Populate kro version from the capabilities endpoint for this context.
+	// The capabilities handler already discovers this via the kro controller image;
+	// reuse the same code path here by calling the k8s capabilities function directly.
+	// On error (e.g. kro not installed, unreachable) we leave KroVersion empty —
+	// the UI will show "Unknown" gracefully.
+	if caps := k8sclient.DetectCapabilities(parent, clients.Dynamic(), clients.Discovery()); caps != nil && caps.Version != "" {
+		summary.KroVersion = caps.Version
+	}
 	return summary
 }
 
