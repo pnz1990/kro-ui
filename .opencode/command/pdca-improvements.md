@@ -433,6 +433,10 @@ Common CI failure patterns and fixes:
 - Test failure → fix the code or the test, don't delete the test
 - `items:null` in Go handler → init slice with `make([]T, 0)`
 - Hardcoded rgba/hex in CSS → move to `tokens.css` as a named token
+- **E2E `SyntaxError: Unexpected token` at line N** → missing `})` closing a `test.describe` block. Verify all `.spec.ts` files have brace depth = 0. Crashes the entire runner before any test runs.
+- **E2E test navigates to nonexistent SPA route then times out** → `page.goto()` always returns HTTP 200 on a SPA. Use `page.request.get(apiUrl)` to check if the resource exists, then `test.skip()` + `return` if not OK, then `page.goto()` to navigate. See constitution §XIV.
+- **E2E `locator.or().toBeVisible()` throws "strict mode violation"** → both elements in the `.or()` are visible simultaneously. Replace with `page.waitForFunction(() => document.querySelector(...) !== null || ...)`.
+- **E2E journey file silently skipped** → the file's number prefix (e.g. `047-`) doesn't match any `testMatch` in `playwright.config.ts`. Add a new chunk or extend an existing one.
 
 ### A-5. Merge
 
