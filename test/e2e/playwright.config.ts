@@ -32,6 +32,8 @@ const BASE_URL = `http://localhost:${PORT}`
 //   chunk-4:  017–025   validation, rbac, events, schema-doc, cardinality, metrics, advisor, chain
 //   chunk-5:  027–040   telemetry, health, overlay, errors, deletion, rbac-sa, onboarding …
 //   chunk-6:  043-*     upstream fixture journeys (new in spec 043)
+//   chunk-7:  041,045-047  UX audit, designer, kro v0.9.0, ux-improvements, state-map
+//   chunk-8:  051-053   instance diff, response cache, multi-version kro
 //   serial:   007       context-switcher — runs after all chunks complete
 //
 // Each chunk runs with workers: 4 (parallel files); the serial project uses workers: 1.
@@ -127,6 +129,15 @@ export default defineConfig({
       workers: 4,
       fullyParallel: true,
     },
+    {
+      // chunk-8 covers journeys added in specs 051, 052, 053
+      // (instance diff, response cache, multi-version kro support)
+      name: 'chunk-8',
+      testMatch: /(051|052|053)-.*\.spec\.ts/,
+      ...PARALLEL_OPTS,
+      workers: 4,
+      fullyParallel: true,
+    },
 
     // ── Serial: context-switcher (depends on all parallel chunks) ─────────
     // Journey 007 calls POST /api/v1/contexts/switch — global server state.
@@ -134,7 +145,7 @@ export default defineConfig({
     {
       name: 'serial',
       testMatch: /007-.*\.spec\.ts/,
-      dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6', 'chunk-7'],
+      dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6', 'chunk-7', 'chunk-8'],
       ...PARALLEL_OPTS,
       workers: 1,
       fullyParallel: false,

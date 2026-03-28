@@ -601,3 +601,61 @@ func TestParseFeatureGateString(t *testing.T) {
 		})
 	}
 }
+
+// ── Version comparison tests (spec 053-multi-version-kro) ────────────────────
+
+func TestCompareKroVersions(t *testing.T) {
+	tests := []struct {
+		name   string
+		a, b   string
+		expect int
+	}{
+		{"equal versions", "v0.8.5", "v0.8.5", 0},
+		{"equal without v prefix", "0.8.5", "0.8.5", 0},
+		{"v0.9.0 > v0.8.5", "v0.9.0", "v0.8.5", 1},
+		{"v0.8.5 < v0.9.0", "v0.8.5", "v0.9.0", -1},
+		{"v1.0.0 > v0.9.9", "v1.0.0", "v0.9.9", 1},
+		{"pre-release stripped", "v0.9.0-rc.1", "v0.9.0", 0},
+		{"empty is v0.0.0", "", "v0.8.0", -1},
+		{"patch difference", "v0.8.6", "v0.8.5", 1},
+		{"minor difference", "v0.9.0", "v0.8.99", 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CompareKroVersions(tt.a, tt.b)
+			assert.Equal(t, tt.expect, got)
+		})
+	}
+}
+
+func TestIsKroVersionSupported(t *testing.T) {
+	tests := []struct {
+		version string
+		want    bool
+	}{
+		{"v0.8.0", true},   // exactly the minimum
+		{"v0.8.5", true},   // above minimum
+		{"v0.9.0", true},   // well above minimum
+		{"v1.0.0", true},   // major version bump
+		{"v0.7.9", false},  // just below minimum
+		{"v0.7.0", false},  // below minimum
+		{"v0.1.0", false},  // very old
+		{"", false},        // empty
+		{"unknown", false}, // literal "unknown" string
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			assert.Equal(t, tt.want, IsKroVersionSupported(tt.version))
+		})
+	}
+}
+
+func TestBaselineIsSupported(t *testing.T) {
+	// Baseline sets IsSupported=true by default (assumes a recent kro)
+	assert.True(t, Baseline().IsSupported)
+}
+
+func TestMinSupportedVersion(t *testing.T) {
+	// Validate the constant itself is a valid version string
+	assert.True(t, IsKroVersionSupported(MinSupportedKroVersion), "MinSupportedKroVersion must be >= itself")
+}

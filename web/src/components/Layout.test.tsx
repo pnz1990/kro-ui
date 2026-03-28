@@ -8,6 +8,10 @@ import Layout from './Layout'
 vi.mock('@/lib/api', () => ({
   listContexts: vi.fn(),
   getVersion: vi.fn().mockResolvedValue({ version: 'v0.5.0-test', commit: 'abc', buildDate: '2026' }),
+  getCapabilities: vi.fn().mockResolvedValue({
+    version: 'v0.8.5', apiVersion: 'kro.run/v1alpha1',
+    featureGates: {}, knownResources: [], schema: {}, isSupported: true,
+  }),
 }))
 
 // Mock ContextSwitcher so Layout tests stay focused on wiring logic
