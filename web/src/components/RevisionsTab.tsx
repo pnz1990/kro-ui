@@ -1,0 +1,218 @@
+// Copyright 2026 The Kubernetes Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// RevisionsTab.tsx — Lists GraphRevision history for an RGD (kro v0.9.0+).
+//
+// GraphRevisions are immutable snapshots of an RGD spec. Every spec change
+// creates a new revision. This tab shows the revision history with status,
+// age, and compilation result.
+//
+// Spec ref: .specify/specs/046-kro-v090-upgrade/ (Phase 4 — Graph Revisions tab)
+// GH #274: kro v0.9.0 upgrade — Graph Revisions tab
+
+import { useState, useEffect, useCallback } from 'react'
+import { listGraphRevisions } from '@/lib/api'
+import type { K8sObject } from '@/lib/api'
+import { formatAge, extractCreationTimestamp } from '@/lib/format'
+import { toYaml, cleanK8sObject } from '@/lib/yaml'
+import KroCodeBlock from './KroCodeBlock'
+import './RevisionsTab.css'
+
+interface RevisionsTabProps {
+  rgdName: string
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function revisionNumber(rev: K8sObject): number {
+  const spec = rev.spec as Record<string, unknown> | undefined
+  return typeof spec?.revision === 'number' ? spec.revision : 0
+}
+
+/** Extract the compiled state from a GraphRevision status. */
+function revisionState(rev: K8sObject): 'compiled' | 'failed' | 'unknown' {
+  const status = rev.status as Record<string, unknown> | undefined
+  if (!status) return 'unknown'
+  const state = status.state
+  if (typeof state === 'string') {
+    const lower = state.toLowerCase()
+    if (lower.includes('fail') || lower.includes('invalid') || lower.includes('error')) return 'failed'
+    if (lower.includes('compil') || lower.includes('success') || lower.includes('active')) return 'compiled'
+  }
+  // Check conditions: ResourceGraphAccepted=True → compiled
+  const conditions = status.conditions
+  if (Array.isArray(conditions)) {
+    for (const c of conditions as Array<Record<string, unknown>>) {
+      if (c.type === 'ResourceGraphAccepted') {
+        return c.status === 'True' ? 'compiled' : 'failed'
+      }
+    }
+  }
+  return 'unknown'
+}
+
+/** Get the compilation error message if the revision failed. */
+function revisionError(rev: K8sObject): string {
+  const status = rev.status as Record<string, unknown> | undefined
+  if (!status) return ''
+  const conditions = status.conditions
+  if (!Array.isArray(conditions)) return ''
+  for (const c of conditions as Array<Record<string, unknown>>) {
+    if (c.type === 'ResourceGraphAccepted' && c.status === 'False') {
+      return typeof c.message === 'string' ? c.message : ''
+    }
+  }
+  return ''
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+/**
+ * RevisionsTab — shows the GraphRevision history for an RGD.
+ *
+ * Displays a table with: revision number, compiled status badge, age, error
+ * message (when failed). Clicking a row expands the compiled graph YAML.
+ *
+ * Shows an empty state when no revisions exist (pre-v0.9.0 clusters or newly
+ * created RGDs that haven't been reconciled yet).
+ *
+ * GH #274 Phase 4.
+ */
+export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
+  const [revisions, setRevisions] = useState<K8sObject[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const fetchRevisions = useCallback(() => {
+    if (!rgdName) return
+    setLoading(true)
+    setError(null)
+    listGraphRevisions(rgdName)
+      .then((list) => {
+        const items = (list.items ?? []) as K8sObject[]
+        // Sort descending by revision number (latest first)
+        items.sort((a, b) => revisionNumber(b) - revisionNumber(a))
+        setRevisions(items)
+      })
+      .catch((err: Error) => {
+        setError(err.message)
+      })
+      .finally(() => setLoading(false))
+  }, [rgdName])
+
+  useEffect(() => {
+    fetchRevisions()
+  }, [fetchRevisions])
+
+  if (loading) {
+    return (
+      <div className="revisions-tab revisions-tab--loading" data-testid="revisions-tab">
+        <div className="revisions-tab__skeleton" aria-label="Loading revisions…" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="revisions-tab revisions-tab--error" data-testid="revisions-tab">
+        <p className="revisions-tab__error-msg">
+          Could not load revisions.{' '}
+          <button type="button" className="revisions-tab__retry" onClick={fetchRevisions}>
+            Retry
+          </button>
+        </p>
+      </div>
+    )
+  }
+
+  if (!revisions || revisions.length === 0) {
+    return (
+      <div className="revisions-tab revisions-tab--empty" data-testid="revisions-tab">
+        <p className="revisions-tab__empty-msg">
+          No revisions found. GraphRevisions are created by kro v0.9.0+ each
+          time this RGD's spec is updated. Apply a spec change to generate the
+          first revision.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="revisions-tab" data-testid="revisions-tab">
+      <table className="revisions-table" data-testid="revisions-table">
+        <thead>
+          <tr>
+            <th className="revisions-table__th">Revision</th>
+            <th className="revisions-table__th">Status</th>
+            <th className="revisions-table__th">Age</th>
+            <th className="revisions-table__th revisions-table__th--msg">Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          {revisions.map((rev) => {
+            const meta = rev.metadata as Record<string, unknown>
+            const name = typeof meta?.name === 'string' ? meta.name : '?'
+            const state = revisionState(rev)
+            const errMsg = revisionError(rev)
+            const createdAt = extractCreationTimestamp(rev)
+            const age = createdAt ? formatAge(createdAt) : '—'
+            const revNum = revisionNumber(rev)
+            const isExpanded = expanded === name
+
+            return (
+              <>
+                <tr
+                  key={name}
+                  className={`revisions-table__row revisions-table__row--${state}${isExpanded ? ' revisions-table__row--expanded' : ''}`}
+                  data-testid={`revision-row-${name}`}
+                  onClick={() => setExpanded(isExpanded ? null : name)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td className="revisions-table__td revisions-table__td--rev">
+                    <span className="revisions-table__rev-num">#{revNum}</span>
+                    <span className="revisions-table__rev-name" title={name}>{name}</span>
+                  </td>
+                  <td className="revisions-table__td">
+                    <span className={`revisions-table__badge revisions-table__badge--${state}`}>
+                      {state === 'compiled' ? 'Compiled' : state === 'failed' ? 'Failed' : 'Unknown'}
+                    </span>
+                  </td>
+                  <td className="revisions-table__td">{age}</td>
+                  <td className="revisions-table__td revisions-table__td--msg">
+                    {errMsg && (
+                      <span className="revisions-table__error-text" title={errMsg}>
+                        {errMsg.length > 80 ? errMsg.slice(0, 77) + '…' : errMsg}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+                {isExpanded && (
+                  <tr key={`${name}-detail`} className="revisions-table__detail-row">
+                    <td colSpan={4} className="revisions-table__detail-cell">
+                      <KroCodeBlock
+                        code={toYaml(cleanK8sObject(rev))}
+                        title={`Revision ${name}`}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}

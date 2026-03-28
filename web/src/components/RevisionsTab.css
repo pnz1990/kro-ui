@@ -1,0 +1,161 @@
+/* RevisionsTab.css — GraphRevision history tab styles.
+ * All colors from tokens.css — no hardcoded hex.
+ * GH #274 Phase 4.
+ */
+
+.revisions-tab {
+  padding: 0;
+}
+
+.revisions-tab--loading,
+.revisions-tab--empty,
+.revisions-tab--error {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.revisions-tab__skeleton {
+  height: 120px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.revisions-tab__empty-msg,
+.revisions-tab__error-msg {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.revisions-tab__retry {
+  background: none;
+  border: none;
+  color: var(--color-alive);
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
+  padding: 0;
+}
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+
+.revisions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.revisions-table__th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  white-space: nowrap;
+}
+
+.revisions-table__th--msg {
+  width: 40%;
+}
+
+.revisions-table__td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: top;
+}
+
+.revisions-table__row {
+  transition: background var(--transition-fast);
+}
+
+.revisions-table__row:hover {
+  background: var(--color-surface-2);
+}
+
+.revisions-table__row--expanded {
+  background: var(--color-surface-2);
+}
+
+/* Failed revision rows get a subtle rose background */
+.revisions-table__row--failed {
+  background: var(--node-error-bg);
+}
+
+.revisions-table__row--failed:hover {
+  background: var(--node-error-bg);
+  filter: brightness(0.97);
+}
+
+.revisions-table__rev-num {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-right: 8px;
+}
+
+.revisions-table__rev-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ── Status badges ────────────────────────────────────────────────────────── */
+
+.revisions-table__badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.revisions-table__badge--compiled {
+  color: var(--color-alive);
+  background: var(--node-alive-bg);
+  border: 1px solid var(--color-alive);
+}
+
+.revisions-table__badge--failed {
+  color: var(--color-status-error);
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+}
+
+.revisions-table__badge--unknown {
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+}
+
+/* ── Error text ───────────────────────────────────────────────────────────── */
+
+.revisions-table__error-text {
+  font-size: 12px;
+  color: var(--color-status-error);
+  font-style: italic;
+}
+
+/* ── Detail (expanded YAML) row ──────────────────────────────────────────── */
+
+.revisions-table__detail-row {
+  background: var(--color-surface);
+}
+
+.revisions-table__detail-cell {
+  padding: 0;
+  border-bottom: 1px solid var(--color-border);
+}

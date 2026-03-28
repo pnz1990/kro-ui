@@ -22,18 +22,23 @@ import DocsTab from "@/components/DocsTab"
 import GenerateTab from "@/components/GenerateTab"
 import OptimizationAdvisor from "@/components/OptimizationAdvisor"
 import InstanceOverlayBar from "@/components/InstanceOverlayBar"
+import RevisionsTab from "@/components/RevisionsTab"
 import type { PickerItem } from "@/components/InstanceOverlayBar"
+import { useCapabilities } from "@/lib/features"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
-type TabId = "graph" | "instances" | "yaml" | "validation" | "errors" | "access" | "docs" | "generate"
+type TabId = "graph" | "instances" | "yaml" | "validation" | "errors" | "access" | "docs" | "generate" | "revisions"
 
 function isValidTab(t: string | null): t is TabId {
-  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "errors" || t === "access" || t === "docs" || t === "generate"
+  return t === "graph" || t === "instances" || t === "yaml" || t === "validation" || t === "errors" || t === "access" || t === "docs" || t === "generate" || t === "revisions"
 }
 
 /**
- * RGDDetail — RGD detail page with eight tabs: Graph, Instances, YAML, Validation, Errors, Access, Docs, Generate.
+ * RGDDetail — RGD detail page with nine tabs: Graph, Instances, YAML, Validation, Errors, Access, Docs, Generate, Revisions.
+ *
+ * The Revisions tab is only shown when the cluster has the GraphRevision CRD
+ * (capabilities.hasGraphRevisions = true, requires kro v0.9.0+).
  *
  * Active tab is reflected in and restored from `?tab=` URL query parameter.
  * Default tab is "graph".
@@ -42,11 +47,16 @@ function isValidTab(t: string | null): t is TabId {
  *       .specify/specs/017-rgd-validation-linting/, .specify/specs/018-rbac-visualizer/,
  *       .specify/specs/020-schema-doc-generator/, .specify/specs/030-error-patterns-tab/,
  *       .specify/specs/036-rgd-detail-header/
+ * GH #274: kro v0.9.0 Graph Revisions tab
  */
 export default function RGDDetail() {
   const { name } = useParams<{ name: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const location = useLocation()
+
+  // Capabilities: used to gate the Revisions tab (kro v0.9.0+)
+  const { capabilities } = useCapabilities()
+  const hasRevisions = capabilities?.schema?.hasGraphRevisions === true
 
   // Breadcrumb: set when navigated via "View RGD →" from another RGD (spec 025)
   const fromRgd = (location.state as { from?: string } | null)?.from || null
@@ -481,6 +491,19 @@ export default function RGDDetail() {
         >
           Generate
         </button>
+        {hasRevisions && (
+          <button
+            data-testid="tab-revisions"
+            className="rgd-tab-btn"
+            role="tab"
+            aria-selected={activeTab === "revisions"}
+            onClick={() => setTab("revisions")}
+            type="button"
+            title="GraphRevision history — kro v0.9.0+"
+          >
+            Revisions
+          </button>
+        )}
       </div>
 
       {/* Tab content */}
@@ -663,6 +686,13 @@ export default function RGDDetail() {
         {activeTab === "generate" && (
           <div className="rgd-tab-panel">
             <GenerateTab rgd={rgd} />
+          </div>
+        )}
+
+        {/* Revisions tab — kro v0.9.0+ only (gated by hasGraphRevisions capability) */}
+        {activeTab === "revisions" && hasRevisions && name && (
+          <div className="rgd-tab-panel">
+            <RevisionsTab rgdName={name} />
           </div>
         )}
       </div>
