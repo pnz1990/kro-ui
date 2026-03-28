@@ -103,6 +103,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `docs/learned-lessons` | — | Constitution §XIV E2E standards; AGENTS anti-patterns +6 E2E rows; pdca-improvements CI failure guide | Merged (PR #311) |
 | `fix/e2e-journey-syntax-fix2` | — | fixture-state.ts: lazy Proxy read per access (fixes fixture-state race causing 043 journeys to skip) | Merged (PR #312) |
 | `fix/ux-polish-round2-continued` | #274 | omit() designer help text; collection limit badge (900/1000 warning); condition-transition event visual category | Merged (PR #313) |
+| `046-kro-v090-revisions` | #274 | RGD Graph Revisions tab — revision history, compiled status, age, expand YAML (kro v0.9.0+) | In progress |
 
 ### Worktrunk (required workflow)
 
