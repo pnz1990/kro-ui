@@ -38,6 +38,26 @@
   font-size: 13px;
   color: var(--color-text-muted);
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* × button to clear the health filter (spec 060) */
+.home__clear-filter {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+}
+
+.home__clear-filter:hover {
+  color: var(--color-text);
+  background: var(--color-bg-subtle);
 }
 
 /* VirtualGrid container — fills viewport below header */
