@@ -67,6 +67,14 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 		// Enforce 5s response budget on every API handler (Constitution §XI).
 		// healthz and version are exempt — they are served before the timeout
 		// middleware applies (registered below inside this subrouter first).
+		//
+		// DESIGN: handlers that perform a single k8s API call rely on this
+		// middleware-injected deadline exclusively. Handlers that fan-out to
+		// multiple resources (e.g. GetInstanceChildren, FetchEffectiveRules, Fleet)
+		// additionally set an inner per-resource context.WithTimeout to bound each
+		// individual call and allow partial results. This is intentional: the outer
+		// deadline provides the hard cap while the inner timeouts prevent a single
+		// slow resource type from consuming the entire budget. (GH #300)
 		r.Use(middleware.Timeout(5 * time.Second))
 
 		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {

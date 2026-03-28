@@ -16,6 +16,7 @@ package k8s
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -125,7 +126,7 @@ func DiscoverPlural(clients K8sClients, group, version, kind string) (string, er
 // ResolveInstanceGVR looks up the GVR for instances of the given RGD.
 func ResolveInstanceGVR(ctx context.Context, clients K8sClients, rgdName string) (schema.GroupVersionResource, error) {
 	if rgdName == "" {
-		return schema.GroupVersionResource{}, fmt.Errorf("rgd query param required")
+		return schema.GroupVersionResource{}, errors.New("rgd query param required")
 	}
 	rgdGVR := schema.GroupVersionResource{
 		Group:    KroGroup,
@@ -141,7 +142,7 @@ func ResolveInstanceGVR(ctx context.Context, clients K8sClients, rgdName string)
 	group, _, _ := UnstructuredString(rgd.Object, "spec", "schema", "group")
 	version, _, _ := UnstructuredString(rgd.Object, "spec", "schema", "apiVersion")
 	if kind == "" {
-		return schema.GroupVersionResource{}, fmt.Errorf("RGD has no schema kind defined")
+		return schema.GroupVersionResource{}, errors.New("RGD has no schema kind defined")
 	}
 	if group == "" {
 		group = KroGroup

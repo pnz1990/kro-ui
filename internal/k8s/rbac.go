@@ -16,6 +16,7 @@ package k8s
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -325,7 +326,7 @@ func extractRGDGVRs(ctx context.Context, clients K8sClients, rgdObj map[string]a
 
 	spec, ok := rgdObj["spec"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("RGD has no spec")
+		return nil, errors.New("RGD has no spec")
 	}
 	resources, _ := spec["resources"].([]any)
 

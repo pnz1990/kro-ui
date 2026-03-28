@@ -15,33 +15,41 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 
 ## Features
 
-- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, health chips, controller metrics strip, terminating badges, debounced search, and error count badges; virtualized for 5,000+ RGDs
+- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, multi-segment health chips (✗/⚠/↻ counts per state), controller metrics strip, terminating badges, debounced search, and error count badges; virtualized for 5,000+ RGDs
 - **Catalog page** (`/catalog`) — browsable RGD directory with search, label filter, sort controls, per-RGD instance counts, "Used by" chaining rows, and forEach collapse suggestions (optimization advisor)
 - **RGD static chaining graph** — detect and visualize chained RGD relationships; expand parent/child chains without a live cluster
-- **RGD detail** — seven tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate
-  - **Graph tab** — interactive DAG with all managed resources, forEach collections, external refs, and `includeWhen` conditions; `readyWhen` CEL expressions and `forEach` cardinality badges on hover; instance overlay selector to visualize which nodes are active for a specific CR; "refreshed X ago" indicator
-  - **Instances tab** — table of all CR instances with namespace filter, 5-state health badges (Ready/Reconciling/Degraded/Error/Terminating), fully-clickable rows, "show only errored" filter, and links to live detail
-  - **Errors tab** — cross-instance error aggregation: failures grouped by resource node with affected instance count, percentage, most common error message, and drill-down to individual instances
-  - **YAML tab** — syntax-highlighted RGD manifest with CEL expression highlighting and copy-to-clipboard
+- **RGD detail** — nine tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate · Revisions
+  - **Graph tab** — interactive DAG with all managed resources, forEach collections, external refs, and `includeWhen` conditions; `readyWhen` CEL expressions and `forEach` cardinality badges (warnings at ≥900 items, error at 1000) on hover; instance overlay selector to visualize which nodes are active for a specific CR; "refreshed X ago" indicator
+  - **Instances tab** — table of all CR instances with namespace filter, 6-state health badges (Ready/Degraded/Reconciling/Pending/Error/Unknown), fully-clickable rows, **instance spec diff** (select 2 rows to compare field-by-field), and links to live detail
+  - **Errors tab** — cross-instance error aggregation: failures grouped by resource node with affected instance count, percentage, most common error message, and drill-down; skips `IN_PROGRESS` (reconciling) instances to avoid false positives
+  - **YAML tab** — clean syntax-highlighted RGD manifest (managedFields, last-applied-configuration, resourceVersion, uid stripped) with CEL expression highlighting and copy-to-clipboard
   - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, custom type definitions (kro v0.9.0+ `spec.schema.types`), and a copyable example manifest
-  - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
-- **Live instance detail** — live DAG with 5s polling, per-node state colors (alive/reconciling/error/pending/not-found), node YAML inspection, spec/conditions/events/telemetry panels
-  - Per-node state derived from each child resource's own `status.conditions` — not just the root CR; `includeWhen`-excluded nodes shown in violet (pending), not-yet-created in gray (not-found)
-  - Hover tooltip shows live state label for every node
+  - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion, `{}` defaults for map/object fields) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
+  - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled status (Compiled/Failed), age, compilation error; click to expand YAML
+- **Live instance detail** — live DAG with 5s polling, **6-state** per-node colors (alive/reconciling/degraded/error/pending/not-found), node YAML inspection (clean — no managedFields), spec/conditions/events/telemetry panels
+  - **Degraded state** — shown when the CR is Ready=True but a child resource has `Available=False` (distinct orange from amber reconciling)
+  - Per-node state derived from each child resource's own `status.conditions` via `kro.run/node-id` label (not kind) — kube-generated resources (EndpointSlice etc.) are silently skipped
+  - `IN_PROGRESS` kro state maps to Reconciling (amber) — shown when readyWhen is unmet but kro is still working; escalates to a red banner with actionable hint after 5 minutes
+  - **Reconcile-paused banner** — shown when `kro.run/reconcile: disabled` annotation is present (kro v0.9.0+)
+  - **Stuck finalizer escalation** — when deletion is blocked by finalizers for ≥5 minutes, shows the exact `kubectl patch` command to force-remove them
+  - Hover tooltip shows live state label with per-state explanatory hint for every node
+  - **Refresh now** button (↻) — triggers immediate re-poll instead of waiting for the next 5s cycle
+  - **Copy instance YAML** button (⎘) — copies full instance YAML to clipboard
   - **Telemetry panel** — per-instance age, state duration, child resource health table, and reconcile health indicators
   - **Deletion debugger** — when an instance has a `deletionTimestamp`, surfaces a Terminating banner showing elapsed time, active finalizers (with controller ownership), blocking child resources, and deletion-related events
-  - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, cardinality badge (`N/M`), and individual resource YAML
+  - **forEach collection explorer** — drill into collection fan-outs with per-item health badges, cardinality badge (`N/M`; stateless resources like ConfigMap correctly count as healthy), and individual resource YAML (clean display)
   - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
-- **Instance health roll-up** — 5-state health badges (Ready/Reconciling/Pending/Error/Unknown) on all instance list rows and RGD cards; error count badges on home and catalog cards
-- **RGD Designer** (`/author`) — first-class nav section alongside Overview/Catalog/Fleet/Events; full kro feature coverage: all 5 node types (Managed resource, forEach collection, External ref, External ref collection, Root CR), `includeWhen` conditions, `readyWhen` CEL, schema field editor with type/default/enum/min/max; live DAG preview (updates within 300ms, client-side only); Home and Catalog empty states link directly to it
-- **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), deletion event tagging, grouping by instance, and URL-param pre-filtering
+- **Instance health roll-up** — 6-state health badges (Ready/Degraded/Reconciling/Pending/Error/Unknown) on all instance list rows and RGD cards; multi-segment health bar on cards showing counts per state
+- **Instance spec diff** — select any 2 instances in the Instances tab to compare their spec fields side-by-side; differing fields highlighted; identical fields collapsible
+- **RGD Designer** (`/author`) — first-class nav section alongside Overview/Catalog/Fleet/Events; full kro feature coverage: all 5 node types (Managed resource, forEach collection, External ref, External ref collection, Root CR), `includeWhen` conditions, `readyWhen` CEL (with `omit()` help for kro v0.9.0+), schema field editor with type/default/enum/min/max; live DAG preview (updates within 300ms, client-side only); Home and Catalog empty states link directly to it
+- **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), **condition-transition events** (kro v0.9.0+ `HasInstanceConditionEvents`) with distinct green visual, deletion event tagging, grouping by instance, and URL-param pre-filtering
 - **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix with abbreviated ARN context labels, and per-cluster kro controller metrics column
 - **Controller metrics panel** — kro controller metrics auto-discovered via pod proxy (zero configuration); per-context correct after context switch; powers Fleet metrics column via `?context=` fan-out
-- **Context switcher** — switch kubeconfig contexts at runtime without restart
-- **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types)
-- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API, cluster-scoped RGD badges, custom type definitions
+- **Context switcher** — switch kubeconfig contexts at runtime without restart; subtitle shown for all abbreviated context names (EKS ARNs, long names)
+- **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types, JSON Schema object/array/map types rendered correctly)
+- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API (Revisions tab), cluster-scoped RGD badges, collection limit badges, condition-transition events, `omit()` CEL function
 - **First-time onboarding** — Overview page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
 - **Dark/light theme** — dark default, full design token system, SVG favicon
 
