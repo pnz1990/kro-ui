@@ -29,6 +29,9 @@ import (
 
 	"github.com/rs/zerolog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
 // InstanceSummary is a compact representation of one live instance.
@@ -88,11 +91,28 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 			rctx, cancel := context.WithTimeout(r.Context(), perRGDAllInstancesTimeout*1_000_000_000)
 			defer cancel()
 
-			gvr, err := h.resolveInstanceGVR(rctx, rgdName)
-			if err != nil {
-				log.Debug().Err(err).Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — cannot resolve GVR")
+			// Extract kind/group/version from the already-fetched RGD object —
+			// avoids a second per-RGD API call that would re-fetch the RGD.
+			// This halves the number of API calls compared to calling resolveInstanceGVR.
+			kind, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "kind")
+			group, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "group")
+			version, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "apiVersion")
+			if kind == "" {
+				log.Debug().Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — no schema kind")
 				return
 			}
+			if group == "" {
+				group = k8sclient.KroGroup
+			}
+			if version == "" {
+				version = "v1alpha1"
+			}
+
+			plural, err := k8sclient.DiscoverPlural(h.factory, group, version, kind)
+			if err != nil {
+				plural = strings.ToLower(kind) + "s"
+			}
+			gvr := schema.GroupVersionResource{Group: group, Version: version, Resource: plural}
 
 			list, err := h.factory.Dynamic().Resource(gvr).List(rctx, metav1.ListOptions{})
 			if err != nil {
