@@ -106,7 +106,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/ux-polish-round2-continued` | #274 | omit() designer help text; collection limit badge (900/1000 warning); condition-transition event visual category | Merged (PR #313) |
 | `046-kro-v090-revisions` | #274 | RGD Graph Revisions tab — revision history, compiled status, age, expand YAML (kro v0.9.0+) | Merged (PR #314) |
 | `fix/ux-polish-round2-continued` | — | 005 Step 10 E2E fix: waitForFunction, aria-label (CI green) | Merged (PR #315) |
-| `fix/ux-polish-round2-continued` | #303 #299 #298 #308 #309 | ValidateRGD PATCH→static; Fleet degraded color; ContextSwitcher subtitle; require.Nil; AGENTS/constitution docs | In progress |
+| `fix/ux-polish-round2-continued` | #303 #299 #298 #308 #309 | ValidateRGD PATCH→static; Fleet degraded color; ContextSwitcher subtitle; require.Nil; AGENTS/constitution docs | Merged (PR #316) |
+| `fix/e2e-journey-syntax-fix2` | — | #301 errors.New sentinels; #300 handler timeout comment; #302 README features; #304 #305 #306 component tests | In progress |
 
 ### Worktrunk (required workflow)
 

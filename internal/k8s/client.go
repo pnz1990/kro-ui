@@ -17,6 +17,7 @@
 package k8s
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -154,7 +155,7 @@ func (f *ClientFactory) load(context string) error {
 // After a successful switch, all registered context-switch hooks are called.
 func (f *ClientFactory) SwitchContext(ctx string) error {
 	if ctx == "" {
-		return fmt.Errorf("context name must not be empty")
+		return errors.New("context name must not be empty")
 	}
 	if err := f.load(ctx); err != nil {
 		return err
