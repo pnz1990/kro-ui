@@ -15,10 +15,18 @@ spec:
         {{- include "kro-ui.selectorLabels" . | nindent 8 }}
     spec:
       serviceAccountName: {{ include "kro-ui.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: kro-ui
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           args:
             - serve
             - --port={{ .Values.service.port }}

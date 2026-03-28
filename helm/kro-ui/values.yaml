@@ -32,6 +32,30 @@ resources:
     cpu: 200m
     memory: 128Mi
 
+# Pod-level security context.
+# runAsNonRoot=true and a non-zero UID are enforced by default to comply with
+# PodSecurity admission (restricted profile) and CIS Kubernetes benchmarks.
+# The distroless base image ships nobody (UID 65534); override if your cluster
+# requires a specific UID.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  fsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container-level security context.
+# readOnlyRootFilesystem: true — the binary writes nothing to disk at runtime.
+# allowPrivilegeEscalation: false — prevents setuid/setgid attacks.
+# capabilities.drop: [ALL] — drops all Linux capabilities.
+containerSecurityContext:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
 # Run mode: "incluster" (default) or "kubeconfig"
 runMode: incluster
 
