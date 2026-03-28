@@ -94,26 +94,31 @@ test.describe('Journey 011 — Collection Explorer', () => {
   test('Step 6: empty forEach shows forEach expression in empty state message (PR #286)', async ({ page }) => {
     // Requires upstream-collection-chain RGD + chain-empty instance (values: [])
     // which produces a forEach collection with 0 items.
-    // The empty state must include the actual forEach expression text (PR #286 fix).
+    // chain-empty is in kro-ui-demo namespace (demo cluster only — not E2E cluster).
+    // Use API check per constitution §XIV.
     test.skip(!fixtureState.collectionChainReady, 'upstream-collection-chain not Ready in setup')
+
+    const instCheck = await page.request.get(
+      `${BASE}/api/v1/instances/kro-ui-demo/chain-empty?rgd=upstream-collection-chain`,
+    )
+    if (!instCheck.ok()) {
+      test.skip(true, 'chain-empty instance not present on this cluster (demo-cluster-only fixture)')
+      return
+    }
 
     await page.goto(`${BASE}/rgds/upstream-collection-chain/instances/kro-ui-demo/chain-empty`)
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
     await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 15000 })
 
-    // Click the chainedConfigs collection node
     const collectionNode = page.locator('[class*="dag-node--collection"]').first()
     await collectionNode.click()
     await expect(page.getByTestId('collection-panel')).toBeVisible({ timeout: 8000 })
 
-    // Empty state must be shown (values: [] → 0 items)
     const emptyState = page.getByTestId('collection-empty-state')
     await expect(emptyState).toBeVisible({ timeout: 5000 })
 
-    // PR #286: empty state must include the forEach expression, not just generic text
     const emptyText = await emptyState.textContent()
     expect(emptyText).toContain('forEach')
-    // The expression must be present (any non-empty expression string)
     expect(emptyText).toMatch(/\$\{.*\}|expression/)
   })
 

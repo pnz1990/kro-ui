@@ -19,6 +19,12 @@
  * process.env mutations in globalSetup are NOT visible in test files.
  * globalSetup writes fixture-state.json; this module reads it.
  *
+ * IMPORTANT: `fixtureState` is a Proxy that reads the JSON file on EVERY
+ * property access. This avoids the race condition where the module is imported
+ * (and the top-level constant evaluated) before globalSetup finishes writing
+ * the file. With a frozen top-level constant, workers that started before the
+ * file was written would see all-false defaults for the entire test run.
+ *
  * Usage:
  *   import { fixtureState } from '../fixture-state'
  *   test('...', async ({ page }) => {
@@ -56,16 +62,29 @@ const DEFAULTS: FixtureState = {
   clusterScopedReady: false, externalCollectionReady: false, celComprehensionsReady: false,
 }
 
-function loadFixtureState(): FixtureState {
-  const statePath = resolve(__dirname, '../fixture-state.json')
-  if (!existsSync(statePath)) {
+const STATE_PATH = resolve(__dirname, 'fixture-state.json')
+
+function readFixtureState(): FixtureState {
+  if (!existsSync(STATE_PATH)) {
     return { ...DEFAULTS }
   }
   try {
-    return JSON.parse(readFileSync(statePath, 'utf8')) as FixtureState
+    return JSON.parse(readFileSync(STATE_PATH, 'utf8')) as FixtureState
   } catch {
     return { ...DEFAULTS }
   }
 }
 
-export const fixtureState: FixtureState = loadFixtureState()
+/**
+ * fixtureState — lazily reads fixture-state.json on each property access.
+ *
+ * Using a Proxy ensures the file is read at test-execution time (inside each
+ * `test()` callback), not at module-import time. This prevents the race where
+ * the worker imports this module before globalSetup has finished writing the
+ * file, which would freeze all flags at their default (false) values.
+ */
+export const fixtureState: FixtureState = new Proxy({} as FixtureState, {
+  get(_target, prop: string) {
+    return readFixtureState()[prop as keyof FixtureState]
+  },
+})
