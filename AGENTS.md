@@ -107,7 +107,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `046-kro-v090-revisions` | #274 | RGD Graph Revisions tab — revision history, compiled status, age, expand YAML (kro v0.9.0+) | Merged (PR #314) |
 | `fix/ux-polish-round2-continued` | — | 005 Step 10 E2E fix: waitForFunction, aria-label (CI green) | Merged (PR #315) |
 | `fix/ux-polish-round2-continued` | #303 #299 #298 #308 #309 | ValidateRGD PATCH→static; Fleet degraded color; ContextSwitcher subtitle; require.Nil; AGENTS/constitution docs | Merged (PR #316) |
-| `fix/e2e-journey-syntax-fix2` | — | #301 errors.New sentinels; #300 handler timeout comment; #302 README features; #304 #305 #306 component tests | In progress |
+| `fix/e2e-journey-syntax-fix2` | — | #301 errors.New sentinels; #300 handler timeout comment; #302 README features; #304 #305 #306 component tests | Merged (PR #317) |
+| `051-instance-diff` | #276 #13 | F-8 snooze error DAG nodes; GraphRevision side-by-side YAML diff foundation (spec 009) | Merged (PR #318) |
 
 ### Worktrunk (required workflow)
 
@@ -422,7 +423,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`
 
 ## Recent Changes
-- v0.4.15 (cutting): ValidateRGD PATCH→offline static (GH #303); Fleet degraded color fix (GH #299); ContextSwitcher subtitle fix (GH #298); require.Nil in tests (GH #308); errors.New sentinels (GH #301); handler timeout docs (GH #300); README features updated (GH #302); FinalizersPanel/DAGTooltip/CopySpecButton component tests (GH #305 #304 #306); constitution §II path fix + AGENTS node-type docs (GH #309); CI fix 005 Step 10 (PR #315)
+- v0.5.0 (cutting): ALL GH issues resolved — snooze error DAG nodes (GH #276 F-8, PR #318); GraphRevision side-by-side YAML diff foundation (GH #13, PR #318); v0.4.15 fixes (GH #303 #299 #298 #308 #301 #300 #302 #304 #305 #306 #309 #315)
+- v0.4.15: ValidateRGD PATCH→offline static (GH #303); Fleet degraded color fix (GH #299); ContextSwitcher subtitle fix (GH #298); require.Nil in tests (GH #308); errors.New sentinels (GH #301); handler timeout docs (GH #300); README features updated (GH #302); FinalizersPanel/DAGTooltip/CopySpecButton component tests (GH #305 #304 #306); constitution §II path fix + AGENTS node-type docs (GH #309); CI fix 005 Step 10 (PR #315)
 - v0.4.14: RGD Graph Revisions tab — revision history, compiled status, age, expand YAML (PR #314, GH #274 closed)
 - v0.4.13: omit() designer help; collection limit badge 900/1000 (PR #313); condition-transition events (PR #313); fixture-state path fix 043 journeys (PR #312); constitution §XIV E2E standards (PR #311); E2E journey backfill 20 PRs (PR #297)
 - v0.4.12: ListInstances returns empty list (not 500) for Inactive RGDs; health chip now shows "no instances" (PR #296)
