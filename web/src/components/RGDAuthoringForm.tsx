@@ -1051,10 +1051,10 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                 <div className="rgd-authoring-form__advanced-section">
                   {/* US3: includeWhen */}
                   <div className="rgd-authoring-form__advanced-row">
-                    <label
-                      className="rgd-authoring-form__sublabel"
-                      title="includeWhen — a CEL expression that controls whether this resource is created at all. When false, the resource is excluded (shown as violet in the DAG). Example: ${schema.spec.enableCache}"
-                    >includeWhen</label>
+                     <label
+                       className="rgd-authoring-form__sublabel"
+                       title="includeWhen — a CEL expression that controls whether this resource is created at all. When false, the resource is excluded (shown as violet in the DAG). Example: ${schema.spec.enableCache}. kro v0.9.0+: use omit() to conditionally remove fields instead of whole resources."
+                     >includeWhen</label>
                     <div className="rgd-authoring-form__cel-wrap">
                       <input
                         type="text"
@@ -1078,7 +1078,7 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                   <div className="rgd-authoring-form__advanced-row">
                     <label
                       className="rgd-authoring-form__sublabel"
-                      title="readyWhen — one or more CEL expressions that must ALL evaluate to true before kro considers this resource Ready. The instance stays in 'Reconciling' state until all readyWhen conditions pass. Example: ${web.status.availableReplicas} >= 1"
+                      title="readyWhen — one or more CEL expressions that must ALL evaluate to true before kro considers this resource Ready. The instance stays in 'Reconciling' state until all readyWhen conditions pass. Example: ${web.status.availableReplicas} >= 1. kro v0.9.0+: omit() is available to conditionally remove fields from managed resources."
                     >readyWhen</label>
                     <div className="rgd-authoring-form__readywhen-rows">
                       {(res.readyWhen ?? []).map((rw, i) => (

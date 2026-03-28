@@ -101,7 +101,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/e2e-journey-backfill` | — | E2E journeys for PRs #277-#296: 047-ux-improvements, 047b-live-dag-state-map, updates to 028/031/011/002 + playwright chunk-7 | Merged (PR #297) |
 | `fix/e2e-journey-syntax` | — | E2E syntax fixes: missing }), SPA HTTP-200 pitfall, locator.or() ambiguity, skeleton timeout | Merged (PR #310) |
 | `docs/learned-lessons` | — | Constitution §XIV E2E standards; AGENTS anti-patterns +6 E2E rows; pdca-improvements CI failure guide | Merged (PR #311) |
-| `fix/e2e-journey-syntax-fix2` | — | fixture-state.ts: lazy Proxy read per access (fixes fixture-state race causing 043 journeys to skip) | In progress |
+| `fix/e2e-journey-syntax-fix2` | — | fixture-state.ts: lazy Proxy read per access (fixes fixture-state race causing 043 journeys to skip) | Merged (PR #312) |
+| `fix/ux-polish-round2-continued` | #274 | omit() designer help text; collection limit badge (900/1000 warning); condition-transition event visual category | In progress |
 
 ### Worktrunk (required workflow)
 

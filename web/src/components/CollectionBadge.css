@@ -4,6 +4,7 @@
  * All colors from tokens.css only — no hardcoded hex values.
  *
  * Spec: .specify/specs/011-collection-explorer/
+ * kro v0.9.0: limit-warn (≥900) and limit-max (=1000) states added.
  */
 
 .collection-badge {
@@ -23,4 +24,14 @@
 
 .collection-badge--none-ready {
   fill: var(--color-error);
+}
+
+/* Approaching kro 1000-item limit — amber warning */
+.collection-badge--limit-warn {
+  fill: var(--color-status-warning);
+}
+
+/* At kro 1000-item limit — rose error (reconciliation will fail) */
+.collection-badge--limit-max {
+  fill: var(--color-status-error);
 }

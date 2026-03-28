@@ -2,8 +2,11 @@
 // timestamp, reason, message, and source.
 //
 // Spec: .specify/specs/019-smart-event-stream/
+// kro v0.9.0: condition-transition events get a distinct visual category
+// (blue left border + state-change icon) when HasInstanceConditionEvents is active.
 
 import type { KubeEvent } from '@/lib/events'
+import { isConditionTransitionEvent } from '@/lib/events'
 import './EventRow.css'
 
 interface EventRowProps {
@@ -40,18 +43,33 @@ function sourceLabel(event: KubeEvent): string {
  */
 export default function EventRow({ event }: EventRowProps) {
   const isWarning = event.type === 'Warning'
+  const isConditionTransition = !isWarning && isConditionTransitionEvent(event)
   const src = sourceLabel(event)
+
+  const rowClass = isWarning
+    ? 'event-stream-row event-stream-row--warning'
+    : isConditionTransition
+      ? 'event-stream-row event-stream-row--condition'
+      : 'event-stream-row event-stream-row--normal'
+
+  const badgeClass = isWarning
+    ? 'event-stream-row__type-badge event-stream-row__type-badge--warning'
+    : isConditionTransition
+      ? 'event-stream-row__type-badge event-stream-row__type-badge--condition'
+      : 'event-stream-row__type-badge event-stream-row__type-badge--normal'
 
   return (
     <div
-      className={`event-stream-row ${isWarning ? 'event-stream-row--warning' : 'event-stream-row--normal'}`}
+      className={rowClass}
       data-testid="event-row"
       data-event-type={event.type}
+      data-event-category={isConditionTransition ? 'condition-transition' : undefined}
     >
       <div className="event-stream-row__body">
         <div className="event-stream-row__header">
           <span
-            className={`event-stream-row__type-badge ${isWarning ? 'event-stream-row__type-badge--warning' : 'event-stream-row__type-badge--normal'}`}
+            className={badgeClass}
+            title={isConditionTransition ? 'Condition state transition (kro v0.9.0)' : undefined}
           >
             {isWarning ? (
               <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -64,6 +82,12 @@ export default function EventRow({ event }: EventRowProps) {
                 />
                 <line x1="8" y1="6" x2="8" y2="10" stroke="currentColor" strokeWidth="1.5" />
                 <circle cx="8" cy="12.5" r="0.75" fill="currentColor" />
+              </svg>
+            ) : isConditionTransition ? (
+              // State-change icon for condition-transition events (kro v0.9.0)
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M5 8h6M9 6l2 2-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             ) : (
               <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">

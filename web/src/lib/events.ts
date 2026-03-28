@@ -88,7 +88,33 @@ export function toKubeEvent(obj: K8sObject): KubeEvent | null {
   }
 }
 
-// ── Sort ─────────────────────────────────────────────────────────────
+// ── Condition-transition event detection ─────────────────────────────
+
+/**
+ * isConditionTransitionEvent — returns true when a kro event represents a
+ * condition-status change (kro v0.9.0 HasInstanceConditionEvents feature).
+ *
+ * kro v0.9.0 emits condition-transition events with a reason like:
+ *   "ResourcesReady"        (condition type becoming True)
+ *   "ConditionChanged"      (generic condition transition)
+ *   "Ready"/"NotReady"      (top-level Ready condition change)
+ *   "Progressing"           (Progressing condition transitions)
+ *
+ * These events always have type "Normal" (not "Warning") and their
+ * reason starts with an uppercase letter without spaces — unlike
+ * operational reasons like "FailedCreate" or "BackOff".
+ *
+ * Heuristic: type=Normal AND reason matches a known kro condition name.
+ */
+const CONDITION_REASONS = new Set([
+  'Ready', 'NotReady', 'ResourcesReady', 'GraphResolved', 'InstanceManaged',
+  'ControllerReady', 'KindReady', 'ResourceGraphAccepted', 'ConditionChanged',
+  'Progressing', 'Available', 'Synced', 'ReconcileSucceeded',
+])
+
+export function isConditionTransitionEvent(event: KubeEvent): boolean {
+  return event.type === 'Normal' && CONDITION_REASONS.has(event.reason)
+}
 
 /** Sorts events newest-first by lastTimestamp. */
 export function sortEvents(events: KubeEvent[]): KubeEvent[] {
