@@ -163,7 +163,7 @@ func TestCapabilitiesCacheTTL(t *testing.T) {
 
 	// Wait past TTL: cache miss.
 	time.Sleep(60 * time.Millisecond)
-	assert.Nil(t, capCache.get())
+	require.Nil(t, capCache.get(), "cache should be nil after TTL expiry")
 }
 
 func TestCapabilitiesCacheInvalidate(t *testing.T) {
@@ -173,5 +173,5 @@ func TestCapabilitiesCacheInvalidate(t *testing.T) {
 	assert.NotNil(t, capCache.get())
 
 	capCache.invalidate()
-	assert.Nil(t, capCache.get())
+	require.Nil(t, capCache.get(), "cache should be nil after explicit invalidate")
 }

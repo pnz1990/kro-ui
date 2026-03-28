@@ -15,12 +15,12 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/rs/zerolog"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
@@ -30,18 +30,21 @@ import (
 
 const maxBodyBytes = 1 << 20 // 1 MiB
 
-// ValidateRGD performs a Kubernetes dry-run apply (dryRun=All) of the RGD YAML
-// in the request body. This triggers kro's admission webhook without persisting
-// any state to etcd.
+// ValidateRGD performs OFFLINE static validation of the RGD YAML in the request
+// body using kro's own Go library packages. It does NOT contact the Kubernetes
+// API server and does NOT issue any PATCH/Apply verb.
+//
+// This replaced the previous server-side apply (SSA) dry-run implementation which
+// violated Constitution §III (read-only contract) and required a PATCH ClusterRole
+// that the Helm chart never granted (GH #303).
 //
 // POST /api/v1/rgds/validate
 // Content-Type: text/plain  (raw YAML body)
 //
 // Response: DryRunResult JSON
-//   - { "valid": true } when kro's admission webhook accepted the object.
-//   - { "valid": false, "error": "..." } when rejected.
+//   - { "valid": true } when all static checks pass.
+//   - { "valid": false, "error": "..." } when one or more issues are found.
 //   - HTTP 400 when the body is not a ResourceGraphDefinition.
-//   - HTTP 503 on cluster connectivity failure.
 //
 // Spec: .specify/specs/045-rgd-designer-validation-optimizer/ US9
 func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
@@ -59,12 +62,7 @@ func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
 
 	// Decode YAML body into an unstructured object
 	obj := &unstructured.Unstructured{}
-	decoder := yaml.NewYAMLToJSONDecoder(io.NopCloser(
-		// Wrap the body bytes in a reader
-		func() io.Reader {
-			return &bytesReader{data: body, pos: 0}
-		}(),
-	))
+	decoder := yaml.NewYAMLToJSONDecoder(io.NopCloser(&bytesReader{data: body, pos: 0}))
 	if decErr := decoder.Decode(obj); decErr != nil {
 		respondError(w, http.StatusBadRequest, "invalid YAML: "+decErr.Error())
 		return
@@ -76,40 +74,68 @@ func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := obj.GetName()
-	if name == "" {
-		name = "dry-run-validate"
+	// Run offline static validation — same logic as ValidateRGDStatic.
+	// No PATCH/Apply verb is issued; no cluster contact.
+	var allIssues []apitypes.StaticIssue
+
+	specMap := extractSpecFields(obj.Object)
+	if len(specMap) > 0 {
+		allIssues = append(allIssues, validate.ValidateSpecFields(specMap)...)
 	}
 
-	// Perform dry-run apply — does NOT persist state
-	_, applyErr := h.factory.Dynamic().Resource(rgdGVR).Apply(
-		r.Context(),
-		name,
-		obj,
-		metav1.ApplyOptions{
-			DryRun:       []string{"All"},
-			FieldManager: "kro-ui",
-		},
-	)
-	if applyErr == nil {
+	if resources, ok := obj.Object["spec"].(map[string]any); ok {
+		resourceList, _ := resources["resources"].([]any)
+		var ids []string
+		var celResources []validate.ResourceExpressions
+
+		for _, item := range resourceList {
+			res, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			id, _ := res["id"].(string)
+			ids = append(ids, id)
+
+			var exprs []string
+			if tmpl, ok := res["template"].(map[string]any); ok {
+				exprs = extractExpressionsFromMap(tmpl)
+			}
+			if len(exprs) > 0 {
+				celResources = append(celResources, validate.ResourceExpressions{
+					ID:          id,
+					Expressions: exprs,
+				})
+			}
+		}
+
+		if len(ids) > 0 {
+			allIssues = append(allIssues, validate.ValidateResourceIDs(ids)...)
+		}
+		if len(celResources) > 0 {
+			allIssues = append(allIssues, validate.ValidateCELExpressions(celResources)...)
+		}
+	}
+
+	if len(allIssues) == 0 {
+		log.Debug().Str("rgd", obj.GetName()).Msg("validate: no issues found")
 		respond(w, http.StatusOK, apitypes.DryRunResult{Valid: true})
 		return
 	}
 
-	// Extract the human-readable message from a Kubernetes API status error
-	if statusErr, ok := applyErr.(*k8serrors.StatusError); ok {
-		log.Debug().Str("rgd", name).Str("reason", string(statusErr.Status().Reason)).
-			Msg("dry-run validate: kro rejected")
-		respond(w, http.StatusOK, apitypes.DryRunResult{
-			Valid: false,
-			Error: statusErr.Status().Message,
-		})
-		return
+	// Aggregate issue messages for the DryRunResult.Error field
+	msgs := make([]string, 0, len(allIssues))
+	for _, iss := range allIssues {
+		if iss.Field != "" {
+			msgs = append(msgs, fmt.Sprintf("%s: %s", iss.Field, iss.Message))
+		} else {
+			msgs = append(msgs, iss.Message)
+		}
 	}
-
-	// Generic cluster connectivity failure
-	log.Error().Err(applyErr).Str("rgd", name).Msg("dry-run validate: cluster error")
-	respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+applyErr.Error())
+	log.Debug().Str("rgd", obj.GetName()).Int("issues", len(allIssues)).Msg("validate: issues found")
+	respond(w, http.StatusOK, apitypes.DryRunResult{
+		Valid: false,
+		Error: strings.Join(msgs, "; "),
+	})
 }
 
 // ValidateRGDStatic performs offline static validation of an RGD YAML using

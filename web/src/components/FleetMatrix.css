@@ -92,7 +92,9 @@
 }
 
 .fleet-matrix__dot--present  { background: var(--color-alive); }
-.fleet-matrix__dot--degraded { background: var(--color-reconciling); }
+/* GH #299: was --color-reconciling (amber) — must be --color-status-degraded (orange)
+ * to distinguish degraded instances from actively-reconciling ones. */
+.fleet-matrix__dot--degraded { background: var(--color-status-degraded); }
 
 /* Issue #170: muted en-dash for RGD kinds not deployed in a cluster. */
 .fleet-matrix__absent-dash {

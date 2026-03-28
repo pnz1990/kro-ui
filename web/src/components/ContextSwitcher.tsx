@@ -250,7 +250,7 @@ export default function ContextSwitcher({
                   onClick={() => {
                     if (!isActive) void handleSelect(ctx.name)
                   }}
-                  title={ctx.name.length > MAX_DISPLAY_LENGTH ? ctx.name : undefined}
+                   title={truncateContextName(ctx.name) !== ctx.name ? ctx.name : undefined}
                 >
                   {isActive ? (
                     <svg
@@ -270,7 +270,10 @@ export default function ContextSwitcher({
                   )}
                   <span className="context-switcher__option-text">
                     <span className="context-switcher__label">{truncateContextName(ctx.name)}</span>
-                    {truncateContextName(ctx.name).length > MAX_DISPLAY_LENGTH && (
+                    {/* GH #298: show subtitle whenever the display form differs from the raw name,
+                        not just when the truncated form exceeds MAX_DISPLAY_LENGTH (which
+                        truncateContextName guarantees never happens). */}
+                    {truncateContextName(ctx.name) !== ctx.name && (
                       <span className="context-switcher__option-subtitle">{ctx.name}</span>
                     )}
                   </span>
