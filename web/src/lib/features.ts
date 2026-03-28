@@ -27,6 +27,8 @@ export const BASELINE: KroCapabilities = {
     hasTypes: false,
     hasGraphRevisions: false,
   },
+  // Baseline assumes supported — DetectCapabilities overwrites with actual comparison.
+  isSupported: true,
 }
 
 // ── Experimental mode (FR-008) ──────────────────────────────────────

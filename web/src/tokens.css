@@ -126,6 +126,8 @@
 
   /* Form validation warning — amber, advisory messages and summary badge */
   --color-warning: #f59e0b;
+  /* Warning banner background — low-opacity amber tint for unsupported-version banner */
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
 
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);
@@ -244,6 +246,8 @@
 
   /* Form validation warning — darker amber for light bg */
   --color-warning: #d97706;
+  /* Warning banner background — low-opacity amber tint, light mode */
+  --color-warning-bg: rgba(217, 119, 6, 0.10);
 
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);

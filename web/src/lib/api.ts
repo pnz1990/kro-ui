@@ -93,6 +93,12 @@ export interface KroCapabilities {
     hasTypes: boolean
     hasGraphRevisions: boolean
   }
+  /**
+   * True when the connected kro version is >= the minimum supported version
+   * (v0.8.0). When false, the UI shows a version warning banner.
+   * Spec: .specify/specs/053-multi-version-kro/spec.md
+   */
+  isSupported: boolean
 }
 
 export const getCapabilities = () => get<KroCapabilities>('/kro/capabilities')

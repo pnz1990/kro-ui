@@ -36,7 +36,22 @@ type KroCapabilities struct {
 	FeatureGates   map[string]bool    `json:"featureGates"`
 	KnownResources []string           `json:"knownResources"`
 	Schema         SchemaCapabilities `json:"schema"`
+	// IsSupported indicates whether the connected kro version is >= the minimum
+	// supported version (MinSupportedKroVersion). Populated by DetectCapabilities.
+	// When false, the UI shows an unsupported-version warning banner.
+	// Spec: .specify/specs/053-multi-version-kro/spec.md
+	IsSupported bool `json:"isSupported"`
 }
+
+// MinSupportedKroVersion is the minimum kro version that kro-ui fully supports.
+// Clusters running kro below this version may have:
+//   - Missing kro.run/node-id labels (introduced in v0.8.0)
+//   - Different schema structures
+//   - Broken forEach, external ref, or collection features
+//
+// When a cluster reports a version below this, the UI shows a yellow warning
+// banner: "kro v0.X.Y is below the minimum supported version (v0.8.0)."
+const MinSupportedKroVersion = "0.8.0"
 
 // SchemaCapabilities describes which optional fields exist in the RGD CRD schema.
 type SchemaCapabilities struct {
@@ -71,6 +86,9 @@ func Baseline() *KroCapabilities {
 			HasTypes:               false,
 			HasGraphRevisions:      false,
 		},
+		// Baseline assumes supported — DetectCapabilities overwrites this
+		// with the actual version comparison result.
+		IsSupported: true,
 	}
 }
 
@@ -186,6 +204,10 @@ func DetectCapabilities(ctx context.Context, dyn dynamic.Interface, disc discove
 
 	// Fork guard: remove any forbidden capabilities.
 	enforceForkGuard(caps)
+
+	// Set IsSupported based on version comparison against the minimum baseline.
+	// Spec: .specify/specs/053-multi-version-kro/spec.md
+	caps.IsSupported = IsKroVersionSupported(caps.Version)
 
 	return caps
 }
@@ -485,5 +507,65 @@ func ForbiddenCapabilities() []string {
 
 // String returns a human-readable summary.
 func (c *KroCapabilities) String() string {
-	return fmt.Sprintf("kro %s (%s) resources=%v gates=%v", c.Version, c.APIVersion, c.KnownResources, c.FeatureGates)
+	return fmt.Sprintf("kro %s (%s) resources=%v gates=%v supported=%v", c.Version, c.APIVersion, c.KnownResources, c.FeatureGates, c.IsSupported)
+}
+
+// ── Version comparison (spec 053-multi-version-kro) ───────────────────────
+
+// parseKroVersion parses a kro version string into (major, minor, patch) integers.
+// Accepts formats: "v0.8.5", "0.8.5", "v1.0.0-rc.1" (pre-release suffix stripped).
+// Returns (0, 0, 0) on any parse failure (treats unparseable as v0.0.0).
+func parseKroVersion(v string) (major, minor, patch int) {
+	// Strip leading "v" or "V"
+	v = strings.TrimPrefix(strings.TrimPrefix(v, "v"), "V")
+	// Strip pre-release suffix (e.g. "-rc.1", "-alpha.2")
+	if idx := strings.IndexByte(v, '-'); idx >= 0 {
+		v = v[:idx]
+	}
+	parts := strings.SplitN(v, ".", 3)
+	if len(parts) < 3 {
+		return 0, 0, 0
+	}
+	_, _ = fmt.Sscanf(parts[0], "%d", &major)
+	_, _ = fmt.Sscanf(parts[1], "%d", &minor)
+	_, _ = fmt.Sscanf(parts[2], "%d", &patch)
+	return
+}
+
+// CompareKroVersions compares two kro version strings.
+// Returns -1 if a < b, 0 if a == b, +1 if a > b.
+// Accepts "v0.8.5", "0.8.5", "v1.0.0-rc.1" formats.
+// Unknown/empty versions compare as v0.0.0 (less than any real version).
+func CompareKroVersions(a, b string) int {
+	aMaj, aMin, aPatch := parseKroVersion(a)
+	bMaj, bMin, bPatch := parseKroVersion(b)
+	switch {
+	case aMaj != bMaj:
+		if aMaj < bMaj {
+			return -1
+		}
+		return 1
+	case aMin != bMin:
+		if aMin < bMin {
+			return -1
+		}
+		return 1
+	case aPatch != bPatch:
+		if aPatch < bPatch {
+			return -1
+		}
+		return 1
+	default:
+		return 0
+	}
+}
+
+// IsKroVersionSupported returns true when the given kro version string is
+// >= MinSupportedKroVersion. Empty or unparseable versions return false.
+// Spec: .specify/specs/053-multi-version-kro/spec.md
+func IsKroVersionSupported(v string) bool {
+	if v == "" || v == "unknown" {
+		return false
+	}
+	return CompareKroVersions(v, MinSupportedKroVersion) >= 0
 }

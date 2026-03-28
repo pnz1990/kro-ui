@@ -4,6 +4,25 @@
   min-height: 100vh;
 }
 
+/* Unsupported kro version warning banner (spec 053-multi-version-kro) */
+.layout__version-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--color-warning-bg);
+  border-bottom: 1px solid var(--color-status-warning);
+  font-size: 13px;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.layout__version-warning-icon {
+  font-size: 13px;
+  color: var(--color-status-warning);
+  flex-shrink: 0;
+}
+
 .layout__content {
   flex: 1;
   padding: 24px 32px;
