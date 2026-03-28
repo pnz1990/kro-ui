@@ -8,6 +8,7 @@ import {
   extractTimeInState,
   countHealthyChildren,
   countWarningEvents,
+  countFailedConditions,
 } from './telemetry'
 import type { ChildHealthSummary } from './telemetry'
 import type { NodeStateMap } from './instanceNodeState'
@@ -289,5 +290,84 @@ describe('countWarningEvents', () => {
     const types = Array.from({ length: 200 }, (_, i) => (i % 4 === 0 ? 'Warning' : 'Normal'))
     // 200 items, every 4th is Warning → 50 warnings
     expect(countWarningEvents(makeEvents(types))).toBe(50)
+  })
+})
+
+// ── countFailedConditions ─────────────────────────────────────────────────
+// Spec: 059-condition-warnings
+
+describe('countFailedConditions', () => {
+  it('returns 0 for instance with no status', () => {
+    expect(countFailedConditions({})).toBe(0)
+  })
+
+  it('returns 0 when conditions array is absent', () => {
+    expect(countFailedConditions({ status: {} })).toBe(0)
+  })
+
+  it('returns 0 when all conditions are True', () => {
+    const instance = {
+      status: {
+        conditions: [
+          { type: 'InstanceManaged', status: 'True' },
+          { type: 'ResourcesReady', status: 'True' },
+          { type: 'Ready', status: 'True' },
+        ],
+      },
+    }
+    expect(countFailedConditions(instance)).toBe(0)
+  })
+
+  it('skips Ready condition even when False', () => {
+    const instance = {
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    // Ready is excluded from the count — it is surfaced via health pill
+    expect(countFailedConditions(instance)).toBe(0)
+  })
+
+  it('counts False non-Ready conditions', () => {
+    const instance = {
+      status: {
+        conditions: [
+          { type: 'InstanceManaged', status: 'True' },
+          { type: 'ResourcesReady', status: 'False' },
+          { type: 'GraphResolved', status: 'False' },
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    expect(countFailedConditions(instance)).toBe(2)
+  })
+
+  it('counts Unknown non-Ready conditions', () => {
+    const instance = {
+      status: {
+        conditions: [
+          { type: 'KindReady', status: 'Unknown' },
+          { type: 'ControllerReady', status: 'Unknown' },
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    expect(countFailedConditions(instance)).toBe(2)
+  })
+
+  it('never-ready scenario: ResourcesReady=False counts as 1 warning', () => {
+    const instance = {
+      status: {
+        conditions: [
+          { type: 'InstanceManaged', status: 'True' },
+          { type: 'GraphResolved', status: 'True' },
+          { type: 'ResourcesReady', status: 'False' },
+          { type: 'Ready', status: 'False' },
+        ],
+      },
+    }
+    expect(countFailedConditions(instance)).toBe(1)
   })
 })

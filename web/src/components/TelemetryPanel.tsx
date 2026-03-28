@@ -14,6 +14,7 @@ import {
   extractTimeInState,
   countHealthyChildren,
   countWarningEvents,
+  countFailedConditions,
 } from '@/lib/telemetry'
 import './TelemetryPanel.css'
 
@@ -83,7 +84,12 @@ export default function TelemetryPanel({ instance, nodeStateMap, events }: Telem
   const age = extractInstanceAge(instance)
   const timeInState = extractTimeInState(instance)
   const { healthy, total, hasError } = countHealthyChildren(nodeStateMap)
-  const warningCount = countWarningEvents(events)
+  const eventWarningCount = countWarningEvents(events)
+  const conditionWarningCount = countFailedConditions(instance)
+  // Total warnings = Kubernetes Warning events + non-healthy non-Ready conditions.
+  // Conditions are a reliable indicator of persistent issues; events expire after ~1h.
+  // Spec: .specify/specs/059-condition-warnings/spec.md
+  const warningCount = eventWarningCount + conditionWarningCount
 
   // ── Children cell: value string, color modifier, and tooltip ────────────
   // FR-005: --color-error when any child errored; --color-alive when all
@@ -130,8 +136,15 @@ export default function TelemetryPanel({ instance, nodeStateMap, events }: Telem
         value={String(warningCount)}
         colorModifier={warningsColor}
         title={warningCount > 0
-          ? `${warningCount} Warning-severity Kubernetes event${warningCount === 1 ? '' : 's'} for this instance (events expire after ~1 hour)`
-          : 'No Warning-severity Kubernetes events found for this instance'}
+          ? [
+              eventWarningCount > 0
+                ? `${eventWarningCount} Warning-severity Kubernetes event${eventWarningCount === 1 ? '' : 's'} (expire after ~1 hour)`
+                : '',
+              conditionWarningCount > 0
+                ? `${conditionWarningCount} non-healthy condition${conditionWarningCount === 1 ? '' : 's'} (excluding Ready)`
+                : '',
+            ].filter(Boolean).join(' + ')
+          : 'No warnings — all conditions healthy and no Warning-severity Kubernetes events'}
         testId="telemetry-cell-warnings"
       />
     </div>
