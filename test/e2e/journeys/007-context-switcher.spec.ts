@@ -185,6 +185,10 @@ test.describe('Journey 007 — Context Switcher', () => {
   })
 
   test('Step 7: all fixture RGD cards visible after switching context and back', async ({ page }) => {
+    // Extend per-test timeout — the double context switch + cache flush +
+    // throttled API reload can take longer than the default 60s test timeout.
+    test.setTimeout(90_000)
+
     await page.goto(BASE)
 
     // Switch to alt context
@@ -192,24 +196,22 @@ test.describe('Journey 007 — Context Switcher', () => {
     await page.getByTestId('context-dropdown')
       .locator('[role="option"]', { hasText: ALT_CONTEXT })
       .click()
-    await expect(page.getByTestId('context-dropdown')).not.toBeVisible()
+    await expect(page.getByTestId('context-dropdown')).not.toBeVisible({ timeout: 10000 })
 
     // Switch back to primary
     await page.getByTestId('context-switcher-btn').click()
     await page.getByTestId('context-dropdown')
       .locator('[role="option"]', { hasText: PRIMARY_CONTEXT })
       .click()
-    await expect(page.getByTestId('context-dropdown')).not.toBeVisible()
+    await expect(page.getByTestId('context-dropdown')).not.toBeVisible({ timeout: 10000 })
 
     // After context switch the cache is flushed (spec 057) — the RGD list is
     // refetched from the API. On throttled E2E clusters this may take >5s.
-    // Use waitForFunction to give up to 30s per card instead of the default 5s.
-    for (const name of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
-      await page.waitForFunction(
-        (cardTestId: string) => document.querySelector(`[data-testid="${cardTestId}"]`) !== null,
-        `rgd-card-${name}`,
-        { timeout: 30000 }
-      )
-    }
+    // Wait for ALL 5 fixture cards at once (not serially) to stay within budget.
+    await page.waitForFunction(
+      (names: string[]) => names.every((n) => document.querySelector(`[data-testid="rgd-card-${n}"]`) !== null),
+      ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions'],
+      { timeout: 45000 }
+    )
   })
 })
