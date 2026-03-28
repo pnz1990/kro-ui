@@ -20,6 +20,7 @@ import RGDCard from '@/components/RGDCard'
 import SearchBar from '@/components/SearchBar'
 import SkeletonCard from '@/components/SkeletonCard'
 import VirtualGrid from '@/components/VirtualGrid'
+import OverviewHealthBar from '@/components/OverviewHealthBar'
 import './Home.css'
 
 // RGDCard renders at a fixed ~130px height (header + meta + actions, no-wrap text).
@@ -196,6 +197,10 @@ export default function Home() {
             Retry
           </button>
         </div>
+      )}
+
+      {!isLoading && error === null && healthSummaries.size > 0 && (
+        <OverviewHealthBar summaries={healthSummaries} totalRGDs={items.length} />
       )}
 
       {!isLoading && error === null && (
