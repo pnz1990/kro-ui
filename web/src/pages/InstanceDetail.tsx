@@ -236,6 +236,22 @@ export default function InstanceDetail() {
   // ── Selected node panel (survives poll refreshes — FR-008) ───────────────
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedNode, setSelectedNode] = useState<DAGNode | null>(null)
+
+  // ── Snooze state (GH #276 F-8) ─────────────────────────────────────────────
+  // Session-only: snoozed node IDs are not persisted. Snooze mutes the error
+  // ring on a specific node without affecting the CR health state.
+  const [snoozedNodes, setSnoozedNodes] = useState<Set<string>>(new Set())
+  const handleSnooze = useCallback((nodeId: string) => {
+    setSnoozedNodes((prev) => {
+      const next = new Set(prev)
+      if (next.has(nodeId)) {
+        next.delete(nodeId) // toggle off (unsnooze)
+      } else {
+        next.add(nodeId) // snooze
+      }
+      return next
+    })
+  }, [])
   /**
    * panelMode: controls which panel is shown when a node is selected.
    *   'node'       → LiveNodeDetailPanel (resource / external / instance nodes)
@@ -495,6 +511,8 @@ export default function InstanceDetail() {
                   children={children}
                   rgds={allRGDs}
                   namespace={namespace ?? ''}
+                  snoozedNodes={snoozedNodes}
+                  onSnooze={handleSnooze}
                 />
               ) : (
                 <div className="instance-detail-dag-empty">

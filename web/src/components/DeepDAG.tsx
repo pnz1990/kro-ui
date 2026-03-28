@@ -57,7 +57,7 @@ export interface DeepDAGProps {
   /** Top-level instance children (for forEach badges). */
   children?: K8sObject[]
   /** All RGDs from the cluster — used to detect kro-managed CRD nodes (FR-001). */
-  rgds: K8sObject[]
+   rgds: K8sObject[]
   /** Namespace of the top-level instance — used to fetch child instances. */
   namespace: string
   /**
@@ -65,6 +65,17 @@ export interface DeepDAGProps {
    * DeepDAG will not show expand icons when depth >= 4 (FR-006).
    */
   depth?: number
+  /**
+   * Set of snoozed node IDs (session-only). Snoozed error nodes render
+   * with a muted grey style + ⊘ indicator instead of the red ring.
+   * GH #276 F-8: "Mark as expected" snooze on error nodes.
+   */
+  snoozedNodes?: Set<string>
+  /**
+   * Callback to toggle a node's snooze state. Called when the user clicks
+   * the ⊘ dismiss button in the tooltip.
+   */
+  onSnooze?: (nodeId: string) => void
 }
 
 // ── Helpers (shared helpers imported from @/lib/dag) ─────────────────────
@@ -92,10 +103,16 @@ function standardNodeClassName(
   node: DAGNode,
   state: NodeLiveState | undefined,
   isSelected: boolean,
+  isSnoozed: boolean,
 ): string {
   const parts = ['dag-node', `dag-node--${node.nodeType}`]
   if (node.isConditional) parts.push('node-conditional')
-  if (state) parts.push(liveStateClass(state))
+  if (isSnoozed) {
+    // Snoozed nodes: muted grey regardless of live state
+    parts.push('dag-node--snoozed')
+  } else if (state) {
+    parts.push(liveStateClass(state))
+  }
   if (isSelected) parts.push('dag-node--selected')
   return parts.join(' ')
 }
@@ -119,6 +136,8 @@ export default function DeepDAG({
   rgds,
   namespace,
   depth = 0,
+  snoozedNodes = new Set<string>(),
+  onSnooze,
 }: DeepDAGProps) {
   // ── Expansion state ────────────────────────────────────────────────────────
   // Map from nodeId → NodeExpansionState
@@ -413,7 +432,7 @@ export default function DeepDAG({
               <g
                 key={node.id}
                 data-testid={`dag-node-${node.id}`}
-                className={standardNodeClassName(node, state, isSelected)}
+                className={standardNodeClassName(node, state, isSelected, snoozedNodes.has(node.id))}
                 tabIndex={0}
                 role="button"
                 aria-label={`${node.label} (${node.nodeType})`}
@@ -529,6 +548,8 @@ export default function DeepDAG({
         }
         onTooltipMouseEnter={cancelTooltipHide}
         onTooltipMouseLeave={scheduleTooltipHide}
+        snoozedNodes={snoozedNodes}
+        onSnooze={onSnooze}
       />
       <DAGLegend />
     </div>

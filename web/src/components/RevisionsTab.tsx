@@ -18,6 +18,9 @@
 // creates a new revision. This tab shows the revision history with status,
 // age, and compilation result.
 //
+// GH #13 (spec 009): Select 2 revisions to show a side-by-side YAML diff
+// (foundation for full graph diff once GraphRevision CRD is available in CI).
+//
 // Spec ref: .specify/specs/046-kro-v090-upgrade/ (Phase 4 — Graph Revisions tab)
 // GH #274: kro v0.9.0 upgrade — Graph Revisions tab
 
@@ -95,6 +98,32 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
+  // GH #13 (spec 009): Select 2 revisions to show side-by-side YAML diff
+  const [selectedRevs, setSelectedRevs] = useState<Set<string>>(new Set())
+  const [diffPair, setDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
+
+  function toggleSelect(name: string, e: React.MouseEvent | React.ChangeEvent) {
+    e.stopPropagation()
+    setSelectedRevs((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) { next.delete(name) }
+      else if (next.size < 2) { next.add(name) }
+      return next
+    })
+  }
+
+  function handleCompare() {
+    if (!revisions || selectedRevs.size !== 2) return
+    const keys = Array.from(selectedRevs)
+    const a = revisions.find((r) => {
+      const m = r.metadata as Record<string, unknown>; return m?.name === keys[0]
+    })
+    const b = revisions.find((r) => {
+      const m = r.metadata as Record<string, unknown>; return m?.name === keys[1]
+    })
+    if (a && b) setDiffPair([a, b])
+  }
+
   const fetchRevisions = useCallback(() => {
     if (!rgdName) return
     setLoading(true)
@@ -151,9 +180,75 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
 
   return (
     <div className="revisions-tab" data-testid="revisions-tab">
+      {/* GH #13 (spec 009): compare action bar */}
+      {revisions.length > 1 && (
+        <div className="revisions-tab__compare-bar">
+          {selectedRevs.size === 2 ? (
+            <>
+              <button
+                type="button"
+                className="revisions-tab__compare-btn"
+                onClick={handleCompare}
+                data-testid="revisions-compare-btn"
+              >
+                Compare revisions
+              </button>
+              <button
+                type="button"
+                className="revisions-tab__compare-clear"
+                onClick={() => { setSelectedRevs(new Set()); setDiffPair(null) }}
+              >
+                Clear
+              </button>
+            </>
+          ) : selectedRevs.size === 1 ? (
+            <span className="revisions-tab__compare-hint">Select 1 more to compare</span>
+          ) : (
+            <span className="revisions-tab__compare-hint">Select 2 revisions to compare</span>
+          )}
+        </div>
+      )}
+
+      {/* GH #13 diff panel */}
+      {diffPair && (
+        <div className="revisions-tab__diff-panel" data-testid="revisions-diff-panel">
+          <div className="revisions-tab__diff-header">
+            <span className="revisions-tab__diff-title">Revision diff</span>
+            <button
+              type="button"
+              className="revisions-tab__diff-close"
+              onClick={() => { setDiffPair(null); setSelectedRevs(new Set()) }}
+            >
+              Close diff
+            </button>
+          </div>
+          <div className="revisions-tab__diff-cols">
+            <div className="revisions-tab__diff-col">
+              <div className="revisions-tab__diff-col-header">
+                {(() => {
+                  const m = diffPair[0].metadata as Record<string, unknown>
+                  return `Rev #${revisionNumber(diffPair[0])} — ${m?.name}`
+                })()}
+              </div>
+              <KroCodeBlock code={toYaml(cleanK8sObject(diffPair[0]))} title="Rev A" />
+            </div>
+            <div className="revisions-tab__diff-col">
+              <div className="revisions-tab__diff-col-header">
+                {(() => {
+                  const m = diffPair[1].metadata as Record<string, unknown>
+                  return `Rev #${revisionNumber(diffPair[1])} — ${m?.name}`
+                })()}
+              </div>
+              <KroCodeBlock code={toYaml(cleanK8sObject(diffPair[1]))} title="Rev B" />
+            </div>
+          </div>
+        </div>
+      )}
+
       <table className="revisions-table" data-testid="revisions-table">
         <thead>
           <tr>
+            {revisions.length > 1 && <th className="revisions-table__th revisions-table__th--check" />}
             <th className="revisions-table__th">Revision</th>
             <th className="revisions-table__th">Status</th>
             <th className="revisions-table__th">Age</th>
@@ -175,11 +270,25 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
               <>
                 <tr
                   key={name}
-                  className={`revisions-table__row revisions-table__row--${state}${isExpanded ? ' revisions-table__row--expanded' : ''}`}
+                  className={`revisions-table__row revisions-table__row--${state}${isExpanded ? ' revisions-table__row--expanded' : ''}${selectedRevs.has(name) ? ' revisions-table__row--selected' : ''}`}
                   data-testid={`revision-row-${name}`}
                   onClick={() => setExpanded(isExpanded ? null : name)}
                   style={{ cursor: 'pointer' }}
                 >
+                  {revisions.length > 1 && (
+                    <td
+                      className="revisions-table__td revisions-table__td--check"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedRevs.has(name)}
+                        onChange={(e) => toggleSelect(name, e)}
+                        disabled={selectedRevs.size === 2 && !selectedRevs.has(name)}
+                        aria-label={`Select revision ${name} for comparison`}
+                      />
+                    </td>
+                  )}
                   <td className="revisions-table__td revisions-table__td--rev">
                     <span className="revisions-table__rev-num">#{revNum}</span>
                     <span className="revisions-table__rev-name" title={name}>{name}</span>

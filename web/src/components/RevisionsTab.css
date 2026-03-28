@@ -159,3 +159,102 @@
   padding: 0;
   border-bottom: 1px solid var(--color-border);
 }
+
+/* ── Revision selection + diff (GH #13 spec-009) ─────────────────────────── */
+
+.revisions-table__th--check,
+.revisions-table__td--check {
+  width: 32px;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.revisions-table__row--selected {
+  background: var(--color-surface-2);
+  outline: 1px solid var(--color-alive);
+  outline-offset: -1px;
+}
+
+.revisions-tab__compare-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+
+.revisions-tab__compare-btn {
+  padding: 3px 10px;
+  border: 1px solid var(--color-alive);
+  border-radius: var(--radius-sm);
+  background: var(--node-alive-bg);
+  color: var(--color-alive);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.revisions-tab__compare-clear {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.revisions-tab__compare-hint {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.revisions-tab__diff-panel {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.revisions-tab__diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--color-surface-2);
+  font-size: 13px;
+}
+
+.revisions-tab__diff-title { font-weight: 500; }
+
+.revisions-tab__diff-close {
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.revisions-tab__diff-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-height: 480px;
+  overflow: auto;
+}
+
+.revisions-tab__diff-col {
+  border-right: 1px solid var(--color-border);
+  overflow: auto;
+}
+
+.revisions-tab__diff-col:last-child { border-right: none; }
+
+.revisions-tab__diff-col-header {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border-bottom: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+}

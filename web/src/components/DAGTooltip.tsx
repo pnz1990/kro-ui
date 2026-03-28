@@ -38,7 +38,7 @@ export interface DAGTooltipProps {
    * and includeWhen are both empty, so users can see state on any node.
    * Spec: .specify/specs/029-dag-instance-overlay/
    */
-  nodeState?: NodeLiveState
+   nodeState?: NodeLiveState
   /**
    * Called when the cursor enters the tooltip element.
    * The parent DAG component uses this to cancel the pending hide timer,
@@ -52,6 +52,16 @@ export interface DAGTooltipProps {
    * Issue #188.
    */
   onTooltipMouseLeave?: () => void
+  /**
+   * Set of snoozed node IDs (GH #276 F-8). When provided and the hovered
+   * node's state is 'error', a ⊘ dismiss button is shown in the tooltip.
+   */
+  snoozedNodes?: Set<string>
+  /**
+   * Callback when the ⊘ dismiss button is clicked (GH #276 F-8).
+   * The parent passes this down from InstanceDetail's snooze state setter.
+   */
+  onSnooze?: (nodeId: string) => void
 }
 
 /**
@@ -123,6 +133,8 @@ export default function DAGTooltip({
   nodeState,
   onTooltipMouseEnter,
   onTooltipMouseLeave,
+  snoozedNodes,
+  onSnooze,
 }: DAGTooltipProps) {
   const tooltipRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
@@ -225,6 +237,21 @@ export default function DAGTooltip({
               <span className="dag-tooltip__state-hint">
                 {STATE_HINT[nodeState]}
               </span>
+            )}
+            {/* GH #276 F-8: Snooze button — shown for error nodes when onSnooze is provided */}
+            {nodeState === 'error' && onSnooze && node && (
+              <button
+                type="button"
+                className={`dag-tooltip__snooze-btn${snoozedNodes?.has(node.id) ? ' dag-tooltip__snooze-btn--active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onSnooze(node.id) }}
+                title={snoozedNodes?.has(node.id)
+                  ? 'Unsnooze — show error ring again'
+                  : 'Dismiss error ring for this session (snooze)'
+                }
+                aria-label={snoozedNodes?.has(node.id) ? 'Unsnooze node' : 'Snooze node'}
+              >
+                {snoozedNodes?.has(node.id) ? '↺ Unsnooze' : '⊘ Dismiss'}
+              </button>
             )}
           </>
         )}
