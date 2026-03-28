@@ -128,3 +128,35 @@ export function countWarningEvents(events: K8sList): number {
     return t === 'Warning' ? count + 1 : count
   }, 0)
 }
+
+// ── countFailedConditions ─────────────────────────────────────────────
+
+/**
+ * Counts instance conditions that are in a non-healthy state.
+ *
+ * A condition is "warning-worthy" when its `status` is `False` or `Unknown`
+ * AND its type is NOT `Ready` (the Ready condition is already surfaced
+ * prominently via the health pill and reconciling banner).
+ *
+ * Returns the count of non-healthy non-Ready conditions.
+ * Returns 0 when `status.conditions` is absent or not an array.
+ *
+ * Spec: .specify/specs/059-condition-warnings/spec.md
+ */
+export function countFailedConditions(instance: K8sObject): number {
+  const status = (instance as Record<string, unknown>)?.status
+  if (typeof status !== 'object' || status === null) return 0
+
+  const conditions = (status as Record<string, unknown>).conditions
+  if (!Array.isArray(conditions)) return 0
+
+  return conditions.reduce((count, cond) => {
+    if (typeof cond !== 'object' || cond === null) return count
+    const c = cond as Record<string, unknown>
+    // Skip the Ready condition — it's already surfaced in the health pill
+    if (c.type === 'Ready') return count
+    // Count conditions with status=False or status=Unknown
+    if (c.status === 'False' || c.status === 'Unknown') return count + 1
+    return count
+  }, 0)
+}
