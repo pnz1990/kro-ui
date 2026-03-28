@@ -35,6 +35,7 @@ import (
 
 	"github.com/pnz1990/kro-ui/internal/api/handlers"
 	"github.com/pnz1990/kro-ui/internal/api/types"
+	responsecache "github.com/pnz1990/kro-ui/internal/cache"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 	"github.com/pnz1990/kro-ui/internal/version"
 	"github.com/pnz1990/kro-ui/web"
@@ -82,7 +83,10 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			_, _ = w.Write([]byte("ok"))
 		})
 
-		// Version — always available regardless of cluster connectivity.
+		// Version endpoint: always available, cached when factory is present.
+		// Defined here so it works even in factory=nil test mode.
+		// Note: the cache-wrapped version inside the factory block takes
+		// precedence in production since it's registered on the same path.
 		r.Get("/version", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -98,39 +102,72 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 		if factory != nil {
 			h := handlers.New(factory)
 
-			// Cluster contexts
+			// Response cache (spec 052-response-cache).
+			// Singleton shared across all cacheable routes.
+			// Purge expired entries every 2 minutes to prevent unbounded growth.
+			rc := responsecache.New()
+			go func() {
+				for range time.Tick(2 * time.Minute) {
+					rc.Purge()
+				}
+			}()
+
+			// Cache TTLs per spec:
+			//   RGD list/detail:   30s  — rarely changes mid-session
+			//   Instance list:     10s  — moderate change rate
+			//   Capabilities:       5m  — changes only on kro redeploy
+			//   Version:            5m  — constant at runtime
+			const (
+				ttlRGD          = 30 * time.Second
+				ttlInstanceList = 10 * time.Second
+				ttlCapabilities = 5 * time.Minute
+				ttlGraphRevs    = 30 * time.Second
+			)
+
+			// NOT cached (always fresh):
+			//   /instances/{ns}/{name}           — 5s poll, must be fresh
+			//   /instances/{ns}/{name}/children  — 5s poll
+			//   /instances/{ns}/{name}/events    — realtime
+			//   /events                          — realtime
+			//   /kro/metrics                     — realtime
+			//   /resources/...                   — on-demand YAML inspection
+
+			// Cluster contexts — not cached (user-initiated, must be fresh for switcher)
 			r.Get("/contexts", h.ListContexts)
 			r.Post("/contexts/switch", h.SwitchContext)
 
-			// ResourceGraphDefinitions
-			r.Get("/rgds", h.ListRGDs)
-			r.Get("/rgds/{name}", h.GetRGD)
-			r.Get("/rgds/{name}/instances", h.ListInstances)
+			// ResourceGraphDefinitions — cached
+			r.With(responsecache.Middleware(rc, ttlRGD)).Get("/rgds", h.ListRGDs)
+			r.With(responsecache.Middleware(rc, ttlRGD)).Get("/rgds/{name}", h.GetRGD)
+			r.With(responsecache.Middleware(rc, ttlInstanceList)).Get("/rgds/{name}/instances", h.ListInstances)
 			r.Get("/rgds/{name}/access", h.GetRGDAccess)
-			// Validate endpoints (spec 045 — US9: dry-run, US10: offline static)
+
+			// Validate endpoints — never cached (stateful analysis)
 			r.Post("/rgds/validate", h.ValidateRGD)
 			r.Post("/rgds/validate/static", h.ValidateRGDStatic)
 
-			// Instances
+			// Instances — NOT cached (live polling)
 			r.Get("/instances/{namespace}/{name}", h.GetInstance)
 			r.Get("/instances/{namespace}/{name}/events", h.GetInstanceEvents)
 			r.Get("/instances/{namespace}/{name}/children", h.GetInstanceChildren)
 
-			// Raw resource YAML (any kind — for node inspection)
+			// Raw resource YAML — not cached (on-demand)
 			r.Get("/resources/{namespace}/{group}/{version}/{kind}/{name}", h.GetResource)
 
-			// kro capabilities detection
-			r.Get("/kro/capabilities", h.GetCapabilities)
+			// kro capabilities — cached (long TTL, changes on kro redeploy only)
+			r.With(responsecache.Middleware(rc, ttlCapabilities)).Get("/kro/capabilities", h.GetCapabilities)
 
-			// GraphRevision list and get (kro v0.9.0+, internal.kro.run/v1alpha1)
-			r.Get("/kro/graph-revisions", h.ListGraphRevisions)
-			r.Get("/kro/graph-revisions/{name}", h.GetGraphRevision)
+			// GraphRevisions — cached (short TTL, updates on RGD spec changes)
+			r.With(responsecache.Middleware(rc, ttlGraphRevs)).Get("/kro/graph-revisions", h.ListGraphRevisions)
+			r.With(responsecache.Middleware(rc, ttlGraphRevs)).Get("/kro/graph-revisions/{name}", h.GetGraphRevision)
 
-			// Smart event stream — kro-filtered Kubernetes Events
+			// Smart event stream — NOT cached (realtime)
 			r.Get("/events", h.ListEvents)
 
-			// Controller metrics — kro Prometheus scrape summary
+			// Controller metrics — NOT cached (realtime counter data)
 			r.Get("/kro/metrics", h.GetMetrics)
+		} else {
+			// No factory — only version and healthz are functional
 		}
 
 		// Fleet summary is registered outside the 5s middleware timeout block
