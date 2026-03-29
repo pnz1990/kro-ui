@@ -330,7 +330,11 @@ export default function InstancesPage() {
                     style={{ cursor: 'pointer' }}
                   >
                     <td className="instances-table__td instances-table__td--state">
-                      <StatusDot state={dotState} />
+                      <StatusDot
+                        state={dotState}
+                        message={item.message}
+                        reason={item.message ? (health === 'reconciling' ? 'Reconciling' : 'Not ready') : undefined}
+                      />
                     </td>
                     <td className="instances-table__td instances-table__td--name">
                       <Link to={href} className="instances-table__link" tabIndex={-1}>
