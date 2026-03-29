@@ -32,9 +32,17 @@ function toDotState(health: 'ready' | 'reconciling' | 'error' | 'unknown'): 'rea
   return health
 }
 
-type SortKey = 'name' | 'age' | 'rgd' | 'namespace'
+type SortKey = 'name' | 'age' | 'rgd' | 'namespace' | 'health'
 type SortDir = 'asc' | 'desc'
 type HealthFilter = 'all' | 'ready' | 'reconciling' | 'error' | 'unknown'
+
+/** Health priority for sorting: error (0) > reconciling (1) > unknown (2) > ready (3) */
+const HEALTH_PRIORITY: Record<string, number> = {
+  error: 0,
+  reconciling: 1,
+  unknown: 2,
+  ready: 3,
+}
 
 function compareItems(a: InstanceSummary, b: InstanceSummary, key: SortKey, dir: SortDir): number {
   let cmp = 0
@@ -54,6 +62,12 @@ function compareItems(a: InstanceSummary, b: InstanceSummary, key: SortKey, dir:
       cmp = bMs - aMs // newer first by default
       break
     }
+    case 'health': {
+      const aH = HEALTH_PRIORITY[toHealthState(a)] ?? 3
+      const bH = HEALTH_PRIORITY[toHealthState(b)] ?? 3
+      cmp = aH - bH // worst first by default
+      break
+    }
   }
   return dir === 'asc' ? cmp : -cmp
 }
@@ -69,8 +83,8 @@ export default function InstancesPage() {
   const [query, setQuery] = useState('')
   const [nsFilter, setNsFilter] = useState('') // namespace dropdown
   const [healthFilter, setHealthFilter] = useState<HealthFilter>('all')
-  const [sortKey, setSortKey] = useState<SortKey>('age')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [sortKey, setSortKey] = useState<SortKey>('health')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
 
   const fetchAll = useCallback(() => {
@@ -142,7 +156,7 @@ export default function InstancesPage() {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
       setSortKey(key)
-      setSortDir(key === 'age' ? 'desc' : 'asc')
+      setSortDir(key === 'age' ? 'desc' : 'asc') // age: newest first; health: worst first (asc = error first)
     }
     setPage(0)
   }
@@ -252,8 +266,15 @@ export default function InstancesPage() {
               <tr>
                 <th
                   className="instances-table__th instances-table__th--state"
-                  aria-label="Health state"
-                />
+                  onClick={() => handleSort('health')}
+                  aria-sort={sortKey === 'health' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSort('health')}
+                  title="Sort by health state (error first)"
+                  style={{ cursor: 'pointer' }}
+                >
+                  {sortIndicator('health')}
+                </th>
                 <th
                   className="instances-table__th"
                   onClick={() => handleSort('name')}

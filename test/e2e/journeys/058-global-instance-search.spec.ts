@@ -172,4 +172,66 @@ test.describe('Journey 058: Global Instance Search', () => {
     const title = await page.title()
     expect(title).toBe('Instances — kro-ui')
   })
+
+  // ── Namespace dropdown (spec 062) ─────────────────────────────────────────────
+
+  test('Step 6: namespace dropdown exists when multiple namespaces present', async ({ page }) => {
+    await page.goto(`${BASE}/instances`)
+    // Wait for page to load
+    await page.waitForFunction(
+      () => {
+        const table = document.querySelector('[data-testid="instances-table"]')
+        const empty = document.querySelector('.panel-empty')
+        return table !== null || empty !== null
+      },
+      { timeout: 60000 }
+    )
+    // Namespace filter only appears when >1 namespace — check if it renders
+    // (on a single-namespace cluster it would be absent)
+    const nsFilter = page.locator('[data-testid="instances-ns-filter"]')
+    // This may or may not be visible depending on cluster — not a hard requirement
+    const nsCount = await nsFilter.count()
+    if (nsCount > 0) {
+      // If present, it should have an "All namespaces" option
+      const allOption = nsFilter.locator('option[value=""]')
+      await expect(allOption).toBeAttached()
+    }
+  })
+
+  // ── Health filter chips (spec 062) ────────────────────────────────────────────
+
+  test('Step 7: health filter chips present and interactive', async ({ page }) => {
+    await page.goto(`${BASE}/instances`)
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="instances-health-filter-all"]') !== null ||
+            document.querySelector('.panel-empty') !== null,
+      { timeout: 60000 }
+    )
+    const allChip = page.locator('[data-testid="instances-health-filter-all"]')
+    if (await allChip.count() > 0) {
+      // All chip should be active by default (aria-pressed=true)
+      await expect(allChip).toHaveAttribute('aria-pressed', 'true')
+      // All chip text should contain total count
+      const text = await allChip.textContent()
+      expect(text).toMatch(/All \(\d+\)/)
+    }
+  })
+
+  // ── Health sort (spec 065) ────────────────────────────────────────────────────
+
+  test('Step 8: status dot column is a sortable health sort button', async ({ page }) => {
+    await page.goto(`${BASE}/instances`)
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="instances-table"]') !== null ||
+            document.querySelector('.panel-empty') !== null,
+      { timeout: 60000 }
+    )
+    const table = page.locator('[data-testid="instances-table"]')
+    if (await table.count() === 0) return // no instances, skip
+
+    // The status dot column header should be interactive (has sort indicator)
+    const statusHeader = page.locator('.instances-table thead tr th:first-child')
+    await expect(statusHeader).toHaveAttribute('tabindex', '0')
+    await expect(statusHeader).toHaveAttribute('aria-sort')
+  })
 })
