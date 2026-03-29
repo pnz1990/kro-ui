@@ -77,6 +77,8 @@ export interface InstanceSummary {
   rgdName: string
   state: string
   ready: string
+  /** Ready condition message — non-empty only when Ready≠True. Shown as tooltip on status indicator. */
+  message?: string
   creationTimestamp: string
 }
 

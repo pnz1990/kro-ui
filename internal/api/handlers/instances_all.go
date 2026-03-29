@@ -49,6 +49,9 @@ type InstanceSummary struct {
 	State string `json:"state"`
 	// Ready is the value of the Ready condition: "True", "False", or "Unknown".
 	Ready string `json:"ready"`
+	// Message is the Ready condition's message (empty for healthy instances).
+	// Shown as a tooltip on the status indicator to explain why an instance is not ready.
+	Message string `json:"message,omitempty"`
 	// CreationTimestamp is RFC3339 — used by the frontend for age display.
 	CreationTimestamp string `json:"creationTimestamp"`
 }
@@ -135,6 +138,7 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 
 				// Extract ready condition from status.conditions
 				ready := "Unknown"
+				readyMessage := ""
 				stateStr := ""
 				if statusObj, ok := obj.Object["status"].(map[string]any); ok {
 					if s, ok := statusObj["state"].(string); ok {
@@ -146,6 +150,12 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 								if cm["type"] == "Ready" {
 									if s, ok := cm["status"].(string); ok {
 										ready = s
+									}
+									// Only surface the message when Ready≠True (failure/unknown)
+									if ready != "True" {
+										if msg, ok := cm["message"].(string); ok && msg != "" {
+											readyMessage = msg
+										}
 									}
 								}
 							}
@@ -168,6 +178,7 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 					RGDName:           rgdName,
 					State:             stateStr,
 					Ready:             ready,
+					Message:           readyMessage,
 					CreationTimestamp: createdAt,
 				})
 			}
