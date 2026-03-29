@@ -222,4 +222,36 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     const subtitle = page.locator('text=Controller and RGD health at a glance')
     await expect(subtitle).toBeVisible({ timeout: 5000 })
   })
+
+  test('Step 12: RGD compile-error banner appears when invalid RGDs are present (spec 069)', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+
+    // The E2E cluster has cel-functions, invalid-cel-rgd, chain-parent etc. with compile errors.
+    // The banner should appear once the RGD list loads.
+    const banner = page.getByTestId('rgd-error-banner')
+    await expect(banner).toBeVisible({ timeout: 10000 })
+
+    // Banner text: N RGDs have compile errors (or "1 RGD has a compile error")
+    const bannerText = await banner.textContent()
+    expect(bannerText).toMatch(/\d+\s+RGD[s]?\s+ha[sv]e?\s+(a\s+)?compile error/)
+
+    // Clicking the banner button activates the error-only filter
+    const bannerBtn = banner.locator('button')
+    await bannerBtn.click()
+
+    // After clicking, only error-state RGD cards should be visible.
+    // cel-functions and invalid-cel-rgd are fixture error RGDs in the E2E cluster.
+    await page.waitForFunction(() => {
+      const card = document.querySelector('[data-testid="rgd-card-test-app"]')
+      return !card || (card as HTMLElement).offsetParent === null
+    }, { timeout: 5000 })
+
+    // Verify at least one error-state RGD card is visible (cel-functions is always broken in E2E)
+    await expect(page.getByTestId('rgd-card-cel-functions')).toBeVisible()
+
+    // Clicking again removes the filter
+    await bannerBtn.click()
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible({ timeout: 5000 })
+  })
 })
