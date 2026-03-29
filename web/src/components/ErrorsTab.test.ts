@@ -186,14 +186,21 @@ describe('groupErrorPatterns — IN_PROGRESS instances are not aggregated', () =
     }
   }
 
-  it('skips instances with status.state=IN_PROGRESS (never-ready pattern)', () => {
+  it('includes IN_PROGRESS instances with Ready=False — stuck reconciliation is actionable', () => {
+    // Previously these were skipped (PR #286), but operators need to see
+    // stuck instances (e.g. never-ready running for days) in the Errors tab.
     const instances = [
       makeInProgressInstance('never-ready-prod'),
       makeInProgressInstance('never-ready-staging'),
       makeInProgressInstance('never-ready-dev'),
     ]
     const groups = groupErrorPatterns(instances)
-    expect(groups).toHaveLength(0)
+    // All 3 instances have Ready=False/NotReady — they appear in the Errors tab.
+    expect(groups.length).toBeGreaterThan(0)
+    const allNames = groups.flatMap((g) => g.instances.map((i) => i.name))
+    expect(allNames).toContain('never-ready-prod')
+    expect(allNames).toContain('never-ready-staging')
+    expect(allNames).toContain('never-ready-dev')
   })
 
   it('skips instances with Progressing=True condition', () => {
@@ -202,9 +209,9 @@ describe('groupErrorPatterns — IN_PROGRESS instances are not aggregated', () =
     expect(groups).toHaveLength(0)
   })
 
-  it('includes genuinely errored instances (no IN_PROGRESS state, no Progressing)', () => {
+  it('includes genuinely errored instances (no Progressing condition); IN_PROGRESS instances also included now', () => {
     const instances = [
-      makeInProgressInstance('reconciling-1'),  // skipped
+      makeInProgressInstance('reconciling-1'),  // included (stuck reconciling = actionable)
       {
         metadata: { name: 'broken', namespace: 'default' },
         status: {
@@ -216,8 +223,10 @@ describe('groupErrorPatterns — IN_PROGRESS instances are not aggregated', () =
       } as K8sObject,
     ]
     const groups = groupErrorPatterns(instances)
-    expect(groups).toHaveLength(1)
-    expect(groups[0].instances[0].name).toBe('broken')
+    // Both instances have Ready=False — both appear in the Errors tab.
+    const allNames = groups.flatMap((g) => g.instances.map((i) => i.name))
+    expect(allNames).toContain('broken')
+    expect(allNames).toContain('reconciling-1')
   })
 
   it('skips GraphProgressing=True instances (kro v0.8.x compat)', () => {

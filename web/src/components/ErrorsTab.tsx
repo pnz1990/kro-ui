@@ -70,12 +70,11 @@ export function groupErrorPatterns(instances: K8sObject[]): ErrorGroup[] {
 
     const status = instance.status as Record<string, unknown> | undefined
 
-    // Skip instances that are actively reconciling (IN_PROGRESS kro state or
-    // Progressing=True condition). Their Ready=False is an expected transient
-    // state — not an actionable error pattern. Showing them in the Errors tab
-    // produces false positives (e.g. never-ready shows "2 error patterns"
-    // while the instance list correctly shows "Reconciling").
-    if (status?.state === 'IN_PROGRESS') continue
+    // Skip instances with an active Progressing condition — their Ready=False is
+    // a transient state during reconciliation, not an actionable error.
+    // Note: we intentionally do NOT skip all IN_PROGRESS instances because a
+    // stuck instance (e.g. never-ready, IN_PROGRESS for hours) with Ready=False
+    // conditions IS an actionable problem and should appear in the Errors tab.
     const rawConds = status?.conditions
     if (Array.isArray(rawConds)) {
       const isProgressing = (rawConds as Array<Record<string, unknown>>).some(

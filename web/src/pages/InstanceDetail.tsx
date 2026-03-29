@@ -135,6 +135,23 @@ function reconcilingSinceMinutes(instance: K8sObject | null): number | null {
 
 // ── Reconciling banner ─────────────────────────────────────────────────────
 
+/** Format a duration in minutes as a human-readable string.
+ * e.g. 3827m → "2d 15h", 90m → "1h 30m", 45m → "45m".
+ */
+function formatReconcileDuration(mins: number): string {
+  if (mins >= 24 * 60) {
+    const d = Math.floor(mins / (24 * 60))
+    const h = Math.floor((mins % (24 * 60)) / 60)
+    return h > 0 ? `${d}d ${h}h` : `${d}d`
+  }
+  if (mins >= 60) {
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return m > 0 ? `${h}h ${m}m` : `${h}h`
+  }
+  return `${mins}m`
+}
+
 function isReconciling(instance: K8sObject | null): boolean {
   if (!instance) return false
   const status = instance.status as Record<string, unknown> | undefined
@@ -446,7 +463,7 @@ export default function InstanceDetail() {
           >
             <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
             {isStuck
-              ? <>kro has been reconciling this instance for {mins}m — check the Conditions panel and <code>kubectl describe</code> the child resources for errors.</>
+              ? <>kro has been reconciling this instance for {formatReconcileDuration(mins!)} — check the Conditions panel and <code>kubectl describe</code> the child resources for errors.</>
               : 'kro is reconciling this instance'
             }
           </div>

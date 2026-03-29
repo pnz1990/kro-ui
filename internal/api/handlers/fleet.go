@@ -150,6 +150,7 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 		count       int
 		degraded    int
 		reconciling int
+		kroVersion  string // kro.run/kro-version label from the first instance found
 	}
 	results := make([]instanceResult, len(entries))
 	var mu sync.Mutex
@@ -179,15 +180,23 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 
 			deg := 0
 			rec := 0
+			ver := ""
 			for _, inst := range instances.Items {
 				if isInstanceDegraded(inst.Object) {
 					deg++
 				} else if isInstanceReconciling(inst.Object) {
 					rec++
 				}
+				// Capture kro version from the first instance that has the label.
+				// kro stamps kro.run/kro-version on every CR it manages.
+				if ver == "" {
+					if v, ok := inst.GetLabels()["kro.run/kro-version"]; ok && v != "" {
+						ver = v
+					}
+				}
 			}
 			mu.Lock()
-			results[i] = instanceResult{len(instances.Items), deg, rec}
+			results[i] = instanceResult{len(instances.Items), deg, rec, ver}
 			mu.Unlock()
 			return nil
 		})
@@ -213,13 +222,14 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 		summary.Health = types.ClusterHealthy
 	}
 
-	// Populate kro version from the kro.run/kro-version annotation on the first RGD.
-	// This is cheaper than calling DetectCapabilities (which probes the kro Deployment)
-	// since we already have the RGD list. kro sets this annotation on all RGDs.
-	// Falls back to DetectCapabilities only when no annotated RGDs are found.
-	for i := range list.Items {
-		if v, ok := list.Items[i].GetAnnotations()["kro.run/kro-version"]; ok && v != "" {
-			summary.KroVersion = v
+	// Populate kro version from the kro.run/kro-version label on CR instances.
+	// kro stamps this label on every CR it manages; it is not present on RGD objects.
+	// We pick the first non-empty value found across all instance fan-out results.
+	// Falls back to DetectCapabilities (which probes the kro Deployment) only when
+	// no instances exist or none carry the label.
+	for _, r := range results {
+		if r.kroVersion != "" {
+			summary.KroVersion = r.kroVersion
 			break
 		}
 	}
