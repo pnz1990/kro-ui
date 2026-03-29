@@ -200,6 +200,8 @@ export interface ClusterSummary {
   rgdCount: number
   instanceCount: number
   degradedInstances: number
+  /** Instances in the IN_PROGRESS (reconciling) state — not degraded but pending. Optional: absent on older kro-ui backends. */
+  reconcilingInstances?: number
   kroVersion: string
   rgdKinds: string[]
   error?: string
