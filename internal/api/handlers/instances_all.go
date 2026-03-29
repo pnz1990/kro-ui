@@ -63,8 +63,13 @@ type ListAllInstancesResponse struct {
 }
 
 // perRGDAllInstancesTimeout is the deadline for listing instances of each RGD
-// in the fan-out. Kept short to honour the 5s total handler budget.
-const perRGDAllInstancesTimeout = 2
+// in the fan-out. All goroutines run in parallel so the total handler latency
+// is approximately max(individual_request_latency).
+//
+// Increased to 5s (was 2s): on throttled clusters the DiscoverPlural call alone
+// can take 1-2s, leaving insufficient time for the List call under the 2s limit.
+// Since goroutines run in parallel the overall handler stays within the 5s budget.
+const perRGDAllInstancesTimeout = 5
 
 func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
