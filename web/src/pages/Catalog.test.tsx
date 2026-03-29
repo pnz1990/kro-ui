@@ -41,6 +41,26 @@ function makeRGD(
   }
 }
 
+/** makeErrorRGD returns an RGD with Ready=False (compile error). */
+function makeErrorRGD(name: string, kind: string) {
+  return {
+    metadata: {
+      name,
+      labels: {},
+      creationTimestamp: '2026-01-15T10:00:00Z',
+    },
+    spec: {
+      schema: { kind },
+      resources: [],
+    },
+    status: {
+      conditions: [
+        { type: 'Ready', status: 'False', reason: 'InvalidResourceGraph', message: 'failed' },
+      ],
+    },
+  }
+}
+
 function makeInstanceList(count: number) {
   return {
     items: Array.from({ length: count }, (_, i) => ({
@@ -325,5 +345,121 @@ describe('Catalog', () => {
     await waitFor(() => {
       expect(screen.getByText('3 of 3')).toBeInTheDocument()
     })
+  })
+
+  // ── Status filter tests (spec 070) ─────────────────────────────
+
+  it('status filter buttons are rendered (All, Ready, Errors)', async () => {
+    mockedListRGDs.mockResolvedValue({
+      items: [makeRGD('app', 'App')],
+      metadata: {},
+    })
+    renderCatalog()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-status-all')).toBeInTheDocument()
+      expect(screen.getByTestId('catalog-status-ready')).toBeInTheDocument()
+      expect(screen.getByTestId('catalog-status-errors')).toBeInTheDocument()
+    })
+    // All is active by default
+    expect(screen.getByTestId('catalog-status-all')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('catalog-status-ready')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('catalog-status-errors')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('Errors filter shows only error-state RGDs', async () => {
+    const user = userEvent.setup()
+    mockedListRGDs.mockResolvedValue({
+      items: [makeRGD('app-ok', 'AppOk'), makeErrorRGD('broken', 'Broken'), makeRGD('also-ok', 'AlsoOk')],
+      metadata: {},
+    })
+    renderCatalog()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('catalog-status-errors'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('catalog-card-app-ok')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('catalog-card-also-ok')).not.toBeInTheDocument()
+      expect(screen.getByTestId('catalog-card-broken')).toBeInTheDocument()
+    })
+
+    // Count updates to reflect filter
+    expect(screen.getByText('1 of 3')).toBeInTheDocument()
+  })
+
+  it('Ready filter shows only ready-state RGDs', async () => {
+    const user = userEvent.setup()
+    mockedListRGDs.mockResolvedValue({
+      items: [makeRGD('app-ok', 'AppOk'), makeErrorRGD('broken', 'Broken')],
+      metadata: {},
+    })
+    renderCatalog()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('catalog-status-ready'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+      expect(screen.queryByTestId('catalog-card-broken')).not.toBeInTheDocument()
+    })
+  })
+
+  it('All filter restores full list after Errors filter', async () => {
+    const user = userEvent.setup()
+    mockedListRGDs.mockResolvedValue({
+      items: [makeRGD('app-ok', 'AppOk'), makeErrorRGD('broken', 'Broken')],
+      metadata: {},
+    })
+    renderCatalog()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('catalog-status-errors'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('catalog-card-app-ok')).not.toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('catalog-status-all'))
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+      expect(screen.getByTestId('catalog-card-broken')).toBeInTheDocument()
+    })
+  })
+
+  it('clearFilters resets status filter to All — via All button', async () => {
+    const user = userEvent.setup()
+    mockedListRGDs.mockResolvedValue({
+      items: [makeRGD('app-ok', 'AppOk'), makeErrorRGD('broken', 'Broken')],
+      metadata: {},
+    })
+    renderCatalog()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+    })
+
+    // Activate Errors filter
+    await user.click(screen.getByTestId('catalog-status-errors'))
+    await waitFor(() => {
+      expect(screen.queryByTestId('catalog-card-app-ok')).not.toBeInTheDocument()
+      expect(screen.getByTestId('catalog-card-broken')).toBeInTheDocument()
+    })
+
+    // Pressing All restores full list
+    await user.click(screen.getByTestId('catalog-status-all'))
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-card-app-ok')).toBeInTheDocument()
+      expect(screen.getByTestId('catalog-card-broken')).toBeInTheDocument()
+    })
+    expect(screen.getByTestId('catalog-status-all')).toHaveAttribute('aria-pressed', 'true')
   })
 })
