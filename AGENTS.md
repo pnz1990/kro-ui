@@ -115,11 +115,11 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `054-ux-gaps` | — | formatAge 'just now', MetricsStrip not-reported style, instance name filter | Merged (PR #323) |
 | `055-overview-health-summary` | — | Overview health summary bar — aggregate fleet instance health chips | Merged (PR #324) |
 | `056-rgd-status-tooltip` | — | RGD card error hint — one-line compile error on error-state cards | Merged (PR #325) |
-| `057-cache-context-invalidation` | — | Cache flush on context switch — prevent stale cluster data | In CI (PR #326) |
-| `058-global-instance-search` | — | Global instance search — /instances page + GET /api/v1/instances fan-out | In CI (PR #327) |
-| `059-condition-warnings` | — | WARNINGS counter includes failed/unknown conditions | In CI (PR #328) |
-| `060-health-filter` | — | Clickable OverviewHealthBar chips — filter Overview by health state | In CI (PR #329) |
-| `061-helm-security` | — | Helm chart security hardening — runAsNonRoot, readOnlyRootFilesystem, drop ALL | In CI (PR #330) |
+| `057-cache-context-invalidation` | — | Cache flush on context switch — prevent stale cluster data | Merged (PR #326) |
+| `058-global-instance-search` | — | Global instance search — /instances page + GET /api/v1/instances fan-out | Merged (PR #327) |
+| `059-condition-warnings` | — | WARNINGS counter includes failed/unknown conditions | Merged (PR #328) |
+| `060-health-filter` | — | Clickable OverviewHealthBar chips — filter Overview by health state | Merged (PR #329) |
+| `061-helm-security` | — | Helm chart security hardening — runAsNonRoot, readOnlyRootFilesystem, drop ALL | Merged (PR #330) |
 
 ### Worktrunk (required workflow)
 
@@ -238,6 +238,9 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | WARNINGS cell counting only expired kube events | #328 | Combine event warnings + `countFailedConditions()` (non-Ready conditions with status=False/Unknown); events expire after ~1h leaving WARNINGS=0 for stuck instances |
 | HealthBar chips as non-interactive `<span>` when data is available | #329 | Render as `<button>` with `aria-pressed` when `onFilter` is provided; operators need to click chips to drill down |
 | Helm chart missing security context | #330 | Always add `podSecurityContext` + `containerSecurityContext` with `runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation=false`, `capabilities.drop=[ALL]` |
+| E2E `waitForTimeout(2000)` as data-load guard | #339 | Replace with `waitForFunction` polling the DOM; fixed-ms waits are inherently flaky when the cluster is throttled |
+| E2E test asserting kro-managed instance has no finalizers | #339 | kro adds `kro.run/finalizer` to ALL instances — never assert `.not.toBeVisible()` for the FinalizersPanel on a live kro instance |
+| E2E context-switcher test using `locator.click()` on dropdown option without waiting for options to load | #341 | Use `waitForFunction()` polling the dropdown for the option text; context list loads from `/api/v1/contexts` which can be slow on throttled clusters |
 
 ### Upstream kro node types (5 real types + 1 kro-ui extension)
 
@@ -438,10 +441,9 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
-## Recent Changes
-- v0.6.0 (assembling): UX gaps PR #323; Overview health bar PR #324; RGD error hint PR #325; cache flush on context switch PR #326; global /instances search PR #327; condition warnings PR #328; Overview health filter PR #329; Helm security PR #330
-- v0.5.3 (pending): RGD error hint PR #325; cache flush PR #326 (assembling above with #323-#325)
-- v0.5.2: multi-version kro support — IsSupported, CompareKroVersions, version warning banner (PR #322)
+ ## Recent Changes
+ - v0.5.3: formatAge 'just now' (PR #323); Overview health bar (PR #324); RGD error hint (PR #325); cache flush on context switch (PR #326); global /instances search (PR #327); condition warnings counter (PR #328); Overview health filter (PR #329); Helm security (PR #330); AGENTS docs (PR #331); E2E fixes PRs #332-#341; ListAllInstances optimization (PR #334)
+ - v0.5.2: multi-version kro support — IsSupported, CompareKroVersions, version warning banner (PR #322)
 - v0.5.1 (cutting): Fleet matrix all-kinds-degraded bug fixed (PR #320); kro version in fleet cluster cards (PR #320); kro-ui version in footer (PR #320); DocsTab required fields sorted first (PR #319); Graph tab complexity hint (PR #319); response cache 30s/10s/5min TTLs (PR #321)
 - v0.5.0: ALL GH issues resolved — snooze error DAG nodes (GH #276 F-8, PR #318); GraphRevision side-by-side YAML diff foundation (GH #13, PR #318); v0.4.15 fixes (GH #303 #299 #298 #308 #301 #300 #302 #304 #305 #306 #309 #315)
 - v0.4.15: ValidateRGD PATCH→offline static (GH #303); Fleet degraded color fix (GH #299); ContextSwitcher subtitle fix (GH #298); require.Nil in tests (GH #308); errors.New sentinels (GH #301); handler timeout docs (GH #300); README features updated (GH #302); FinalizersPanel/DAGTooltip/CopySpecButton component tests (GH #305 #304 #306); constitution §II path fix + AGENTS node-type docs (GH #309); CI fix 005 Step 10 (PR #315)
