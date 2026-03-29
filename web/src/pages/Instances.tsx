@@ -1,7 +1,9 @@
 // Instances — global cross-RGD instance search page.
 // Fetches all instances across all RGDs via GET /api/v1/instances (fan-out).
 // Provides search by name, namespace, kind, or RGD name.
+// Also provides namespace dropdown filter and health state filter.
 // Spec: .specify/specs/058-global-instance-search/spec.md
+// Namespace filter: spec .specify/specs/062-instance-namespace-filter/spec.md
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -22,6 +24,7 @@ function toReadyState(ready: string): 'ready' | 'error' | 'unknown' {
 
 type SortKey = 'name' | 'age' | 'rgd' | 'namespace'
 type SortDir = 'asc' | 'desc'
+type HealthFilter = 'all' | 'ready' | 'error' | 'unknown'
 
 function compareItems(a: InstanceSummary, b: InstanceSummary, key: SortKey, dir: SortDir): number {
   let cmp = 0
@@ -54,6 +57,8 @@ export default function InstancesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [nsFilter, setNsFilter] = useState('') // namespace dropdown
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('age')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(0)
@@ -82,18 +87,36 @@ export default function InstancesPage() {
     return cleanup
   }, [fetchAll])
 
-  // Client-side filter: match query against name, namespace, kind, or rgdName
+  // Derive unique namespace options from loaded instances
+  const namespaceOptions = useMemo(() => {
+    const ns = new Set(items.map((i) => i.namespace).filter(Boolean))
+    return Array.from(ns).sort()
+  }, [items])
+
+  // Client-side filter: text search + namespace + health state
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return items
-    return items.filter(
-      (i) =>
+    return items.filter((i) => {
+      // Text search
+      if (q && !(
         i.name.toLowerCase().includes(q) ||
         i.namespace.toLowerCase().includes(q) ||
         i.kind.toLowerCase().includes(q) ||
-        i.rgdName.toLowerCase().includes(q),
-    )
-  }, [items, query])
+        i.rgdName.toLowerCase().includes(q)
+      )) return false
+
+      // Namespace filter
+      if (nsFilter && i.namespace !== nsFilter) return false
+
+      // Health state filter
+      if (healthFilter !== 'all') {
+        const readyState = toReadyState(i.ready)
+        if (readyState !== healthFilter) return false
+      }
+
+      return true
+    })
+  }, [items, query, nsFilter, healthFilter])
 
   const sorted = useMemo(
     () => [...filtered].sort((a, b) => compareItems(a, b, sortKey, sortDir)),
@@ -119,6 +142,16 @@ export default function InstancesPage() {
     return <span className="sort-indicator" aria-hidden="true">{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
+  // Count instances in each health state for filter chips
+  const healthCounts = useMemo(() => {
+    const counts = { ready: 0, error: 0, unknown: 0 }
+    for (const i of items) {
+      const s = toReadyState(i.ready)
+      counts[s]++
+    }
+    return counts
+  }, [items])
+
   return (
     <div className="instances-page">
       <div className="instances-page__header">
@@ -136,6 +169,20 @@ export default function InstancesPage() {
             value={query}
             onChange={(e) => { setQuery(e.target.value); setPage(0) }}
           />
+          {namespaceOptions.length > 1 && (
+            <select
+              className="instances-page__ns-filter"
+              value={nsFilter}
+              onChange={(e) => { setNsFilter(e.target.value); setPage(0) }}
+              aria-label="Filter by namespace"
+              data-testid="instances-ns-filter"
+            >
+              <option value="">All namespaces</option>
+              {namespaceOptions.map((ns) => (
+                <option key={ns} value={ns}>{ns}</option>
+              ))}
+            </select>
+          )}
           {!isLoading && (
             <span className="instances-page__count" data-testid="instances-count">
               {filtered.length === items.length
@@ -145,6 +192,29 @@ export default function InstancesPage() {
           )}
         </div>
       </div>
+
+      {/* Health state filter chips */}
+      {!isLoading && items.length > 0 && (
+        <div className="instances-page__health-filters" role="group" aria-label="Filter by health state">
+          {(['all', 'ready', 'error', 'unknown'] as HealthFilter[]).map((state) => {
+            const count = state === 'all' ? items.length : healthCounts[state]
+            const label = state === 'all' ? 'All' : state
+            if (state !== 'all' && count === 0) return null
+            return (
+              <button
+                key={state}
+                type="button"
+                className={`instances-page__health-chip instances-page__health-chip--${state}${healthFilter === state ? ' instances-page__health-chip--active' : ''}`}
+                onClick={() => { setHealthFilter(state); setPage(0) }}
+                aria-pressed={healthFilter === state}
+                data-testid={`instances-health-filter-${state}`}
+              >
+                {label} ({count})
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {isLoading && (
         <p className="instances-page__loading" aria-busy="true">Loading instances...</p>
@@ -159,8 +229,8 @@ export default function InstancesPage() {
 
       {!isLoading && error === null && sorted.length === 0 && (
         <p className="panel-empty">
-          {query
-            ? `No instances match "${query}".`
+          {query || nsFilter || healthFilter !== 'all'
+            ? 'No instances match the current filters.'
             : 'No instances found across any RGD.'}
         </p>
       )}
