@@ -214,12 +214,29 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	return summary
 }
 
-// isInstanceDegraded returns true if the instance has a Ready=False condition.
+// isInstanceDegraded returns true if the instance has a Ready=False condition
+// AND is not in the IN_PROGRESS reconciling state.
+//
+// Background: the 6-state health model distinguishes "reconciling" (IN_PROGRESS)
+// from "degraded" (Ready but child errors). Fleet's degraded count should only
+// surface instances that are genuinely stuck or broken — not instances that are
+// actively being reconciled toward a healthy state.
+//
+// Without this check, never-ready instances (state=IN_PROGRESS, Ready=False)
+// appear as "degraded" in Fleet while appearing as "reconciling" in Overview,
+// creating an inconsistent and confusing UX.
 func isInstanceDegraded(obj map[string]any) bool {
 	status, ok := obj["status"].(map[string]any)
 	if !ok {
 		return false
 	}
+
+	// If kro reports state=IN_PROGRESS the instance is actively reconciling.
+	// It is not degraded — exclude it from the fleet degraded count.
+	if stateVal, _ := status["state"].(string); stateVal == "IN_PROGRESS" {
+		return false
+	}
+
 	conditions, ok := status["conditions"].([]any)
 	if !ok {
 		return false
