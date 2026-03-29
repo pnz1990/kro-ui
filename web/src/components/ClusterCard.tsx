@@ -19,7 +19,7 @@ function healthLabel(health: ClusterHealth, degraded: number): string {
 }
 
 export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
-  const { context, cluster, health, rgdCount, instanceCount, degradedInstances, kroVersion } = summary
+  const { context, cluster, health, rgdCount, instanceCount, degradedInstances, reconcilingInstances = 0, kroVersion } = summary
 
   return (
     <button
@@ -69,6 +69,16 @@ export default function ClusterCard({ summary, onSwitch }: ClusterCardProps) {
           {health === 'degraded' && (
             <span className="cluster-card__degraded-badge">
               {healthLabel(health, degradedInstances)}
+            </span>
+          )}
+          {/* Show reconciling count when there are IN_PROGRESS instances — even on healthy clusters */}
+          {reconcilingInstances > 0 && (
+            <span
+              className="cluster-card__reconciling-badge"
+              title={`${reconcilingInstances} instance${reconcilingInstances === 1 ? '' : 's'} actively reconciling (IN_PROGRESS state)`}
+              data-testid="cluster-card-reconciling"
+            >
+              {reconcilingInstances} reconciling
             </span>
           )}
           {(health === 'unreachable' || health === 'kro-not-installed' || health === 'auth-failed') && (

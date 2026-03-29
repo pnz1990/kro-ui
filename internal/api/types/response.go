@@ -91,7 +91,12 @@ type ClusterSummary struct {
 	RGDCount          int           `json:"rgdCount"`
 	InstanceCount     int           `json:"instanceCount"`
 	DegradedInstances int           `json:"degradedInstances"`
-	KroVersion        string        `json:"kroVersion"`
+	// ReconcilingInstances is the count of instances in the IN_PROGRESS state.
+	// These are not degraded — they are actively working toward a healthy state.
+	// Displayed separately from degraded so operators can distinguish stuck
+	// instances from instances that are simply being reconciled.
+	ReconcilingInstances int    `json:"reconcilingInstances"`
+	KroVersion           string `json:"kroVersion"`
 	// RGDKinds lists spec.schema.kind values for each RGD present in this cluster.
 	// Used by the Fleet compare matrix (FR-005).
 	RGDKinds []string `json:"rgdKinds"`

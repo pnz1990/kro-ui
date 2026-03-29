@@ -261,3 +261,49 @@ func TestIsInstanceDegraded(t *testing.T) {
 		})
 	}
 }
+
+func TestIsInstanceReconciling(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  map[string]any
+		want bool
+	}{
+		{
+			name: "state=IN_PROGRESS → reconciling",
+			obj: map[string]any{
+				"status": map[string]any{"state": "IN_PROGRESS"},
+			},
+			want: true,
+		},
+		{
+			name: "state=ACTIVE → not reconciling",
+			obj: map[string]any{
+				"status": map[string]any{"state": "ACTIVE"},
+			},
+			want: false,
+		},
+		{
+			name: "no status → not reconciling",
+			obj:  map[string]any{},
+			want: false,
+		},
+		{
+			name: "never-ready scenario: IN_PROGRESS → reconciling (not degraded)",
+			obj: map[string]any{
+				"status": map[string]any{
+					"state": "IN_PROGRESS",
+					"conditions": []any{
+						map[string]any{"type": "Ready", "status": "False"},
+					},
+				},
+			},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isInstanceReconciling(tt.obj)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

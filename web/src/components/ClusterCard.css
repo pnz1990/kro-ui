@@ -104,6 +104,16 @@
   border-radius: var(--radius-sm);
 }
 
+/* Reconciling badge — shown on healthy clusters when there are IN_PROGRESS instances */
+.cluster-card__reconciling-badge {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-reconciling);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-reconciling);
+}
+
 .cluster-card__status-text {
   font-size: 0.82rem;
   color: var(--color-text-muted);

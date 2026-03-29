@@ -144,8 +144,9 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	}
 
 	type instanceResult struct {
-		count    int
-		degraded int
+		count       int
+		degraded    int
+		reconciling int
 	}
 	results := make([]instanceResult, len(entries))
 	var mu sync.Mutex
@@ -174,13 +175,16 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 			}
 
 			deg := 0
+			rec := 0
 			for _, inst := range instances.Items {
 				if isInstanceDegraded(inst.Object) {
 					deg++
+				} else if isInstanceReconciling(inst.Object) {
+					rec++
 				}
 			}
 			mu.Lock()
-			results[i] = instanceResult{len(instances.Items), deg}
+			results[i] = instanceResult{len(instances.Items), deg, rec}
 			mu.Unlock()
 			return nil
 		})
@@ -189,13 +193,16 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 
 	totalInstances := 0
 	degraded := 0
+	reconciling := 0
 	for _, r := range results {
 		totalInstances += r.count
 		degraded += r.degraded
+		reconciling += r.reconciling
 	}
 
 	summary.InstanceCount = totalInstances
 	summary.DegradedInstances = degraded
+	summary.ReconcilingInstances = reconciling
 	summary.RGDKinds = kinds
 	if degraded > 0 {
 		summary.Health = types.ClusterDegraded
@@ -253,6 +260,18 @@ func isInstanceDegraded(obj map[string]any) bool {
 		}
 	}
 	return false
+}
+
+// isInstanceReconciling returns true when the instance is in the IN_PROGRESS state.
+// These instances are actively working toward a healthy state and should NOT be
+// counted as degraded — they are reconciling.
+func isInstanceReconciling(obj map[string]any) bool {
+	status, ok := obj["status"].(map[string]any)
+	if !ok {
+		return false
+	}
+	stateVal, _ := status["state"].(string)
+	return stateVal == "IN_PROGRESS"
 }
 
 // isKroNotInstalled returns true when the error indicates the RGD CRD is absent.
