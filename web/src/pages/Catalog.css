@@ -224,3 +224,46 @@
   background: var(--color-surface-2);
   color: var(--color-text);
 }
+
+/* spec 070: compile-status filter toggle group */
+.catalog__status-filter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.catalog__status-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  border-right: 1px solid var(--color-border);
+}
+
+.catalog__status-btn:last-child {
+  border-right: none;
+}
+
+.catalog__status-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.catalog__status-btn--active {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+/* Errors active state — accent with error color */
+.catalog__status-btn--active[data-testid="catalog-status-errors"] {
+  background: var(--color-error);
+  color: #fff;
+}

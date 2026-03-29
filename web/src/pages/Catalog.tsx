@@ -2,12 +2,13 @@
 // Fetches all RGDs on mount, then fires parallel instance-count requests.
 // All search/filter/sort is client-side — no API call per keystroke.
 // Issue #116: instanceCounts uses undefined="loading", null="failed", number="resolved".
+// spec 070: status filter — all / ready / errors toggle for compile-state filtering.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
-import { extractRGDName } from '@/lib/format'
+import { extractRGDName, extractReadyStatus } from '@/lib/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import {
   buildChainingMap,
@@ -52,6 +53,8 @@ export default function Catalog() {
   const debouncedQuery = useDebounce(searchQuery, 300)
   const [activeLabels, setActiveLabels] = useState<string[]>([])
   const [sortOption, setSortOption] = useState<SortOption>('name')
+  // spec 070: compile-status filter — 'all' | 'ready' | 'errors'
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ready' | 'errors'>('all')
 
   // Fetch all RGDs once on mount
   const fetchRGDs = useCallback(() => {
@@ -112,16 +115,23 @@ export default function Catalog() {
     [items, instanceCounts],
   )
 
-  // Apply search + label filter.
+  // Apply search + label filter + status filter.
   // searchQuery is debounced: the filter only runs after the user pauses typing.
   // activeLabels are NOT debounced — label toggles are discrete clicks, not streams.
   const filtered = useMemo(
     () =>
-      entries.filter(
-        ({ rgd }) =>
-          matchesSearch(rgd, debouncedQuery) && matchesLabelFilter(rgd, activeLabels),
-      ),
-    [entries, debouncedQuery, activeLabels],
+      entries.filter(({ rgd }) => {
+        if (!matchesSearch(rgd, debouncedQuery)) return false
+        if (!matchesLabelFilter(rgd, activeLabels)) return false
+        // spec 070: status filter
+        if (statusFilter !== 'all') {
+          const state = extractReadyStatus(rgd).state
+          if (statusFilter === 'ready' && state !== 'ready') return false
+          if (statusFilter === 'errors' && state !== 'error') return false
+        }
+        return true
+      }),
+    [entries, debouncedQuery, activeLabels, statusFilter],
   )
 
   // Apply sort
@@ -130,9 +140,10 @@ export default function Catalog() {
   function clearFilters() {
     setSearchQuery('')
     setActiveLabels([])
+    setStatusFilter('all')
   }
 
-  const hasFilters = searchQuery !== '' || activeLabels.length > 0
+  const hasFilters = searchQuery !== '' || activeLabels.length > 0 || statusFilter !== 'all'
 
   return (
     <div className="catalog">
@@ -154,6 +165,22 @@ export default function Catalog() {
             activeLabels={activeLabels}
             onFilter={setActiveLabels}
           />
+          {/* spec 070: compile-status filter — all / ready / errors */}
+          <div className="catalog__status-filter" role="group" aria-label="Filter by compile status">
+            {(['all', 'ready', 'errors'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={`catalog__status-btn${statusFilter === v ? ' catalog__status-btn--active' : ''}`}
+                onClick={() => setStatusFilter(v)}
+                aria-pressed={statusFilter === v}
+                data-testid={`catalog-status-${v}`}
+              >
+                {v === 'all' ? 'All' : v === 'ready' ? 'Ready' : 'Errors'}
+              </button>
+            ))}
+          </div>
+
           <div className="catalog__sort">
             <label htmlFor="catalog-sort" className="catalog__sort-label">
               Sort:
