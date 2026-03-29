@@ -105,12 +105,18 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			// Response cache (spec 052-response-cache).
 			// Singleton shared across all cacheable routes.
 			// Purge expired entries every 2 minutes to prevent unbounded growth.
+			// Flush (purge ALL) on context switch — prevents stale entries from the
+			// previous cluster being served on the new cluster (spec 057).
 			rc := responsecache.New()
 			go func() {
 				for range time.Tick(2 * time.Minute) {
 					rc.Purge()
 				}
 			}()
+			// Register a hook so every context switch immediately flushes the entire cache.
+			// This ensures that after switching from cluster-A to cluster-B, the next request
+			// always hits the new cluster and not a cached response from cluster-A.
+			factory.RegisterContextSwitchHook(rc.Flush)
 
 			// Cache TTLs per spec:
 			//   RGD list/detail:   30s  — rarely changes mid-session

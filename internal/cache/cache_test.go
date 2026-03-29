@@ -94,6 +94,42 @@ func TestResponseCache_Purge(t *testing.T) {
 	assert.Equal(t, 1, c.Size())
 }
 
+// TestResponseCache_Flush verifies that Flush removes ALL entries including
+// non-expired ones (spec 057-cache-context-invalidation FR-001).
+func TestResponseCache_Flush(t *testing.T) {
+	c := New()
+	c.set("a", []byte("a"), "application/json", 200, time.Minute)
+	c.set("b", []byte("b"), "application/json", 200, time.Minute)
+	c.set("c", []byte("c"), "application/json", 200, time.Minute)
+	require.Equal(t, 3, c.Size(), "setup: 3 entries before flush")
+
+	c.Flush()
+
+	assert.Equal(t, 0, c.Size(), "all entries removed by Flush")
+
+	// Verify entries are gone on get
+	_, hit := c.get("a")
+	assert.False(t, hit, "entry 'a' should be absent after Flush")
+}
+
+// TestResponseCache_Flush_ConcurrentSafety ensures Flush is race-free.
+func TestResponseCache_Flush_ConcurrentSafety(t *testing.T) {
+	c := New()
+	for i := 0; i < 10; i++ {
+		c.set(string(rune('a'+i)), []byte("v"), "application/json", 200, time.Minute)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		c.Flush()
+		close(done)
+	}()
+	// Concurrent get while flush is in progress
+	c.get("a")
+	<-done
+	// No panic = test passes (go test -race verifies data-race freedom)
+}
+
 // ── Integration tests for Middleware ──────────────────────────────────────────
 
 func TestMiddleware_CachesOnMiss(t *testing.T) {
