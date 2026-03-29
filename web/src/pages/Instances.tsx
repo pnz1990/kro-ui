@@ -15,16 +15,26 @@ import { translateApiError } from '@/lib/errors'
 import StatusDot from '@/components/StatusDot'
 import './Instances.css'
 
-// Derive a StatusDot-compatible ready state from the kro instance ready field.
-function toReadyState(ready: string): 'ready' | 'error' | 'unknown' {
-  if (ready === 'True') return 'ready'
-  if (ready === 'False') return 'error'
+// Derive a 4-state health value from the kro instance summary.
+// Uses state (IN_PROGRESS = reconciling) first, then falls back to ready condition.
+// This matches the 6-state model used in Overview/InstanceDetail.
+function toHealthState(instance: InstanceSummary): 'ready' | 'reconciling' | 'error' | 'unknown' {
+  // IN_PROGRESS → reconciling (always, regardless of Ready condition)
+  if (instance.state === 'IN_PROGRESS') return 'reconciling'
+  if (instance.ready === 'True') return 'ready'
+  if (instance.ready === 'False') return 'error'
   return 'unknown'
+}
+
+// StatusDot only accepts 3 states; map 4-state → 3-state for the dot.
+function toDotState(health: 'ready' | 'reconciling' | 'error' | 'unknown'): 'ready' | 'error' | 'unknown' {
+  if (health === 'reconciling') return 'unknown' // amber-ish via unknown state
+  return health
 }
 
 type SortKey = 'name' | 'age' | 'rgd' | 'namespace'
 type SortDir = 'asc' | 'desc'
-type HealthFilter = 'all' | 'ready' | 'error' | 'unknown'
+type HealthFilter = 'all' | 'ready' | 'reconciling' | 'error' | 'unknown'
 
 function compareItems(a: InstanceSummary, b: InstanceSummary, key: SortKey, dir: SortDir): number {
   let cmp = 0
@@ -110,8 +120,8 @@ export default function InstancesPage() {
 
       // Health state filter
       if (healthFilter !== 'all') {
-        const readyState = toReadyState(i.ready)
-        if (readyState !== healthFilter) return false
+        const health = toHealthState(i)
+        if (health !== healthFilter) return false
       }
 
       return true
@@ -144,9 +154,9 @@ export default function InstancesPage() {
 
   // Count instances in each health state for filter chips
   const healthCounts = useMemo(() => {
-    const counts = { ready: 0, error: 0, unknown: 0 }
+    const counts = { ready: 0, reconciling: 0, error: 0, unknown: 0 }
     for (const i of items) {
-      const s = toReadyState(i.ready)
+      const s = toHealthState(i)
       counts[s]++
     }
     return counts
@@ -196,8 +206,8 @@ export default function InstancesPage() {
       {/* Health state filter chips */}
       {!isLoading && items.length > 0 && (
         <div className="instances-page__health-filters" role="group" aria-label="Filter by health state">
-          {(['all', 'ready', 'error', 'unknown'] as HealthFilter[]).map((state) => {
-            const count = state === 'all' ? items.length : healthCounts[state]
+          {(['all', 'ready', 'reconciling', 'error', 'unknown'] as HealthFilter[]).map((state) => {
+            const count = state === 'all' ? items.length : healthCounts[state as keyof typeof healthCounts] ?? 0
             const label = state === 'all' ? 'All' : state
             if (state !== 'all' && count === 0) return null
             return (
@@ -286,7 +296,8 @@ export default function InstancesPage() {
             <tbody>
               {pageItems.map((item) => {
                 const href = `/rgds/${encodeURIComponent(item.rgdName)}/instances/${encodeURIComponent(item.namespace || '_')}/${encodeURIComponent(item.name)}`
-                const readyState = toReadyState(item.ready)
+                const health = toHealthState(item)
+                const dotState = toDotState(health)
                 const age = item.creationTimestamp ? formatAge(item.creationTimestamp) : '—'
                 const nsDisplay = item.namespace || '(cluster)'
                 return (
@@ -298,7 +309,7 @@ export default function InstancesPage() {
                     style={{ cursor: 'pointer' }}
                   >
                     <td className="instances-table__td instances-table__td--state">
-                      <StatusDot state={readyState} />
+                      <StatusDot state={dotState} />
                     </td>
                     <td className="instances-table__td instances-table__td--name">
                       <Link to={href} className="instances-table__link" tabIndex={-1}>

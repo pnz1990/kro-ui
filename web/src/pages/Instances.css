@@ -104,6 +104,16 @@
   border-color: var(--color-alive);
 }
 
+.instances-page__health-chip--reconciling {
+  color: var(--color-reconciling);
+  border-color: var(--color-reconciling);
+}
+
+.instances-page__health-chip--reconciling.instances-page__health-chip--active {
+  background: var(--color-reconciling);
+  color: var(--color-bg);
+}
+
 .instances-page__health-chip--error {
   color: var(--color-status-error);
   border-color: var(--color-status-error);
