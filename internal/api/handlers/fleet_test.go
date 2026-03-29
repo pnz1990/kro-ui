@@ -188,3 +188,76 @@ func TestFleetSummary(t *testing.T) {
 		})
 	}
 }
+
+// ── isInstanceDegraded unit tests ─────────────────────────────────────────────
+
+func TestIsInstanceDegraded(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  map[string]any
+		want bool
+	}{
+		{
+			name: "Ready=True → not degraded",
+			obj: map[string]any{
+				"status": map[string]any{
+					"conditions": []any{
+						map[string]any{"type": "Ready", "status": "True"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Ready=False → degraded",
+			obj: map[string]any{
+				"status": map[string]any{
+					"conditions": []any{
+						map[string]any{"type": "Ready", "status": "False"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "state=IN_PROGRESS + Ready=False → NOT degraded (reconciling)",
+			obj: map[string]any{
+				"status": map[string]any{
+					"state": "IN_PROGRESS",
+					"conditions": []any{
+						map[string]any{"type": "Ready", "status": "False"},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "state=ACTIVE + Ready=False → degraded",
+			obj: map[string]any{
+				"status": map[string]any{
+					"state": "ACTIVE",
+					"conditions": []any{
+						map[string]any{"type": "Ready", "status": "False"},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "no conditions → not degraded",
+			obj:  map[string]any{"status": map[string]any{}},
+			want: false,
+		},
+		{
+			name: "no status → not degraded",
+			obj:  map[string]any{},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isInstanceDegraded(tt.obj)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
