@@ -117,8 +117,11 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	// For each RGD, build the GVR and fan out instance list calls concurrently.
 	// DiscoverPlural now reads from the TTL cache (issue #192/Bug A) so calling
 	// it once per RGD no longer incurs N sequential API server discovery requests.
-	// The errgroup with a 2s per-resource timeout prevents any single slow resource
+	// The errgroup with a 5s per-resource timeout prevents any single slow resource
 	// from holding up the rest. Constitution §XI.
+	// Increased from 2s to 5s: on throttled clusters DiscoverPlural itself takes
+	// 1-2s, leaving insufficient time for the List call. Goroutines run in parallel
+	// so the total summary handler latency ≈ max(individual) not sum(individual).
 	type rgdEntry struct {
 		kind       string
 		group      string
@@ -156,7 +159,7 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	for i, entry := range entries {
 		i, entry := i, entry // capture
 		g.Go(func() error {
-			rctx, rcancel := context.WithTimeout(gctx, 2*time.Second)
+			rctx, rcancel := context.WithTimeout(gctx, 5*time.Second)
 			defer rcancel()
 
 			plural, err := k8sclient.DiscoverPlural(clients, entry.group, entry.apiVersion, entry.kind)
