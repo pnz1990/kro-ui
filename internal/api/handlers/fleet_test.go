@@ -176,6 +176,38 @@ func TestFleetSummary(t *testing.T) {
 				assert.Contains(t, body, string(types.ClusterKroNotInstalled))
 			},
 		},
+		{
+			name: "kro version read from RGD annotation (cheap path, no DetectCapabilities call)",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				ctxStub := &stubClientFactory{
+					contexts: []k8sclient.Context{
+						{Name: "prod", Cluster: "prod-cluster", User: "prod-user"},
+					},
+				}
+
+				rgd := makeRGDObject("webapp", "WebApp", "kro.run", "v1alpha1")
+				rgd.SetAnnotations(map[string]string{
+					"kro.run/kro-version": "v0.9.1",
+				})
+				prodDyn := newStubDynamic()
+				prodDyn.resources[rgdGVR] = &stubNamespaceableResource{
+					items: []unstructured.Unstructured{*rgd},
+				}
+
+				builder := &stubFleetClientBuilder{
+					clients: map[string]*stubK8sClients{
+						"prod": {dyn: prodDyn, disc: newStubDiscovery()},
+					},
+				}
+				return newFleetTestHandler(ctxStub, builder)
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusOK, rr.Code)
+				assert.Contains(t, rr.Body.String(), `"v0.9.1"`)
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -213,13 +213,21 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 		summary.Health = types.ClusterHealthy
 	}
 
-	// Populate kro version from the capabilities endpoint for this context.
-	// The capabilities handler already discovers this via the kro controller image;
-	// reuse the same code path here by calling the k8s capabilities function directly.
-	// On error (e.g. kro not installed, unreachable) we leave KroVersion empty —
-	// the UI will show "Unknown" gracefully.
-	if caps := k8sclient.DetectCapabilities(parent, clients.Dynamic(), clients.Discovery()); caps != nil && caps.Version != "" {
-		summary.KroVersion = caps.Version
+	// Populate kro version from the kro.run/kro-version annotation on the first RGD.
+	// This is cheaper than calling DetectCapabilities (which probes the kro Deployment)
+	// since we already have the RGD list. kro sets this annotation on all RGDs.
+	// Falls back to DetectCapabilities only when no annotated RGDs are found.
+	for i := range list.Items {
+		if v, ok := list.Items[i].GetAnnotations()["kro.run/kro-version"]; ok && v != "" {
+			summary.KroVersion = v
+			break
+		}
+	}
+	if summary.KroVersion == "" {
+		// Fallback: probe the kro controller Deployment (slower, throttled)
+		if caps := k8sclient.DetectCapabilities(parent, clients.Dynamic(), clients.Discovery()); caps != nil && caps.Version != "" {
+			summary.KroVersion = caps.Version
+		}
 	}
 	return summary
 }
