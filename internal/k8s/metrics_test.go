@@ -272,6 +272,18 @@ dynamic_controller_gvr_count 2
 workqueue_depth{name="dynamic-controller-queue"} 3
 `
 
+// kro v0.8.5 removed dynamic_controller_watch_count in favour of
+// dynamic_controller_handler_count_total{type="child"}.
+const metricsProxyBodyV085 = `# HELP dynamic_controller_gvr_count GVRs managed
+# TYPE dynamic_controller_gvr_count gauge
+dynamic_controller_gvr_count 22
+# HELP dynamic_controller_handler_count_total Active handler count
+# TYPE dynamic_controller_handler_count_total gauge
+dynamic_controller_handler_count_total{type="child"} 37
+dynamic_controller_handler_count_total{type="parent"} 22
+workqueue_depth{name="dynamic-controller-queue"} 0
+`
+
 func TestScrapeViaProxy(t *testing.T) {
 	int64p := func(v int64) *int64 { return &v }
 
@@ -298,6 +310,11 @@ func TestScrapeViaProxy(t *testing.T) {
 		build build
 		check check
 	}{
+		{
+			name:  "kro v0.8.5 metrics — handler_count_total fallback for watch count",
+			build: build{upstreamCode: http.StatusOK, upstreamBody: metricsProxyBodyV085},
+			check: check{wantWatchCount: int64p(37), wantGVRCount: int64p(22), wantWQDepth: int64p(0)},
+		},
 		{
 			name:  "200 response parses metrics correctly",
 			build: build{upstreamCode: http.StatusOK, upstreamBody: metricsProxyBody},

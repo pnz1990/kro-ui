@@ -436,6 +436,12 @@ const (
 	metricWorkqueueDepth = "workqueue_depth"
 	// workqueueNameLabel is the label value that identifies the kro workqueue.
 	workqueueNameLabel = `name="dynamic-controller-queue"`
+
+	// kro v0.8.5 renamed watch_count to handler_count_total{type="child"}.
+	// Use this as a fallback when metricWatchCount is not present.
+	// The child handler count approximates active watches: one child informer
+	// per watched resource type.
+	metricHandlerCountChild = `dynamic_controller_handler_count_total{type="child"}`
 )
 
 // parseMetricLine extracts a value from a single Prometheus text line and writes
@@ -463,6 +469,13 @@ func parseMetricLine(line string, result *ControllerMetrics) {
 	switch {
 	case namePart == metricWatchCount:
 		result.WatchCount = &intVal
+
+	case namePart == metricHandlerCountChild:
+		// kro v0.8.5+ fallback: child handler count ≈ active watches.
+		// Only set if the newer metric name wasn't found yet (avoids double-counting).
+		if result.WatchCount == nil {
+			result.WatchCount = &intVal
+		}
 
 	case namePart == metricGVRCount:
 		result.GVRCount = &intVal
