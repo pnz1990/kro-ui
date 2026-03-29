@@ -226,3 +226,45 @@
   color: var(--color-text);
   background: transparent;
 }
+
+/* spec 069: RGD compile-error banner */
+.home__rgd-error-banner {
+  padding: 0 var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.home__rgd-error-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-error);
+  background: transparent;
+  color: var(--color-error);
+  font-size: 0.8125rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.home__rgd-error-btn:hover {
+  background: var(--color-error);
+  color: #fff;
+}
+
+.home__rgd-error-btn--active {
+  background: var(--color-error);
+  color: #fff;
+}
+
+.home__rgd-error-count {
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+.home__rgd-error-clear {
+  margin-left: 6px;
+  opacity: 0.85;
+}

@@ -222,4 +222,38 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     const subtitle = page.locator('text=Controller and RGD health at a glance')
     await expect(subtitle).toBeVisible({ timeout: 5000 })
   })
+
+  test('Step 12: RGD compile-error banner appears when invalid RGDs are present (spec 069)', async ({ page }) => {
+    await page.goto(BASE)
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+
+    // The E2E cluster always has at least some invalid RGDs (test-collection is broken, etc.).
+    // The banner should appear once the RGD list loads.
+    const banner = page.getByTestId('rgd-error-banner')
+    await expect(banner).toBeVisible({ timeout: 10000 })
+
+    // Banner text contains a number and "compile error" (singular or plural)
+    const bannerText = await banner.textContent()
+    expect(bannerText).toMatch(/\d+\s+RGD/)
+
+    // Clicking the banner button activates the error-only filter
+    const bannerBtn = banner.locator('button')
+    await bannerBtn.click()
+
+    // After clicking, test-app (always Ready=True) should be removed from the grid.
+    await page.waitForFunction(() => {
+      const card = document.querySelector('[data-testid="rgd-card-test-app"]')
+      return card === null
+    }, { timeout: 5000 })
+
+    // At least one RGD card is still visible (the error-state RGDs)
+    await page.waitForFunction(() => {
+      const cards = document.querySelectorAll('[data-testid^="rgd-card-"]')
+      return cards.length > 0
+    }, { timeout: 5000 })
+
+    // Clicking again removes the filter — test-app returns
+    await bannerBtn.click()
+    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible({ timeout: 5000 })
+  })
 })

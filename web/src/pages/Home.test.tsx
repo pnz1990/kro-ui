@@ -38,6 +38,20 @@ function makeItem(name: string, kind?: string) {
   }
 }
 
+/** makeErrorItem returns an RGD with Ready=False (compile error) */
+function makeErrorItem(name: string, kind?: string) {
+  const k = kind ?? (name.charAt(0).toUpperCase() + name.slice(1))
+  return {
+    metadata: { name, creationTimestamp: '2026-03-15T10:00:00Z' },
+    spec: { schema: { kind: k }, resources: [{}] },
+    status: {
+      conditions: [
+        { type: 'Ready', status: 'False', reason: 'InvalidResourceGraph', message: 'failed to build' },
+      ],
+    },
+  }
+}
+
 describe('Home', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -240,6 +254,93 @@ describe('Home', () => {
 
     await waitFor(() => {
       expect(screen.getByText('1 of 3')).toBeInTheDocument()
+    })
+  })
+
+  // ── RGD compile-error banner tests (spec 069) ─────────────────────────
+
+  it('shows error banner when at least one RGD has a compile error', async () => {
+    mockedListRGDs.mockResolvedValue({
+      items: [makeItem('app-ok'), makeErrorItem('broken-cel'), makeErrorItem('invalid-rgd')],
+      metadata: {},
+    })
+    renderHome()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-error-banner')).toBeInTheDocument()
+    })
+    // Count is rendered in its own span; the description text follows.
+    expect(screen.getByText('2', { selector: '.home__rgd-error-count' })).toBeInTheDocument()
+    expect(screen.getByText(/RGDs have compile errors/)).toBeInTheDocument()
+  })
+
+  it('does not show error banner when all RGDs are ready', async () => {
+    mockedListRGDs.mockResolvedValue({
+      items: [makeItem('app-a'), makeItem('app-b')],
+      metadata: {},
+    })
+    renderHome()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-card-app-a')).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId('rgd-error-banner')).not.toBeInTheDocument()
+  })
+
+  it('shows singular "RGD has a compile error" when count is 1', async () => {
+    mockedListRGDs.mockResolvedValue({
+      items: [makeItem('ok'), makeErrorItem('broken')],
+      metadata: {},
+    })
+    renderHome()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-error-banner')).toBeInTheDocument()
+    })
+    expect(screen.getByText('1', { selector: '.home__rgd-error-count' })).toBeInTheDocument()
+    expect(screen.getByText(/RGD has a compile error/)).toBeInTheDocument()
+  })
+
+  it('clicking error banner filters grid to error-only RGDs', async () => {
+    const user = userEvent.setup()
+    mockedListRGDs.mockResolvedValue({
+      items: [makeItem('app-ok'), makeErrorItem('broken')],
+      metadata: {},
+    })
+    renderHome()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-card-app-ok')).toBeInTheDocument()
+      expect(screen.getByTestId('rgd-card-broken')).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByTestId('rgd-error-banner').querySelector('button')!)
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('rgd-card-app-ok')).not.toBeInTheDocument()
+      expect(screen.getByTestId('rgd-card-broken')).toBeInTheDocument()
+    })
+  })
+
+  it('clicking error banner again restores all RGDs', async () => {
+    const user = userEvent.setup()
+    mockedListRGDs.mockResolvedValue({
+      items: [makeItem('app-ok'), makeErrorItem('broken')],
+      metadata: {},
+    })
+    renderHome()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-card-app-ok')).toBeInTheDocument()
+    })
+
+    const bannerBtn = screen.getByTestId('rgd-error-banner').querySelector('button')!
+    await user.click(bannerBtn)
+    await user.click(bannerBtn)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rgd-card-app-ok')).toBeInTheDocument()
+      expect(screen.getByTestId('rgd-card-broken')).toBeInTheDocument()
     })
   })
 })

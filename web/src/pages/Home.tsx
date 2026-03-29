@@ -2,12 +2,13 @@
 // Uses VirtualGrid for windowed rendering at 5,000+ RGDs.
 // Search input is debounced (300ms) to avoid per-keystroke filter churn.
 // FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
+// spec 069: RGD error banner — shows compile-error count, toggles error-only filter.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
-import { extractRGDName } from '@/lib/format'
+import { extractRGDName, extractReadyStatus } from '@/lib/format'
 import { aggregateHealth } from '@/lib/format'
 import type { HealthSummary } from '@/lib/format'
 import { matchesSearch } from '@/lib/catalog'
@@ -38,6 +39,10 @@ export default function Home() {
   // Health filter — set by clicking OverviewHealthBar chips (spec 060-health-filter).
   // When set, the card grid shows only RGDs with instances in that health state.
   const [healthFilter, setHealthFilter] = useState<HealthFilterState | null>(null)
+
+  // spec 069: RGD compile-error filter — toggled by clicking the error banner.
+  // When true, only error-state RGDs (Ready=False) are shown in the card grid.
+  const [showOnlyErrors, setShowOnlyErrors] = useState(false)
 
   // FR-007: Map from rgdName → terminating instance count.
   // Fetched in the background after the RGD list loads; absent = not yet fetched.
@@ -110,6 +115,11 @@ export default function Home() {
   const filteredItems = useMemo(() => {
     let result = items.filter((rgd) => matchesSearch(rgd, debouncedQuery))
 
+    // spec 069: error-only filter — show only RGDs with compile errors (Ready=False).
+    if (showOnlyErrors) {
+      result = result.filter((rgd) => extractReadyStatus(rgd).state === 'error')
+    }
+
     // Health filter (spec 060): show only RGDs with instances in the selected state.
     if (healthFilter !== null) {
       result = result.filter((rgd) => {
@@ -122,7 +132,14 @@ export default function Home() {
     }
 
     return result
-  }, [items, debouncedQuery, healthFilter, healthSummaries])
+  }, [items, debouncedQuery, healthFilter, healthSummaries, showOnlyErrors])
+
+  // spec 069: count RGDs with compile errors (Ready=False) from the loaded list.
+  // Computed without async — extractReadyStatus reads already-fetched status fields.
+  const errorRgdCount = useMemo(
+    () => items.filter((rgd) => extractReadyStatus(rgd).state === 'error').length,
+    [items],
+  )
 
   const emptyState =
     debouncedQuery.trim() !== '' ? (
@@ -194,12 +211,12 @@ export default function Home() {
             {!isLoading && items.length > 0 && (
               <span className="home__count">
                 {filteredItems.length} of {items.length}
-                {healthFilter !== null && (
+                {(healthFilter !== null || showOnlyErrors) && (
                   <button
                     type="button"
                     className="home__clear-filter"
-                    onClick={() => setHealthFilter(null)}
-                    title="Clear health filter"
+                    onClick={() => { setHealthFilter(null); setShowOnlyErrors(false); }}
+                    title="Clear all filters"
                     data-testid="clear-health-filter"
                   >
                     ×
@@ -235,6 +252,27 @@ export default function Home() {
           activeFilter={healthFilter}
           onFilter={(state) => { setHealthFilter(state); }}
         />
+      )}
+
+      {/* spec 069: RGD compile-error banner — shown when ≥1 RGD has a compile error.
+          Clicking toggles the error-only filter so the operator can focus on broken RGDs. */}
+      {!isLoading && error === null && errorRgdCount > 0 && (
+        <div className="home__rgd-error-banner" data-testid="rgd-error-banner">
+          <button
+            type="button"
+            className={`home__rgd-error-btn${showOnlyErrors ? ' home__rgd-error-btn--active' : ''}`}
+            onClick={() => setShowOnlyErrors((v) => !v)}
+            aria-pressed={showOnlyErrors}
+            title={showOnlyErrors ? 'Show all RGDs' : 'Filter to RGDs with compile errors'}
+          >
+            <span className="home__rgd-error-count">{errorRgdCount}</span>
+            {' '}
+            {errorRgdCount === 1 ? 'RGD has a compile error' : 'RGDs have compile errors'}
+            {showOnlyErrors && (
+              <span className="home__rgd-error-clear"> — showing errors only ×</span>
+            )}
+          </button>
+        </div>
       )}
 
       {!isLoading && error === null && (
