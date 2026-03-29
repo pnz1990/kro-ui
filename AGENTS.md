@@ -120,6 +120,8 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `059-condition-warnings` | — | WARNINGS counter includes failed/unknown conditions | Merged (PR #328) |
 | `060-health-filter` | — | Clickable OverviewHealthBar chips — filter Overview by health state | Merged (PR #329) |
 | `061-helm-security` | — | Helm chart security hardening — runAsNonRoot, readOnlyRootFilesystem, drop ALL | Merged (PR #330) |
+| `062-instance-namespace-filter` | — | /instances namespace dropdown + health state filter chips | Merged (PR #345) |
+| `064-fleet-reconciling-count` | — | Fleet cluster card shows reconciling instance count separately from degraded | Merged (PR #347) |
 
 ### Worktrunk (required workflow)
 
@@ -241,6 +243,8 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | E2E `waitForTimeout(2000)` as data-load guard | #339 | Replace with `waitForFunction` polling the DOM; fixed-ms waits are inherently flaky when the cluster is throttled |
 | E2E test asserting kro-managed instance has no finalizers | #339 | kro adds `kro.run/finalizer` to ALL instances — never assert `.not.toBeVisible()` for the FinalizersPanel on a live kro instance |
 | E2E context-switcher test using `locator.click()` on dropdown option without waiting for options to load | #341 | Use `waitForFunction()` polling the dropdown for the option text; context list loads from `/api/v1/contexts` which can be slow on throttled clusters |
+| `/instances` page using `ready: "True"/"False"` to determine health instead of full 6-state model | #348 | Check `status.state === 'IN_PROGRESS'` FIRST; only then fall back to `ready` condition. IN_PROGRESS instances are "reconciling", not "error" — consistent with Overview/InstanceDetail. |
+| Fleet `isInstanceDegraded()` only checking `Ready=False` without excluding IN_PROGRESS | #343 | Check `status.state === 'IN_PROGRESS'` before the Ready condition check; IN_PROGRESS instances are reconciling, not degraded |
 
 ### Upstream kro node types (5 real types + 1 kro-ui extension)
 
@@ -442,6 +446,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
  ## Recent Changes
+ - v0.6.0: Fleet consistent health state (#343); ACTIVE WATCHES metric fallback for kro v0.8.5 (#344); /instances namespace+health filter (#345); Fleet reconciling count (#347); /instances reconciling state fix (#348)
  - v0.5.3: formatAge 'just now' (PR #323); Overview health bar (PR #324); RGD error hint (PR #325); cache flush on context switch (PR #326); global /instances search (PR #327); condition warnings counter (PR #328); Overview health filter (PR #329); Helm security (PR #330); AGENTS docs (PR #331); E2E fixes PRs #332-#341; ListAllInstances optimization (PR #334)
  - v0.5.2: multi-version kro support — IsSupported, CompareKroVersions, version warning banner (PR #322)
 - v0.5.1 (cutting): Fleet matrix all-kinds-degraded bug fixed (PR #320); kro version in fleet cluster cards (PR #320); kro-ui version in footer (PR #320); DocsTab required fields sorted first (PR #319); Graph tab complexity hint (PR #319); response cache 30s/10s/5min TTLs (PR #321)
