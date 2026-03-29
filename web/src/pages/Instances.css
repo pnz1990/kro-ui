@@ -54,6 +54,90 @@
   border-color: var(--color-text-muted);
 }
 
+/* Namespace dropdown filter */
+.instances-page__ns-filter {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  outline: none;
+  cursor: pointer;
+}
+
+.instances-page__ns-filter:focus {
+  border-color: var(--color-text-muted);
+}
+
+/* Health state filter chips */
+.instances-page__health-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+
+.instances-page__health-chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  transition: opacity var(--transition-fast);
+  white-space: nowrap;
+}
+
+.instances-page__health-chip--all {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.instances-page__health-chip--ready {
+  color: var(--color-alive);
+  border-color: var(--color-alive);
+}
+
+.instances-page__health-chip--error {
+  color: var(--color-status-error);
+  border-color: var(--color-status-error);
+}
+
+.instances-page__health-chip--unknown {
+  color: var(--color-text-faint);
+  border-color: var(--color-border-subtle);
+}
+
+.instances-page__health-chip--active {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.instances-page__health-chip--all.instances-page__health-chip--active {
+  background: var(--color-bg-subtle);
+  color: var(--color-text);
+}
+
+.instances-page__health-chip--ready.instances-page__health-chip--active {
+  background: var(--color-alive);
+  color: var(--color-bg);
+}
+
+.instances-page__health-chip--error.instances-page__health-chip--active {
+  background: var(--color-status-error);
+  color: var(--color-bg);
+}
+
+.instances-page__health-chip:hover {
+  opacity: 0.8;
+}
+
 .instances-page__count {
   font-size: 12px;
   color: var(--color-text-faint);
