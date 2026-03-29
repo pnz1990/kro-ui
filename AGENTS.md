@@ -122,6 +122,9 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `061-helm-security` | — | Helm chart security hardening — runAsNonRoot, readOnlyRootFilesystem, drop ALL | Merged (PR #330) |
 | `062-instance-namespace-filter` | — | /instances namespace dropdown + health state filter chips | Merged (PR #345) |
 | `064-fleet-reconciling-count` | — | Fleet cluster card shows reconciling instance count separately from degraded | Merged (PR #347) |
+| `fix/fleet-kro-version` | — | Fleet kro version from RGD annotation — avoids DetectCapabilities delay | Merged (PR #355) |
+| `069-overview-rgd-error-banner` | — | Overview RGD compile-error banner — count + error-only filter toggle | Merged (PR #356) |
+| `070-catalog-status-filter` | — | Catalog compile-status filter — All / Ready / Errors toggle | Merged (PR #357) |
 
 ### Worktrunk (required workflow)
 
@@ -447,6 +450,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
  ## Recent Changes
+ - v0.8.0: Fleet kro version from RGD annotation (PR #355); Overview RGD compile-error banner + filter (PR #356); Catalog compile-status filter All/Ready/Errors (PR #357)
  - v0.7.0: /instances health sort (PR #350); status message tooltip (PR #351); 5s timeout fix for throttled clusters (PR #352)
  - v0.6.0: Fleet consistent health state (#343); ACTIVE WATCHES metric fallback for kro v0.8.5 (#344); /instances namespace+health filter (#345); Fleet reconciling count (#347); /instances reconciling state fix (#348)
  - v0.5.3: formatAge 'just now' (PR #323); Overview health bar (PR #324); RGD error hint (PR #325); cache flush on context switch (PR #326); global /instances search (PR #327); condition warnings counter (PR #328); Overview health filter (PR #329); Helm security (PR #330); AGENTS docs (PR #331); E2E fixes PRs #332-#341; ListAllInstances optimization (PR #334)
