@@ -245,6 +245,7 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | E2E context-switcher test using `locator.click()` on dropdown option without waiting for options to load | #341 | Use `waitForFunction()` polling the dropdown for the option text; context list loads from `/api/v1/contexts` which can be slow on throttled clusters |
 | `/instances` page using `ready: "True"/"False"` to determine health instead of full 6-state model | #348 | Check `status.state === 'IN_PROGRESS'` FIRST; only then fall back to `ready` condition. IN_PROGRESS instances are "reconciling", not "error" — consistent with Overview/InstanceDetail. |
 | Fleet `isInstanceDegraded()` only checking `Ready=False` without excluding IN_PROGRESS | #343 | Check `status.state === 'IN_PROGRESS'` before the Ready condition check; IN_PROGRESS instances are reconciling, not degraded |
+| `ListAllInstances` fan-out timeout 2s insufficient on throttled clusters | #352 | Use 5s per-goroutine timeout; goroutines run in parallel so total handler latency ≈ max(individual) not sum(individual). 2s was leaving no time after DiscoverPlural (~1-2s on throttled clusters). |
 
 ### Upstream kro node types (5 real types + 1 kro-ui extension)
 
@@ -446,6 +447,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
  ## Recent Changes
+ - v0.7.0: /instances health sort (PR #350); status message tooltip (PR #351); 5s timeout fix for throttled clusters (PR #352)
  - v0.6.0: Fleet consistent health state (#343); ACTIVE WATCHES metric fallback for kro v0.8.5 (#344); /instances namespace+health filter (#345); Fleet reconciling count (#347); /instances reconciling state fix (#348)
  - v0.5.3: formatAge 'just now' (PR #323); Overview health bar (PR #324); RGD error hint (PR #325); cache flush on context switch (PR #326); global /instances search (PR #327); condition warnings counter (PR #328); Overview health filter (PR #329); Helm security (PR #330); AGENTS docs (PR #331); E2E fixes PRs #332-#341; ListAllInstances optimization (PR #334)
  - v0.5.2: multi-version kro support — IsSupported, CompareKroVersions, version warning banner (PR #322)
