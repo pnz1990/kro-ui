@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
@@ -177,7 +178,7 @@ func TestFleetSummary(t *testing.T) {
 			},
 		},
 		{
-			name: "kro version read from RGD annotation (cheap path, no DetectCapabilities call)",
+			name: "kro version read from instance label (kro stamps kro.run/kro-version on CRs, not RGDs)",
 			build: func(t *testing.T) *Handler {
 				t.Helper()
 				ctxStub := &stubClientFactory{
@@ -187,12 +188,26 @@ func TestFleetSummary(t *testing.T) {
 				}
 
 				rgd := makeRGDObject("webapp", "WebApp", "kro.run", "v1alpha1")
-				rgd.SetAnnotations(map[string]string{
-					"kro.run/kro-version": "v0.9.1",
-				})
+				// Instance GVR: DiscoverPlural falls back to naive "webapps"
+				instanceGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "webapps"}
+				instance := &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "kro.run/v1alpha1",
+					"kind":       "WebApp",
+					"metadata": map[string]any{
+						"name":      "my-webapp",
+						"namespace": "default",
+						"labels": map[string]any{
+							"kro.run/kro-version": "v0.9.1",
+						},
+					},
+				}}
+
 				prodDyn := newStubDynamic()
 				prodDyn.resources[rgdGVR] = &stubNamespaceableResource{
 					items: []unstructured.Unstructured{*rgd},
+				}
+				prodDyn.resources[instanceGVR] = &stubNamespaceableResource{
+					items: []unstructured.Unstructured{*instance},
 				}
 
 				builder := &stubFleetClientBuilder{
