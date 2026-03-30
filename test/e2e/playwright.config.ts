@@ -33,7 +33,10 @@ const BASE_URL = `http://localhost:${PORT}`
 //   chunk-5:  027–040   telemetry, health, overlay, errors, deletion, rbac-sa, onboarding …
 //   chunk-6:  043-*     upstream fixture journeys (new in spec 043)
 //   chunk-7:  041,045-047  UX audit, designer, kro v0.9.0, ux-improvements, state-map
-//   chunk-8:  051-054   instance diff, response cache, multi-version kro, ux-gaps-round3
+//   chunk-8:  051-059   instance diff, response cache, multi-version kro, ux-gaps-round3,
+//                       health-summary, status-tooltip, cache-flush, global-instances, warnings
+//   chunk-9:  060-070   health-filter, fleet-reconciling, instances-filter, health-sort,
+//                       status-message, error-banner, catalog-status-filter
 //   serial:   007       context-switcher — runs after all chunks complete
 //
 // Each chunk runs with workers: 4 (parallel files); the serial project uses workers: 1.
@@ -131,8 +134,20 @@ export default defineConfig({
     },
     {
       // chunk-8 covers journeys added in specs 051–059
+      // (instance-diff, response-cache, multi-version-kro, ux-gaps,
+      //  health-summary, status-tooltip, cache-flush, global-instances, warnings)
       name: 'chunk-8',
       testMatch: /(051|052|053|054|055|056|057|058|059)-.*\.spec\.ts/,
+      ...PARALLEL_OPTS,
+      workers: 4,
+      fullyParallel: true,
+    },
+    {
+      // chunk-9 covers journeys added in specs 060–070
+      // (health-filter, fleet-reconciling, instances-filter, health-sort,
+      //  status-message, error-banner, catalog-status-filter)
+      name: 'chunk-9',
+      testMatch: /(060|062|064|065|066|069|070)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
@@ -144,7 +159,7 @@ export default defineConfig({
     {
       name: 'serial',
       testMatch: /007-.*\.spec\.ts/,
-      dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6', 'chunk-7', 'chunk-8'],
+      dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6', 'chunk-7', 'chunk-8', 'chunk-9'],
       ...PARALLEL_OPTS,
       workers: 1,
       fullyParallel: false,
