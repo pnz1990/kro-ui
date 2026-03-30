@@ -2,7 +2,7 @@
 
 **Feature Branch**: `056-rgd-status-tooltip`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #325)
 
 ---
 

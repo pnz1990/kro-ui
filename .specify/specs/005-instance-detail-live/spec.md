@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-instance-detail-live`
 **Created**: 2026-03-20
-**Status**: Merged
+**Status**: Merged (PR #48) — pre-workflow spec; plan.md not required
 **Depends on**: `004-instance-list` (merged)
 **Constitution ref**: §II (dynamic client, adaptability), §III (read-only),
 §V (polling not WebSocket), §VI (error handling, logging), §VII (testing)

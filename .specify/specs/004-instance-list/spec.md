@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-instance-list`
 **Created**: 2026-03-20
-**Status**: Merged
+**Status**: Merged (PR #46) — pre-workflow spec; plan.md not required
 **Depends on**: `003-rgd-detail-dag` (merged) — rendered inside the Instances tab
 **Constitution ref**: §II (dynamic client), §V (Simplicity — no pagination library)
 

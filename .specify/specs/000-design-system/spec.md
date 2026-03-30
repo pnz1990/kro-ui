@@ -2,8 +2,9 @@
 
 **Spec**: `000-design-system`
 **Created**: 2026-03-20
-**Status**: Ratified
-**Authority**: This spec is the single source of truth for all visual decisions.
+**Status**: Reference — no plan.md or tasks.md needed; this spec is a living design
+  system reference document maintained alongside the implementation. See
+  `web/src/tokens.css` for the canonical token definitions.
 All other specs reference it. No component may use a color, font, radius, or
 spacing value that is not defined here.
 

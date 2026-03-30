@@ -2,7 +2,7 @@
 
 **Feature Branch**: `060-namespace-overview-filter`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #329)
 
 ## Context
 

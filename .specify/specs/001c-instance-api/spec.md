@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001c-instance-api`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged (PR #33) — pre-workflow spec; plan.md not required
 **Depends on**: `001b-rgd-api` (merged)
 **Unblocks**: `004-instance-list`, `005-instance-detail-live`
 **Constitution ref**: §II (dynamic client, discovery), §III (read-only), §VI (Go standards)

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-server-core`
 **Created**: 2026-03-20
-**Status**: Draft
+**Status**: Merged (PR #12) — pre-workflow spec; plan.md not required
 **Depends on**: nothing — this is the foundation
 **Constitution ref**: §IV (Single Binary), §VI (Go Code Standards), §VII (Testing),
 §VIII (Commit conventions)

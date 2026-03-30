@@ -2,7 +2,7 @@
 
 **Feature Branch**: `055-overview-health-summary`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #324)
 
 ---
 
