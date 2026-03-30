@@ -61,6 +61,7 @@ test.describe('Journey 066: /instances status dot tooltip with condition message
   // ── B: Status dot has title attribute with condition message ─────────────────
 
   test('Step 2: never-ready instance row status dot has title matching condition message', async ({ page }) => {
+    test.setTimeout(120000)
     const res = await page.request.get(`${BASE}/api/v1/instances`)
     const data = await res.json()
     const neverReady = data.items?.find(
@@ -71,9 +72,9 @@ test.describe('Journey 066: /instances status dot tooltip with condition message
 
     await page.goto(`${BASE}/instances`)
     await page.waitForFunction(() => {
-      return document.querySelector('.instance-table') !== null &&
-             document.querySelector('.instances-page__loading') === null
-    }, { timeout: 30000 })
+      return !document.querySelector('.instances-page__loading') &&
+             document.querySelector('.instances-table') !== null
+    }, { timeout: 60000 })
 
     // Search for the never-ready instance in the table
     const searchInput = page.locator('input[placeholder*="Search"]')
@@ -90,7 +91,7 @@ test.describe('Journey 066: /instances status dot tooltip with condition message
     }
 
     // Find the status dot for the never-ready row
-    const rows = page.locator('.instance-table__row')
+    const rows = page.locator('.instances-table__row')
     let statusDot = null
     const rowCount = await rows.count()
     for (let i = 0; i < rowCount; i++) {

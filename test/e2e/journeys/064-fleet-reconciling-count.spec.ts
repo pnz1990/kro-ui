@@ -70,8 +70,8 @@ test.describe('Journey 064: Fleet cluster card reconciling count badge', () => {
 
   test('Step 3: Fleet page renders reconciling count badge in cluster card', async ({ page }) => {
     await page.goto(`${BASE}/fleet`)
-    // Wait for fleet data to load
-    await page.waitForSelector('[data-testid="fleet-cluster-card"]', { timeout: 20000 })
+    // Wait for fleet data to load — cluster cards use .cluster-card CSS class
+    await page.waitForSelector('.cluster-card', { timeout: 20000 })
 
     // The reconciling badge should be visible on the kind-kro-ui-demo card
     // (if never-ready fixture is installed and has IN_PROGRESS instances)
@@ -81,8 +81,8 @@ test.describe('Journey 064: Fleet cluster card reconciling count badge', () => {
 
     if (!local || local.reconcilingInstances === 0) { test.skip(); return }
 
-    // Look for the reconciling count badge
-    const reconBadge = page.locator('[data-testid="fleet-reconciling-badge"]')
+    // Look for the reconciling count badge (data-testid="cluster-card-reconciling")
+    const reconBadge = page.locator('[data-testid="cluster-card-reconciling"]')
     await expect(reconBadge).toBeVisible({ timeout: 5000 })
 
     const text = await reconBadge.textContent()
