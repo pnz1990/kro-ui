@@ -46,7 +46,7 @@ jobs:
           # to a file — global-setup.ts does that with `kind get kubeconfig`
           wait: 120s
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
 
       # ── Playwright ────────────────────────────────────────────────────────
       - uses: actions/setup-node@v6
