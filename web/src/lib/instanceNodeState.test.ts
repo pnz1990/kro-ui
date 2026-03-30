@@ -140,59 +140,83 @@ describe('buildNodeStateMap', () => {
     expect(stateMap['endpointslice']).toBeUndefined()
   })
 
-  // ── T011: reconciling when Progressing=True ────────────────────────────
+  // ── T011: reconciling global state — children judged individually ──────────
+  //
+  // When the CR is reconciling (Progressing=True, GraphProgressing=True, or
+  // IN_PROGRESS), children that are already created and healthy show 'alive'.
+  // Only a child with its own Progressing=True condition shows 'reconciling'.
+  // This ensures a Namespace/ConfigMap that was created successfully in the first
+  // wave does not show amber while a downstream RDS or ACK resource is still
+  // provisioning (feedback from Carlos Santana, 2026-03-30).
 
-  it('T011: returns reconciling for all nodes when Progressing=True', () => {
+  it('T011: child with no conditions shows alive even when CR is Progressing=True', () => {
     const instance = makeInstance([{ type: 'Progressing', status: 'True' }])
     const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    expect(stateMap['appConfig']?.state).toBe('reconciling')
+    // ConfigMap has no conditions → deriveChildState returns 'alive'
+    expect(stateMap['appConfig']?.state).toBe('alive')
+  })
+
+  it('T011-reconciling-child: child with Progressing=True shows reconciling when CR is alive', () => {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const children = [{
+      ...makeChild('Deployment', 'my-deploy', 'appDeployment'),
+      status: { conditions: [{ type: 'Progressing', status: 'True' }] },
+    }]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appDeployment']?.state).toBe('reconciling')
   })
 
   // ── T011b: GraphProgressing=True (kro v0.8.x compat) ────────────────────
 
-  it('T011b: returns reconciling when GraphProgressing=True (kro v0.8.x compat)', () => {
+  it('T011b: child shows alive when GraphProgressing=True but child has no conditions', () => {
     const instance = makeInstance([{ type: 'GraphProgressing', status: 'True' }])
     const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    expect(stateMap['appConfig']?.state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('alive')
   })
 
-  // ── T011c: GraphProgressing takes precedence over Ready=False ───────────
+  // ── T011c: GraphProgressing takes precedence over Ready=False (global) ───
 
-  it('T011c: GraphProgressing=True wins over Ready=False (reconciling > error)', () => {
+  it('T011c: GraphProgressing=True wins over Ready=False — child shows alive (its own conditions)', () => {
     const instance = makeInstance([
       { type: 'Ready', status: 'False' },
       { type: 'GraphProgressing', status: 'True' },
     ])
+    // GraphProgressing=True wins, so globalState=reconciling (not error).
+    // Child has no own conditions → shows alive.
     const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    expect(stateMap['appConfig']?.state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('alive')
   })
 
   // ── T011d: kro status.state === 'IN_PROGRESS' → reconciling ─────────────
 
-  it('T011d: returns reconciling when kro status.state is IN_PROGRESS', () => {
+  it('T011d: child shows alive when kro status.state is IN_PROGRESS but child has no conditions', () => {
     const instance = makeInstanceWithKroState('IN_PROGRESS', [
       { type: 'InstanceManaged', status: 'True' },
       { type: 'GraphResolved', status: 'True' },
       { type: 'ResourcesReady', status: 'False' },
       { type: 'Ready', status: 'False' },
     ])
+    // IN_PROGRESS wins → globalState=reconciling; child has no own conditions → alive
     const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    expect(stateMap['appConfig']?.state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('alive')
   })
 
-  it('T011e: IN_PROGRESS wins over Ready=False (reconciling > error)', () => {
+  it('T011e: IN_PROGRESS wins over Ready=False — globalState=reconciling — child shows alive', () => {
+    // IN_PROGRESS → reconciling (not error). Child has no own conditions → alive.
     const instance = makeInstanceWithKroState('IN_PROGRESS', [
       { type: 'Ready', status: 'False' },
     ])
@@ -200,7 +224,17 @@ describe('buildNodeStateMap', () => {
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    expect(stateMap['appConfig']?.state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('alive')
+  })
+
+  it('T011f: Ready=False without IN_PROGRESS or Progressing — globalState=error — child inherits error', () => {
+    // Pure Ready=False (no Progressing/IN_PROGRESS) → globalState=error → child inherits
+    const instance = makeInstance([{ type: 'Ready', status: 'False' }])
+    const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('error')
   })
 
   it('T011f: ACTIVE kro state with Ready=True stays alive', () => {
@@ -266,9 +300,11 @@ describe('buildNodeStateMap', () => {
     expect(stateMap['appConfig']?.state).toBe('alive')
   })
 
-  // ── T015: Progressing takes precedence over Ready ─────────────────────
+  // ── T015: child state from its own conditions, not CR-level Progressing ──
 
-  it('T015: reconciling takes precedence when both Progressing=True and Ready=True', () => {
+  it('T015: child with no conditions shows alive even when CR has Progressing=True+Ready=True', () => {
+    // CR is reconciling (Progressing wins) but the child ConfigMap has no
+    // conditions of its own → it shows alive, not reconciling.
     const instance = makeInstance([
       { type: 'Ready', status: 'True' },
       { type: 'Progressing', status: 'True' },
@@ -277,7 +313,20 @@ describe('buildNodeStateMap', () => {
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
-    expect(stateMap['appConfig']?.state).toBe('reconciling')
+    expect(stateMap['appConfig']?.state).toBe('alive')
+  })
+
+  it('T015b: child with own Progressing=True shows reconciling regardless of CR state', () => {
+    // Child has its own Progressing condition → reconciling, independent of CR
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const children = [{
+      ...makeChild('Deployment', 'my-deploy', 'appDeployment'),
+      status: { conditions: [{ type: 'Progressing', status: 'True' }] },
+    }]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appDeployment']?.state).toBe('reconciling')
   })
 
   // ── T016: two ConfigMaps with different node-ids (the core bug) ───────────

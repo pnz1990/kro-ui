@@ -151,10 +151,14 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
  *      ReplicaSet, etc.) are silently skipped — not kro-managed nodes.
  *    - First child for each node-id wins (handles rare duplicates).
  *    - Terminating children always get state 'error'.
- *    - When globalState is 'reconciling' or 'error', all present children
- *      inherit that global state (CR-level signal wins).
- *    - When globalState is 'alive', each child's own status.conditions are
- *      inspected individually via deriveChildState().
+ *    - When globalState is 'error' (CR-level Ready=False), all present children
+ *      inherit that global error state — the graph as a whole has failed.
+ *    - When globalState is 'reconciling' OR 'alive', each child's own
+ *      status.conditions are inspected individually via deriveChildState().
+ *      This means a Namespace or ConfigMap that is already created and healthy
+ *      shows 'alive' (green) even while a downstream resource (e.g. an RDS
+ *      DBInstance with readyWhen) is still being provisioned and keeps the CR
+ *      in IN_PROGRESS / reconciling state.
  * 3. Enumerate every non-state, non-instance RGD node and emit an explicit
  *    entry for absent nodes:
  *    - Node has includeWhen expressions → state = 'pending' (excluded by cond)
@@ -214,9 +218,19 @@ export function buildNodeStateMap(
     let nodeState: NodeLiveState
     if (childTerminating) {
       nodeState = 'error'
-    } else if (globalState !== 'alive') {
-      nodeState = globalState
+    } else if (globalState === 'error') {
+      // CR-level Ready=False means the graph as a whole has failed — propagate
+      // error to every child so operators see the failure clearly on every node.
+      nodeState = 'error'
     } else {
+      // globalState is 'alive' or 'reconciling': judge each child on its own
+      // conditions. A Namespace or ConfigMap that is already created and healthy
+      // should show 'alive' (green), not 'reconciling' (amber), even while a
+      // downstream resource (e.g. an RDS DBInstance with readyWhen) is still
+      // being provisioned and keeps the CR in IN_PROGRESS.
+      // deriveChildState returns 'reconciling' if the child itself has
+      // Progressing=True, 'error' if it has Ready=False or Available=False,
+      // and 'alive' otherwise (including stateless resources with no conditions).
       nodeState = deriveChildState(getChildConditions(child))
     }
 
