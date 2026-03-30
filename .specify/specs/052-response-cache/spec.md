@@ -2,7 +2,7 @@
 
 **Feature Branch**: `052-response-cache`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #321)
 
 ---
 

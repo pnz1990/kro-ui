@@ -25,7 +25,7 @@ jobs:
           bun-version: latest
 
       - name: Cache bun dependencies (web)
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: bun-web-${{ hashFiles('web/bun.lock') }}
@@ -46,7 +46,7 @@ jobs:
           # to a file — global-setup.ts does that with `kind get kubeconfig`
           wait: 120s
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
 
       # ── Playwright ────────────────────────────────────────────────────────
       - uses: actions/setup-node@v6
@@ -54,7 +54,7 @@ jobs:
           node-version: '22'
 
       - name: Cache bun dependencies (e2e)
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: bun-e2e-${{ hashFiles('test/e2e/bun.lock') }}
@@ -70,7 +70,7 @@ jobs:
       # cannot be cached, but the ~300MB browser binary download can be.
       - name: Cache Playwright Chromium
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ hashFiles('test/e2e/bun.lock') }}

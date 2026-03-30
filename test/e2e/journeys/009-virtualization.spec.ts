@@ -137,27 +137,27 @@ test.describe('Journey 009 — RGD list virtualization', () => {
 
   // ── Steps 7-9: multi-RGD search coverage ─────────────────────────────────
 
-  test('Step 7: home page DOM card count equals total fixture RGD count', async ({ page }) => {
-    await page.goto(BASE)
+   test('Step 7: home page DOM card count equals total fixture RGD count', async ({ page }) => {
+     await page.goto(BASE)
 
-    // Wait for at least one RGD card to appear — the API call may take
-    // several seconds on a throttled E2E cluster. Using waitForFunction
-    // gives a 15s window; the default toBeVisible() timeout is only 5s.
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="rgd-card-"]').length >= 1,
-      { timeout: 15000 }
-    )
+     // Wait for at least 5 RGD cards — the API call takes several seconds on
+     // throttled CI and the VirtualGrid only renders the visible window.
+     // Waiting for 1 card raced against the grid settling; 5 is safer.
+     await page.waitForFunction(
+       () => document.querySelectorAll('[data-testid^="rgd-card-"]').length >= 5,
+       { timeout: 20000 }
+     )
 
-    // The fixture set installs 14 RGDs (test-app, test-collection, multi-resource,
-    // external-ref, cel-functions, chain-parent, chain-child, chain-cycle-a,
-    // chain-cycle-b, upstream-cartesian-foreach, upstream-collection-chain,
-    // upstream-contagious-include-when, upstream-cluster-scoped,
-    // upstream-external-collection, upstream-cel-comprehensions).
-    // Use data-testid^="rgd-card-" to count only root card elements.
-    const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="rgd-card-"]').count()
-    expect(cardCount).toBeGreaterThanOrEqual(5)
-    expect(cardCount).toBeLessThan(500)
-  })
+     // The fixture set installs 14 RGDs (test-app, test-collection, multi-resource,
+     // external-ref, cel-functions, chain-parent, chain-child, chain-cycle-a,
+     // chain-cycle-b, upstream-cartesian-foreach, upstream-collection-chain,
+     // upstream-contagious-include-when, upstream-cluster-scoped,
+     // upstream-external-collection, upstream-cel-comprehensions).
+     // Use data-testid^="rgd-card-" to count only root card elements.
+     const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="rgd-card-"]').count()
+     expect(cardCount).toBeGreaterThanOrEqual(5)
+     expect(cardCount).toBeLessThan(500)
+   })
 
   test('Step 8: searching "cel-functions" on home page shows the cel-functions card', async ({ page }) => {
     await page.goto(BASE)

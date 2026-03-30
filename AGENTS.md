@@ -184,10 +184,11 @@ The Makefile `go` and `tidy` targets already set this. Use `make go` and
   `spec.schema.kind`, `spec.resources[].id`, etc.
 - **Upstream kro only**: `specPatch`/`stateFields` are fork-only concepts that
   do NOT exist in `kubernetes-sigs/kro`. Never add them.
-- **Performance budget**: every handler must respond in ≤5s. Discovery results
-  must be cached (≥30s). Fan-out list operations use `errgroup` with 2s per-resource
-  timeout. **Never** call `ServerGroupsAndResources()` per-request without caching.
-  **Never** loop sequentially over all API resource types — this will hang on
+ - **Performance budget**: every handler must respond in ≤5s. Discovery results
+   must be cached (≥30s). Fan-out list operations use `errgroup` with 5s per-goroutine
+   timeout (was 2s; increased in PRs #352/#354 — goroutines run in parallel so handler
+   latency ≈ max, not sum). **Never** call `ServerGroupsAndResources()` per-request without caching.
+   **Never** loop sequentially over all API resource types — this will hang on
   large clusters (EKS with many controllers routinely has 200+ resource types).
 - **No hardcoded config**: never hardcode service account names, ClusterRole names,
   namespace names, or label key values. Derive them from the cluster or expose

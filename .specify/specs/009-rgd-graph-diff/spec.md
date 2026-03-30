@@ -2,10 +2,35 @@
 
 **Feature Branch**: `009-rgd-graph-diff`
 **Created**: 2026-03-20
-**Updated**: 2026-03-26 (unblocked — kro v0.9.0 shipped GraphRevision CRD)
-**Status**: Unblocked — ready to implement (kro v0.9.0 ships GraphRevision CRD)
+**Updated**: 2026-03-30 (plan.md + tasks.md added; audit findings D3/D4/D10/D12 addressed)
+**Status**: Unblocked — plan.md and tasks.md generated; ready for `wt switch --create 009-rgd-graph-diff`
 **Depends on**: `003-rgd-detail-dag` (merged), `046-kro-v090-upgrade` (merged PR #275 — `GET /api/v1/kro/graph-revisions` API satisfied; `046-kro-v090-revisions` PR #314 provides the Revisions tab UI foundation)
-**Constitution ref**: §II (Cluster Adaptability), §V (Simplicity), §IX (Theme)
+**Constitution ref**: §II (Cluster Adaptability), §V (Simplicity), §IX (Theme), §XIV (E2E)
+
+---
+
+## Cluster Prerequisite (D4)
+
+This spec requires **kro v0.9.0** (`hasGraphRevisions: true`). The demo and CI
+clusters run kro v0.8.5 at time of writing. E2E journeys MUST use `page.request.get()`
+to check `hasGraphRevisions` and call `test.skip()` + `return` when false (§XIV).
+Unit tests and component-level tests are fully runnable on any cluster.
+
+---
+
+## Foundation vs. Full Implementation Clarification (D3)
+
+PR #318 (GH #13) added a **side-by-side YAML diff** to `RevisionsTab.tsx` as a
+"foundation" for spec 009. This is a **different deliverable** from FR-005.
+
+- **FR-005** (this spec): a **single merged DAG** with color-coded overlays
+  (added/removed/modified nodes and edges), rendered via `RGDDiffView.tsx` and
+  the `diffDAGGraphs()` pure function in `web/src/lib/dag-diff.ts`.
+- **YAML diff** (PR #318 foundation): side-by-side raw YAML view using
+  `KroCodeBlock`. This already exists and must be **kept** as a complementary
+  raw-data fallback below the DAG diff — it is NOT a partial implementation of FR-005.
+
+When implementing spec 009, both views will coexist in `RevisionsTab.tsx`.
 
 ---
 
@@ -108,15 +133,22 @@ a removed reference creates a red dashed edge.
   modified (in both, different CEL/readyWhen/includeWhen), unchanged (identical)
 - **FR-004**: Edge diff classification: added (in B not A), removed (in A not B)
 - **FR-005**: Diff MUST be rendered as a single merged DAG (not side-by-side
-  panels) with color-coded overlays for added/removed/modified
+  panels) with color-coded overlays for added/removed/modified.
+  *Note: the existing side-by-side YAML diff (PR #318) is a complementary view
+  that coexists below the DAG diff — it is NOT an implementation of this requirement.*
 - **FR-006**: Clicking a modified node MUST show before/after expressions in
   the detail panel
-- **FR-007**: All diff colors MUST use dedicated CSS tokens (to be added to
-  `tokens.css` when this spec is unblocked)
+- **FR-007**: All diff colors MUST use dedicated CSS tokens defined in `tokens.css`
+  before any component code references them. Required tokens: `--color-diff-added`,
+  `--color-diff-removed`, `--color-diff-modified`, `--color-diff-unchanged`, plus
+  corresponding `-bg` variants for node backgrounds. **This is a Phase 0 blocker.**
 
 ### Non-Functional Requirements
 
-- **NFR-001**: Diff renders within 1s for a 20-node graph
+- **NFR-001**: Diff renders within 1s for a 20-node graph. This MUST be verified
+  by a unit test in `dag-diff.test.ts` that times `diffDAGGraphs()` on a 20-node
+  fixture and asserts completion under 100ms (conservative headroom below the 1s
+  wall-clock target).
 - **NFR-002**: TypeScript strict mode MUST pass
 
 ### Key Components

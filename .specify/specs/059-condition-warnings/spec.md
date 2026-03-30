@@ -2,7 +2,7 @@
 
 **Feature Branch**: `059-condition-warnings`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #328)
 
 ## Context
 
