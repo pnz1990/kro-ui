@@ -3,9 +3,11 @@
 // Search input is debounced (300ms) to avoid per-keystroke filter churn.
 // FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
 // spec 069: RGD error banner — shows compile-error count, toggles error-only filter.
+// Issue #368: health filter chip synced to/from ?health= URL param so filtered
+// views survive refresh and can be shared.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { listRGDs, listInstances } from '@/lib/api'
 import { extractRGDName, extractReadyStatus } from '@/lib/format'
@@ -30,6 +32,10 @@ const RGD_CARD_HEIGHT = 130
 
 export default function Home() {
   usePageTitle('Overview')
+
+  // Issue #368: health filter synced to/from the ?health= URL param.
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const [items, setItems] = useState<K8sObject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +44,12 @@ export default function Home() {
 
   // Health filter — set by clicking OverviewHealthBar chips (spec 060-health-filter).
   // When set, the card grid shows only RGDs with instances in that health state.
-  const [healthFilter, setHealthFilter] = useState<HealthFilterState | null>(null)
+  // Issue #368: read initial value from ?health= URL param on mount.
+  const rawHealthParam = searchParams.get('health') as HealthFilterState | null
+  const validHealthFilters: HealthFilterState[] = ['ready', 'degraded', 'reconciling', 'error', 'pending', 'noInstances']
+  const [healthFilter, setHealthFilter] = useState<HealthFilterState | null>(
+    rawHealthParam && validHealthFilters.includes(rawHealthParam) ? rawHealthParam : null
+  )
 
   // spec 069: RGD compile-error filter — toggled by clicking the error banner.
   // When true, only error-state RGDs (Ready=False) are shown in the card grid.
@@ -215,7 +226,12 @@ export default function Home() {
                   <button
                     type="button"
                     className="home__clear-filter"
-                    onClick={() => { setHealthFilter(null); setShowOnlyErrors(false); }}
+                    onClick={() => {
+                      setHealthFilter(null)
+                      setShowOnlyErrors(false)
+                      // Issue #368: clear URL param on filter clear
+                      setSearchParams((prev) => { prev.delete('health'); return prev }, { replace: true })
+                    }}
                     title="Clear all filters"
                     data-testid="clear-health-filter"
                   >
@@ -250,7 +266,15 @@ export default function Home() {
           summaries={healthSummaries}
           totalRGDs={items.length}
           activeFilter={healthFilter}
-          onFilter={(state) => { setHealthFilter(state); }}
+          onFilter={(state) => {
+              setHealthFilter(state)
+              // Issue #368: sync to URL param so filter can be shared/bookmarked.
+              if (state === null) {
+                setSearchParams((prev) => { prev.delete('health'); return prev }, { replace: true })
+              } else {
+                setSearchParams((prev) => { prev.set('health', state); return prev }, { replace: true })
+              }
+            }}
         />
       )}
 

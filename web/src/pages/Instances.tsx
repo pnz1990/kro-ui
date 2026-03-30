@@ -4,9 +4,11 @@
 // Also provides namespace dropdown filter and health state filter.
 // Spec: .specify/specs/058-global-instance-search/spec.md
 // Namespace filter: spec .specify/specs/062-instance-namespace-filter/spec.md
+// Issue #365/#368: health filter is synced to/from the ?health= URL param so
+// filtered views can be shared and survive page refresh.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { listAllInstances } from '@/lib/api'
 import type { InstanceSummary } from '@/lib/api'
 import { formatAge } from '@/lib/format'
@@ -26,9 +28,9 @@ function toHealthState(instance: InstanceSummary): 'ready' | 'reconciling' | 'er
   return 'unknown'
 }
 
-// StatusDot only accepts 3 states; map 4-state → 3-state for the dot.
-function toDotState(health: 'ready' | 'reconciling' | 'error' | 'unknown'): 'ready' | 'error' | 'unknown' {
-  if (health === 'reconciling') return 'unknown' // amber-ish via unknown state
+// StatusDot now accepts 'reconciling' — map 4-state health to StatusDot state.
+// Issue #366: reconciling maps to 'reconciling' (amber pulsing dot), not 'unknown'.
+function toDotState(health: 'ready' | 'reconciling' | 'error' | 'unknown'): 'ready' | 'error' | 'unknown' | 'reconciling' {
   return health
 }
 
@@ -77,15 +79,31 @@ const PAGE_SIZE = 50
 export default function InstancesPage() {
   usePageTitle('Instances')
 
+  // Issue #365: health filter is synced to the ?health= URL param so that
+  // filtered views survive refresh and can be shared. Read the param on mount;
+  // write it back on every chip click via setSearchParams.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawHealthParam = searchParams.get('health') as HealthFilter | null
+  const validHealthFilters: HealthFilter[] = ['all', 'ready', 'reconciling', 'error', 'unknown']
+  const healthFromUrl: HealthFilter =
+    rawHealthParam && validHealthFilters.includes(rawHealthParam) ? rawHealthParam : 'all'
+
   const [items, setItems] = useState<InstanceSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [nsFilter, setNsFilter] = useState('') // namespace dropdown
-  const [healthFilter, setHealthFilter] = useState<HealthFilter>('all')
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>(healthFromUrl)
   const [sortKey, setSortKey] = useState<SortKey>('health')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
+
+  // Sync healthFilter from URL on mount (handles direct navigation with ?health=).
+  // Only runs once; subsequent changes are driven by chip clicks.
+  useEffect(() => {
+    setHealthFilter(healthFromUrl)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally empty — we only want to read the URL once at mount
 
   const fetchAll = useCallback(() => {
     setIsLoading(true)
@@ -229,9 +247,19 @@ export default function InstancesPage() {
                 key={state}
                 type="button"
                 className={`instances-page__health-chip instances-page__health-chip--${state}${healthFilter === state ? ' instances-page__health-chip--active' : ''}`}
-                onClick={() => { setHealthFilter(state); setPage(0) }}
+                onClick={() => {
+                  setHealthFilter(state)
+                  setPage(0)
+                  // Issue #365: sync to URL so the view can be shared/bookmarked.
+                  // Remove the param entirely for "all" (cleaner URL).
+                  if (state === 'all') {
+                    setSearchParams((prev) => { prev.delete('health'); return prev }, { replace: true })
+                  } else {
+                    setSearchParams((prev) => { prev.set('health', state); return prev }, { replace: true })
+                  }
+                }}
                 aria-pressed={healthFilter === state}
-                data-testid={`instances-health-filter-${state}`}
+                data-testid={`instances-health-chip-${state}`}
               >
                 {label} ({count})
               </button>

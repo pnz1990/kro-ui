@@ -19,8 +19,8 @@ export interface K8sCondition {
   lastTransitionTime?: string
 }
 
-/** Tri-state status for UI rendering. */
-export type ReadyState = 'ready' | 'error' | 'unknown'
+/** Tri-state status for UI rendering — extended with reconciling (issue #366). */
+export type ReadyState = 'ready' | 'error' | 'unknown' | 'reconciling'
 
 /** Full extraction result — gives components everything they need. */
 export interface ReadyStatus {
@@ -288,6 +288,8 @@ export function readyStateColor(state: ReadyState): string {
       return '--color-status-ready'
     case 'error':
       return '--color-status-error'
+    case 'reconciling':
+      return '--color-status-reconciling'
     case 'unknown':
       return '--color-status-unknown'
   }
@@ -302,6 +304,8 @@ export function readyStateLabel(state: ReadyState): string {
       return 'Ready'
     case 'error':
       return 'Not Ready'
+    case 'reconciling':
+      return 'Reconciling'
     case 'unknown':
       return 'Unknown'
   }
