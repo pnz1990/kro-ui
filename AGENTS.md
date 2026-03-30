@@ -109,7 +109,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/ux-polish-round2-continued` | #303 #299 #298 #308 #309 | ValidateRGD PATCH→static; Fleet degraded color; ContextSwitcher subtitle; require.Nil; AGENTS/constitution docs | Merged (PR #316) |
 | `fix/e2e-journey-syntax-fix2` | — | #301 errors.New sentinels; #300 handler timeout comment; #302 README features; #304 #305 #306 component tests | Merged (PR #317) |
 | `051-instance-diff` | #276 #13 | F-8 snooze error DAG nodes; GraphRevision side-by-side YAML diff foundation (spec 009) | Merged (PR #318) |
-| `fix/ux-polish-round2` | — | DocsTab required fields sorted first + summary banner; Graph tab resource complexity hint; advanced stress-test fixtures | In progress |
+| `fix/ux-polish-round2` | — | DocsTab required fields sorted first + summary banner; Graph tab resource complexity hint; advanced stress-test fixtures | Merged (PR #319) |
 | `052-response-cache` | — | In-memory response cache — TTL-based k8s API call caching | Merged (PR #321) |
 | `053-multi-version-kro` | — | Multi-version kro support — IsSupported, CompareKroVersions, version warning banner | Merged (PR #322) |
 | `054-ux-gaps` | — | formatAge 'just now', MetricsStrip not-reported style, instance name filter | Merged (PR #323) |
@@ -450,6 +450,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
  ## Recent Changes
+ - v0.8.1 (post-v0.8.0 fixes): 3 bug fixes (#359 kro version from instance labels / Errors tab IN_PROGRESS / escalation duration); 4 UX fixes (#369 health filter URL sync, reconciling StatusDot amber dot, blank ?tab= fallback); E2E journey backfill 062-070 (PR #364); CSS #fff→token (PR #363)
  - v0.8.0: Fleet kro version from RGD annotation (PR #355); Overview RGD compile-error banner + filter (PR #356); Catalog compile-status filter All/Ready/Errors (PR #357)
  - v0.7.0: /instances health sort (PR #350); status message tooltip (PR #351); 5s timeout fix for throttled clusters (PR #352)
  - v0.6.0: Fleet consistent health state (#343); ACTIVE WATCHES metric fallback for kro v0.8.5 (#344); /instances namespace+health filter (#345); Fleet reconciling count (#347); /instances reconciling state fix (#348)

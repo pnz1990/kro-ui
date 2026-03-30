@@ -83,7 +83,7 @@ export default function OverviewHealthBar({ summaries, totalRGDs, activeFilter, 
           className={className}
           onClick={() => onFilter(isActive ? null : state)}
           aria-pressed={isActive}
-          title={isActive ? `Clear filter: ${label}` : `Filter to RGDs with ${label} instances`}
+          title={isActive ? `Clear filter: ${label}` : `Filter to RGDs with ${label}${label.includes('instances') ? '' : ' instances'}`}
           data-testid={`health-filter-${state}`}
         >
           {count} {label}
