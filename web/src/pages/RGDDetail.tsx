@@ -62,7 +62,13 @@ export default function RGDDetail() {
   const fromRgd = (location.state as { from?: string } | null)?.from || null
 
   const rawTab = searchParams.get("tab")
-  const activeTab: TabId = isValidTab(rawTab) ? rawTab : "graph"
+  // Issue #367: if ?tab=revisions but the cluster doesn't support GraphRevisions
+  // (kro < v0.9.0), treat it as invalid so we fall back to the graph tab.
+  // Without this check, navigating to ?tab=revisions renders a blank content area
+  // because the Revisions tab content is gated on hasRevisions.
+  const activeTab: TabId = isValidTab(rawTab) && (rawTab !== "revisions" || hasRevisions)
+    ? rawTab
+    : "graph"
 
   // ── RGD data ──────────────────────────────────────────────────────────────
   const [rgd, setRgd] = useState<K8sObject | null>(null)

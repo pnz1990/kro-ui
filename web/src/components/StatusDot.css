@@ -17,3 +17,9 @@
 .status-dot--unknown {
   background-color: var(--color-status-unknown);
 }
+
+/* Issue #366: reconciling state — amber dot using the existing reconciling token */
+.status-dot--reconciling {
+  background-color: var(--color-status-reconciling);
+  animation: reconciling-pulse 1.5s ease-in-out infinite;
+}

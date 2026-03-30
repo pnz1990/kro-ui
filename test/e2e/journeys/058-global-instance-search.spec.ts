@@ -200,16 +200,16 @@ test.describe('Journey 058: Global Instance Search', () => {
 
   // ── Health filter chips (spec 062) ────────────────────────────────────────────
 
-  test('Step 7: health filter chips present and interactive', async ({ page }) => {
-    await page.goto(`${BASE}/instances`)
-    await page.waitForFunction(
-      () => document.querySelector('[data-testid="instances-health-filter-all"]') !== null ||
-            document.querySelector('.panel-empty') !== null,
-      { timeout: 60000 }
-    )
-    const allChip = page.locator('[data-testid="instances-health-filter-all"]')
-    if (await allChip.count() > 0) {
-      // All chip should be active by default (aria-pressed=true)
+   test('Step 7: health filter chips present and interactive', async ({ page }) => {
+     await page.goto(`${BASE}/instances`)
+     await page.waitForFunction(
+       () => document.querySelector('[data-testid="instances-health-chip-all"]') !== null ||
+             document.querySelector('.panel-empty') !== null,
+       { timeout: 60000 }
+     )
+     const allChip = page.locator('[data-testid="instances-health-chip-all"]')
+     if (await allChip.count() > 0) {
+       // All chip should be active by default (aria-pressed=true)
       await expect(allChip).toHaveAttribute('aria-pressed', 'true')
       // All chip text should contain total count
       const text = await allChip.textContent()

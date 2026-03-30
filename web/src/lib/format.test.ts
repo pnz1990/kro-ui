@@ -218,6 +218,10 @@ describe('readyStateColor', () => {
   it('returns --color-status-unknown for unknown', () => {
     expect(readyStateColor('unknown')).toBe('--color-status-unknown')
   })
+
+  it('returns --color-status-reconciling for reconciling (issue #366)', () => {
+    expect(readyStateColor('reconciling')).toBe('--color-status-reconciling')
+  })
 })
 
 // ── readyStateLabel ──────────────────────────────────────────────────
@@ -233,6 +237,10 @@ describe('readyStateLabel', () => {
 
   it('returns Unknown for unknown', () => {
     expect(readyStateLabel('unknown')).toBe('Unknown')
+  })
+
+  it('returns Reconciling for reconciling (issue #366)', () => {
+    expect(readyStateLabel('reconciling')).toBe('Reconciling')
   })
 })
 
