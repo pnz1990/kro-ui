@@ -251,12 +251,12 @@
 
 .home__rgd-error-btn:hover {
   background: var(--color-error);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .home__rgd-error-btn--active {
   background: var(--color-error);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .home__rgd-error-count {

@@ -81,7 +81,7 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 
 	// parent is already bounded by the route-level 30s timeout (server.go).
 	// No additional per-cluster deadline is added here — the per-RGD goroutines
-	// each apply their own 2s deadline via rctx (Constitution §XI).
+	// each apply their own 5s deadline via rctx (Constitution §XI; was 2s, increased in PR #354).
 
 	// Build ephemeral clients — does NOT affect the shared ClientFactory.
 	var kubeconfigPath string
