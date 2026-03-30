@@ -265,5 +265,5 @@
 /* Errors active state — accent with error color */
 .catalog__status-btn--active[data-testid="catalog-status-errors"] {
   background: var(--color-error);
-  color: #fff;
+  color: var(--color-on-primary);
 }

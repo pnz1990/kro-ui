@@ -15,7 +15,7 @@
 package handlers
 
 // ListAllInstances returns a flat list of all live CR instances across all active RGDs.
-// Fan-out: one goroutine per RGD, each with a 2s deadline (constitution §XI).
+// Fan-out: one goroutine per RGD, each with a 5s deadline (constitution §XI; was 2s, increased in PR #352).
 // Response: {"items": [...InstanceSummary...], "total": N}
 //
 // Used by the global instance search page (/instances) in the frontend.
