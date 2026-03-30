@@ -2,7 +2,7 @@
 
 **Feature Branch**: `053-multi-version-kro`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #322)
 
 ---
 

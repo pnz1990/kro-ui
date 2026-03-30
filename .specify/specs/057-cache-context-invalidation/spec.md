@@ -2,7 +2,7 @@
 
 **Feature Branch**: `057-cache-context-invalidation`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #326)
 
 ---
 

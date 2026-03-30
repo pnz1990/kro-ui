@@ -2,7 +2,7 @@
 
 **Feature Branch**: `015-rgd-catalog`
 **Created**: 2026-03-20
-**Status**: Merged
+**Status**: Merged (PR #47) — pre-workflow spec; plan.md not required
 **Depends on**: `002-rgd-list-home` (merged)
 **Constitution ref**: §II (Cluster Adaptability — dynamic client), §III (Read-Only),
 §V (Simplicity), §IX (Theme)

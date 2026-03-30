@@ -2,7 +2,7 @@
 
 **Feature Branch**: `021-collection-node-cardinality`
 **Created**: 2026-03-22
-**Status**: Draft
+**Status**: Merged (PR #81) — spec.md predates the implementation; kept for historical reference
 **Input**: User description: "Display forEach iterator expression and runtime cardinality on collection nodes — show the forEach CEL expression on collection DAG nodes (static, from the RGD spec), and display the actual instance count badge on collection nodes in the live DAG so contributors can see cardinality at a glance without drilling into the collection explorer"
 
 ## User Scenarios & Testing *(mandatory)*

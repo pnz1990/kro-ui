@@ -2,7 +2,7 @@
 
 **Feature Branch**: `061-helm-security`
 **Created**: 2026-03-28
-**Status**: In Progress
+**Status**: Merged (PR #330)
 
 ## Context
 

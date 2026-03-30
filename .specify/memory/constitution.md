@@ -327,9 +327,12 @@ Unbounded discovery loops are prohibited.
 - **Discovery operations** (`ServerGroupsAndResources`, `ServerResourcesForGroupVersion`)
   MUST be cached for ≥30 seconds. Never call discovery on every request.
 - **Fan-out list operations** (listing across multiple resource types or namespaces)
-  MUST use `errgroup` with a per-resource timeout of **2 seconds**. Any resource
+  MUST use `errgroup` with a per-goroutine timeout of **5 seconds**. Any resource
   that exceeds the timeout is silently skipped — a partial result is better than
-  a hung request.
+  a hung request. Because goroutines run in parallel, the overall handler latency
+  is ≈ max(individual goroutine latency), not sum — so a 5s per-goroutine timeout
+  stays within the 5s handler budget. (Was 2s; increased in PRs #352/#354 after
+  discovery calls alone consumed the 2s budget on throttled clusters.)
 - **No sequential API calls in a loop** — if N resources must be listed, list them
   concurrently, not one after another.
 - Performance anti-patterns that are **prohibited**:
@@ -556,9 +559,14 @@ Amendments:
 2. Bump the version number (MINOR for new principles, PATCH for clarifications)
 3. Reference the amendment in the relevant spec or commit message
 
-**Version**: 1.5.1 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-28
+**Version**: 1.5.2 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-30
 
 **Amendment log**:
+- 1.5.2 (2026-03-30): §XI fan-out timeout corrected 2s → 5s; added parallelism
+  clarification (handler latency ≈ max, not sum). PRs #352/#354 increased the
+  value after discovery calls alone exceeded the 2s budget on throttled clusters.
+  Also addresses D9 from cross-corpus spec audit — the 5s budget and the
+  5s per-goroutine timeout are not contradictory because goroutines run in parallel.
 - 1.5.1 (2026-03-28): §II CA-01 fix — `internal/kro/` corrected to `internal/k8s/rgd.go` (package didn't exist).
 - 1.5.0 (2026-03-27): §XIV E2E Journey Standards added — SPA HTTP-200 pitfall,
   API-first existence checks, brace balance verification, `locator.or()` ambiguity,
