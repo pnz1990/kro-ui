@@ -27,8 +27,11 @@ import OverviewHealthBar from '@/components/OverviewHealthBar'
 import type { HealthFilterState } from '@/components/OverviewHealthBar'
 import './Home.css'
 
-// RGDCard renders at a fixed ~130px height (header + meta + actions, no-wrap text).
-const RGD_CARD_HEIGHT = 130
+// RGDCard height: 16px pad + 24px header + 8px gap + 18px meta + 16px meta-margin
+//   + 16px error-hint (worst case) + 4px hint-margin + 24px chip-row + 8px chip-margin
+//   + 28px actions + 16px pad = 178px.
+// MUST match height:178px in RGDCard.css — VirtualGrid uses this for row-offset math.
+const RGD_CARD_HEIGHT = 178
 
 export default function Home() {
   usePageTitle('Overview')
