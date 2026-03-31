@@ -7,10 +7,10 @@
   flex-direction: column;
   gap: 10px;
   transition: border-color var(--transition);
-  /* Fixed height for VirtualGrid row math — matches skeleton height (160px).
-     Cards with many label pills clip their overflow so all rows stay uniform. */
-  min-height: 160px;
-  max-height: 160px;
+  /* Fixed height matching CATALOG_CARD_HEIGHT=160 in Catalog.tsx.
+     VirtualGrid uses this constant for row-offset math — cards must be
+     exactly this height; overflow is hidden so label pills don't grow rows. */
+  height: 160px;
   overflow: hidden;
 }
 
