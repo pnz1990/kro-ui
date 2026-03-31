@@ -255,13 +255,18 @@ export function buildNodeStateMap(
   // External ref resources are pre-existing and never created (or labelled)
   // by kro. GetInstanceChildren only returns kro-labelled resources, so
   // external nodes will always be absent from the stateMap after step 2.
-  // Showing 'not-found' (grey) for them is misleading when the CR is
-  // Ready=True — if the instance is healthy, the external ref was successfully
-  // accessed. Map external nodes to globalState instead so they reflect the
-  // actual CR health:
-  //   globalState=alive       → 'alive'  (green  — ref was accessed, instance ready)
-  //   globalState=reconciling → 'reconciling'  (amber — kro is resolving the ref)
-  //   globalState=error       → 'not-found'    (grey  — unknown if ref is reachable)
+  // Their state must be inferred from the CR-level signal:
+  //
+  //   globalState=alive       → 'alive'     (green  — ref was accessed, instance ready)
+  //   globalState=reconciling → 'alive'     (green  — ref was READ before kro moved on;
+  //                                           it exists. Showing amber is misleading since
+  //                                           the ref itself is not what's reconciling.)
+  //   globalState=error       → 'not-found' (grey   — unknown if ref is reachable; show
+  //                                           grey not amber to avoid false alarm on the ref)
+  //
+  // This fixes the same class of bug as PR #379: external refs like `kroConfig`
+  // (a ConfigMap externalRef) were showing amber while an unrelated downstream
+  // resource (e.g. RDS DBInstance with readyWhen) was still provisioning.
   for (const node of rgdNodes) {
     if (node.nodeType === 'instance' || node.nodeType === 'state') continue
     const nodeId = node.id  // use the RGD resource id, matching kro.run/node-id
@@ -273,9 +278,11 @@ export function buildNodeStateMap(
 
     let nodeState: NodeLiveState
     if (isExternalNode) {
-      // External refs are watched, not created — their health is inferred from
-      // the CR-level state rather than from a kro.run/node-id label on the resource.
-      nodeState = globalState === 'error' ? 'not-found' : globalState
+      // External refs are watched, not created. If the CR failed (error), we
+      // don't know if the ref is still reachable → show 'not-found' (grey).
+      // For both 'alive' and 'reconciling', the ref was already resolved by kro
+      // at an earlier reconciliation wave → show 'alive' (green).
+      nodeState = globalState === 'error' ? 'not-found' : 'alive'
     } else {
       const hasIncludeWhen = node.includeWhen.some((e) => e.trim() !== '')
       nodeState = hasIncludeWhen ? 'pending' : 'not-found'
