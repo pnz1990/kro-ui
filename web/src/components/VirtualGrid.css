@@ -3,12 +3,13 @@
 /* Outer scroll container */
 .virtual-grid {
   overflow-y: auto;
-  /* Prevent horizontal scrollbar: setting overflow-y to non-visible causes the
-   * browser to implicitly promote overflow-x from 'visible' to 'auto', which
-   * triggers a spurious horizontal scrollbar when content is even 1px wider
-   * (sub-pixel rounding, scrollbar gutter width, ResizeObserver timing race).
-   * Cards use 1fr columns and are never intentionally wider than the container. */
-  overflow-x: hidden;
+  /* Do NOT add overflow-x: hidden here — it causes two problems:
+   * 1. ResizeObserver reads the narrowed clientWidth and calculates fewer
+   *    columns (2 instead of 3), producing an incorrect grid layout.
+   * 2. The DAG SVG on RGD detail pages renders wider than the container;
+   *    overflow-x:hidden clips it and shifts the graph to the right.
+   * The horizontal scrollbar is prevented by Math.floor() in VirtualGrid.tsx
+   * which ensures the computed grid width never exceeds the container. */
   position: relative;
   /* Height set by caller via className; e.g. .home__virtual-grid */
 }
@@ -23,6 +24,10 @@
   display: grid;
   grid-template-columns: repeat(var(--vg-cols, 3), 1fr);
   gap: 16px;
+  /* align-items:start prevents the grid from stretching children to the tallest
+   * card in each row. Cards have a fixed height (RGD_CARD_HEIGHT px) enforced
+   * by the card CSS; stretching would override that fixed height. */
+  align-items: start;
 }
 
 /* Default empty-state wrapper */

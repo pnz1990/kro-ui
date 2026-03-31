@@ -48,16 +48,20 @@ export default function VirtualGrid<T>({
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
+        // Math.floor prevents sub-pixel rounding from producing a grid
+        // fractionally wider than the container, which would cause a spurious
+        // horizontal scrollbar. contentRect.width is a float (e.g. 1274.666);
+        // flooring it ensures col calculations always fit within the container.
         const { width, height } = entry.contentRect
-        setContainerWidth(width)
-        setContainerHeight(height)
+        setContainerWidth(Math.floor(width))
+        setContainerHeight(Math.floor(height))
       }
     })
 
     observer.observe(el)
-    // Set initial dimensions synchronously
-    setContainerWidth(el.clientWidth)
-    setContainerHeight(el.clientHeight)
+    // Set initial dimensions synchronously — floor to prevent sub-pixel scrollbar
+    setContainerWidth(Math.floor(el.clientWidth))
+    setContainerHeight(Math.floor(el.clientHeight))
 
     return () => {
       observer.disconnect()
@@ -79,7 +83,12 @@ export default function VirtualGrid<T>({
     }
   }, [])
 
-  const cols = Math.max(1, Math.floor(containerWidth / MIN_CARD_WIDTH))
+  // Column count: account for gaps so the grid never overflows the container.
+  // With N columns and (N-1) gaps of GRID_GAP px:
+  //   N * MIN_CARD_WIDTH + (N-1) * GRID_GAP <= containerWidth
+  //   N <= (containerWidth + GRID_GAP) / (MIN_CARD_WIDTH + GRID_GAP)
+  const GRID_GAP = 16
+  const cols = Math.max(1, Math.floor((containerWidth + GRID_GAP) / (MIN_CARD_WIDTH + GRID_GAP)))
 
   // When containerHeight is 0 (not yet measured — JSDOM, SSR, or first paint),
   // render all items so the page is not blank and tests work without mocking

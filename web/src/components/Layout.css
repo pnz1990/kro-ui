@@ -26,7 +26,7 @@
 .layout__content {
   flex: 1;
   padding: 24px 32px;
-  /* Prevent page-level horizontal scrollbar — same class of bug as VirtualGrid.
-   * Pages should never scroll horizontally; clamp at the layout level. */
-  overflow-x: hidden;
+  /* Do NOT add overflow-x: hidden here — it clips the DAG SVG on RGD detail
+   * pages (the graph SVG renders wider than its container and gets cut off,
+   * shifting the topology to the right with a blank left area). */
 }
