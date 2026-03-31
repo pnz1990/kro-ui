@@ -6,11 +6,14 @@
   transition: border-color var(--transition);
   display: flex;
   flex-direction: column;
-  /* Issue #151: ensure all cards in a row have uniform minimum height
-     regardless of whether optional rows (error badges, health chips) appear.
-     Cards that have more content will expand and CSS grid stretch equalises
-     them within each row. */
-  min-height: 120px;
+  /* Fixed height to match RGD_CARD_HEIGHT=130 in Home.tsx / Catalog.tsx.
+   * VirtualGrid uses this constant for row-offset math — if any card grows
+   * taller (e.g. error-hint text wraps), subsequent rows are misaligned and
+   * the right column gets clipped. overflow:hidden clips any overflow instead
+   * of letting the card grow. Content is still readable via tooltips (title
+   * attrs on error-hint, kind badge, etc.). */
+  height: 130px;
+  overflow: hidden;
 }
 
 /* Reserved row for the health chip — always the same height whether the chip

@@ -15,11 +15,15 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
@@ -72,6 +76,12 @@ var capCache = &capabilitiesCache{ttl: defaultCapabilitiesTTL}
 // GetCapabilities handles GET /api/v1/kro/capabilities.
 // Returns detected capabilities with a 30s cache. Always returns 200 with valid JSON —
 // falls back to conservative baseline on any detection failure.
+//
+// Version fallback: if DetectCapabilities returns version="unknown" (e.g. the kro
+// Deployment probe timed out on a throttled cluster), we attempt to recover the
+// version from the kro.run/kro-version label on the first available RGD instance.
+// kro stamps this label on every CR it manages (same approach used by the Fleet
+// summary handler, PR #355).
 func (h *Handler) GetCapabilities(w http.ResponseWriter, r *http.Request) {
 	// Try cache first.
 	if cached := capCache.get(); cached != nil {
@@ -89,6 +99,17 @@ func (h *Handler) GetCapabilities(w http.ResponseWriter, r *http.Request) {
 		caps = k8sclient.Baseline()
 	}
 
+	// Version fallback: if the Deployment probe returned "unknown" (throttled
+	// cluster, RBAC gap, cold start), try to read the version label from the
+	// first available RGD instance. kro stamps kro.run/kro-version on every CR.
+	if caps.Version == "unknown" || caps.Version == "" {
+		if v := kroVersionFromInstances(ctx, h.factory); v != "" {
+			log.Debug().Str("version", v).Msg("kro version recovered from instance label")
+			caps.Version = v
+			caps.IsSupported = k8sclient.IsKroVersionSupported(v)
+		}
+	}
+
 	capCache.set(caps)
 	respond(w, http.StatusOK, caps)
 }
@@ -97,4 +118,59 @@ func (h *Handler) GetCapabilities(w http.ResponseWriter, r *http.Request) {
 // Called when the user switches kubeconfig context.
 func InvalidateCapabilitiesCache() {
 	capCache.invalidate()
+}
+
+// kroVersionFromInstances attempts to recover the kro version from the
+// kro.run/kro-version label on any available RGD instance.
+// kro stamps this label on every CR it manages. Returns "" on any error.
+func kroVersionFromInstances(ctx context.Context, clients k8sclient.K8sClients) string {
+	// List a few RGDs to find available CRD kinds.
+	rgds, err := clients.Dynamic().Resource(rgdGVR).List(ctx, metav1.ListOptions{Limit: 5})
+	if err != nil || rgds == nil {
+		return ""
+	}
+
+	for _, rgd := range rgds.Items {
+		spec, ok := rgd.Object["spec"].(map[string]any)
+		if !ok {
+			continue
+		}
+		schemaObj, ok := spec["schema"].(map[string]any)
+		if !ok {
+			continue
+		}
+		kind, _ := schemaObj["kind"].(string)
+		group, _ := schemaObj["group"].(string)
+		apiVersion, _ := schemaObj["apiVersion"].(string)
+		if kind == "" {
+			continue
+		}
+
+		// Pluralise to list instances.
+		plural, err := k8sclient.DiscoverPlural(clients, group, apiVersion, kind)
+		if err != nil {
+			plural = strings.ToLower(kind) + "s"
+		}
+
+		instGVR := schema.GroupVersionResource{
+			Group:    group,
+			Version:  apiVersion,
+			Resource: plural,
+		}
+
+		instCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		instances, err := clients.Dynamic().Resource(instGVR).List(instCtx, metav1.ListOptions{Limit: 5})
+		cancel()
+		if err != nil || instances == nil {
+			continue
+		}
+
+		for _, inst := range instances.Items {
+			if v, ok := inst.GetLabels()["kro.run/kro-version"]; ok && v != "" {
+				return v
+			}
+		}
+	}
+
+	return ""
 }
