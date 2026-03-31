@@ -104,20 +104,34 @@ function getChildConditions(child: K8sObject): K8sCondition[] {
 
 /**
  * deriveChildState — derives a NodeLiveState from a child resource's own
- * status.conditions. Only called when the CR-level globalState is 'alive'.
+ * status.conditions. Called for every present child when globalState is
+ * 'alive' or 'reconciling'.
  *
  * Precedence (highest to lowest):
- *   Ready=False or Available=False → 'error'
- *   Progressing=True               → 'reconciling'
- *   otherwise                      → 'alive'
+ *   Available=True                        → 'alive'       (serving traffic; wins over Progressing)
+ *   Ready=False or Available=False        → 'error'
+ *   Progressing=True (Available not True) → 'reconciling' (rolling update, not yet serving)
+ *   otherwise                             → 'alive'
+ *
+ * Why Available=True wins over Progressing=True:
+ *   A Deployment with Available=True + Progressing=True is actively rolling out
+ *   a new version but already serving traffic. kubectl considers this healthy
+ *   (rollout status = "successfully rolled out" or in-progress). Showing amber
+ *   is misleading — the resource IS healthy. Progressing=True only signals a
+ *   problem if Progressing goes False with reason=ProgressDeadlineExceeded.
  */
 function deriveChildState(conditions: K8sCondition[]): NodeLiveState {
+  // Fast path: if Available=True the resource is serving → green regardless of Progressing.
+  if (hasCondition(conditions, 'Available', 'True')) {
+    return 'alive'
+  }
   if (
     hasCondition(conditions, 'Ready', 'False') ||
     hasCondition(conditions, 'Available', 'False')
   ) {
     return 'error'
   }
+  // Progressing=True without Available=True → rolling update not yet serving
   if (hasCondition(conditions, 'Progressing', 'True')) {
     return 'reconciling'
   }

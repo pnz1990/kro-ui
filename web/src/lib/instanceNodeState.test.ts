@@ -393,7 +393,9 @@ describe('buildNodeStateMap', () => {
   // ── AC-019: crashloop-app — two Deployments, different states ─────────────
 
   describe('AC-019 — two same-kind nodes with different states (crashloop-app scenario)', () => {
-    it('goodDeploy=reconciling, badDeploy=error when conditions differ', () => {
+    it('goodDeploy=alive (Available=True wins over Progressing=True), badDeploy=error', () => {
+      // A Deployment with Available=True + Progressing=True is serving traffic
+      // during a rolling update — shows green (alive), not amber (reconciling).
       const instance = makeInstance([{ type: 'Ready', status: 'True' }])
       const badDeploy = {
         apiVersion: 'apps/v1', kind: 'Deployment',
@@ -412,7 +414,20 @@ describe('buildNodeStateMap', () => {
       ])
 
       expect(map['badDeploy']?.state).toBe('error')
-      expect(map['goodDeploy']?.state).toBe('reconciling')
+      expect(map['goodDeploy']?.state).toBe('alive')
+    })
+
+    it('deploy with only Progressing=True (no Available) shows reconciling', () => {
+      const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+      const rolling = {
+        apiVersion: 'apps/v1', kind: 'Deployment',
+        metadata: { name: 'rolling', namespace: 'ns', labels: { 'kro.run/node-id': 'rollingDeploy' } },
+        status: { conditions: [{ type: 'Progressing', status: 'True' }] },
+      } as K8sObject
+
+      const map = buildNodeStateMap(instance, [rolling], [makeNode('rollingDeploy', 'Deployment')])
+
+      expect(map['rollingDeploy']?.state).toBe('reconciling')
     })
 
     it('state-type nodes are never emitted in the map', () => {
