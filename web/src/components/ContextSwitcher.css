@@ -84,6 +84,7 @@
   max-width: 360px;
   max-height: 300px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);

@@ -63,6 +63,7 @@
   flex: 1 1 380px;
   min-width: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ── Right pane — DAG preview + YAML preview stacked ─────────────────── */
@@ -105,4 +106,5 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }

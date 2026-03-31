@@ -251,6 +251,7 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | Fleet `isInstanceDegraded()` only checking `Ready=False` without excluding IN_PROGRESS | #343 | Check `status.state === 'IN_PROGRESS'` before the Ready condition check; IN_PROGRESS instances are reconciling, not degraded |
 | `ListAllInstances` fan-out timeout 2s insufficient on throttled clusters | #352 | Use 5s per-goroutine timeout; goroutines run in parallel so total handler latency ≈ max(individual) not sum(individual). 2s was leaving no time after DiscoverPlural (~1-2s on throttled clusters). |
 | Live DAG inheriting CR reconciling state to all child nodes | #379 | When globalState=reconciling (CR in IN_PROGRESS), each child should be judged on its own conditions, not inherit amber. Only globalState=error propagates to children. A Namespace or ConfigMap created in wave 1 shows green while a downstream RDS instance is still provisioning. |
+| `overflow-y: auto` without `overflow-x: hidden` on scroll containers | CSS | Setting `overflow-y` to a non-`visible` value causes the browser to implicitly promote `overflow-x` from `visible` to `auto`, creating a spurious horizontal scrollbar from sub-pixel rounding or ResizeObserver timing. Always pair `overflow-y: auto/scroll` with `overflow-x: hidden` on containers that should never scroll horizontally. |
 
 ### Upstream kro node types (5 real types + 1 kro-ui extension)
 
