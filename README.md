@@ -15,23 +15,24 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 
 ## Features
 
-- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, multi-segment health chips (✗/⚠/↻ counts per state), controller metrics strip, terminating badges, debounced search, and error count badges; virtualized for 5,000+ RGDs
-- **Catalog page** (`/catalog`) — browsable RGD directory with search, label filter, sort controls, per-RGD instance counts, "Used by" chaining rows, and forEach collapse suggestions (optimization advisor)
+- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, multi-segment health chips (✗/⚠/↻ counts per state), controller metrics strip, terminating badges, debounced search, error count badges, **compile-error banner** (count of RGDs with compile errors + one-click error-only filter), and **health filter chips** synced to `?health=` URL (shareable/bookmarkable filtered views); virtualized for 5,000+ RGDs
+- **Catalog page** (`/catalog`) — browsable RGD directory with search, label filter, **compile-status filter (All/Ready/Errors)**, sort controls, per-RGD instance counts, "Used by" chaining rows, and forEach collapse suggestions (optimization advisor)
 - **RGD static chaining graph** — detect and visualize chained RGD relationships; expand parent/child chains without a live cluster
 - **RGD detail** — nine tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate · Revisions
   - **Graph tab** — interactive DAG with all managed resources, forEach collections, external refs, and `includeWhen` conditions; `readyWhen` CEL expressions and `forEach` cardinality badges (warnings at ≥900 items, error at 1000) on hover; instance overlay selector to visualize which nodes are active for a specific CR; "refreshed X ago" indicator
-  - **Instances tab** — table of all CR instances with namespace filter, 6-state health badges (Ready/Degraded/Reconciling/Pending/Error/Unknown), fully-clickable rows, **instance spec diff** (select 2 rows to compare field-by-field), and links to live detail
-  - **Errors tab** — cross-instance error aggregation: failures grouped by resource node with affected instance count, percentage, most common error message, and drill-down; skips `IN_PROGRESS` (reconciling) instances to avoid false positives
+  - **Instances tab** — table of all CR instances with namespace filter, 6-state health badges (Ready/Degraded/Reconciling/Pending/Error/Unknown), health filter chips (synced to URL), fully-clickable rows, **instance spec diff** (select 2 rows to compare field-by-field), and links to live detail
+  - **Errors tab** — cross-instance error aggregation: failures grouped by resource node with affected instance count, percentage, most common error message, and drill-down; `IN_PROGRESS` instances with `Ready=False` (stuck reconciling) are surfaced as actionable errors; genuinely transitioning instances (active `Progressing=True` condition) are skipped
   - **YAML tab** — clean syntax-highlighted RGD manifest (managedFields, last-applied-configuration, resourceVersion, uid stripped) with CEL expression highlighting and copy-to-clipboard
   - **Validation tab** — RGD condition checklist (GraphVerified, CRD synced, Topology ready) with resource type summary and CEL cross-reference map
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
-  - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, custom type definitions (kro v0.9.0+ `spec.schema.types`), and a copyable example manifest
+  - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, custom type definitions (kro v0.9.0+ `spec.schema.types`), required fields sorted first with a summary banner, and a copyable example manifest
   - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion, `{}` defaults for map/object fields) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
   - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled status (Compiled/Failed), age, compilation error; click to expand YAML
 - **Live instance detail** — live DAG with 5s polling, **6-state** per-node colors (alive/reconciling/degraded/error/pending/not-found), node YAML inspection (clean — no managedFields), spec/conditions/events/telemetry panels
+  - **Per-child node state** — each child resource is judged on its *own* `status.conditions`, not the CR-level reconciling state; a Namespace or ConfigMap created in wave 1 shows green even while a downstream RDS instance is still provisioning
   - **Degraded state** — shown when the CR is Ready=True but a child resource has `Available=False` (distinct orange from amber reconciling)
   - Per-node state derived from each child resource's own `status.conditions` via `kro.run/node-id` label (not kind) — kube-generated resources (EndpointSlice etc.) are silently skipped
-  - `IN_PROGRESS` kro state maps to Reconciling (amber) — shown when readyWhen is unmet but kro is still working; escalates to a red banner with actionable hint after 5 minutes
+  - `IN_PROGRESS` kro state maps to Reconciling (amber) at the CR level — shown when readyWhen is unmet but kro is still working; escalates to a banner with human-readable duration (e.g. "2d 16h") and actionable hint after 5 minutes
   - **Reconcile-paused banner** — shown when `kro.run/reconcile: disabled` annotation is present (kro v0.9.0+)
   - **Stuck finalizer escalation** — when deletion is blocked by finalizers for ≥5 minutes, shows the exact `kubectl patch` command to force-remove them
   - Hover tooltip shows live state label with per-state explanatory hint for every node
@@ -43,13 +44,14 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Deep graph** — recursively expand chained RGD instances up to 4 levels deep, revealing the full composed resource tree
 - **Instance health roll-up** — 6-state health badges (Ready/Degraded/Reconciling/Pending/Error/Unknown) on all instance list rows and RGD cards; multi-segment health bar on cards showing counts per state
 - **Instance spec diff** — select any 2 instances in the Instances tab to compare their spec fields side-by-side; differing fields highlighted; identical fields collapsible
+- **Global /instances page** (`/instances`) — cross-RGD flat instance table with search, namespace dropdown, 6-state health filter chips (URL-synced), health-priority sort (reconciling/error first), and status message tooltip on dots
 - **RGD Designer** (`/author`) — first-class nav section alongside Overview/Catalog/Fleet/Events; full kro feature coverage: all 5 node types (Managed resource, forEach collection, External ref, External ref collection, Root CR), `includeWhen` conditions, `readyWhen` CEL (with `omit()` help for kro v0.9.0+), schema field editor with type/default/enum/min/max; live DAG preview (updates within 300ms, client-side only); Home and Catalog empty states link directly to it
 - **Events** — kro-filtered Kubernetes event stream with anomaly detection (stuck reconciliation, error bursts), **condition-transition events** (kro v0.9.0+ `HasInstanceConditionEvents`) with distinct green visual, deletion event tagging, grouping by instance, and URL-param pre-filtering
-- **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts, cross-cluster RGD presence matrix with abbreviated ARN context labels, and per-cluster kro controller metrics column
+- **Fleet overview** — multi-cluster view across all kubeconfig contexts: health status, RGD/instance counts (degraded + reconciling shown separately), cross-cluster RGD presence matrix with abbreviated ARN context labels, per-cluster kro version (read from instance labels), and per-cluster kro controller metrics column
 - **Controller metrics panel** — kro controller metrics auto-discovered via pod proxy (zero configuration); per-context correct after context switch; powers Fleet metrics column via `?context=` fan-out
 - **Context switcher** — switch kubeconfig contexts at runtime without restart; subtitle shown for all abbreviated context names (EKS ARNs, long names)
 - **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types, JSON Schema object/array/map types rendered correctly)
-- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API (Revisions tab), cluster-scoped RGD badges, collection limit badges, condition-transition events, `omit()` CEL function
+- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API (Revisions tab), cluster-scoped RGD badges, collection limit badges, condition-transition events, `omit()` CEL function; multi-version kro support with version warning banner
 - **First-time onboarding** — Overview page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
 - **Dark/light theme** — dark default, full design token system, SVG favicon
 
@@ -75,7 +77,7 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:v0.5.1
+  ghcr.io/pnz1990/kro-ui:v0.8.2
 # open http://localhost:40107
 ```
 
@@ -87,7 +89,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:v0.5.1
+  ghcr.io/pnz1990/kro-ui:v0.8.2
 # open http://localhost:40107
 ```
 
@@ -99,7 +101,7 @@ docker run -p 40107:40107 \
 
 ```bash
 helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
-  --version 0.5.1 \
+  --version 0.8.2 \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
@@ -120,6 +122,7 @@ All endpoints are read-only. No mutating k8s API calls are ever issued.
 | `/api/v1/rgds/{name}` | GET | Get single RGD |
 | `/api/v1/rgds/{name}/instances` | GET | List instances of an RGD |
 | `/api/v1/rgds/{name}/access` | GET | RBAC permission check for kro's service account (`?saNamespace=&saName=` for manual override) |
+| `/api/v1/instances` | GET | List all instances across all RGDs (fan-out, `?health=` filter) |
 | `/api/v1/instances/{ns}/{name}` | GET | Get instance detail |
 | `/api/v1/instances/{ns}/{name}/events` | GET | Instance events |
 | `/api/v1/instances/{ns}/{name}/children` | GET | Instance child resources |

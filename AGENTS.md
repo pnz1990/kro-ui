@@ -250,6 +250,7 @@ These were discovered in production QA. Every one produced a GitHub issue.
 | `/instances` page using `ready: "True"/"False"` to determine health instead of full 6-state model | #348 | Check `status.state === 'IN_PROGRESS'` FIRST; only then fall back to `ready` condition. IN_PROGRESS instances are "reconciling", not "error" — consistent with Overview/InstanceDetail. |
 | Fleet `isInstanceDegraded()` only checking `Ready=False` without excluding IN_PROGRESS | #343 | Check `status.state === 'IN_PROGRESS'` before the Ready condition check; IN_PROGRESS instances are reconciling, not degraded |
 | `ListAllInstances` fan-out timeout 2s insufficient on throttled clusters | #352 | Use 5s per-goroutine timeout; goroutines run in parallel so total handler latency ≈ max(individual) not sum(individual). 2s was leaving no time after DiscoverPlural (~1-2s on throttled clusters). |
+| Live DAG inheriting CR reconciling state to all child nodes | #379 | When globalState=reconciling (CR in IN_PROGRESS), each child should be judged on its own conditions, not inherit amber. Only globalState=error propagates to children. A Namespace or ConfigMap created in wave 1 shows green while a downstream RDS instance is still provisioning. |
 
 ### Upstream kro node types (5 real types + 1 kro-ui extension)
 
@@ -451,6 +452,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 
  ## Recent Changes
+ - v0.8.2: Live DAG per-child node state fix — each child judged on own conditions, not inherited CR reconciling state (PR #379); TypeScript 6.0 compat — remove deprecated baseUrl, add env.d.ts (PR #378); spec corpus audit fixes D1–D12 (PR #372); Dependabot dependency bumps (PRs #373-#377)
  - v0.8.1 (post-v0.8.0 fixes): 3 bug fixes (#359 kro version from instance labels / Errors tab IN_PROGRESS / escalation duration); 4 UX fixes (#369 health filter URL sync, reconciling StatusDot amber dot, blank ?tab= fallback); E2E journey backfill 062-070 (PR #364); CSS #fff→token (PR #363)
  - v0.8.0: Fleet kro version from RGD annotation (PR #355); Overview RGD compile-error banner + filter (PR #356); Catalog compile-status filter All/Ready/Errors (PR #357)
  - v0.7.0: /instances health sort (PR #350); status message tooltip (PR #351); 5s timeout fix for throttled clusters (PR #352)
