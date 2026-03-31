@@ -274,6 +274,10 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent page-level horizontal scroll. The app is a SPA — no page should
+   * ever scroll horizontally. Individual panels (e.g. YAML viewers) use their
+   * own overflow-x:auto when horizontal scroll is intentional. */
+  overflow-x: hidden;
 }
 
 code, pre, .mono { font-family: var(--font-mono); }
