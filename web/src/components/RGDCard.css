@@ -6,13 +6,11 @@
   transition: border-color var(--transition);
   display: flex;
   flex-direction: column;
-  /* Fixed height to match RGD_CARD_HEIGHT=130 in Home.tsx / Catalog.tsx.
-   * VirtualGrid uses this constant for row-offset math — if any card grows
-   * taller (e.g. error-hint text wraps), subsequent rows are misaligned and
-   * the right column gets clipped. overflow:hidden clips any overflow instead
-   * of letting the card grow. Content is still readable via tooltips (title
-   * attrs on error-hint, kind badge, etc.). */
-  height: 130px;
+  /* Fixed height matching RGD_CARD_HEIGHT=178 in Home.tsx.
+   * Derived: 16+24+8+18+16+16+4+24+8+28+16 = 178px (worst case with error hint).
+   * MUST match the JS constant — VirtualGrid uses it for row-offset math.
+   * overflow:hidden clips content that would grow the card beyond 178px. */
+  height: 178px;
   overflow: hidden;
 }
 
