@@ -443,8 +443,10 @@ describe('buildNodeStateMap', () => {
   // ── T020: External ref nodes use globalState, not 'not-found' ────────────
   // External refs are pre-existing resources that kro watches but does not
   // create. They never receive kro.run/node-id labels, so they will always be
-  // absent from the stateMap after step 2. Instead of showing 'not-found' (grey),
-  // external nodes should reflect the CR-level globalState.
+  // absent from the stateMap after step 2. Instead of showing 'not-found' (grey)
+  // or inheriting 'reconciling' (amber), external nodes show 'alive' (green)
+  // whenever the CR is not in error — the ref was already resolved by kro before
+  // reconciliation reached the downstream resource that is still provisioning.
 
   describe('T020 — external ref node state inferred from globalState', () => {
     const externalNode = makeNode('inputConfig', 'ConfigMap', 'external')
@@ -461,12 +463,26 @@ describe('buildNodeStateMap', () => {
       expect(map['appOutput']?.state).toBe('alive')
     })
 
-    it('T020-02: external node shows reconciling when globalState=reconciling', () => {
+    it('T020-02: external node shows alive (not reconciling) when globalState=reconciling', () => {
+      // The external ref was already read by kro before it moved on to the slow
+      // downstream resource. Show green, not amber — the ref itself is not the
+      // thing that is reconciling.
       const instance = makeInstance([{ type: 'Progressing', status: 'True' }])
 
       const map = buildNodeStateMap(instance, [], [externalNode])
 
-      expect(map['inputConfig']?.state).toBe('reconciling')
+      expect(map['inputConfig']?.state).toBe('alive')
+    })
+
+    it('T020-02b: external node shows alive when globalState=reconciling via IN_PROGRESS', () => {
+      const instance = makeInstanceWithKroState('IN_PROGRESS', [
+        { type: 'ResourcesReady', status: 'False' },
+        { type: 'Ready', status: 'False' },
+      ])
+
+      const map = buildNodeStateMap(instance, [], [externalNode])
+
+      expect(map['inputConfig']?.state).toBe('alive')
     })
 
     it('T020-03: external node shows not-found when globalState=error (CR failed)', () => {
