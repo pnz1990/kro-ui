@@ -30,6 +30,8 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled status (Compiled/Failed), age, compilation error; click to expand YAML
 - **Live instance detail** — live DAG with 5s polling, **6-state** per-node colors (alive/reconciling/degraded/error/pending/not-found), node YAML inspection (clean — no managedFields), spec/conditions/events/telemetry panels
   - **Per-child node state** — each child resource is judged on its *own* `status.conditions`, not the CR-level reconciling state; a Namespace or ConfigMap created in wave 1 shows green even while a downstream RDS instance is still provisioning
+  - `Available=True` wins over `Progressing=True` — a Deployment serving traffic during a rolling update shows green, not amber; amber only shows when `Progressing=True` without `Available=True` (not yet serving)
+  - External refs (`externalRef`) show green while the CR is `IN_PROGRESS` — the ref was already resolved in an earlier wave; only shows grey when the CR has a hard failure
   - **Degraded state** — shown when the CR is Ready=True but a child resource has `Available=False` (distinct orange from amber reconciling)
   - Per-node state derived from each child resource's own `status.conditions` via `kro.run/node-id` label (not kind) — kube-generated resources (EndpointSlice etc.) are silently skipped
   - `IN_PROGRESS` kro state maps to Reconciling (amber) at the CR level — shown when readyWhen is unmet but kro is still working; escalates to a banner with human-readable duration (e.g. "2d 16h") and actionable hint after 5 minutes
@@ -77,7 +79,7 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:v0.8.2
+  ghcr.io/pnz1990/kro-ui:v0.8.3
 # open http://localhost:40107
 ```
 
@@ -89,7 +91,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:v0.8.2
+  ghcr.io/pnz1990/kro-ui:v0.8.3
 # open http://localhost:40107
 ```
 
@@ -101,7 +103,7 @@ docker run -p 40107:40107 \
 
 ```bash
 helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
-  --version 0.8.2 \
+  --version 0.8.3 \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
