@@ -26,4 +26,7 @@
 .layout__content {
   flex: 1;
   padding: 24px 32px;
+  /* Prevent page-level horizontal scrollbar — same class of bug as VirtualGrid.
+   * Pages should never scroll horizontally; clamp at the layout level. */
+  overflow-x: hidden;
 }

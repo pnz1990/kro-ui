@@ -3,6 +3,12 @@
 /* Outer scroll container */
 .virtual-grid {
   overflow-y: auto;
+  /* Prevent horizontal scrollbar: setting overflow-y to non-visible causes the
+   * browser to implicitly promote overflow-x from 'visible' to 'auto', which
+   * triggers a spurious horizontal scrollbar when content is even 1px wider
+   * (sub-pixel rounding, scrollbar gutter width, ResizeObserver timing race).
+   * Cards use 1fr columns and are never intentionally wider than the container. */
+  overflow-x: hidden;
   position: relative;
   /* Height set by caller via className; e.g. .home__virtual-grid */
 }
