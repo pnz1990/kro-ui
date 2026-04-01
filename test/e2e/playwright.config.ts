@@ -29,7 +29,7 @@ const BASE_URL = `http://localhost:${PORT}`
 // Chunking strategy (by numeric prefix):
 //   chunk-1:  001–006   server health, home, DAG, instance list, live instance, CEL
 //   chunk-3:  008–015   feature flags, virtualization, collection, chaining, fleet, catalog
-//   chunk-4:  017–025   validation, rbac, events, schema-doc, cardinality, metrics, advisor, chain
+  //   chunk-4:  017–026   validation, rbac, events, schema-doc, cardinality, metrics, advisor, chain, yaml-gen
 //   chunk-5:  027–040   telemetry, health, overlay, errors, deletion, rbac-sa, onboarding …
 //   chunk-6:  043-*     upstream fixture journeys (new in spec 043)
 //   chunk-7:  041,045-047  UX audit, designer, kro v0.9.0, ux-improvements, state-map
@@ -103,7 +103,7 @@ export default defineConfig({
     },
     {
       name: 'chunk-4',
-      testMatch: /(017|018|019|020|021|022|023|025)-.*\.spec\.ts/,
+      testMatch: /(017|018|019|020|021|022|023|025|026)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,

@@ -82,10 +82,11 @@ All colors are defined as CSS custom properties in `web/src/tokens.css`.
 --color-not-found:      #6b7280;   /* Resource not yet created, or unknown (gray)   */
 
 /* ── Semantic: UI status ──────────────────────────────────────────── */
---color-status-ready:   #10b981;   /* Ready badge                                   */
---color-status-error:   #f43f5e;   /* Not-ready / error badge                       */
---color-status-unknown: #6b7280;   /* Unknown / no conditions badge                 */
---color-status-warning: #f59e0b;   /* Warning state                                 */
+--color-status-ready:      #10b981;   /* Ready badge                                   */
+--color-status-degraded:   #f97316;   /* Degraded: CR ready but ≥1 child has errors — orange (6th state, v0.4.5) */
+--color-status-error:      #f43f5e;   /* Not-ready / error badge                       */
+--color-status-unknown:    #6b7280;   /* Unknown / no conditions badge                 */
+--color-status-warning:    #f59e0b;   /* Warning state                                 */
 
 /* ── CEL / schema highlighter tokens ──────────────────────────────── */
 --hl-yaml-key:          #a8a29e;   /* Standard YAML keys                            */
@@ -108,6 +109,7 @@ All colors are defined as CSS custom properties in `web/src/tokens.css`.
 | `--color-alive` | `#10b981` | 5.2:1 | 4.6:1 | AA ✓ |
 | `--color-error` | `#f43f5e` | 5.0:1 | 4.4:1 | AA ✓ |
 | `--color-reconciling` | `#f59e0b` | 6.9:1 | 6.1:1 | AA ✓ |
+| `--color-status-degraded` | `#f97316` | 4.6:1 | 4.1:1 | AA ✓ |
 | `--color-pending` | `#8b5cf6` | 4.6:1 | 4.1:1 | AA ✓ |
 | `--hl-cel-expression` | `#93c5fd` | 7.8:1 | 6.9:1 | AA ✓ |
 
@@ -138,10 +140,11 @@ All colors are defined as CSS custom properties in `web/src/tokens.css`.
 --color-error:          #e11d48;   /* Darker rose                                   */
 --color-not-found:      #6b7280;
 
---color-status-ready:   #059669;
---color-status-error:   #e11d48;
---color-status-unknown: #6b7280;
---color-status-warning: #d97706;
+--color-status-ready:      #059669;
+--color-status-degraded:   #ea580c;   /* Degraded — darker orange for light mode */
+--color-status-error:      #e11d48;
+--color-status-unknown:    #6b7280;
+--color-status-warning:    #d97706;
 
 --hl-yaml-key:          #6b7280;
 --hl-kro-keyword:       #475569;
@@ -164,6 +167,7 @@ An implementer must not use a color outside of its defined semantic purpose.
 |-------|-----|---------------|
 | `--color-primary` | Buttons, links, active tabs, focus rings, selected states | Status indicators, graph nodes |
 | `--color-alive` / `--color-status-ready` | DAG node alive state, Ready=True badge | Anything not "resource is healthy" |
+| `--color-status-degraded` | Degraded health badge — CR is Ready=True but ≥1 child resource has errors (orange, 6th state added v0.4.5) | Warnings, errors, reconciling states |
 | `--color-error` / `--color-status-error` | DAG node error state, Ready=False badge | Warnings, in-progress states |
 | `--color-reconciling` | DAG node reconciling (pulsing), in-progress badge | Errors, healthy states |
 | `--color-pending` | DAG node waiting on dependency (not yet created by design) | Errors, healthy states |
@@ -417,6 +421,8 @@ Titles follow the format `<content> — kro-ui`. Specific rules:
 | Catalog | `Catalog — kro-ui` |
 | Fleet | `Fleet — kro-ui` |
 | Events | `Events — kro-ui` |
+| Instances (global search) | `Instances — kro-ui` |
+| RGD Designer | `RGD Designer — kro-ui` |
 | RGD detail | `<rgd-name> — kro-ui` |
 | Instance detail | `<instance-name> / <rgd-name> — kro-ui` |
 | 404 | `Not Found — kro-ui` |

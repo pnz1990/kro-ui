@@ -10,6 +10,8 @@ import {
   COLLECTION_NODE_HEIGHT,
   FOREACH_LABEL_MAX_CHARS,
   nodeStateForNode,
+  NODE_TYPE_LABEL,
+  NODE_CONCEPT_TEXT,
   type NodeType,
   type DAGNode,
 } from './dag'
@@ -946,5 +948,53 @@ describe('nodeStateForNode', () => {
 
   it('returns undefined for a resource node not in stateMap', () => {
     expect(nodeStateForNode(resourceNode, {})).toBeUndefined()
+  })
+})
+
+// ── NODE_TYPE_LABEL / NODE_CONCEPT_TEXT ────────────────────────────────────
+// Regression guard: these maps are the single source of truth per constitution §IX.
+// Any new NodeType must be added here and in both maps.
+
+const ALL_NODE_TYPES: NodeType[] = [
+  'instance', 'resource', 'collection', 'external', 'externalCollection', 'state',
+]
+
+describe('NODE_TYPE_LABEL', () => {
+  it('has an entry for every NodeType', () => {
+    for (const t of ALL_NODE_TYPES) {
+      expect(NODE_TYPE_LABEL[t], `missing label for "${t}"`).toBeTruthy()
+    }
+  })
+
+  it('uses "External Ref" (not "External Reference") as the short form', () => {
+    expect(NODE_TYPE_LABEL.external).toBe('External Ref')
+    expect(NODE_TYPE_LABEL.externalCollection).toBe('External Ref Collection')
+  })
+
+  it('uses "Root CR" (not "Root Custom Resource") as the short form', () => {
+    expect(NODE_TYPE_LABEL.instance).toBe('Root CR')
+  })
+})
+
+describe('NODE_CONCEPT_TEXT', () => {
+  it('has an entry for every NodeType', () => {
+    for (const t of ALL_NODE_TYPES) {
+      expect(NODE_CONCEPT_TEXT[t], `missing concept text for "${t}"`).toBeTruthy()
+    }
+  })
+
+  it('uses the full "External Reference" form in prose descriptions', () => {
+    expect(NODE_CONCEPT_TEXT.external).toContain('External Reference')
+    expect(NODE_CONCEPT_TEXT.externalCollection).toContain('External Reference Collection')
+  })
+
+  it('uses "Root Custom Resource" in the instance concept description', () => {
+    expect(NODE_CONCEPT_TEXT.instance).toContain('Root Custom Resource')
+  })
+
+  it('NODE_TYPE_LABEL and NODE_CONCEPT_TEXT cover the same set of NodeTypes', () => {
+    const labelKeys = Object.keys(NODE_TYPE_LABEL).sort()
+    const conceptKeys = Object.keys(NODE_CONCEPT_TEXT).sort()
+    expect(conceptKeys).toEqual(labelKeys)
   })
 })

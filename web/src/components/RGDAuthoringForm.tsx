@@ -717,7 +717,7 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                 >
                   <option value="managed">Managed</option>
                   <option value="forEach">Collection (forEach)</option>
-                  <option value="externalRef">External ref</option>
+                  <option value="externalRef">External Ref</option>
                 </select>
                 <input
                   type="text"

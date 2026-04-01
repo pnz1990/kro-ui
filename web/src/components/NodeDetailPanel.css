@@ -85,6 +85,7 @@
 .node-detail-body {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden; /* GH #390: pair with overflow-y to prevent spurious horizontal scrollbar */
   padding: 20px;
   display: flex;
   flex-direction: column;

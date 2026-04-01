@@ -87,20 +87,23 @@ test.describe('005: Live Instance Detail', () => {
     await page.goto(INSTANCE_URL)
     await expect(page.getByTestId('live-refresh-indicator')).toBeVisible({ timeout: DAG_TIMEOUT })
 
-    // Record initial text
+    // Record initial text then wait until the counter text changes — proves the
+    // poll cycle fired without relying on a fixed-ms wait (constitution §XIV).
     const initial = await page.getByTestId('live-refresh-indicator').textContent()
 
-    // Wait for another poll cycle (6s)
-    await page.waitForTimeout(6000)
+    await page.waitForFunction(
+      (init) => {
+        const el = document.querySelector('[data-testid="live-refresh-indicator"]')
+        return el !== null && el.textContent !== init
+      },
+      initial,
+      { timeout: 20000 },
+    )
 
-    // Text should have changed (e.g., "refreshed 0s ago" → "refreshed 5s ago" or cycled)
     const updated = await page.getByTestId('live-refresh-indicator').textContent()
-
     expect(updated).not.toBeNull()
     // The indicator shows seconds, confirming the counter is ticking
     expect(updated).toMatch(/\d+s ago|loading/)
-    // Suppress unused variable warning — initial is documented as baseline
-    void initial
   })
 
   // ── Step 4: Click a resource node — detail panel opens ────────────────────
@@ -139,8 +142,15 @@ test.describe('005: Live Instance Detail', () => {
     await page.getByTestId('dag-node-appStatus').click()
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
 
-    // Wait for another poll cycle
-    await page.waitForTimeout(6000)
+    // Wait for a full poll cycle by polling until the refresh indicator ticks —
+    // more resilient than a fixed 6s wait on throttled CI (constitution §XIV).
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-testid="live-refresh-indicator"]')
+        return el !== null && /\d+s ago/.test(el.textContent ?? '')
+      },
+      { timeout: 20000 },
+    )
 
     // Panel is STILL open — state refresh must not close it (FR-008)
     await expect(page.getByTestId('node-detail-panel')).toBeVisible()
