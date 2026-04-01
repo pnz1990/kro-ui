@@ -184,8 +184,8 @@ You **MUST** consider the user input before proceeding (if not empty).
    - [ ] No hardcoded hex or `rgba()` values in component CSS (only `var(--token)`)
    - [ ] If a page with depth ≥ 3 was added: breadcrumb navigation is present
    - [ ] If a new route was added: `path="*"` catch-all `NotFound` still exists in router
-   - [ ] `bun run --cwd web tsc --noEmit` passes
-   - [ ] `bun run --cwd web vitest run` passes
+   - [ ] `make typecheck` passes (`go vet ./...` + `cd web && bun run typecheck`)
+   - [ ] `make test-web` passes (`cd web && bun run test`)
 
    **UX completeness**:
    - [ ] Loading state is handled (not just success path)

@@ -10,7 +10,15 @@ import {
   aggregateHealth,
   abbreviateContext,
   displayNamespace,
+  healthFromSummary,
+  buildHealthDistribution,
+  buildTopErroringRGDs,
+  mayBeStuck,
+  countMayBeStuck,
+  getRecentlyCreated,
+  getMayBeStuck,
 } from './format'
+import type { InstanceSummary } from './api'
 
 // ── formatAge ────────────────────────────────────────────────────────
 
@@ -548,5 +556,201 @@ describe('displayNamespace', () => {
     expect(displayNamespace('kro-ui-demo')).toBe('kro-ui-demo')
     expect(displayNamespace('default')).toBe('default')
     expect(displayNamespace('kube-system')).toBe('kube-system')
+  })
+})
+
+// ── healthFromSummary ────────────────────────────────────────────────
+
+function makeSummary(overrides: Partial<InstanceSummary>): InstanceSummary {
+  return {
+    name: 'test', namespace: 'default', kind: 'WebApp',
+    rgdName: 'webapp', state: '', ready: '', creationTimestamp: '',
+    ...overrides,
+  }
+}
+
+describe('healthFromSummary', () => {
+  it('returns reconciling when state === IN_PROGRESS', () => {
+    expect(healthFromSummary(makeSummary({ state: 'IN_PROGRESS' }))).toBe('reconciling')
+  })
+
+  it('IN_PROGRESS takes precedence over ready=True', () => {
+    expect(healthFromSummary(makeSummary({ state: 'IN_PROGRESS', ready: 'True' }))).toBe('reconciling')
+  })
+
+  it('returns ready when state is not IN_PROGRESS and ready === True', () => {
+    expect(healthFromSummary(makeSummary({ state: 'ACTIVE', ready: 'True' }))).toBe('ready')
+  })
+
+  it('returns error when ready === False', () => {
+    expect(healthFromSummary(makeSummary({ state: 'ACTIVE', ready: 'False' }))).toBe('error')
+  })
+
+  it('returns unknown for missing/empty state and ready', () => {
+    expect(healthFromSummary(makeSummary({ state: '', ready: '' }))).toBe('unknown')
+    expect(healthFromSummary(makeSummary({ state: 'ACTIVE', ready: 'Unknown' }))).toBe('unknown')
+  })
+})
+
+// ── buildHealthDistribution ──────────────────────────────────────────
+
+describe('buildHealthDistribution', () => {
+  it('returns zeros for empty list', () => {
+    const d = buildHealthDistribution([])
+    expect(d.total).toBe(0)
+    expect(d.ready).toBe(0)
+    expect(d.error).toBe(0)
+    expect(d.reconciling).toBe(0)
+    expect(d.unknown).toBe(0)
+  })
+
+  it('correctly counts mixed states', () => {
+    const items: InstanceSummary[] = [
+      makeSummary({ state: 'ACTIVE', ready: 'True' }),
+      makeSummary({ state: 'ACTIVE', ready: 'True' }),
+      makeSummary({ state: 'IN_PROGRESS', ready: '' }),
+      makeSummary({ state: 'ACTIVE', ready: 'False' }),
+      makeSummary({ state: '', ready: '' }),
+    ]
+    const d = buildHealthDistribution(items)
+    expect(d.total).toBe(5)
+    expect(d.ready).toBe(2)
+    expect(d.reconciling).toBe(1)
+    expect(d.error).toBe(1)
+    expect(d.unknown).toBe(1)
+  })
+})
+
+// ── buildTopErroringRGDs ─────────────────────────────────────────────
+
+describe('buildTopErroringRGDs', () => {
+  it('returns empty array when no errors', () => {
+    const items = [makeSummary({ state: 'ACTIVE', ready: 'True', rgdName: 'a' })]
+    expect(buildTopErroringRGDs(items)).toEqual([])
+  })
+
+  it('sorts descending by error count', () => {
+    const items: InstanceSummary[] = [
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: 'b' }),
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: 'a' }),
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: 'a' }),
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: 'a' }),
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: 'c' }),
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: 'c' }),
+    ]
+    const result = buildTopErroringRGDs(items)
+    expect(result[0]).toEqual({ rgdName: 'a', errorCount: 3 })
+    expect(result[1]).toEqual({ rgdName: 'c', errorCount: 2 })
+    expect(result[2]).toEqual({ rgdName: 'b', errorCount: 1 })
+  })
+
+  it('caps at n=5 by default', () => {
+    const items: InstanceSummary[] = Array.from({ length: 10 }, (_, i) =>
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: `rgd-${i}` })
+    )
+    expect(buildTopErroringRGDs(items)).toHaveLength(5)
+  })
+
+  it('respects custom n', () => {
+    const items: InstanceSummary[] = Array.from({ length: 10 }, (_, i) =>
+      makeSummary({ state: 'ACTIVE', ready: 'False', rgdName: `rgd-${i}` })
+    )
+    expect(buildTopErroringRGDs(items, 3)).toHaveLength(3)
+  })
+})
+
+// ── mayBeStuck / countMayBeStuck ─────────────────────────────────────
+
+describe('mayBeStuck', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('returns false when state is not IN_PROGRESS', () => {
+    const ts = new Date('2026-04-01T12:00:00Z').toISOString()
+    expect(mayBeStuck(makeSummary({ state: 'ACTIVE', ready: 'True', creationTimestamp: ts }))).toBe(false)
+  })
+
+  it('returns false when creationTimestamp is missing', () => {
+    expect(mayBeStuck(makeSummary({ state: 'IN_PROGRESS', creationTimestamp: '' }))).toBe(false)
+  })
+
+  it('returns false when elapsed ≤ 5 minutes', () => {
+    // Exactly 5 minutes ago (boundary: NOT over threshold)
+    const ts = new Date('2026-04-01T12:05:00Z').toISOString()
+    expect(mayBeStuck(makeSummary({ state: 'IN_PROGRESS', creationTimestamp: ts }))).toBe(false)
+  })
+
+  it('returns true when elapsed > 5 minutes', () => {
+    // 10 minutes ago
+    const ts = new Date('2026-04-01T12:00:00Z').toISOString()
+    expect(mayBeStuck(makeSummary({ state: 'IN_PROGRESS', creationTimestamp: ts }))).toBe(true)
+  })
+})
+
+describe('countMayBeStuck', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('returns 0 when no items are stuck', () => {
+    const items = [
+      makeSummary({ state: 'ACTIVE', ready: 'True', creationTimestamp: '2026-04-01T12:00:00Z' }),
+    ]
+    expect(countMayBeStuck(items)).toBe(0)
+  })
+
+  it('counts only stuck IN_PROGRESS instances', () => {
+    const items: InstanceSummary[] = [
+      makeSummary({ state: 'IN_PROGRESS', creationTimestamp: '2026-04-01T12:00:00Z' }), // 10m ago — stuck
+      makeSummary({ state: 'IN_PROGRESS', creationTimestamp: '2026-04-01T12:00:00Z' }), // 10m ago — stuck
+      makeSummary({ state: 'IN_PROGRESS', creationTimestamp: '2026-04-01T12:09:00Z' }), // 1m ago — not stuck
+      makeSummary({ state: 'ACTIVE', ready: 'True', creationTimestamp: '2026-04-01T12:00:00Z' }),
+    ]
+    expect(countMayBeStuck(items)).toBe(2)
+  })
+})
+
+// ── getRecentlyCreated / getMayBeStuck ───────────────────────────────
+
+describe('getRecentlyCreated', () => {
+  it('sorts newest first', () => {
+    const items: InstanceSummary[] = [
+      makeSummary({ name: 'a', creationTimestamp: '2026-04-01T10:00:00Z' }),
+      makeSummary({ name: 'b', creationTimestamp: '2026-04-01T12:00:00Z' }),
+      makeSummary({ name: 'c', creationTimestamp: '2026-04-01T11:00:00Z' }),
+    ]
+    const result = getRecentlyCreated(items)
+    expect(result.map(i => i.name)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('caps at n', () => {
+    const items = Array.from({ length: 10 }, (_, i) =>
+      makeSummary({ name: `i${i}`, creationTimestamp: `2026-04-01T${String(i).padStart(2, '0')}:00:00Z` })
+    )
+    expect(getRecentlyCreated(items, 3)).toHaveLength(3)
+  })
+})
+
+describe('getMayBeStuck', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('filters to only stuck IN_PROGRESS and sorts oldest first', () => {
+    const items: InstanceSummary[] = [
+      makeSummary({ name: 'new', state: 'IN_PROGRESS', creationTimestamp: '2026-04-01T12:09:00Z' }), // not stuck
+      makeSummary({ name: 'older', state: 'IN_PROGRESS', creationTimestamp: '2026-04-01T12:00:00Z' }), // stuck
+      makeSummary({ name: 'oldest', state: 'IN_PROGRESS', creationTimestamp: '2026-04-01T11:50:00Z' }), // most stuck
+      makeSummary({ name: 'ready', state: 'ACTIVE', ready: 'True', creationTimestamp: '2026-04-01T12:00:00Z' }),
+    ]
+    const result = getMayBeStuck(items)
+    expect(result.map(i => i.name)).toEqual(['oldest', 'older'])
   })
 })

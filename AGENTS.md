@@ -452,6 +452,8 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - 6-state `InstanceHealthState` (ready/degraded/reconciling/error/pending/unknown); state map keyed by `kro.run/node-id` label (not by kind)
 - kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
+- TypeScript 5.x / React 19 / Vite + React Router v7 (navigation), existing `@/lib/api` and `@/lib/format` (no new deps) (062-overview-sre-dashboard)
+- `localStorage` (layout mode key `"overview-layout"`, chart mode key `"overview-health-chart"`) (062-overview-sre-dashboard)
 
  ## Recent Changes
  - v0.8.4: audit fixes batch (PR #396) — 026 E2E journey now runs in CI (#387); ListAllInstances unit tests ×8 (#388); --color-status-degraded token added to design spec (#389); NodeDetailPanel overflow-x:hidden (#390); page-title spec updated (#391); 005 waitForTimeout→waitForFunction (#392); kro.ts constants test + dag.ts NODE_CONCEPT_TEXT tests (#394); CONCEPT_TEXT deduplicated into shared NODE_CONCEPT_TEXT in dag.ts (#395); POST route §III comments; External Ref casing fixed in authoring form
@@ -486,3 +488,6 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - v0.3.2: Docker image includes aws CLI v2 for EKS exec credential plugin
 - v0.3.1: DAG legend; required-field a11y; overlay crash fix; expand accordion fix; demo hardening
 - v0.3.0: instance telemetry panel; cross-instance error aggregation (Errors tab); instance health roll-up; DAG instance overlay; global footer; first-time onboarding; deletion debugger; RBAC SA auto-detection; RGD detail header enrichment
+
+## Recent Changes
+- 062-overview-sre-dashboard: Added TypeScript 5.x / React 19 / Vite + React Router v7 (navigation), existing `@/lib/api` and `@/lib/format` (no new deps)

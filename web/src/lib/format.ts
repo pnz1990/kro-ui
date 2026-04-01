@@ -409,3 +409,138 @@ export function displayNamespace(ns: string | undefined | null): string {
   if (!ns || ns === '_') return 'cluster-scoped'
   return ns
 }
+
+// ── Overview SRE Dashboard helpers (spec 062) ─────────────────────────
+//
+// These functions operate on InstanceSummary (the compact type returned
+// by GET /api/v1/instances) rather than full K8sObject.  They are kept
+// here so they can be unit-tested independently of React components.
+
+import type { InstanceSummary } from './api'
+
+/**
+ * HealthDistribution — aggregate health counts across all instances.
+ * Re-exported from format.ts so widget code imports from a single source.
+ */
+export interface HealthDistribution {
+  total: number
+  ready: number
+  degraded: number
+  error: number
+  reconciling: number
+  pending: number
+  unknown: number
+}
+
+/**
+ * TopErroringRGD — an RGD name and its count of error-state instances.
+ */
+export interface TopErroringRGD {
+  rgdName: string
+  errorCount: number
+}
+
+/**
+ * healthFromSummary — derive a 4-state InstanceHealthState from a compact
+ * InstanceSummary without needing the full conditions array.
+ *
+ * Mapping (deterministic, left-to-right):
+ *   IN_PROGRESS state → 'reconciling'
+ *   ready === 'True'  → 'ready'
+ *   ready === 'False' → 'error'
+ *   otherwise         → 'unknown'
+ *
+ * Note: 'degraded' and 'pending' are not derivable from InstanceSummary
+ * alone (children data required for degraded; full conditions for pending).
+ */
+export function healthFromSummary(item: InstanceSummary): InstanceHealthState {
+  if (item.state === 'IN_PROGRESS') return 'reconciling'
+  if (item.ready === 'True') return 'ready'
+  if (item.ready === 'False') return 'error'
+  return 'unknown'
+}
+
+/**
+ * buildHealthDistribution — aggregate health counts across all InstanceSummary
+ * items using healthFromSummary.
+ */
+export function buildHealthDistribution(items: InstanceSummary[]): HealthDistribution {
+  const dist: HealthDistribution = {
+    total: 0, ready: 0, degraded: 0, error: 0,
+    reconciling: 0, pending: 0, unknown: 0,
+  }
+  for (const item of items) {
+    dist.total++
+    dist[healthFromSummary(item)]++
+  }
+  return dist
+}
+
+/**
+ * buildTopErroringRGDs — group error-state instances by rgdName, sort
+ * descending by error count, return top N (default 5).
+ */
+export function buildTopErroringRGDs(items: InstanceSummary[], n = 5): TopErroringRGD[] {
+  const counts = new Map<string, number>()
+  for (const item of items) {
+    if (healthFromSummary(item) === 'error') {
+      counts.set(item.rgdName, (counts.get(item.rgdName) ?? 0) + 1)
+    }
+  }
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([rgdName, errorCount]) => ({ rgdName, errorCount }))
+}
+
+/** 5-minute threshold for the "may be stuck" heuristic. */
+const STUCK_THRESHOLD_MS = 5 * 60 * 1000
+
+/**
+ * mayBeStuck — true when an instance is IN_PROGRESS and was created more
+ * than 5 minutes ago. Uses creationTimestamp as a proxy for reconcile start.
+ * This is a heuristic — the label communicates that intentionally.
+ */
+export function mayBeStuck(item: InstanceSummary): boolean {
+  if (item.state !== 'IN_PROGRESS') return false
+  if (!item.creationTimestamp) return false
+  const elapsed = Date.now() - Date.parse(item.creationTimestamp)
+  return elapsed > STUCK_THRESHOLD_MS
+}
+
+/**
+ * countMayBeStuck — count of all IN_PROGRESS instances that may be stuck
+ * (not capped — used for the W-4 secondary counter).
+ */
+export function countMayBeStuck(items: InstanceSummary[]): number {
+  return items.filter(mayBeStuck).length
+}
+
+/**
+ * getRecentlyCreated — top N instances sorted by creationTimestamp DESC.
+ * Instances with missing timestamps are sorted to the end.
+ */
+export function getRecentlyCreated(items: InstanceSummary[], n = 5): InstanceSummary[] {
+  return [...items]
+    .sort((a, b) => {
+      const ta = a.creationTimestamp ? Date.parse(a.creationTimestamp) : 0
+      const tb = b.creationTimestamp ? Date.parse(b.creationTimestamp) : 0
+      return tb - ta
+    })
+    .slice(0, n)
+}
+
+/**
+ * getMayBeStuck — top N IN_PROGRESS instances that may be stuck, sorted
+ * by creationTimestamp ASC (oldest first — longest-running reconcile).
+ */
+export function getMayBeStuck(items: InstanceSummary[], n = 5): InstanceSummary[] {
+  return items
+    .filter(mayBeStuck)
+    .sort((a, b) => {
+      const ta = a.creationTimestamp ? Date.parse(a.creationTimestamp) : Infinity
+      const tb = b.creationTimestamp ? Date.parse(b.creationTimestamp) : Infinity
+      return ta - tb
+    })
+    .slice(0, n)
+}

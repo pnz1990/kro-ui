@@ -1,346 +1,315 @@
+// Home.test.tsx — Overview SRE Dashboard (spec 062)
+// Tests widget rendering, data mapping, and key UI states.
+
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import Home from './Home'
+import type { AllInstancesResponse, ControllerMetrics, K8sList, KroCapabilities } from '@/lib/api'
+
+// ── Mock API ────────────────────────────────────────────────────────────
+
+const mockListAllInstances = vi.fn()
+const mockListRGDs = vi.fn()
+const mockGetControllerMetrics = vi.fn()
+const mockGetCapabilities = vi.fn()
+const mockListEvents = vi.fn()
 
 vi.mock('@/lib/api', () => ({
-  listRGDs: vi.fn(),
-  // listInstances is called fire-and-forget for terminating counts (FR-007).
-  // Return empty items so tests don't depend on count badge rendering.
-  listInstances: vi.fn(() => Promise.resolve({ items: [], metadata: {} })),
-  getControllerMetrics: vi.fn(() => Promise.resolve({
-    watchCount: null,
-    gvrCount: null,
-    queueDepth: null,
-    workqueueDepth: null,
-    scrapedAt: '2026-03-22T00:00:00Z',
-  })),
+  listAllInstances: (...args: unknown[]) => mockListAllInstances(...args),
+  listRGDs: (...args: unknown[]) => mockListRGDs(...args),
+  getControllerMetrics: (...args: unknown[]) => mockGetControllerMetrics(...args),
+  getCapabilities: (...args: unknown[]) => mockGetCapabilities(...args),
+  listEvents: (...args: unknown[]) => mockListEvents(...args),
 }))
 
-import { listRGDs } from '@/lib/api'
+// ── Helpers ─────────────────────────────────────────────────────────────
 
-const mockedListRGDs = vi.mocked(listRGDs)
+function makeCapabilities(version = '0.9.0'): KroCapabilities {
+  return {
+    version, apiVersion: 'kro.run/v1alpha1', featureGates: {},
+    knownResources: [], isSupported: true,
+    schema: { hasForEach: true, hasExternalRef: true, hasExternalRefSelector: true, hasScope: true, hasTypes: true, hasGraphRevisions: true },
+  }
+}
+
+function makeMetrics(): ControllerMetrics {
+  return { watchCount: 42, gvrCount: 10, queueDepth: 0, workqueueDepth: 0, scrapedAt: '2026-04-01T00:00:00Z' }
+}
+
+function emptyInstancesResponse(): AllInstancesResponse {
+  return { items: [], total: 0 }
+}
+
+function emptyList(): K8sList {
+  return { items: [], metadata: {} }
+}
+
+function setupDefaultMocks() {
+  mockListAllInstances.mockResolvedValue(emptyInstancesResponse())
+  mockListRGDs.mockResolvedValue(emptyList())
+  mockGetControllerMetrics.mockResolvedValue(makeMetrics())
+  mockGetCapabilities.mockResolvedValue(makeCapabilities())
+  mockListEvents.mockResolvedValue(emptyList())
+}
 
 function renderHome() {
-  return render(
-    <MemoryRouter>
-      <Home />
-    </MemoryRouter>,
-  )
+  return render(<MemoryRouter><Home /></MemoryRouter>)
 }
 
-function makeItem(name: string, kind?: string) {
-  const k = kind ?? (name.charAt(0).toUpperCase() + name.slice(1))
-  return {
-    metadata: { name, creationTimestamp: '2026-03-15T10:00:00Z' },
-    spec: { schema: { kind: k }, resources: [{}] },
-    status: { conditions: [{ type: 'Ready', status: 'True' }] },
-  }
-}
+beforeEach(() => {
+  vi.clearAllMocks()
+  setupDefaultMocks()
+})
 
-/** makeErrorItem returns an RGD with Ready=False (compile error) */
-function makeErrorItem(name: string, kind?: string) {
-  const k = kind ?? (name.charAt(0).toUpperCase() + name.slice(1))
-  return {
-    metadata: { name, creationTimestamp: '2026-03-15T10:00:00Z' },
-    spec: { schema: { kind: k }, resources: [{}] },
-    status: {
-      conditions: [
-        { type: 'Ready', status: 'False', reason: 'InvalidResourceGraph', message: 'failed to build' },
+// ── Smoke test ──────────────────────────────────────────────────────────
+
+describe('Home (Overview)', () => {
+  it('renders without crashing', async () => {
+    renderHome()
+    await waitFor(() => expect(screen.getByTestId('overview-refresh')).toBeInTheDocument())
+  })
+
+  it('sets page title to Overview — kro-ui', async () => {
+    renderHome()
+    await waitFor(() => expect(document.title).toBe('Overview — kro-ui'))
+  })
+})
+
+// ── Widget containers ───────────────────────────────────────────────────
+
+describe('widget containers', () => {
+  it('renders all 7 widget testids after load', async () => {
+    renderHome()
+    await waitFor(() => {
+      expect(screen.getByTestId('widget-instances')).toBeInTheDocument()
+      expect(screen.getByTestId('widget-metrics')).toBeInTheDocument()
+      expect(screen.getByTestId('widget-rgd-errors')).toBeInTheDocument()
+      expect(screen.getByTestId('widget-reconciling')).toBeInTheDocument()
+      expect(screen.getByTestId('widget-top-erroring')).toBeInTheDocument()
+      expect(screen.getByTestId('widget-events')).toBeInTheDocument()
+      expect(screen.getByTestId('widget-activity')).toBeInTheDocument()
+    })
+  })
+})
+
+// ── W-1: Instance Health distribution ──────────────────────────────────
+
+describe('W-1 Instance Health', () => {
+  it('shows correct counts for mixed-state instances', async () => {
+    mockListAllInstances.mockResolvedValue({
+      total: 4,
+      items: [
+        { name: 'a', namespace: 'ns', kind: 'X', rgdName: 'r', state: 'ACTIVE', ready: 'True', creationTimestamp: '' },
+        { name: 'b', namespace: 'ns', kind: 'X', rgdName: 'r', state: 'ACTIVE', ready: 'True', creationTimestamp: '' },
+        { name: 'c', namespace: 'ns', kind: 'X', rgdName: 'r', state: 'IN_PROGRESS', ready: '', creationTimestamp: '' },
+        { name: 'd', namespace: 'ns', kind: 'X', rgdName: 'r', state: 'ACTIVE', ready: 'False', creationTimestamp: '' },
       ],
-    },
-  }
-}
-
-describe('Home', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+    })
+    renderHome()
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-health-widget')).toBeInTheDocument()
+      // Total count shown
+      expect(screen.getByTestId('instance-health-widget').textContent).toContain('4')
+    })
   })
 
-  it('shows skeleton cards while loading', () => {
-    // Never-resolving promise keeps loading state
-    mockedListRGDs.mockReturnValue(new Promise(() => {}))
-    const { container } = renderHome()
-    // Count only the RGD skeleton cards (not MetricsStrip skeleton cells).
-    const skeletons = container.querySelectorAll('.skeleton-card')
-    expect(skeletons.length).toBe(3)
+  it('shows "No instances found" empty state when total is 0', async () => {
+    renderHome()
+    await waitFor(() => {
+      expect(screen.getByText('No instances found')).toBeInTheDocument()
+    })
   })
+})
 
-  it('renders one card per RGD item', async () => {
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('app-a'), makeItem('app-b'), makeItem('app-c')],
+// ── W-3: RGD Compile Errors ─────────────────────────────────────────────
+
+describe('W-3 RGD Compile Errors', () => {
+  it('shows clean state when no RGDs have errors', async () => {
+    mockListRGDs.mockResolvedValue({
+      items: [{
+        metadata: { name: 'my-rgd' },
+        status: { conditions: [{ type: 'Ready', status: 'True' }] },
+      }],
       metadata: {},
     })
     renderHome()
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-app-a')).toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-app-b')).toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-app-c')).toBeInTheDocument()
+      expect(screen.getByText(/compile cleanly/i)).toBeInTheDocument()
     })
   })
 
-  it('shows empty state when items is empty', async () => {
-    mockedListRGDs.mockResolvedValue({ items: [], metadata: {} })
-    renderHome()
-    await waitFor(() => {
-      expect(
-        screen.getByText(/No ResourceGraphDefinitions found/),
-      ).toBeInTheDocument()
-    })
-    expect(screen.getByText('Get started with kro')).toHaveAttribute(
-      'href',
-      'https://kro.run/docs/getting-started',
-    )
-  })
-
-  it('shows error state and retry button on fetch failure', async () => {
-    mockedListRGDs.mockRejectedValue(new Error('connection refused'))
-    renderHome()
-    await waitFor(() => {
-      expect(screen.getByText(/Cannot reach the Kubernetes API server/)).toBeInTheDocument()
-    })
-    expect(screen.getByText('Retry')).toBeInTheDocument()
-  })
-
-  it('retries fetch when Retry button is clicked', async () => {
-    const user = userEvent.setup()
-
-    // First call fails
-    mockedListRGDs.mockRejectedValueOnce(new Error('failed'))
-    renderHome()
-
-    await waitFor(() => {
-      expect(screen.getByText('Retry')).toBeInTheDocument()
-    })
-
-    // Second call succeeds
-    mockedListRGDs.mockResolvedValueOnce({
-      items: [makeItem('recovered')],
-      metadata: {},
-    })
-
-    await user.click(screen.getByText('Retry'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-recovered')).toBeInTheDocument()
-    })
-  })
-
-  it('renders card names correctly', async () => {
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('web-service'), makeItem('worker-pool')],
+  it('shows list of erroring RGDs when errors exist', async () => {
+    mockListRGDs.mockResolvedValue({
+      items: [{
+        metadata: { name: 'broken-rgd' },
+        status: { conditions: [{ type: 'Ready', status: 'False', reason: 'CompileError', message: 'bad CEL' }] },
+      }],
       metadata: {},
     })
     renderHome()
     await waitFor(() => {
-      const names = screen.getAllByTestId('rgd-name')
-      expect(names[0]).toHaveTextContent('web-service')
-      expect(names[1]).toHaveTextContent('worker-pool')
+      expect(screen.getByText('broken-rgd')).toBeInTheDocument()
+    })
+  })
+})
+
+// ── W-2: Controller Metrics ─────────────────────────────────────────────
+
+describe('W-2 Controller Metrics', () => {
+  it('shows metric values and kro version', async () => {
+    renderHome()
+    await waitFor(() => {
+      expect(screen.getByText('42')).toBeInTheDocument()
+      expect(screen.getByText(/kro v0\.9\.0/)).toBeInTheDocument()
     })
   })
 
-  // ── Search filter tests ────────────────────────────────────────────────
-  // Note: search is debounced at 300ms; assertions use waitFor to allow the
-  // debounce to fire before checking the DOM.
-
-  it('filters cards by name when typing in the search box', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('alpha'), makeItem('beta'), makeItem('gamma')],
-      metadata: {},
+  it('shows "Not reported" for null metric values', async () => {
+    mockGetControllerMetrics.mockResolvedValue({
+      watchCount: null, gvrCount: null, queueDepth: null, workqueueDepth: null, scrapedAt: '',
     })
     renderHome()
-
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
-    })
-
-    const searchInput = screen.getByRole('searchbox')
-    await user.type(searchInput, 'alp')
-
-    await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
-      expect(screen.queryByTestId('rgd-card-beta')).not.toBeInTheDocument()
-      expect(screen.queryByTestId('rgd-card-gamma')).not.toBeInTheDocument()
+      expect(screen.getAllByText('Not reported').length).toBeGreaterThan(0)
     })
   })
 
-  it('filters cards by kind when typing in the search box', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('web-app', 'WebApp'), makeItem('worker', 'WorkerPool')],
-      metadata: {},
-    })
+  it('shows widget-level error when metrics fail', async () => {
+    mockGetControllerMetrics.mockRejectedValue(new Error('503'))
     renderHome()
-
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-web-app')).toBeInTheDocument()
+      expect(screen.getByText(/Could not load Controller Metrics/i)).toBeInTheDocument()
     })
+  })
+})
 
-    const searchInput = screen.getByRole('searchbox')
-    await user.type(searchInput, 'workerpool')
+// ── Refresh button ──────────────────────────────────────────────────────
 
+describe('Refresh button', () => {
+  it('is visible after load', async () => {
+    renderHome()
     await waitFor(() => {
-      expect(screen.queryByTestId('rgd-card-web-app')).not.toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-worker')).toBeInTheDocument()
+      expect(screen.getByTestId('overview-refresh')).toBeInTheDocument()
     })
   })
 
-  it('shows no-results message when search matches nothing', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('alpha'), makeItem('beta')],
-      metadata: {},
-    })
+  it('is disabled and shows "Refreshing" label while fetching', async () => {
+    // Never resolves — keeps fetch in-flight
+    mockListAllInstances.mockReturnValue(new Promise(() => {}))
     renderHome()
-
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
-    })
-
-    const searchInput = screen.getByRole('searchbox')
-    await user.type(searchInput, 'zzznomatch')
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('rgd-card-alpha')).not.toBeInTheDocument()
-      expect(screen.getByText(/No ResourceGraphDefinitions match/)).toBeInTheDocument()
+      const btn = screen.getByTestId('overview-refresh')
+      expect(btn).toBeDisabled()
+      expect(btn.textContent).toMatch(/Refreshing/i)
     })
   })
 
-  it('restores full grid when search is cleared via SearchBar clear button', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('alpha'), makeItem('beta')],
-      metadata: {},
-    })
+  it('re-fetches all sources on click', async () => {
     renderHome()
+    await waitFor(() => expect(screen.getByTestId('overview-refresh')).not.toBeDisabled())
+    await userEvent.click(screen.getByTestId('overview-refresh'))
+    expect(mockListAllInstances).toHaveBeenCalledTimes(2)
+  })
+})
 
+// ── Layout toggle ───────────────────────────────────────────────────────
+
+describe('Layout toggle', () => {
+  it('switches to bento class on Bento button click', async () => {
+    renderHome()
+    await waitFor(() => expect(screen.getByTestId('overview-layout-bento')).toBeInTheDocument())
+    await userEvent.click(screen.getByTestId('overview-layout-bento'))
+    const container = document.querySelector('.home__bento')
+    expect(container).toBeInTheDocument()
+  })
+
+  it('restores bento mode from localStorage', async () => {
+    localStorage.setItem('overview-layout', 'bento')
+    renderHome()
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
+      expect(document.querySelector('.home__bento')).toBeInTheDocument()
     })
+    localStorage.removeItem('overview-layout')
+  })
+})
 
-    const searchInput = screen.getByRole('searchbox')
-    await user.type(searchInput, 'alp')
+// ── W-4: Reconciling Queue ──────────────────────────────────────────────
 
+describe('W-4 Reconciling Queue', () => {
+  it('shows green empty state when no reconciling instances', async () => {
+    renderHome()
     await waitFor(() => {
-      expect(screen.queryByTestId('rgd-card-beta')).not.toBeInTheDocument()
-    })
-
-    // Use the SearchBar's built-in clear button (aria-label "Clear search")
-    const clearBtn = screen.getByRole('button', { name: 'Clear search' })
-    await user.click(clearBtn)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-alpha')).toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-beta')).toBeInTheDocument()
+      expect(screen.getByText('✓ No instances reconciling')).toBeInTheDocument()
     })
   })
 
-  it('shows count indicator matching filtered results', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('alpha'), makeItem('beta'), makeItem('gamma')],
-      metadata: {},
+  it('shows amber stuck count when instances may be stuck', async () => {
+    // 1 reconciling instance created 10 minutes ago
+    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    mockListAllInstances.mockResolvedValue({
+      total: 1,
+      items: [{ name: 'stuck-one', namespace: 'ns', kind: 'X', rgdName: 'r', state: 'IN_PROGRESS', ready: '', creationTimestamp: tenMinAgo }],
     })
     renderHome()
-
     await waitFor(() => {
-      // Initially shows all 3
-      expect(screen.getByText('3 of 3')).toBeInTheDocument()
+      // W-4 shows the "N may be stuck > 5 min" secondary line with amber styling
+      const stuck = document.querySelector('.home__reconciling-stuck')
+      expect(stuck).toBeInTheDocument()
+      expect(stuck!.textContent).toMatch(/may be stuck/i)
     })
+  })
+})
 
-    const searchInput = screen.getByRole('searchbox')
-    await user.type(searchInput, 'alp')
+// ── W-5: Top Erroring RGDs ──────────────────────────────────────────────
 
+describe('W-5 Top Erroring RGDs', () => {
+  it('shows empty state when no error instances', async () => {
+    renderHome()
     await waitFor(() => {
-      expect(screen.getByText('1 of 3')).toBeInTheDocument()
+      expect(screen.getByText('No instance errors')).toBeInTheDocument()
     })
   })
 
-  // ── RGD compile-error banner tests (spec 069) ─────────────────────────
-
-  it('shows error banner when at least one RGD has a compile error', async () => {
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('app-ok'), makeErrorItem('broken-cel'), makeErrorItem('invalid-rgd')],
-      metadata: {},
+  it('ranks RGDs by error count descending', async () => {
+    mockListAllInstances.mockResolvedValue({
+      total: 4,
+      items: [
+        { name: 'a1', namespace: 'ns', kind: 'X', rgdName: 'alpha', state: 'ACTIVE', ready: 'False', creationTimestamp: '' },
+        { name: 'a2', namespace: 'ns', kind: 'X', rgdName: 'alpha', state: 'ACTIVE', ready: 'False', creationTimestamp: '' },
+        { name: 'a3', namespace: 'ns', kind: 'X', rgdName: 'alpha', state: 'ACTIVE', ready: 'False', creationTimestamp: '' },
+        { name: 'b1', namespace: 'ns', kind: 'X', rgdName: 'beta',  state: 'ACTIVE', ready: 'False', creationTimestamp: '' },
+      ],
     })
     renderHome()
-
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-error-banner')).toBeInTheDocument()
+      const widget = screen.getByTestId('widget-top-erroring')
+      const rows = widget.querySelectorAll('.home__top-erroring-row')
+      expect(rows[0].textContent).toContain('alpha')
+      expect(rows[1].textContent).toContain('beta')
     })
-    // Count is rendered in its own span; the description text follows.
-    expect(screen.getByText('2', { selector: '.home__rgd-error-count' })).toBeInTheDocument()
-    expect(screen.getByText(/RGDs have compile errors/)).toBeInTheDocument()
   })
+})
 
-  it('does not show error banner when all RGDs are ready', async () => {
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('app-a'), makeItem('app-b')],
-      metadata: {},
-    })
+// ── Full-page error ─────────────────────────────────────────────────────
+
+describe('full-page error', () => {
+  it('shows full-page error only when both instances AND rgds fail', async () => {
+    mockListAllInstances.mockRejectedValue(new Error('network'))
+    mockListRGDs.mockRejectedValue(new Error('network'))
     renderHome()
-
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-app-a')).toBeInTheDocument()
-    })
-    expect(screen.queryByTestId('rgd-error-banner')).not.toBeInTheDocument()
-  })
-
-  it('shows singular "RGD has a compile error" when count is 1', async () => {
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('ok'), makeErrorItem('broken')],
-      metadata: {},
-    })
-    renderHome()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('rgd-error-banner')).toBeInTheDocument()
-    })
-    expect(screen.getByText('1', { selector: '.home__rgd-error-count' })).toBeInTheDocument()
-    expect(screen.getByText(/RGD has a compile error/)).toBeInTheDocument()
-  })
-
-  it('clicking error banner filters grid to error-only RGDs', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('app-ok'), makeErrorItem('broken')],
-      metadata: {},
-    })
-    renderHome()
-
-    await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-app-ok')).toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-broken')).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByTestId('rgd-error-banner').querySelector('button')!)
-
-    await waitFor(() => {
-      expect(screen.queryByTestId('rgd-card-app-ok')).not.toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-broken')).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+      expect(screen.getByText(/Could not load cluster data/i)).toBeInTheDocument()
     })
   })
 
-  it('clicking error banner again restores all RGDs', async () => {
-    const user = userEvent.setup()
-    mockedListRGDs.mockResolvedValue({
-      items: [makeItem('app-ok'), makeErrorItem('broken')],
-      metadata: {},
-    })
+  it('does NOT show full-page error when only one source fails', async () => {
+    mockListAllInstances.mockRejectedValue(new Error('network'))
+    // rgds succeeds
     renderHome()
-
     await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-app-ok')).toBeInTheDocument()
-    })
-
-    const bannerBtn = screen.getByTestId('rgd-error-banner').querySelector('button')!
-    await user.click(bannerBtn)
-    await user.click(bannerBtn)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('rgd-card-app-ok')).toBeInTheDocument()
-      expect(screen.getByTestId('rgd-card-broken')).toBeInTheDocument()
+      expect(screen.queryByText(/Could not load cluster data/i)).not.toBeInTheDocument()
     })
   })
 })
