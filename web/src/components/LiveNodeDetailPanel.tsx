@@ -119,9 +119,15 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
 
   const isSecret = rawObj != null && typeof rawObj.kind === 'string' && rawObj.kind === 'Secret'
 
-  /** Build the YAML string, masking Secret data fields unless revealed. */
+  /** Build the YAML string, masking Secret data fields unless revealed.
+   * GH #402 fix: derive isSecret from the obj parameter directly, not from
+   * the rawObj state variable — setRawObj is async so rawObj is still null
+   * when buildYaml is first called on initial load, causing the mask to be
+   * skipped and the raw base64 value to be rendered on the first render.
+   */
   function buildYaml(obj: K8sObject, revealed: boolean): string {
-    if (!isSecret || revealed) {
+    const objIsSecret = typeof obj.kind === 'string' && obj.kind === 'Secret'
+    if (!objIsSecret || revealed) {
       return toYaml(cleanK8sObject(obj))
     }
     // Mask: replace every base64 value in data/stringData with '••••••••'
