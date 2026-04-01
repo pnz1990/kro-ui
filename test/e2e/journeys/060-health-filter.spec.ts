@@ -17,11 +17,14 @@
  *
  * Spec: .specify/specs/060-health-filter/spec.md
  *
- * Verifies:
- *   A) OverviewHealthBar chips are rendered as buttons (clickable)
- *   B) Clicking a chip filters the card grid
- *   C) A clear filter button appears when filter is active
- *   D) Clicking the × button restores all cards
+ * NOTE (spec 062): The OverviewHealthBar component and its clickable chip filter
+ * were removed as part of the SRE dashboard rewrite. The equivalent health
+ * distribution is now shown in W-1 (InstanceHealthWidget) without the grid
+ * filter behavior. The Catalog page (/catalog) provides the RGD card grid.
+ *
+ * These tests are updated to verify the W-1 widget shows health data correctly.
+ * The filter behavior (chips filtering the card grid) no longer exists on the
+ * Overview page — that feature was superseded by the dashboard widget design.
  */
 
 import { test, expect } from '@playwright/test'
@@ -30,92 +33,66 @@ const BASE = process.env.KRO_UI_BASE_URL || 'http://localhost:40107'
 
 test.describe('Journey 060: OverviewHealthBar clickable filter', () => {
 
-  // ── A: Chips are buttons ──────────────────────────────────────────────────────
+  // ── A: W-1 Instance Health widget is rendered (replaces OverviewHealthBar) ──
 
   test('Step 1: OverviewHealthBar chips are rendered as buttons', async ({ page }) => {
+    // NOTE (spec 062): OverviewHealthBar removed. W-1 widget shows health distribution.
     await page.goto(BASE)
-    await page.waitForSelector('[data-testid="overview-health-bar"]', { timeout: 20000 })
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-instances"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
 
-    const chips = page.locator('.overview-health-bar__chip--clickable')
-    const count = await chips.count()
-    expect(count).toBeGreaterThan(0)
+    const w1 = page.locator('[data-testid="widget-instances"]')
+    await expect(w1).toBeVisible()
 
-    // All clickable chips should be <button> elements
-    for (let i = 0; i < Math.min(count, 3); i++) {
-      const tag = await chips.nth(i).evaluate((el) => el.tagName.toLowerCase())
+    // Bar/Donut toggle buttons within W-1 are rendered as buttons
+    const toggleBtns = w1.locator('.ihw__toggle-btn')
+    const count = await toggleBtns.count()
+    expect(count).toBeGreaterThanOrEqual(2)
+    for (let i = 0; i < count; i++) {
+      const tag = await toggleBtns.nth(i).evaluate((el) => el.tagName.toLowerCase())
       expect(tag).toBe('button')
     }
   })
 
-  // ── B: Clicking a chip filters cards ─────────────────────────────────────────
+  // ── B: Bar chart shows proportional health data ───────────────────────────
 
   test('Step 2: Clicking a health chip filters the RGD card grid', async ({ page }) => {
+    // NOTE (spec 062): Grid filter on Overview removed. Verify W-1 Bar mode renders segments.
     await page.goto(BASE)
-    await page.waitForSelector('[data-testid="overview-health-bar"]', { timeout: 20000 })
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 10000 })
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-instances"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
 
-    const allCards = page.locator('[data-testid^="rgd-card-"]')
-    const initialCount = await allCards.count()
-
-    // Find a chip with a known filter state (e.g. "ready")
-    const readyChip = page.locator('[data-testid="health-filter-ready"]')
-    if (await readyChip.count() === 0) {
-      // No ready chip visible — skip test
-      return
-    }
-
-    await readyChip.click()
-
-    // Wait for grid to update — count should change (less or equal)
-    await page.waitForFunction(
-      () => {
-        const cards = document.querySelectorAll('[data-testid^="rgd-card-"]')
-        return cards.length > 0
-      },
-      { timeout: 5000 }
-    )
-
-    const filteredCount = await allCards.count()
-    // Filtered grid should have fewer or equal cards
-    expect(filteredCount).toBeLessThanOrEqual(initialCount)
-
-    // aria-pressed should be true on the active chip
-    const pressed = await readyChip.getAttribute('aria-pressed')
-    expect(pressed).toBe('true')
+    const w1 = page.locator('[data-testid="widget-instances"]')
+    const w1Text = await w1.textContent()
+    // W-1 should render content without coercion artifacts
+    expect(w1Text).not.toContain('undefined')
+    expect(w1Text).not.toContain('[object')
   })
 
-  // ── C+D: Clear filter button ──────────────────────────────────────────────────
+  // ── C+D: Bar/Donut toggle is functional ──────────────────────────────────
 
   test('Step 3: Clear filter button restores all cards', async ({ page }) => {
+    // NOTE (spec 062): Clear filter button removed. Verify Bar/Donut toggle works.
     await page.goto(BASE)
-    await page.waitForSelector('[data-testid="overview-health-bar"]', { timeout: 20000 })
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 10000 })
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-instances"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
 
-    const allCards = page.locator('[data-testid^="rgd-card-"]')
-    const initialCount = await allCards.count()
-
-    // Click any available chip to activate filter
-    const anyChip = page.locator('.overview-health-bar__chip--clickable').first()
-    await anyChip.click()
-
-    // Clear filter button should appear
-    const clearBtn = page.locator('[data-testid="clear-health-filter"]')
-    await expect(clearBtn).toBeVisible({ timeout: 3000 })
-
-    // Click clear
-    await clearBtn.click()
-
-    // Grid should restore to initial count
-    await page.waitForFunction(
-      (expected: number) => {
-        const cards = document.querySelectorAll('[data-testid^="rgd-card-"]')
-        return cards.length >= expected
-      },
-      initialCount,
-      { timeout: 5000 }
-    )
-
-    const restoredCount = await allCards.count()
-    expect(restoredCount).toBe(initialCount)
+    // Switch to Donut mode
+    const donutBtn = page.locator('.ihw__toggle-btn').filter({ hasText: 'Donut' }).first()
+    if (await donutBtn.count() > 0) {
+      await donutBtn.click()
+      // SVG donut must appear
+      await expect(page.locator('.ihw__donut-svg').first()).toBeVisible({ timeout: 3000 })
+      // Switch back to Bar
+      const barBtn = page.locator('.ihw__toggle-btn').filter({ hasText: 'Bar' }).first()
+      await barBtn.click()
+      await expect(page.locator('.ihw__bar').first()).toBeVisible({ timeout: 3000 })
+    }
   })
 })

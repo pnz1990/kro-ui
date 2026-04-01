@@ -40,7 +40,8 @@ const INSTANCE_NAME = process.env.TEST_INSTANCE_NAME || 'test-instance'
 
 test.describe('Journey 028: Instance Health Rollup', () => {
   test('Step 1: Home page renders RGD cards and health chip is present', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD card grid moved to /catalog. Navigate there for card assertions.
+    await page.goto(`${BASE}/catalog`)
 
     // RGD card must be visible
     await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
@@ -58,7 +59,8 @@ test.describe('Journey 028: Instance Health Rollup', () => {
   })
 
   test('Step 2: Health chip resolves with meaningful text', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD card grid moved to /catalog.
+    await page.goto(`${BASE}/catalog`)
 
     // Wait for health chip to be present and have non-skeleton content
     await page.waitForFunction(

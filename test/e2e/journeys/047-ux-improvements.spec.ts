@@ -48,7 +48,8 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   // ── A: HealthChip never stays blank ────────────────────────────────────────
 
   test('Step 1: Overview HealthChip resolves for every visible RGD card', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD card grid moved to /catalog.
+    await page.goto(`${BASE}/catalog`)
     await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
 
     // Wait for at least one chip to resolve — this confirms the instances API
@@ -71,7 +72,8 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
     // Prior to fix/instances-inactive-rgd (#296), inactive RGDs returned 500
     // from the instances API → health chip was blank.
     // Now they return 200 with {items:[]} → chip shows "no instances".
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD card grid moved to /catalog.
+    await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
 
     // The test-collection RGD is Inactive in the hermetic E2E cluster when
@@ -172,7 +174,8 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   // ── E: Namespace sentinel "\_" never in rendered text ─────────────────────
 
   test('Step 7: Cluster-scoped namespace sentinel _ never appears in rendered text', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD card grid moved to /catalog. Check both pages.
+    await page.goto(`${BASE}/catalog`)
     await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
 
     // Scan the full rendered text of the Overview page for the literal sentinel "_"
@@ -187,7 +190,8 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   // ── F: Multi-segment health bar ───────────────────────────────────────────
 
   test('Step 8: HealthChip multi-segment bar renders correctly', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD card grid moved to /catalog.
+    await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
 
     // Scan for chips that are in the mixed-state (bar) format:

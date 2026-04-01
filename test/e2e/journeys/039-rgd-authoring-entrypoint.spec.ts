@@ -59,7 +59,9 @@ test.describe('Journey 039 — RGD Designer Global Entrypoint', () => {
   })
 
   test('Step 3: Home no-match empty state does NOT show "Open RGD Designer" link', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): Search filter and RGD grid moved to /catalog.
+    // The Overview no longer has a search box.
+    await page.goto(`${BASE}/catalog`)
     // Wait for RGD cards to load so the search filter is active
     await expect(page.getByTestId('topbar-rgd-designer')).toBeVisible({ timeout: 10000 })
 
@@ -69,8 +71,8 @@ test.describe('Journey 039 — RGD Designer Global Entrypoint', () => {
     // Wait for debounce (300ms) + render
     await page.waitForTimeout(400)
 
-    // The no-match empty state should be visible
-    await expect(page.locator('.home__empty').first()).toBeVisible({ timeout: 3000 })
+    // The no-match empty state should be visible (Catalog uses .catalog__empty or similar)
+    await expect(page.locator('.catalog__empty, .home__empty').first()).toBeVisible({ timeout: 3000 })
 
     // The "Open RGD Designer" link must NOT appear in the no-match variant
     // (it only appears in the onboarding variant when items.length === 0 with no query)

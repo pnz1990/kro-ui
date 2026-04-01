@@ -91,7 +91,8 @@ test.describe('Journey 046 — US6: Capabilities baseline for kro v0.9.0', () =>
 
 test.describe('Journey 046 — US1: Cluster scope badge', () => {
   test('Step 1: Namespaced RGD card shows no scope badge', async ({ page }) => {
-    await page.goto(`${BASE}/`)
+    // NOTE (spec 062): RGD card grid moved to /catalog.
+    await page.goto(`${BASE}/catalog`)
     // Wait for at least one card to be rendered.
     await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: DAG_TIMEOUT })
     // The test-app RGD is Namespaced — no scope badge on its card.

@@ -64,8 +64,11 @@ test.describe('Journey 053: Multi-version kro support', () => {
 
   test('Step 2: No unsupported-version banner shown when kro is supported', async ({ page }) => {
     await page.goto(BASE)
-    // Wait for the page to load and capabilities to be fetched
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    // Wait for the Overview dashboard to load
+    await page.waitForFunction(() =>
+      document.querySelector('[data-testid="widget-instances"]') !== null,
+      { timeout: 20000 }
+    )
 
     // The warning banner must NOT be present on a supported cluster
     const banner = page.locator('[data-testid="kro-version-warning"]')
@@ -76,8 +79,11 @@ test.describe('Journey 053: Multi-version kro support', () => {
 
   test('Step 3: Capabilities version field is non-empty after page load', async ({ page }) => {
     await page.goto(BASE)
-    // Wait for initial data load
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    // Wait for Overview dashboard to load
+    await page.waitForFunction(() =>
+      document.querySelector('[data-testid="widget-metrics"]') !== null,
+      { timeout: 20000 }
+    )
 
     // Re-fetch capabilities to verify the field is stable
     const res = await page.request.get(`${BASE}/api/v1/kro/capabilities`)

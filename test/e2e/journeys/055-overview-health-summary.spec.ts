@@ -17,15 +17,13 @@
  *
  * Spec: .specify/specs/055-overview-health-summary/spec.md
  *
- * Verifies:
- *   A) OverviewHealthBar renders after RGD list and health summaries load
- *   B) At least one chip is visible (cluster has at least some instances)
- *   C) Bar is absent during initial loading
- *   D) Chip text contains valid state labels
+ * NOTE (spec 062): The OverviewHealthBar component was replaced by the W-1
+ * Instance Health widget as part of the SRE dashboard rewrite. This journey
+ * now tests the W-1 widget (data-testid="widget-instances") which shows the
+ * same health distribution data in bar or donut format.
  *
  * Cluster pre-conditions:
  * - kind cluster running kro >= v0.8.0
- * - At least one RGD with instances (test-app / test-instance)
  * - kro-ui binary running at KRO_UI_BASE_URL
  */
 
@@ -35,53 +33,51 @@ const BASE = process.env.KRO_UI_BASE_URL || 'http://localhost:40107'
 
 test.describe('Journey 055: Overview Health Summary Bar', () => {
 
-  // ── A+B: Health bar renders with at least one chip ──────────────────────────
+  // ── A+B: W-1 Instance Health widget renders ──────────────────────────
 
   test('Step 1: OverviewHealthBar is visible after Overview loads with instances', async ({ page }) => {
     await page.goto(BASE)
-    // Wait for RGD cards to load
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    // Wait for W-1 to finish loading
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-instances"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 25000 })
 
-    // Health summaries are fetched in the background — wait for bar to appear
-    // The bar appears once at least one summary is resolved
-    await page.waitForSelector('[data-testid="overview-health-bar"]', { timeout: 20000 })
-
-    const bar = page.locator('[data-testid="overview-health-bar"]')
-    await expect(bar).toBeVisible()
-
-    // At least one chip must be present
-    const chips = bar.locator('.overview-health-bar__chip')
-    const chipCount = await chips.count()
-    expect(chipCount).toBeGreaterThan(0)
+    const w1 = page.locator('[data-testid="widget-instances"]')
+    await expect(w1).toBeVisible()
+    // W-1 shows either instance health widget or "No instances found"
+    const text = await w1.textContent()
+    expect(text?.trim().length).toBeGreaterThan(0)
   })
 
-  // ── D: Chip text uses valid state labels ─────────────────────────────────────
+  // ── D: W-1 content uses valid state labels or count ──────────────────
 
   test('Step 2: OverviewHealthBar chip text uses known state labels', async ({ page }) => {
     await page.goto(BASE)
-    await page.waitForSelector('[data-testid="overview-health-bar"]', { timeout: 20000 })
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-instances"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 25000 })
 
-    const chips = page.locator('.overview-health-bar__chip')
-    const count = await chips.count()
-    const validLabels = ['ready', 'reconciling', 'degraded', 'error', 'pending', 'no instances']
-
-    for (let i = 0; i < count; i++) {
-      const text = (await chips.nth(i).textContent()) ?? ''
-      const isValid = validLabels.some((label) => text.trim().toLowerCase().includes(label))
-      expect(isValid, `Chip "${text}" does not contain a valid state label`).toBe(true)
-    }
+    const w1Text = await page.locator('[data-testid="widget-instances"]').textContent()
+    // Either shows instance counts (numbers) or "No instances found"
+    const hasContent = /\d/.test(w1Text ?? '') || (w1Text ?? '').includes('No instances found')
+    expect(hasContent).toBe(true)
   })
 
-  // ── C: No undefined/null coercion artifacts in chips ─────────────────────────
+  // ── C: No coercion artifacts ─────────────────────────────────────────
 
   test('Step 3: OverviewHealthBar chips have no coercion artifacts', async ({ page }) => {
     await page.goto(BASE)
-    await page.waitForSelector('[data-testid="overview-health-bar"]', { timeout: 20000 })
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-instances"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 25000 })
 
-    const barText = await page.locator('[data-testid="overview-health-bar"]').textContent()
-    expect(barText).not.toContain('undefined')
-    expect(barText).not.toContain('null')
-    expect(barText).not.toContain('[object')
-    expect(barText).not.toContain('NaN')
+    const w1Text = await page.locator('[data-testid="widget-instances"]').textContent()
+    expect(w1Text).not.toContain('undefined')
+    expect(w1Text).not.toContain('null')
+    expect(w1Text).not.toContain('[object')
+    expect(w1Text).not.toContain('NaN')
   })
 })

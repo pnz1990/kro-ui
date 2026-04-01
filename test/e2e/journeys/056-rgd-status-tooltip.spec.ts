@@ -17,16 +17,8 @@
  *
  * Spec: .specify/specs/056-rgd-status-tooltip/spec.md
  *
- * Verifies:
- *   A) Error-state RGD cards show a one-line error hint
- *   B) Hint text contains the error reason
- *   C) Ready-state cards have no error hint
- *   D) Error hint has a title attribute with the full message
- *
- * Cluster pre-conditions:
- * - kind cluster running kro >= v0.8.0
- * - At least one Inactive/error RGD (invalid-cel-rgd or cel-functions applied)
- * - kro-ui binary running at KRO_UI_BASE_URL
+ * NOTE (spec 062): RGD cards were moved from the Overview page to /catalog.
+ * These tests now navigate to /catalog to find RGD cards with error hints.
  */
 
 import { test, expect } from '@playwright/test'
@@ -38,7 +30,8 @@ test.describe('Journey 056: RGD Card Error Hint', () => {
   // ── A+B: Error-state card shows hint ────────────────────────────────────────
 
   test('Step 1: Error-state RGD cards show an error hint on the Overview', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD cards are now on /catalog.
+    await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
 
     // Check for any error hint elements — there should be at least one
@@ -51,7 +44,7 @@ test.describe('Journey 056: RGD Card Error Hint', () => {
   // ── B: Hint text is non-empty and contains reason ──────────────────────────
 
   test('Step 2: Error hint text is non-empty and contains a reason', async ({ page }) => {
-    await page.goto(BASE)
+    await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid="rgd-card-error-hint"]', { timeout: 15000 })
 
     const hints = page.locator('[data-testid="rgd-card-error-hint"]')
@@ -68,7 +61,7 @@ test.describe('Journey 056: RGD Card Error Hint', () => {
   // ── C: Ready-state cards have no error hint ────────────────────────────────
 
   test('Step 3: Ready-state RGD cards do not show an error hint', async ({ page }) => {
-    await page.goto(BASE)
+    await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
 
     // Find the test-app card (known to be Ready) and verify no error hint
@@ -82,7 +75,7 @@ test.describe('Journey 056: RGD Card Error Hint', () => {
   // ── D: Error hint has title attribute ─────────────────────────────────────
 
   test('Step 4: Error hint has a title attribute for accessibility', async ({ page }) => {
-    await page.goto(BASE)
+    await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid="rgd-card-error-hint"]', { timeout: 15000 })
 
     const firstHint = page.locator('[data-testid="rgd-card-error-hint"]').first()
