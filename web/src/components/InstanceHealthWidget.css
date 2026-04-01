@@ -1,185 +1,78 @@
 .ihw {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* ── Total count ─────────────────────────────────────────────────────── */
-
-.ihw__total {
-  font-family: var(--font-mono);
-  font-size: 2.25rem;
-  font-weight: 700;
-  color: var(--color-text);
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.ihw__total-label {
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: var(--color-text-muted);
-  margin-left: 6px;
-  letter-spacing: 0;
-}
-
-/* ── Segmented bar ───────────────────────────────────────────────────── */
-
-.ihw__bar {
-  display: flex;
-  height: 10px;
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  gap: 2px;
-}
-
-.ihw__bar-segment {
-  height: 100%;
-  border-radius: 0;
-  transition: flex 0.2s ease;
-}
-
-.ihw__bar-segment--first {
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-}
-
-.ihw__bar-segment--last {
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-/* Single segment: full radius */
-.ihw__bar-segment--first.ihw__bar-segment--last {
-  border-radius: var(--radius-sm);
-}
-
-/* ── Per-state counts row ────────────────────────────────────────────── */
-
-.ihw__counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-
-.ihw__count-item {
-  display: flex;
   align-items: center;
-  gap: 5px;
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
+  gap: 20px;
 }
 
-.ihw__count-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.ihw--empty {
+  align-items: flex-start;
 }
 
-.ihw__count-num {
-  font-weight: 600;
-  color: var(--color-text);
-}
+/* ── Donut SVG ───────────────────────────────────────────────────────── */
 
-.ihw__count-label {
-  color: var(--color-text-muted);
-}
-
-/* ── Donut chart ─────────────────────────────────────────────────────── */
-
-.ihw__donut-wrap {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.ihw__donut-svg {
-  width: 120px;
-  height: 120px;
+.ihw__svg {
+  width: 104px;
+  height: 104px;
   flex-shrink: 0;
   display: block;
 }
 
-.ihw__donut-center-text {
+.ihw__center-num {
   font-family: var(--font-mono);
   font-size: 18px;
   font-weight: 700;
   fill: var(--color-text);
 }
 
-.ihw__donut-legend {
+.ihw__center-label {
+  font-family: var(--font-sans);
+  font-size: 9px;
+  fill: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────────── */
+
+.ihw__legend {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
 }
 
-.ihw__donut-legend-item {
+.ihw__legend-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
+  gap: 7px;
 }
 
-.ihw__donut-legend-dot {
-  width: 8px;
-  height: 8px;
+.ihw__legend-dot {
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.ihw__donut-legend-count {
+.ihw__legend-count {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--color-text);
-  min-width: 24px;
+  min-width: 28px;
 }
 
-.ihw__donut-legend-label {
-  color: var(--color-text-muted);
-}
-
-/* ── Chart toggle ────────────────────────────────────────────────────── */
-
-.ihw__toggle {
-  display: flex;
-  align-self: flex-start;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.ihw__toggle-btn {
+.ihw__legend-label {
   font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.8125rem;
   color: var(--color-text-muted);
-  background: none;
-  border: none;
-  border-right: 1px solid var(--color-border);
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.ihw__toggle-btn:last-child {
-  border-right: none;
-}
-
-.ihw__toggle-btn--active {
-  background: var(--color-border);
-  color: var(--color-text);
-}
-
-.ihw__toggle-btn:hover:not(.ihw__toggle-btn--active) {
-  background: var(--color-bg-subtle, var(--color-border-subtle));
-  color: var(--color-text);
-}
-
-/* ── Empty state ─────────────────────────────────────────────────────── */
+/* ── Empty ───────────────────────────────────────────────────────────── */
 
 .ihw__empty {
   font-family: var(--font-sans);
   font-size: 0.875rem;
-  color: var(--color-text-muted);
-  margin: 0;
+  color: var(--color-text-faint);
 }

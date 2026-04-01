@@ -1,16 +1,5 @@
 // Overview SRE Dashboard — Home.tsx
-// Replaces the RGD card grid with a 7-widget snapshot dashboard.
 // Spec: .specify/specs/062-overview-sre-dashboard/spec.md
-// GH Issue: #397
-//
-// Data sources (fetched once on mount, re-fetched on Refresh):
-//   - listAllInstances()  → W-1, W-4, W-5, W-7
-//   - listRGDs()          → W-3
-//   - getControllerMetrics() + getCapabilities() → W-2
-//   - listEvents()        → W-6
-//
-// Layout modes: Grid (default) | Bento — persisted in localStorage.
-// Chart modes:  Bar (default)  | Donut  — persisted in localStorage.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -37,12 +26,7 @@ import { buildErrorHint } from '@/components/RGDCard'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import OverviewWidget from '@/components/OverviewWidget'
 import InstanceHealthWidget from '@/components/InstanceHealthWidget'
-import type { ChartMode } from '@/components/InstanceHealthWidget'
 import './Home.css'
-
-// ── Layout + chart mode persistence ────────────────────────────────────
-
-export type LayoutMode = 'grid' | 'bento'
 
 function lsGet(key: string, fallback: string): string {
   try { return localStorage.getItem(key) ?? fallback } catch { return fallback }
@@ -51,7 +35,8 @@ function lsSet(key: string, value: string): void {
   try { localStorage.setItem(key, value) } catch { /* silent */ }
 }
 
-// ── WidgetState helper type ─────────────────────────────────────────────
+// keep lsGet/lsSet around — used for future preference keys
+void lsGet; void lsSet
 
 interface WidgetState<T> {
   data: T | null
@@ -68,26 +53,15 @@ function initialWidget<T>(): WidgetState<T> {
 export default function Home() {
   usePageTitle('Overview')
 
-  // ── Persistent preferences ────────────────────────────────────────────
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>(
-    () => lsGet('overview-layout', 'grid') as LayoutMode
-  )
-  const [chartMode, setChartMode] = useState<ChartMode>(
-    () => lsGet('overview-health-chart', 'bar') as ChartMode
-  )
-
-  // ── Data states (one per API source) ─────────────────────────────────
   const [instancesState, setInstancesState] = useState<WidgetState<AllInstancesResponse>>(initialWidget)
   const [rgdsState, setRgdsState] = useState<WidgetState<K8sList>>(initialWidget)
   const [metricsState, setMetricsState] = useState<WidgetState<ControllerMetrics>>(initialWidget)
   const [capabilitiesState, setCapabilitiesState] = useState<WidgetState<KroCapabilities>>(initialWidget)
   const [eventsState, setEventsState] = useState<WidgetState<K8sList>>(initialWidget)
 
-  // ── Staleness tracking ────────────────────────────────────────────────
   const [isFetching, setIsFetching] = useState(false)
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null)
   const [lastAttemptFailed, setLastAttemptFailed] = useState(false)
-  // Tick counter to force re-render for staleness label update every 10s
   const [, setTick] = useState(0)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -193,28 +167,16 @@ export default function Home() {
   // W-3: erroring RGDs
   const errorRGDs = rgdItems.filter(rgd => extractReadyStatus(rgd).state === 'error')
 
-  // Full-page error: both primary sources failed
   const fullPageError = instancesState.error !== null && rgdsState.error !== null
     && !instancesState.loading && !rgdsState.loading
 
-  // Onboarding: brand-new cluster (no instances, no RGDs, loaded)
   const isOnboarding = !instancesState.loading && !rgdsState.loading
     && instancesState.error === null && rgdsState.error === null
     && (instancesState.data?.total ?? 0) === 0 && rgdItems.length === 0
 
-  // ── Layout toggles ────────────────────────────────────────────────────
-
-  function handleLayoutMode(mode: LayoutMode) {
-    setLayoutMode(mode)
-    lsSet('overview-layout', mode)
+  function truncate(s: string, n: number): string {
+    return s.length > n ? s.slice(0, n) + '…' : s
   }
-
-  function handleChartMode(mode: ChartMode) {
-    setChartMode(mode)
-    lsSet('overview-health-chart', mode)
-  }
-
-  // ── Event helpers ─────────────────────────────────────────────────────
 
   function eventBadgeClass(type: string, reason: string): string {
     if (type === 'Warning') return 'home__event-badge--warning'
@@ -222,151 +184,60 @@ export default function Home() {
     return 'home__event-badge--normal'
   }
 
-  function truncate(s: string, n: number): string {
-    return s.length > n ? s.slice(0, n) + '…' : s
-  }
-
   // ── Render ────────────────────────────────────────────────────────────
 
   if (fullPageError) {
     return (
       <div className="home">
-        <HomeHeader
-          isFetching={isFetching}
-          lastFetchedAt={lastFetchedAt}
-          lastAttemptFailed={lastAttemptFailed}
-          layoutMode={layoutMode}
-          onLayoutMode={handleLayoutMode}
-          onRefresh={fetchAll}
-        />
+        <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
         <div className="home__error" role="alert">
-          <p className="home__error-message">
-            Could not load cluster data — check that kro-ui can reach the cluster.
-          </p>
+          <p className="home__error-message">Could not load cluster data — check that kro-ui can reach the cluster.</p>
           <button className="home__retry-btn" onClick={fetchAll}>Retry</button>
         </div>
       </div>
     )
   }
 
-  const gridClass = layoutMode === 'bento' ? 'home__widgets home__bento' : 'home__widgets home__grid'
-
   return (
     <div className="home">
-      <HomeHeader
-        isFetching={isFetching}
-        lastFetchedAt={lastFetchedAt}
-        lastAttemptFailed={lastAttemptFailed}
-        layoutMode={layoutMode}
-        onLayoutMode={handleLayoutMode}
-        onRefresh={fetchAll}
-      />
+      <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
 
       {isOnboarding && (
         <div className="home__onboarding">
           <h2 className="home__onboarding-title">Welcome to kro-ui</h2>
-          <p className="home__onboarding-desc">
-            No ResourceGraphDefinitions or instances found. Get started by creating an RGD.
-          </p>
+          <p className="home__onboarding-desc">No ResourceGraphDefinitions or instances found yet.</p>
           <Link to="/author" className="home__onboarding-cta">Open RGD Designer</Link>
         </div>
       )}
 
-      <div className={gridClass}>
+      <div className="home__grid">
 
-        {/* W-1 — Instance Health */}
-        <OverviewWidget
-          title="Instance Health"
-          loading={instancesState.loading}
-          error={instancesState.error}
-          onRetry={fetchAll}
-          className="home__w1"
-          data-testid="widget-instances"
-        >
-          <InstanceHealthWidget
-            distribution={distribution}
-            chartMode={chartMode}
-            onChartModeChange={handleChartMode}
-          />
+        <OverviewWidget title="Instance health" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w1" data-testid="widget-instances">
+          <InstanceHealthWidget distribution={distribution} />
         </OverviewWidget>
 
-        {/* W-2 — Controller Metrics */}
-        <OverviewWidget
-          title="Controller Metrics"
-          loading={metricsState.loading || capabilitiesState.loading}
-          error={metricsState.error ?? capabilitiesState.error}
-          onRetry={fetchAll}
-          className="home__w2"
-          data-testid="widget-metrics"
-        >
+        <OverviewWidget title="Controller metrics" loading={metricsState.loading || capabilitiesState.loading} error={metricsState.error ?? capabilitiesState.error} onRetry={fetchAll} className="home__w2" data-testid="widget-metrics">
           <MetricsWidget metrics={metricsState.data} kroVersion={capabilitiesState.data?.version} />
         </OverviewWidget>
 
-        {/* W-3 — RGD Compile Errors */}
-        <OverviewWidget
-          title="RGD Compile Errors"
-          loading={rgdsState.loading}
-          error={rgdsState.error}
-          onRetry={fetchAll}
-          className="home__w3"
-          data-testid="widget-rgd-errors"
-        >
+        <OverviewWidget title="RGD compile errors" loading={rgdsState.loading} error={rgdsState.error} onRetry={fetchAll} className="home__w3" data-testid="widget-rgd-errors">
           <RGDErrorsWidget errorRGDs={errorRGDs} totalRGDs={rgdItems.length} />
         </OverviewWidget>
 
-        {/* W-4 — Reconciling Queue */}
-        <OverviewWidget
-          title="Reconciling Queue"
-          loading={instancesState.loading}
-          error={instancesState.error}
-          onRetry={fetchAll}
-          className="home__w4"
-          data-testid="widget-reconciling"
-        >
+        <OverviewWidget title="Reconciling queue" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w4" data-testid="widget-reconciling">
           <ReconcilingWidget reconcilingCount={distribution.reconciling} stuckCount={stuckCount} />
         </OverviewWidget>
 
-        {/* W-5 — Top Erroring RGDs */}
-        <OverviewWidget
-          title="Top Erroring RGDs"
-          loading={instancesState.loading}
-          error={instancesState.error}
-          onRetry={fetchAll}
-          className="home__w5"
-          data-testid="widget-top-erroring"
-        >
+        <OverviewWidget title="Top erroring RGDs" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w5" data-testid="widget-top-erroring">
           <TopErroringWidget topErroring={topErroring} />
         </OverviewWidget>
 
-        {/* W-6 — Recent Events */}
-        <OverviewWidget
-          title="Recent Events"
-          loading={eventsState.loading}
-          error={eventsState.error}
-          onRetry={fetchAll}
-          className="home__w6"
-          data-testid="widget-events"
-        >
-          <EventsWidget
-            items={eventsState.data?.items ?? []}
-            eventBadgeClass={eventBadgeClass}
-            truncate={truncate}
-          />
+        <OverviewWidget title="Recent events" loading={eventsState.loading} error={eventsState.error} onRetry={fetchAll} className="home__w6" data-testid="widget-events">
+          <EventsWidget items={eventsState.data?.items ?? []} eventBadgeClass={eventBadgeClass} truncate={truncate} />
         </OverviewWidget>
 
-        {/* W-7 — Recent Activity */}
-        <OverviewWidget
-          title="Recent Activity"
-          loading={instancesState.loading}
-          error={instancesState.error}
-          onRetry={fetchAll}
-          className="home__w7"
-          data-testid="widget-activity"
-        >
-          <ActivityWidget
-            recentlyCreated={recentlyCreated}
-            mayBeStuck={mayBeStuckList}
-          />
+        <OverviewWidget title="Recent activity" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w7" data-testid="widget-activity">
+          <ActivityWidget recentlyCreated={recentlyCreated} mayBeStuck={mayBeStuckList} />
         </OverviewWidget>
 
       </div>
@@ -380,39 +251,24 @@ interface HomeHeaderProps {
   isFetching: boolean
   lastFetchedAt: Date | null
   lastAttemptFailed: boolean
-  layoutMode: LayoutMode
-  onLayoutMode: (m: LayoutMode) => void
   onRefresh: () => void
 }
 
-function HomeHeader({ isFetching, lastFetchedAt, lastAttemptFailed, layoutMode, onLayoutMode, onRefresh }: HomeHeaderProps) {
+function HomeHeader({ isFetching, lastFetchedAt, lastAttemptFailed, onRefresh }: HomeHeaderProps) {
   return (
     <div className="home__header">
-      <div className="home__heading-group">
-        <h1 className="home__heading">Overview</h1>
-        <p className="home__tagline">Single-cluster health dashboard</p>
-      </div>
+      <h1 className="home__heading">Overview</h1>
       <div className="home__header-controls">
-        <div className="home__layout-toggle" role="group" aria-label="Layout mode">
-          <button
-            type="button"
-            className={`home__layout-btn${layoutMode === 'grid' ? ' home__layout-btn--active' : ''}`}
-            onClick={() => onLayoutMode('grid')}
-            aria-pressed={layoutMode === 'grid'}
-            data-testid="overview-layout-grid"
-          >
-            Grid
-          </button>
-          <button
-            type="button"
-            className={`home__layout-btn${layoutMode === 'bento' ? ' home__layout-btn--active' : ''}`}
-            onClick={() => onLayoutMode('bento')}
-            aria-pressed={layoutMode === 'bento'}
-            data-testid="overview-layout-bento"
-          >
-            Bento
-          </button>
-        </div>
+        {!isFetching && lastAttemptFailed && (
+          <span className="home__staleness home__staleness--failed" data-testid="overview-staleness">
+            Last attempt failed — data may be stale
+          </span>
+        )}
+        {!isFetching && !lastAttemptFailed && lastFetchedAt && (
+          <span className="home__staleness" data-testid="overview-staleness">
+            Updated {formatAge(lastFetchedAt.toISOString())}
+          </span>
+        )}
         <button
           type="button"
           className="home__refresh-btn"
@@ -421,17 +277,8 @@ function HomeHeader({ isFetching, lastFetchedAt, lastAttemptFailed, layoutMode, 
           aria-label={isFetching ? 'Refreshing...' : 'Refresh now'}
           data-testid="overview-refresh"
         >
-          {isFetching ? '⟳ Refreshing…' : '↻ Refresh'}
+          {isFetching ? '↻ Refreshing…' : '↻ Refresh'}
         </button>
-        <span className="home__staleness" data-testid="overview-staleness">
-          {isFetching
-            ? null
-            : lastAttemptFailed
-              ? 'Last attempt failed — data may be stale'
-              : lastFetchedAt
-                ? `Updated ${formatAge(lastFetchedAt.toISOString())}`
-                : null}
-        </span>
       </div>
     </div>
   )

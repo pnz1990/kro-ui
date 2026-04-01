@@ -114,10 +114,10 @@ describe('W-1 Instance Health', () => {
     })
   })
 
-  it('shows "No instances found" empty state when total is 0', async () => {
+  it('shows "No instances" empty state when total is 0', async () => {
     renderHome()
     await waitFor(() => {
-      expect(screen.getByText('No instances found')).toBeInTheDocument()
+      expect(document.querySelector('.ihw__empty')).toHaveTextContent('No instances')
     })
   })
 })
@@ -213,24 +213,12 @@ describe('Refresh button', () => {
   })
 })
 
-// ── Layout toggle ───────────────────────────────────────────────────────
+// ── Layout toggle (removed — grid only now) ─────────────────────────────
 
 describe('Layout toggle', () => {
-  it('switches to bento class on Bento button click', async () => {
+  it('Overview page always uses grid layout', async () => {
     renderHome()
-    await waitFor(() => expect(screen.getByTestId('overview-layout-bento')).toBeInTheDocument())
-    await userEvent.click(screen.getByTestId('overview-layout-bento'))
-    const container = document.querySelector('.home__bento')
-    expect(container).toBeInTheDocument()
-  })
-
-  it('restores bento mode from localStorage', async () => {
-    localStorage.setItem('overview-layout', 'bento')
-    renderHome()
-    await waitFor(() => {
-      expect(document.querySelector('.home__bento')).toBeInTheDocument()
-    })
-    localStorage.removeItem('overview-layout')
+    await waitFor(() => expect(document.querySelector('.home__grid')).toBeInTheDocument())
   })
 })
 
