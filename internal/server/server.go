@@ -140,6 +140,7 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 
 			// Cluster contexts — not cached (user-initiated, must be fresh for switcher)
 			r.Get("/contexts", h.ListContexts)
+			// POST: switches the in-process kubeconfig context only — no K8s mutation (§III).
 			r.Post("/contexts/switch", h.SwitchContext)
 
 			// ResourceGraphDefinitions — cached
@@ -149,7 +150,9 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			r.Get("/rgds/{name}/access", h.GetRGDAccess)
 
 			// Validate endpoints — never cached (stateful analysis)
+			// POST: offline static analysis only — no K8s API calls issued (§III, GH #303).
 			r.Post("/rgds/validate", h.ValidateRGD)
+			// POST: offline static analysis only — no K8s API calls issued (§III, GH #303).
 			r.Post("/rgds/validate/static", h.ValidateRGDStatic)
 
 			// Instances — NOT cached (live polling)
