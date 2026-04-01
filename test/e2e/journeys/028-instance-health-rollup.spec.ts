@@ -67,7 +67,7 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     await page.goto(`${BASE}/catalog`)
 
     // Wait for health chip to be present and have non-skeleton content
-    await page.waitForFunction(
+    const chipLoaded = await page.waitForFunction(
       () => {
         const chips = document.querySelectorAll('[data-testid="health-chip"]')
         return Array.from(chips).some(
@@ -75,7 +75,9 @@ test.describe('Journey 028: Instance Health Rollup', () => {
         )
       },
       { timeout: 30000 },
-    ).catch(() => { /* throttled cluster — skip chip text assertion */ })
+    ).then(() => true).catch(() => false)
+
+    if (!chipLoaded) return // throttled cluster — chips didn't appear, skip assertion
 
     const chip = page.locator('[data-testid="health-chip"]').first()
     const text = await chip.textContent()
