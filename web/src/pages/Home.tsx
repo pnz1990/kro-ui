@@ -309,7 +309,7 @@ function MetricsWidget({ metrics, kroVersion }: MetricsWidgetProps) {
       <Cell label="GVRs served" value={metrics?.gvrCount} title="Resource types kro is currently managing" />
       <Cell label="Queue depth (kro)" value={metrics?.queueDepth} title="Reconciliation requests in kro's work queue" />
       <Cell label="Queue depth (client-go)" value={metrics?.workqueueDepth} title="Events in the client-go work queue" />
-      {kroVersion && (
+      {kroVersion && kroVersion !== 'unknown' && (
         <div className="home__metrics-version">kro v{kroVersion}</div>
       )}
     </div>
@@ -481,7 +481,7 @@ function ActivityWidget({ recentlyCreated, mayBeStuck: stuckList }: ActivityWidg
   return (
     <div className="home__activity">
       <div className="home__activity-panel">
-        <h3 className="home__activity-panel-title">Recently Created</h3>
+        <h3 className="home__activity-panel-title">Recently created</h3>
         {recentlyCreated.length === 0 ? (
           <p className="home__activity-empty">No instances</p>
         ) : (
@@ -502,7 +502,7 @@ function ActivityWidget({ recentlyCreated, mayBeStuck: stuckList }: ActivityWidg
         )}
       </div>
       <div className="home__activity-panel">
-        <h3 className="home__activity-panel-title">May Be Stuck</h3>
+        <h3 className="home__activity-panel-title">May be stuck</h3>
         {stuckList.length === 0 ? (
           <p className="home__activity-empty home__activity-empty--ok">✓ No stuck instances</p>
         ) : (

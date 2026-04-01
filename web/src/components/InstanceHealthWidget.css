@@ -1,7 +1,7 @@
 .ihw {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .ihw--empty {
@@ -11,22 +11,22 @@
 /* ── Donut SVG ───────────────────────────────────────────────────────── */
 
 .ihw__svg {
-  width: 104px;
-  height: 104px;
+  width: 96px;
+  height: 96px;
   flex-shrink: 0;
   display: block;
 }
 
 .ihw__center-num {
   font-family: var(--font-mono);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   fill: var(--color-text);
 }
 
 .ihw__center-label {
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 8px;
   fill: var(--color-text-faint);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -37,7 +37,7 @@
 .ihw__legend {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
@@ -45,27 +45,27 @@
 .ihw__legend-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .ihw__legend-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .ihw__legend-count {
   font-family: var(--font-mono);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-text);
-  min-width: 28px;
+  min-width: 24px;
 }
 
 .ihw__legend-label {
   font-family: var(--font-sans);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
