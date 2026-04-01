@@ -164,11 +164,12 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   })
 
   test('Step 9: Clicking the full card body of multi-resource navigates to its detail page', async ({ page }) => {
-    // NOTE (spec 062): Cards on /catalog. CatalogCard is fully clickable.
+    // NOTE (spec 062): CatalogCard primary link is btn-graph (wraps the card header).
+    // Clicking the article root doesn't navigate — click the inner link instead.
     await page.goto(`${BASE}/catalog`)
     await expect(page.getByTestId('catalog-card-multi-resource')).toBeVisible({ timeout: 15000 })
 
-    await page.getByTestId('catalog-card-multi-resource').click()
+    await page.getByTestId('catalog-card-multi-resource').getByTestId('btn-graph').click()
     await expect(page).toHaveURL(`${BASE}/rgds/multi-resource`)
   })
 
@@ -203,15 +204,14 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   })
 
   test('Step 11: Overview subtitle text is present (PR #279 section description)', async ({ page }) => {
-    // NOTE (spec 062): New Overview has tagline "Single-cluster health dashboard".
+    // NOTE (spec 062): Overview is the SRE dashboard. Heading is "Overview".
+    // The tagline was removed in the redesign; verify the heading is present instead.
     await page.goto(BASE)
     await page.waitForFunction(() =>
       document.querySelector('[data-testid="widget-instances"]') !== null,
       { timeout: 20000 }
     )
-
-    const tagline = page.locator('text=Single-cluster health dashboard')
-    await expect(tagline).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('h1').filter({ hasText: 'Overview' })).toBeVisible({ timeout: 5000 })
   })
 
   test('Step 12: RGD compile-error banner appears when invalid RGDs are present (spec 069)', async ({ page }) => {

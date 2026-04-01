@@ -157,33 +157,20 @@ test.describe('062b: Overview SRE Dashboard', () => {
   })
 
   test('F — Bento layout toggle switches grid class', async ({ page }) => {
+    // NOTE: Bento layout removed in redesign — grid-only now.
+    // Verify the grid layout class is always present.
     await page.goto(BASE)
 
     await page.waitForFunction(() =>
-      document.querySelector('[data-testid="overview-layout-bento"]') !== null,
-      { timeout: 10000 }
+      document.querySelector('[data-testid="widget-instances"]') !== null,
+      { timeout: 20000 }
     )
 
-    // Default should be grid layout
     await expect(page.locator('.home__grid')).toBeVisible()
     await expect(page.locator('.home__bento')).not.toBeVisible()
-
-    // Click Bento
-    await page.getByTestId('overview-layout-bento').click()
-
-    await page.waitForFunction(() =>
-      document.querySelector('.home__bento') !== null,
-      { timeout: 5000 }
-    )
-    await expect(page.locator('.home__bento')).toBeVisible()
-
-    // Switch back to Grid
-    await page.getByTestId('overview-layout-grid').click()
-    await page.waitForFunction(() =>
-      document.querySelector('.home__grid') !== null,
-      { timeout: 5000 }
-    )
-    await expect(page.locator('.home__grid')).toBeVisible()
+    // Layout toggle buttons are gone — verify they are absent
+    await expect(page.locator('[data-testid="overview-layout-bento"]')).not.toBeVisible()
+    await expect(page.locator('[data-testid="overview-layout-grid"]')).not.toBeVisible()
   })
 
   test('G — MetricsStrip is NOT rendered on Overview', async ({ page }) => {

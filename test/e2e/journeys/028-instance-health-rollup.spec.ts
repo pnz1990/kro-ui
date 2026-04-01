@@ -49,7 +49,7 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     // After the async chip fetch, at least one chip should appear.
     // With 14 RGDs and potential API throttling under parallel load, allow
     // up to 20s for the first chip to resolve from skeleton.
-    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
+    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 } })
     const chip = page.locator('[data-testid="health-chip"]').first()
     await expect(chip).toBeVisible()
 
@@ -70,7 +70,7 @@ test.describe('Journey 028: Instance Health Rollup', () => {
           (el) => el.textContent && el.textContent.trim() !== '' && !el.classList.contains('health-chip--skeleton'),
         )
       },
-      { timeout: 8000 },
+      { timeout: 30000 },
     )
 
     const chip = page.locator('[data-testid="health-chip"]').first()

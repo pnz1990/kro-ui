@@ -36,7 +36,8 @@ test.describe('Journey 060: OverviewHealthBar clickable filter', () => {
   // ── A: W-1 Instance Health widget is rendered (replaces OverviewHealthBar) ──
 
   test('Step 1: OverviewHealthBar chips are rendered as buttons', async ({ page }) => {
-    // NOTE (spec 062): OverviewHealthBar removed. W-1 widget shows health distribution.
+    // NOTE (spec 062): Bar/Donut toggle removed. W-1 now shows donut-only.
+    // Verify W-1 widget renders with the SVG donut (or empty state).
     await page.goto(BASE)
     await page.waitForFunction(() => {
       const w = document.querySelector('[data-testid="widget-instances"]')
@@ -45,15 +46,10 @@ test.describe('Journey 060: OverviewHealthBar clickable filter', () => {
 
     const w1 = page.locator('[data-testid="widget-instances"]')
     await expect(w1).toBeVisible()
-
-    // Bar/Donut toggle buttons within W-1 are rendered as buttons
-    const toggleBtns = w1.locator('.ihw__toggle-btn')
-    const count = await toggleBtns.count()
-    expect(count).toBeGreaterThanOrEqual(2)
-    for (let i = 0; i < count; i++) {
-      const tag = await toggleBtns.nth(i).evaluate((el) => el.tagName.toLowerCase())
-      expect(tag).toBe('button')
-    }
+    // W-1 renders either the SVG donut or the "No instances" empty state
+    const hasSvg = await w1.locator('svg').count() > 0
+    const hasEmpty = (await w1.textContent() ?? '').includes('No instances')
+    expect(hasSvg || hasEmpty).toBe(true)
   })
 
   // ── B: Bar chart shows proportional health data ───────────────────────────

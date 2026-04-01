@@ -67,7 +67,7 @@ test.describe('Journey 033 — First-Time Onboarding', () => {
     await page.waitForTimeout(400)
 
     // The empty state container is rendered
-    await expect(page.locator('[role="status"], .catalog__empty, [data-testid*="empty"]').first()).toBeVisible()
+    await expect(page.locator('[data-testid="virtual-grid-container"] [role="status"]')).toBeVisible()
   })
 
   test('Step 5: 404 page renders for unknown routes', async ({ page }) => {

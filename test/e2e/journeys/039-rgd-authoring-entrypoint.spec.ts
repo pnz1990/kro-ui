@@ -72,7 +72,7 @@ test.describe('Journey 039 — RGD Designer Global Entrypoint', () => {
     await page.waitForTimeout(400)
 
     // The no-match empty state should be visible (Catalog uses .catalog__empty or similar)
-    await expect(page.locator('.catalog__empty, .home__empty').first()).toBeVisible({ timeout: 3000 })
+    await expect(page.locator('[data-testid="virtual-grid-container"] [role="status"]')).toBeVisible({ timeout: 5000 })
 
     // The "Open RGD Designer" link must NOT appear in the no-match variant
     // (it only appears in the onboarding variant when items.length === 0 with no query)

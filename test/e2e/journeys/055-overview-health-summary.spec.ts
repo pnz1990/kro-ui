@@ -60,8 +60,8 @@ test.describe('Journey 055: Overview Health Summary Bar', () => {
     }, { timeout: 25000 })
 
     const w1Text = await page.locator('[data-testid="widget-instances"]').textContent()
-    // Either shows instance counts (numbers) or "No instances found"
-    const hasContent = /\d/.test(w1Text ?? '') || (w1Text ?? '').includes('No instances found')
+    // Either shows instance counts (numbers) or "No instances" empty state
+    const hasContent = /\d/.test(w1Text ?? '') || (w1Text ?? '').includes('No instances')
     expect(hasContent).toBe(true)
   })
 
