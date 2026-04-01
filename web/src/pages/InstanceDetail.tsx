@@ -323,15 +323,40 @@ export default function InstanceDetail() {
     if (selectedNode.nodeType === 'collection') return null
     // Root instance node: no YAML
     if (selectedNode.nodeType === 'instance') return null
-    // Absent nodes: don't attempt a YAML fetch that will always fail.
-    // 'pending'   = includeWhen condition is false — resource was never created.
-    // 'not-found' = resource not yet created (e.g. kro still reconciling).
-    // In both cases resolveChildResourceInfo falls through to a guessed name,
-    // the API call fails with "resource type not found", and the panel shows a
-    // misleading error. Suppress the section instead.
-    const kindKey = (selectedNode.kind || selectedNode.label).toLowerCase()
-    const liveState = nodeStateMap[kindKey]?.state
+
+    // Short-circuit: external ref nodes use the metadata from the RGD spec
+    // directly. External refs are pre-existing resources not labelled by kro,
+    // so they never appear in the children list and resolveChildResourceInfo
+    // would always fall through to a wrong guessed name. GH #403.
+    if (
+      (selectedNode.nodeType === 'external' || selectedNode.nodeType === 'externalCollection') &&
+      selectedNode.externalRef
+    ) {
+      const ref = selectedNode.externalRef as Record<string, unknown>
+      const meta = (ref.metadata ?? {}) as Record<string, unknown>
+      const apiVer = typeof ref.apiVersion === 'string' ? ref.apiVersion : 'v1'
+      const slashIdx = apiVer.indexOf('/')
+      const group   = slashIdx >= 0 ? apiVer.slice(0, slashIdx) : ''
+      const version = slashIdx >= 0 ? apiVer.slice(slashIdx + 1) : (apiVer || 'v1')
+      const name = typeof meta.name === 'string' ? meta.name : ''
+      // Selector-based external collections have no single name — suppress YAML fetch.
+      if (!name) return null
+      return {
+        kind:      typeof ref.kind === 'string' ? ref.kind : selectedNode.kind,
+        name,
+        namespace: typeof meta.namespace === 'string' ? meta.namespace : '',
+        group,
+        version,
+      }
+    }
+
+    // Fix GH #403: nodeStateMap is keyed by kro.run/node-id (= node.id), NOT
+    // by lowercased kind. The old kindKey lookup always returned undefined,
+    // so the pending/not-found guard never fired, causing spurious YAML errors
+    // on absent managed resources (pending, not-found states).
+    const liveState = nodeStateMap[selectedNode.id]?.state
     if (liveState === 'pending' || liveState === 'not-found') return null
+
     return resolveChildResourceInfo(
       selectedNode.label,
       instanceName,
@@ -355,8 +380,8 @@ export default function InstanceDetail() {
     // State nodes produce no K8s resources — they have no meaningful live state.
     // Returning undefined suppresses the state badge entirely for these nodes.
     if (selectedNode.nodeType === 'state') return undefined
-    const kindKey = (selectedNode.kind || selectedNode.label).toLowerCase()
-    return nodeStateMap[kindKey]?.state ?? 'not-found'
+    // Fix GH #403: use node.id (= kro.run/node-id), not lowercased kind.
+    return nodeStateMap[selectedNode.id]?.state ?? 'not-found'
   }, [selectedNode, fastData, nodeStateMap])
 
   // ── Instance name for breadcrumbs ────────────────────────────────────────

@@ -73,8 +73,8 @@
   --node-default-border:       var(--color-border);
   --node-collection-bg:        rgba(91, 142, 240, 0.08); /* NodeTypeCollection (forEach) */
   --node-collection-border:    var(--color-primary);
-  --node-external-bg:          rgba(139, 92, 246, 0.08); /* NodeTypeExternal / NodeTypeExternalCollection */
-  --node-external-border:      var(--color-pending);
+  --node-external-bg:          rgba(8, 145, 178, 0.08); /* NodeTypeExternal / NodeTypeExternalCollection — teal, distinct from amber/green/red */
+  --node-external-border:      #0891b2;   /* teal — clearly distinct from alive (green), reconciling (amber), error (red). GH #399 */
   --node-state-bg:             rgba(245, 158, 11, 0.08); /* NodeTypeState (kro state: store) — warm amber */
   --node-state-border:         rgba(245, 158, 11, 0.45);
 
@@ -207,8 +207,8 @@
   --node-default-border:       var(--color-border);
   --node-collection-bg:        rgba(59, 111, 212, 0.06);
   --node-collection-border:    var(--color-primary);
-  --node-external-bg:          rgba(124, 58, 237, 0.06);
-  --node-external-border:      var(--color-pending);
+  --node-external-bg:          rgba(8, 145, 178, 0.06);  /* teal, light mode */
+  --node-external-border:      #0e7490;   /* darker teal for light mode contrast. GH #399 */
   --node-state-bg:             rgba(217, 119, 6, 0.07);  /* NodeTypeState — warm amber, light mode */
   --node-state-border:         rgba(217, 119, 6, 0.40);
 

@@ -510,3 +510,91 @@ describe('buildNodeStateMap', () => {
     })
   })
 })
+
+// ── GH #398: deriveChildState fixes ───────────────────────────────────────
+// These tests cover the post-rollout Deployment scenario where Kubernetes sets
+// Progressing=True with reason=NewReplicaSetAvailable permanently, and the
+// brief window where Available=True has not yet arrived.
+
+describe('deriveChildState — GH #398 Deployment scenarios', () => {
+  function makeChildWithConditions(
+    conditions: Array<{ type: string; status: string; reason?: string }>,
+  ) {
+    return {
+      apiVersion: 'apps/v1',
+      kind: 'Deployment',
+      metadata: {
+        name: 'my-deploy',
+        namespace: 'default',
+        labels: { 'kro.run/node-id': 'myDeployment', 'kro.run/instance-name': 'test-cr' },
+      },
+      status: { conditions },
+    }
+  }
+
+  function stateFor(
+    conditions: Array<{ type: string; status: string; reason?: string }>,
+  ) {
+    const instance = makeInstance([{ type: 'Ready', status: 'True' }])
+    const child = makeChildWithConditions(conditions)
+    const node = {
+      id: 'myDeployment', label: 'myDeployment', kind: 'Deployment',
+      nodeType: 'resource' as const,
+      isConditional: false, hasReadyWhen: false, isChainable: false,
+      celExpressions: [], includeWhen: [], readyWhen: [], x: 0, y: 0, width: 160, height: 48,
+    }
+    const map = buildNodeStateMap(instance, [child as any], [node])
+    return map['myDeployment']?.state
+  }
+
+  it('T-D01: Available=True → alive (existing fast path, unchanged)', () => {
+    expect(stateFor([
+      { type: 'Available', status: 'True' },
+      { type: 'Progressing', status: 'True' },
+    ])).toBe('alive')
+  })
+
+  it('T-D02: Ready=True → alive (new fast path GH #398)', () => {
+    // StatefulSets and custom controllers emit Ready=True; Available is absent
+    expect(stateFor([
+      { type: 'Ready', status: 'True' },
+    ])).toBe('alive')
+  })
+
+  it('T-D03: Progressing=True reason=NewReplicaSetAvailable → alive (GH #398)', () => {
+    // Kubernetes keeps Progressing=True, reason=NewReplicaSetAvailable after a
+    // successful rollout. Available may not have arrived yet.
+    expect(stateFor([
+      { type: 'Progressing', status: 'True', reason: 'NewReplicaSetAvailable' },
+    ])).toBe('alive')
+  })
+
+  it('T-D04: Progressing=True reason=ReplicaSetUpdated (no Available) → reconciling', () => {
+    // Active rollout, not yet complete
+    expect(stateFor([
+      { type: 'Progressing', status: 'True', reason: 'ReplicaSetUpdated' },
+    ])).toBe('reconciling')
+  })
+
+  it('T-D05: Progressing=True with no reason → reconciling', () => {
+    expect(stateFor([
+      { type: 'Progressing', status: 'True' },
+    ])).toBe('reconciling')
+  })
+
+  it('T-D06: Available=False → error', () => {
+    expect(stateFor([
+      { type: 'Available', status: 'False' },
+    ])).toBe('error')
+  })
+
+  it('T-D07: Ready=False → error', () => {
+    expect(stateFor([
+      { type: 'Ready', status: 'False' },
+    ])).toBe('error')
+  })
+
+  it('T-D08: no conditions → alive (stateless resource e.g. ConfigMap)', () => {
+    expect(stateFor([])).toBe('alive')
+  })
+})

@@ -108,21 +108,37 @@ function getChildConditions(child: K8sObject): K8sCondition[] {
  * 'alive' or 'reconciling'.
  *
  * Precedence (highest to lowest):
- *   Available=True                        → 'alive'       (serving traffic; wins over Progressing)
- *   Ready=False or Available=False        → 'error'
- *   Progressing=True (Available not True) → 'reconciling' (rolling update, not yet serving)
- *   otherwise                             → 'alive'
+ *   Available=True                                   → 'alive'       (serving; wins over Progressing)
+ *   Ready=True                                       → 'alive'       (readiness gate met)
+ *   Ready=False or Available=False                   → 'error'
+ *   Progressing=True, reason=NewReplicaSetAvailable  → 'alive'       (rollout complete, Available not yet set)
+ *   Progressing=True (Available not True)            → 'reconciling' (rolling update, not yet serving)
+ *   otherwise                                        → 'alive'
  *
- * Why Available=True wins over Progressing=True:
+ * Why Available=True wins over Progressing=True (PR #381):
  *   A Deployment with Available=True + Progressing=True is actively rolling out
- *   a new version but already serving traffic. kubectl considers this healthy
- *   (rollout status = "successfully rolled out" or in-progress). Showing amber
- *   is misleading — the resource IS healthy. Progressing=True only signals a
- *   problem if Progressing goes False with reason=ProgressDeadlineExceeded.
+ *   a new version but already serving traffic. kubectl considers this healthy.
+ *   Showing amber is misleading — the resource IS healthy.
+ *
+ * Why Ready=True is an additional alive fast-path (GH #398):
+ *   Some controllers set Ready=True without setting Available=True (e.g. custom
+ *   controllers, StatefulSets). A resource with Ready=True is healthy.
+ *
+ * Why NewReplicaSetAvailable reason triggers alive (GH #398):
+ *   After a Deployment rollout completes, Kubernetes sets
+ *     Progressing=True reason=NewReplicaSetAvailable
+ *   and keeps it True permanently. Available=True arrives shortly after, but
+ *   there is a brief window where Progressing=True is set but Available hasn't
+ *   arrived yet. In this window the old logic returned 'reconciling' (amber).
+ *   NewReplicaSetAvailable means "rollout complete" — the Deployment is healthy.
  */
 function deriveChildState(conditions: K8sCondition[]): NodeLiveState {
-  // Fast path: if Available=True the resource is serving → green regardless of Progressing.
+  // Fast path 1: if Available=True the resource is serving → green.
   if (hasCondition(conditions, 'Available', 'True')) {
+    return 'alive'
+  }
+  // Fast path 2: Ready=True → green (covers controllers that don't emit Available).
+  if (hasCondition(conditions, 'Ready', 'True')) {
     return 'alive'
   }
   if (
@@ -131,8 +147,15 @@ function deriveChildState(conditions: K8sCondition[]): NodeLiveState {
   ) {
     return 'error'
   }
+  // Progressing=True with reason=NewReplicaSetAvailable means rollout is complete —
+  // Kubernetes keeps this condition True after a successful rollout. The resource
+  // is healthy even though Available=True may not have arrived yet. GH #398.
+  const progressingCond = conditions.find((c) => c.type === 'Progressing' && c.status === 'True')
+  if (progressingCond?.reason === 'NewReplicaSetAvailable') {
+    return 'alive'
+  }
   // Progressing=True without Available=True → rolling update not yet serving
-  if (hasCondition(conditions, 'Progressing', 'True')) {
+  if (progressingCond) {
     return 'reconciling'
   }
   return 'alive'

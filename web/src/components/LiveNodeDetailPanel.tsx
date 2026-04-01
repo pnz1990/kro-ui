@@ -113,6 +113,31 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
   const [yamlState, setYamlState] = useState<YamlState>({ status: 'idle' })
   // Track the nodeId for which we have fetched — don't re-fetch on re-render
   const fetchedForRef = useRef<string | null>(null)
+  // GH #402: raw object stored separately so we can mask/reveal Secret data.
+  const [rawObj, setRawObj] = useState<K8sObject | null>(null)
+  const [secretRevealed, setSecretRevealed] = useState(false)
+
+  const isSecret = rawObj != null && typeof rawObj.kind === 'string' && rawObj.kind === 'Secret'
+
+  /** Build the YAML string, masking Secret data fields unless revealed. */
+  function buildYaml(obj: K8sObject, revealed: boolean): string {
+    if (!isSecret || revealed) {
+      return toYaml(cleanK8sObject(obj))
+    }
+    // Mask: replace every base64 value in data/stringData with '••••••••'
+    const masked = { ...cleanK8sObject(obj) as Record<string, unknown> }
+    for (const field of ['data', 'stringData'] as const) {
+      const src = (obj as Record<string, unknown>)[field]
+      if (src != null && typeof src === 'object' && !Array.isArray(src)) {
+        const maskedField: Record<string, string> = {}
+        for (const k of Object.keys(src as Record<string, unknown>)) {
+          maskedField[k] = '••••••••'
+        }
+        masked[field] = maskedField
+      }
+    }
+    return toYaml(masked)
+  }
 
   useEffect(() => {
     if (!resourceInfo || fetchedForRef.current === nodeId) return
@@ -122,6 +147,8 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
 
     fetchedForRef.current = nodeId
     setYamlState({ status: 'loading' })
+    setRawObj(null)
+    setSecretRevealed(false)
 
     const timeoutId = setTimeout(() => {
       setYamlState({ status: 'timeout', kubectl })
@@ -132,7 +159,8 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
         clearTimeout(timeoutId)
         // Notify parent with the raw object for deletion metadata extraction
         onRawObj?.(obj)
-        const yamlText = toYaml(cleanK8sObject(obj))
+        setRawObj(obj)
+        const yamlText = buildYaml(obj, false)
         setYamlState({ status: 'loaded', yaml: yamlText, kubectl })
       })
       .catch((err: Error) => {
@@ -151,6 +179,17 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
   function handleRetry() {
     fetchedForRef.current = null
     setYamlState({ status: 'idle' })
+    setRawObj(null)
+    setSecretRevealed(false)
+  }
+
+  function handleToggleReveal() {
+    if (!rawObj) return
+    const next = !secretRevealed
+    setSecretRevealed(next)
+    if (yamlState.status === 'loaded') {
+      setYamlState({ ...yamlState, yaml: buildYaml(rawObj, next) })
+    }
   }
 
   return (
@@ -164,6 +203,23 @@ function YamlSection({ nodeId, resourceInfo, onRawObj }: YamlSectionProps) {
           <div className="node-yaml-kubectl">
             <code>{yamlState.kubectl}</code>
           </div>
+          {/* GH #402: Secret values masked by default with reveal toggle. */}
+          {isSecret && (
+            <div className="node-yaml-secret-banner" role="note">
+              <span className="node-yaml-secret-icon" aria-hidden="true">🔒</span>
+              {secretRevealed
+                ? 'Secret values are visible. Values are base64-encoded — not encrypted.'
+                : 'Secret values are masked. kro-ui has read access to this Secret.'}
+              <button
+                type="button"
+                className="node-yaml-secret-toggle"
+                onClick={handleToggleReveal}
+                aria-pressed={secretRevealed}
+              >
+                {secretRevealed ? 'Hide values' : 'Reveal values'}
+              </button>
+            </div>
+          )}
           <KroCodeBlock code={yamlState.yaml} />
         </>
       ) : yamlState.status === 'not-found' ? (
@@ -437,7 +493,13 @@ export default function LiveNodeDetailPanel({
               {extMeta?.name != null && <div>name: {String(extMeta.name)}</div>}
               {extMeta?.namespace != null && <div>namespace: {String(extMeta.namespace)}</div>}
               {extMeta?.selector != null && (
-                <div>selector: {JSON.stringify(extMeta.selector)}</div>
+                // GH #401: render selector as YAML, not compact JSON.
+                <div>
+                  <span className="node-extref-selector-label">selector:</span>
+                  <pre className="node-extref-selector-pre">
+                    {toYaml(extMeta.selector).trimEnd()}
+                  </pre>
+                </div>
               )}
             </div>
           </Section>

@@ -58,6 +58,9 @@ type capStubNamespaceableResource struct {
 	getItems    map[string]*unstructured.Unstructured
 	getErr      error
 	nsResources map[string]*capStubResourceClient
+	// listItems is returned by List() — used to simulate cluster-scoped
+	// label-selector fallback for EKS add-on kro detection (GH #400).
+	listItems []unstructured.Unstructured
 }
 
 func (s *capStubNamespaceableResource) Namespace(ns string) dynamic.ResourceInterface {
@@ -81,8 +84,11 @@ func (s *capStubNamespaceableResource) Get(_ context.Context, name string, _ met
 	return nil, fmt.Errorf("not found: %s", name)
 }
 
-func (s *capStubNamespaceableResource) List(context.Context, metav1.ListOptions) (*unstructured.UnstructuredList, error) {
-	panic("not used")
+func (s *capStubNamespaceableResource) List(_ context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	// Return listItems when set (EKS cluster-scoped fallback test, GH #400).
+	// Returns empty list by default — the fallback should produce no match
+	// and fall through gracefully when no matching deployment is found.
+	return &unstructured.UnstructuredList{Items: s.listItems}, nil
 }
 func (s *capStubNamespaceableResource) Create(context.Context, *unstructured.Unstructured, metav1.CreateOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("read-only stub")
@@ -511,6 +517,42 @@ func TestDetectCapabilities(t *testing.T) {
 			check: func(t *testing.T, caps *KroCapabilities) {
 				_, hasStateFields := caps.FeatureGates["stateFields"]
 				assert.False(t, hasStateFields, "stateFields must never appear in capabilities")
+			},
+		},
+		// GH #400: EKS add-on kro uses a different Deployment name/namespace.
+		// All direct-name Get() calls fail; version is detected via cluster-scoped
+		// label-selector List() fallback.
+		{
+			name: "detects version via cluster-scoped label fallback (EKS add-on)",
+			build: func() (dynamic.Interface, discovery.DiscoveryInterface) {
+				disc := newCapStubDiscovery()
+				disc.resources[kroAPIVersion] = &metav1.APIResourceList{
+					APIResources: []metav1.APIResource{{Name: "resourcegraphdefinitions"}},
+				}
+				dyn := newCapStubDynamic()
+				// EKS add-on Deployment — different name, returned by List() not Get().
+				eksAddonDeploy := makeDeployment(
+					[]string{"--feature-gates=CELOmitFunction=true"},
+					"ghcr.io/aws/kro-eks-addon:v0.9.0",
+				)
+				// deployGVR resource: Get() returns not-found (EKS name not in our list);
+				// List() returns the EKS deployment via the label-selector fallback.
+				dyn.resources[deployGVR] = &capStubNamespaceableResource{
+					getErr:    fmt.Errorf("not found"),
+					listItems: []unstructured.Unstructured{*eksAddonDeploy},
+				}
+				return dyn, disc
+			},
+			check: func(t *testing.T, caps *KroCapabilities) {
+				// Version must be extracted from the EKS add-on image tag.
+				assert.Equal(t, "v0.9.0", caps.Version,
+					"version should be detected from EKS add-on deployment via cluster-scoped fallback")
+				// IsSupported must be true since v0.9.0 >= MinSupportedKroVersion.
+				assert.True(t, caps.IsSupported,
+					"IsSupported must be true when version is successfully detected")
+				// Feature gate from EKS add-on args should be parsed.
+				assert.True(t, caps.FeatureGates["CELOmitFunction"],
+					"feature gates should be parsed from EKS add-on deployment args")
 			},
 		},
 	}
