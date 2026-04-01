@@ -12,6 +12,8 @@ export interface UseVirtualGridOptions {
   itemCount: number
   cols: number
   itemHeight: number
+  /** Row gap between cards, in pixels. Must match the CSS grid gap. Default: 16. */
+  rowGap?: number
   overscan?: number
   containerHeight: number
   scrollTop: number
@@ -29,6 +31,7 @@ export function useVirtualGrid({
   itemCount,
   cols,
   itemHeight,
+  rowGap = 16,
   overscan = 2,
   containerHeight,
   scrollTop,
@@ -41,11 +44,16 @@ export function useVirtualGrid({
     }
 
     const totalRows = Math.ceil(itemCount / safeCols)
-    const totalHeight = totalRows * itemHeight
+    // Row stride = card height + gap between rows.
+    // Matches what the CSS grid actually renders: each row occupies itemHeight px
+    // of card content plus rowGap px of space before the next row.
+    const rowStride = itemHeight + rowGap
+    // Total scrollable height: N rows of rowStride, minus one trailing gap.
+    const totalHeight = totalRows * rowStride - rowGap
 
-    // Visible row range (0-indexed)
-    const firstVisibleRow = Math.floor(scrollTop / itemHeight)
-    const visibleRowCount = Math.ceil(containerHeight / itemHeight)
+    // Visible row range (0-indexed) — divide scroll position by stride
+    const firstVisibleRow = Math.floor(scrollTop / rowStride)
+    const visibleRowCount = Math.ceil(containerHeight / rowStride)
 
     // Apply overscan
     const firstRow = Math.max(0, firstVisibleRow - overscan)
@@ -54,9 +62,17 @@ export function useVirtualGrid({
     const firstIndex = firstRow * safeCols
     const lastIndex = Math.min(itemCount, (lastRow + 1) * safeCols)
 
-    const offsetTop = firstRow * itemHeight
-    const offsetBottom = Math.max(0, (totalRows - lastRow - 1) * itemHeight)
+    // offsetTop is the height of all rows above the rendered window.
+    // Each skipped row contributes rowStride (card + gap) to the spacer.
+    const offsetTop = firstRow * rowStride
+    // offsetBottom is the height of all rows below the rendered window.
+    // The last row has no trailing gap, so subtract rowGap once when lastRow
+    // is the final row. Using Math.max(0, ...) handles edge cases cleanly.
+    const skippedBottomRows = totalRows - lastRow - 1
+    const offsetBottom = skippedBottomRows > 0
+      ? skippedBottomRows * rowStride
+      : 0
 
     return { firstIndex, lastIndex, offsetTop, offsetBottom, totalHeight }
-  }, [itemCount, cols, itemHeight, overscan, containerHeight, scrollTop])
+  }, [itemCount, cols, itemHeight, rowGap, overscan, containerHeight, scrollTop])
 }
