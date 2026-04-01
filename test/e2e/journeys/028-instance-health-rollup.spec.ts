@@ -43,8 +43,8 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     // NOTE (spec 062): RGD card grid moved to /catalog. Navigate there for card assertions.
     await page.goto(`${BASE}/catalog`)
 
-    // RGD card must be visible
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
+    // CatalogCard must be visible — Catalog uses catalog-card-* testids
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
 
     // After the async chip fetch, at least one chip should appear.
     // With 14 RGDs and potential API throttling under parallel load, allow

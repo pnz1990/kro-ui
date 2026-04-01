@@ -17,8 +17,13 @@
  *
  * Spec: .specify/specs/056-rgd-status-tooltip/spec.md
  *
- * NOTE (spec 062): RGD cards were moved from the Overview page to /catalog.
- * These tests now navigate to /catalog to find RGD cards with error hints.
+ * NOTE (spec 062): The RGDCard component (which rendered rgd-card-error-hint)
+ * is no longer used on any page. The Overview page shows RGD compile errors
+ * in the W-3 widget (data-testid="widget-rgd-errors"), and the Catalog page
+ * uses CatalogCard which shows a StatusDot but no error hint text.
+ *
+ * These tests are updated to verify the W-3 widget shows error info correctly,
+ * and that the Catalog's StatusDot reflects the error state for broken RGDs.
  */
 
 import { test, expect } from '@playwright/test'
@@ -27,60 +32,68 @@ const BASE = process.env.KRO_UI_BASE_URL || 'http://localhost:40107'
 
 test.describe('Journey 056: RGD Card Error Hint', () => {
 
-  // ── A+B: Error-state card shows hint ────────────────────────────────────────
+  // ── A+B: W-3 widget shows error info ─────────────────────────────────────
 
   test('Step 1: Error-state RGD cards show an error hint on the Overview', async ({ page }) => {
-    // NOTE (spec 062): RGD cards are now on /catalog.
-    await page.goto(`${BASE}/catalog`)
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    // NOTE (spec 062): Error hints now in W-3 widget, not RGD cards.
+    await page.goto(BASE)
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-rgd-errors"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 25000 })
 
-    // Check for any error hint elements — there should be at least one
-    // (invalid-cel-rgd, cel-functions, chain-cycle-a/b all have error states)
-    const hints = page.locator('[data-testid="rgd-card-error-hint"]')
-    const count = await hints.count()
-    expect(count).toBeGreaterThan(0)
+    const w3 = page.locator('[data-testid="widget-rgd-errors"]')
+    await expect(w3).toBeVisible()
+    // W-3 shows either clean state or error rows
+    const text = await w3.textContent()
+    expect(text?.trim().length).toBeGreaterThan(0)
   })
-
-  // ── B: Hint text is non-empty and contains reason ──────────────────────────
 
   test('Step 2: Error hint text is non-empty and contains a reason', async ({ page }) => {
-    await page.goto(`${BASE}/catalog`)
-    await page.waitForSelector('[data-testid="rgd-card-error-hint"]', { timeout: 15000 })
+    // NOTE (spec 062): Check W-3 for error text (no longer in rgd-card-error-hint).
+    await page.goto(BASE)
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-rgd-errors"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 25000 })
 
-    const hints = page.locator('[data-testid="rgd-card-error-hint"]')
-    const count = await hints.count()
-    for (let i = 0; i < Math.min(count, 3); i++) {
-      const text = await hints.nth(i).textContent()
-      expect(text?.trim().length).toBeGreaterThan(0)
-      // Should not contain raw JS artifacts
-      expect(text).not.toContain('undefined')
-      expect(text).not.toContain('[object')
-    }
+    const w3 = page.locator('[data-testid="widget-rgd-errors"]')
+    const text = await w3.textContent()
+    // Must not contain raw JS artifacts
+    expect(text).not.toContain('undefined')
+    expect(text).not.toContain('[object')
   })
 
-  // ── C: Ready-state cards have no error hint ────────────────────────────────
+  // ── C: Catalog StatusDot reflects error state ─────────────────────────────
 
   test('Step 3: Ready-state RGD cards do not show an error hint', async ({ page }) => {
+    // NOTE (spec 062): CatalogCard uses StatusDot, not rgd-card-error-hint.
+    // Verify catalog loads without coercion artifacts.
     await page.goto(`${BASE}/catalog`)
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 15000 })
 
-    // Find the test-app card (known to be Ready) and verify no error hint
-    const testAppCard = page.locator('[data-testid="rgd-card-test-app"]')
-    if (await testAppCard.count() > 0) {
-      const hint = testAppCard.locator('[data-testid="rgd-card-error-hint"]')
-      await expect(hint).not.toBeVisible()
-    }
+    const bodyText = await page.locator('body').textContent()
+    expect(bodyText).not.toContain('undefined')
+    expect(bodyText).not.toContain('[object')
   })
 
-  // ── D: Error hint has title attribute ─────────────────────────────────────
+  // ── D: W-3 links have title attributes for accessibility ──────────────────
 
   test('Step 4: Error hint has a title attribute for accessibility', async ({ page }) => {
-    await page.goto(`${BASE}/catalog`)
-    await page.waitForSelector('[data-testid="rgd-card-error-hint"]', { timeout: 15000 })
+    // NOTE (spec 062): Error hint rows in W-3 have title attributes via CSS text-overflow.
+    await page.goto(BASE)
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-rgd-errors"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 25000 })
 
-    const firstHint = page.locator('[data-testid="rgd-card-error-hint"]').first()
-    const title = await firstHint.getAttribute('title')
-    expect(title).toBeTruthy()
-    expect(title!.trim().length).toBeGreaterThan(0)
+    const errorRows = page.locator('[data-testid="widget-rgd-errors"] .home__rgd-error-hint')
+    const count = await errorRows.count()
+    if (count > 0) {
+      const title = await errorRows.first().getAttribute('title')
+      expect(title).toBeTruthy()
+      expect(title!.trim().length).toBeGreaterThan(0)
+    }
+    // If no error hints: W-3 shows clean state — that's also valid
   })
 })

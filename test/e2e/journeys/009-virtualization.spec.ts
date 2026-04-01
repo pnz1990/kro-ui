@@ -51,7 +51,7 @@ test.describe('Journey 009 — RGD list virtualization', () => {
 
     const gridItems = page.getByTestId('virtual-grid-items')
     await expect(gridItems).toBeVisible()
-    const cardCount = await gridItems.locator('[data-testid^="rgd-card-"]').count()
+    const cardCount = await gridItems.locator('[data-testid^="rgd-card-"], [data-testid^="catalog-card-"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(5)
     expect(cardCount).toBeLessThan(500)
   })
@@ -118,11 +118,11 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await page.goto(`${BASE}/catalog`)
 
     await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="rgd-card-"]').length >= 5,
+      () => document.querySelectorAll('[data-testid^="catalog-card-"]').length >= 5,
       { timeout: 20000 }
     )
 
-    const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="rgd-card-"]').count()
+    const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="catalog-card-"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(5)
     expect(cardCount).toBeLessThan(500)
   })
@@ -136,8 +136,8 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await searchInput.fill('cel-functions')
     await page.waitForTimeout(400)
 
-    await expect(page.getByTestId('rgd-card-cel-functions')).toBeVisible()
-    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
+    await expect(page.getByTestId('catalog-card-cel-functions')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).not.toBeVisible()
   })
 
   test('Step 9: searching "external-ref" on home page shows the external-ref card', async ({ page }) => {
@@ -149,7 +149,7 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     await searchInput.fill('external-ref')
     await page.waitForTimeout(400)
 
-    await expect(page.getByTestId('rgd-card-external-ref')).toBeVisible()
-    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
+    await expect(page.getByTestId('catalog-card-external-ref')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).not.toBeVisible()
   })
 })

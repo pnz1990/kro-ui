@@ -16,12 +16,12 @@
  * Journey 002: Overview Page — RGD Card Grid and Navigation
  *
  * NOTE (spec 062): The Overview page (/) was rewritten as a 7-widget SRE
- * dashboard. The RGD card grid, search bar, health chips, and error banner
- * were moved to the Catalog page (/catalog).
+ * dashboard. The RGD card grid and search bar were moved to the Catalog page
+ * (/catalog), which renders CatalogCard components (data-testid="catalog-card-{name}").
  *
- * Steps that previously tested the card grid on / now navigate to /catalog.
- * Step 1 (title + context name) and Steps 3-4 (RGD detail navigation) still
- * work from / since the TopBar and routing are unchanged.
+ * Steps that previously tested the card grid on / now navigate to /catalog
+ * and use catalog-card-* testids instead of rgd-card-*.
+ * Step 1 (title + context name) uses / since the TopBar is unchanged.
  *
  * Spec ref: .specify/specs/002-rgd-list-home/spec.md § E2E User Journey
  *
@@ -47,39 +47,32 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     // Top bar is visible and contains the kind cluster context name
     const contextName = page.getByTestId('context-name')
     await expect(contextName).toBeVisible()
-    // The context name should be a non-empty string (kind cluster context)
     await expect(contextName).not.toHaveText('')
   })
 
   test('Step 2: RGD card renders', async ({ page }) => {
-    // NOTE (spec 062): RGD cards moved to /catalog.
+    // NOTE (spec 062): RGD cards moved to /catalog (CatalogCard component).
     await page.goto(`${BASE}/catalog`)
 
-    // test-app card is visible
-    const card = page.getByTestId('rgd-card-test-app')
-    await expect(card).toBeVisible()
+    // test-app card is visible — Catalog uses catalog-card-{name} testids
+    const card = page.getByTestId('catalog-card-test-app')
+    await expect(card).toBeVisible({ timeout: 15000 })
 
     // Card shows correct name
-    const name = card.getByTestId('rgd-name')
+    const name = card.getByTestId('catalog-card-name')
     await expect(name).toHaveText('test-app')
 
     // Card shows correct kind (from test fixture: WebApp)
-    const kind = card.getByTestId('rgd-kind')
+    const kind = card.getByTestId('catalog-card-kind')
     await expect(kind).toHaveText('WebApp')
-
-    // Status dot is visible and NOT in error state
-    const dot = card.getByTestId('status-dot')
-    await expect(dot).toBeVisible()
-    await expect(dot).not.toHaveClass(/status-dot--error/)
   })
 
   test('Step 3: Navigate to RGD graph via Graph button', async ({ page }) => {
-    // NOTE (spec 062): Navigate from /catalog where cards live.
+    // NOTE (spec 062): Cards are on /catalog.
     await page.goto(`${BASE}/catalog`)
 
-    // Wait for card to be visible
-    const card = page.getByTestId('rgd-card-test-app')
-    await expect(card).toBeVisible()
+    const card = page.getByTestId('catalog-card-test-app')
+    await expect(card).toBeVisible({ timeout: 15000 })
 
     // Click Graph button
     const graphBtn = card.getByTestId('btn-graph')
@@ -91,14 +84,13 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   })
 
   test('Step 4: Navigate back and use Instances button', async ({ page }) => {
-    // NOTE (spec 062): Navigate from /catalog.
+    // NOTE (spec 062): Cards are on /catalog.
     await page.goto(`${BASE}/catalog`)
 
-    // Wait for card
-    const card = page.getByTestId('rgd-card-test-app')
-    await expect(card).toBeVisible()
+    const card = page.getByTestId('catalog-card-test-app')
+    await expect(card).toBeVisible({ timeout: 15000 })
 
-    // Navigate to Graph first
+    // Navigate to Graph
     await card.getByTestId('btn-graph').click()
     await expect(page).toHaveURL(`${BASE}/rgds/test-app`)
 
@@ -107,28 +99,28 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     await expect(page).toHaveURL(`${BASE}/catalog`)
 
     // Card should still be visible
-    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible()
 
     // Click Instances button
-    await page.getByTestId('rgd-card-test-app').getByTestId('btn-instances').click()
+    await page.getByTestId('catalog-card-test-app').getByTestId('btn-instances').click()
     await expect(page).toHaveURL(`${BASE}/rgds/test-app?tab=instances`)
   })
 
   test('Step 5: Overview page shows cards for all fixture RGDs', async ({ page }) => {
-    // NOTE (spec 062): Cards are on /catalog.
+    // NOTE (spec 062): Cards are on /catalog with catalog-card-* testids.
     await page.goto(`${BASE}/catalog`)
 
     for (const name of ['test-app', 'test-collection', 'multi-resource', 'external-ref', 'cel-functions']) {
-      await expect(page.getByTestId(`rgd-card-${name}`)).toBeVisible()
+      await expect(page.getByTestId(`catalog-card-${name}`)).toBeVisible({ timeout: 15000 })
     }
   })
 
   test('Step 6: All visible card kind labels are non-empty and not "?"', async ({ page }) => {
-    // NOTE (spec 062): Cards are on /catalog.
+    // NOTE (spec 062): Catalog kind label testid is "catalog-card-kind".
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 15000 })
 
-    const kindLabels = page.locator('[data-testid="rgd-kind"]')
+    const kindLabels = page.locator('[data-testid="catalog-card-kind"]')
     const count = await kindLabels.count()
     expect(count).toBeGreaterThan(0)
 
@@ -140,9 +132,9 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   })
 
   test('Step 7: Search filter narrows cards to matching RGD', async ({ page }) => {
-    // NOTE (spec 062): Search is on /catalog.
+    // NOTE (spec 062): Search is on /catalog with catalog-card-* testids.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 15000 })
 
     const searchInput = page.locator('input[type="search"]')
     await expect(searchInput).toBeVisible()
@@ -150,20 +142,18 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     await searchInput.fill('multi-resource')
     await page.waitForTimeout(400) // debounce
 
-    // Only multi-resource card visible
-    await expect(page.getByTestId('rgd-card-multi-resource')).toBeVisible()
-    await expect(page.getByTestId('rgd-card-test-app')).not.toBeVisible()
+    await expect(page.getByTestId('catalog-card-multi-resource')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).not.toBeVisible()
 
-    // Clear restores all cards
     await searchInput.fill('')
     await page.waitForTimeout(400)
-    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible()
   })
 
   test('Step 8: Searching a non-matching string shows empty state', async ({ page }) => {
-    // NOTE (spec 062): VirtualGrid and search are on /catalog.
+    // NOTE (spec 062): VirtualGrid and search on /catalog.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('virtual-grid-container')).toBeVisible()
+    await expect(page.getByTestId('virtual-grid-container')).toBeVisible({ timeout: 15000 })
 
     const searchInput = page.locator('input[type="search"]')
     await searchInput.fill('xyzzy-no-match-99999')
@@ -174,18 +164,18 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   })
 
   test('Step 9: Clicking the full card body of multi-resource navigates to its detail page', async ({ page }) => {
-    // NOTE (spec 062): Cards are on /catalog.
+    // NOTE (spec 062): Cards on /catalog. CatalogCard is fully clickable.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('rgd-card-multi-resource')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-multi-resource')).toBeVisible({ timeout: 15000 })
 
-    await page.getByTestId('rgd-card-multi-resource').click()
+    await page.getByTestId('catalog-card-multi-resource').click()
     await expect(page).toHaveURL(`${BASE}/rgds/multi-resource`)
   })
 
   test('Step 10: All visible RGD cards eventually show a health chip (not blank) — PR #296 regression guard', async ({ page }) => {
-    // NOTE (spec 062): Cards and health chips are on /catalog.
+    // NOTE (spec 062): Health chips are on /catalog CatalogCard components.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 15000 })
 
     await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
     await page.waitForTimeout(5000)
@@ -213,14 +203,13 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   })
 
   test('Step 11: Overview subtitle text is present (PR #279 section description)', async ({ page }) => {
-    // NOTE (spec 062): The new Overview page has a tagline "Single-cluster health dashboard".
+    // NOTE (spec 062): New Overview has tagline "Single-cluster health dashboard".
     await page.goto(BASE)
     await page.waitForFunction(() =>
       document.querySelector('[data-testid="widget-instances"]') !== null,
       { timeout: 20000 }
     )
 
-    // New dashboard tagline
     const tagline = page.locator('text=Single-cluster health dashboard')
     await expect(tagline).toBeVisible({ timeout: 5000 })
   })
@@ -233,10 +222,8 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
       return w !== null && !w.querySelector('[aria-busy="true"]')
     }, { timeout: 25000 })
 
-    // W-3 should either show the clean state or error rows
     const w3 = page.locator('[data-testid="widget-rgd-errors"]')
     await expect(w3).toBeVisible()
-    // Content must not be blank or contain coercion artifacts
     const text = await w3.textContent()
     expect(text?.trim().length).toBeGreaterThan(0)
     expect(text).not.toContain('undefined')

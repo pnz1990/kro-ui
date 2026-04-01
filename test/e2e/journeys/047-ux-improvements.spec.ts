@@ -50,9 +50,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   test('Step 1: Overview HealthChip resolves for every visible RGD card', async ({ page }) => {
     // NOTE (spec 062): RGD card grid moved to /catalog.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
-
-    // Wait for at least one chip to resolve — this confirms the instances API
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
     // is returning 200 for active RGDs and the chip renders.
     await page.waitForSelector('[data-testid="health-chip"]', { timeout: 20000 })
     const chips = page.locator('[data-testid="health-chip"]')
@@ -79,7 +77,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
     // The test-collection RGD is Inactive in the hermetic E2E cluster when
     // the collection fixture is not applied. Check that even in that case
     // the chip renders (not blank).
-    const inactiveCard = page.locator('[data-testid^="rgd-card-"]').filter({
+    const inactiveCard = page.locator('[data-testid^="catalog-card-"]').filter({
       has: page.locator('.status-dot--error, .status-dot--unknown'),
     }).first()
     const inactiveExists = await inactiveCard.count() > 0
@@ -176,9 +174,9 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   test('Step 7: Cluster-scoped namespace sentinel _ never appears in rendered text', async ({ page }) => {
     // NOTE (spec 062): RGD card grid moved to /catalog. Check both pages.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
 
-    // Scan the full rendered text of the Overview page for the literal sentinel "_"
+    // Scan the full rendered text of the Catalog page for the literal sentinel "_"
     // in a namespace position. We look specifically for the pattern " _ " or "/_"
     // that would indicate the sentinel slipped through displayNamespace().
     // Instance cards that contain "namespace/name" patterns must use "cluster-scoped" not "_".
