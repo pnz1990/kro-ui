@@ -52,7 +52,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
     await page.goto(`${BASE}/catalog`)
     await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
     // is returning 200 for active RGDs and the chip renders.
-    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 } })
+    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 })
     const chips = page.locator('[data-testid="health-chip"]')
     const count = await chips.count()
     expect(count).toBeGreaterThan(0)
@@ -72,7 +72,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
     // Now they return 200 with {items:[]} → chip shows "no instances".
     // NOTE (spec 062): RGD card grid moved to /catalog.
     await page.goto(`${BASE}/catalog`)
-    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 } })
+    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 })
 
     // The test-collection RGD is Inactive in the hermetic E2E cluster when
     // the collection fixture is not applied. Check that even in that case
@@ -190,7 +190,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   test('Step 8: HealthChip multi-segment bar renders correctly', async ({ page }) => {
     // NOTE (spec 062): RGD card grid moved to /catalog.
     await page.goto(`${BASE}/catalog`)
-    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 } })
+    await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 })
 
     // Scan for chips that are in the mixed-state (bar) format:
     // These should have segments with icons ✗, ⚠, ↻, …, ?
