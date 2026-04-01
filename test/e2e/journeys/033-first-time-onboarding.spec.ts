@@ -35,8 +35,9 @@ const BASE = 'http://localhost:40107'
 
 test.describe('Journey 033 — First-Time Onboarding', () => {
   test('Step 1: home page renders RGD grid when RGDs exist', async ({ page }) => {
-    await page.goto(BASE)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
+    // NOTE (spec 062): RGD card grid moved to /catalog. Overview is now the SRE dashboard.
+    await page.goto(`${BASE}/catalog`)
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
     // Grid container is present
     await expect(page.getByTestId('virtual-grid-container')).toBeVisible()
   })
@@ -56,16 +57,17 @@ test.describe('Journey 033 — First-Time Onboarding', () => {
 
   test('Step 4: "No ResourceGraphDefinitions found" empty state renders when items are empty', async ({ page }) => {
     // We can't empty the real cluster, so we validate the empty state structure via
-    // the search filter path — when search matches nothing, a "no match" empty state appears
-    await page.goto(BASE)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
+    // the search filter path on /catalog — when search matches nothing, empty state appears.
+    // NOTE (spec 062): search filter lives on /catalog, not the Overview dashboard.
+    await page.goto(`${BASE}/catalog`)
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 15000 })
 
     const search = page.locator('input[type="search"]')
     await search.fill('__no_match_xyzzy__')
     await page.waitForTimeout(400)
 
-    // The empty state container (whatever the RGD count filter shows) is rendered
-    await expect(page.locator('[role="status"], .home__empty, [data-testid*="empty"]').first()).toBeVisible()
+    // The empty state container is rendered
+    await expect(page.locator('[data-testid="virtual-grid-container"] [role="status"]')).toBeVisible()
   })
 
   test('Step 5: 404 page renders for unknown routes', async ({ page }) => {

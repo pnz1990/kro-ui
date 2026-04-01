@@ -1,0 +1,101 @@
+.overview-widget {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.overview-widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overview-widget__title {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-faint);
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-transform: none;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────── */
+
+.overview-widget__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Loading skeleton ────────────────────────────────────────────────── */
+
+.overview-widget__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.overview-widget__skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-border-subtle) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: overview-widget-shimmer 1.5s ease-in-out infinite;
+}
+
+.overview-widget__skeleton-line--short {
+  width: 55%;
+  animation-delay: 0.15s;
+}
+
+@keyframes overview-widget-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ── Error state ─────────────────────────────────────────────────────── */
+
+.overview-widget__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.overview-widget__error-msg {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--color-text-faint);
+}
+
+.overview-widget__retry {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-primary-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.overview-widget__retry:hover {
+  color: var(--color-primary);
+}

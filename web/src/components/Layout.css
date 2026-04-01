@@ -23,6 +23,22 @@
   flex-shrink: 0;
 }
 
+.layout__version-warning-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.layout__version-warning-dismiss:hover {
+  color: var(--color-text);
+}
+
 .layout__content {
   flex: 1;
   padding: 24px 32px;

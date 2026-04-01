@@ -37,43 +37,41 @@ const BASE = process.env.KRO_UI_BASE_URL || 'http://localhost:40107'
 
 test.describe('Journey 054: UX Gaps Round 3', () => {
 
-  // ── A: MetricsStrip "Not reported" has distinct modifier class ──────────────
+  // ── A: W-2 Controller Metrics widget "Not reported" has distinct modifier class ──────────────
 
   test('Step 1: MetricsStrip counter cells never render "Not reported" at full numeric size', async ({ page }) => {
+    // NOTE (spec 062): MetricsStrip removed from Overview. Controller metrics are in W-2 widget.
     await page.goto(BASE)
-    // Wait for overview to load
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    // Wait for W-2 to load
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-metrics"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
 
-    // If any counter shows "Not reported", it must have the --not-reported modifier
-    // (i.e., NOT just the base metrics-strip__value class alone)
-    const notReportedCells = page.locator('.metrics-strip__value--not-reported')
-    const baseValueCells = page.locator('.metrics-strip__value:not(.metrics-strip__value--not-reported)')
-
-    // Verify base numeric cells exist (the strip loaded)
-    const baseCount = await baseValueCells.count()
-    expect(baseCount).toBeGreaterThan(0)
-
-    // Every "Not reported" text must be inside a --not-reported cell
-    const stripText = await page.locator('.metrics-strip').textContent()
-    if (stripText && stripText.includes('Not reported')) {
-      // Verify the not-reported modifier class is present
-      const notReportedCount = await notReportedCells.count()
-      expect(notReportedCount).toBeGreaterThan(0)
+    // If any counter shows "Not reported", it must have the --not-reported modifier class
+    const w2 = page.locator('[data-testid="widget-metrics"]')
+    const w2Text = await w2.textContent()
+    if (w2Text && w2Text.includes('Not reported')) {
+      const notReportedCells = w2.locator('.home__metrics-value--not-reported')
+      await expect(notReportedCells.first()).toBeVisible()
     }
   })
 
-  // ── B: MetricsStrip "Updated" label uses "just now" for fresh data ──────────
+  // ── B: W-2 staleness label uses "just now" for fresh data ──────────
 
   test('Step 2: MetricsStrip "Updated" label shows "just now" (not "0s") for fresh data', async ({ page }) => {
+    // NOTE (spec 062): "Updated X ago" label is now on the Overview page header.
     await page.goto(BASE)
-    await page.waitForSelector('[data-testid^="rgd-card-"]', { timeout: 15000 })
+    await page.waitForFunction(() =>
+      document.querySelector('[data-testid="overview-staleness"]') !== null,
+      { timeout: 20000 }
+    )
 
-    // The metrics strip shows "Updated {age}" — verify "0s" never appears
-    const updatedSpan = page.locator('.metrics-strip__updated')
-    const count = await updatedSpan.count()
+    const staleness = page.locator('[data-testid="overview-staleness"]')
+    const count = await staleness.count()
     if (count > 0) {
-      const text = await updatedSpan.textContent()
-      // Should never show bare "0s" — should show "just now" when fresh
+      const text = await staleness.textContent()
+      // Should never show bare "0s" — should show "just now" or "Updated Xs ago"
       expect(text).not.toMatch(/Updated 0s/)
     }
   })

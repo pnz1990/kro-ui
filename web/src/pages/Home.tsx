@@ -1,325 +1,529 @@
-// Overview — RGD cards grid with controller health metrics. Fetches GET /api/v1/rgds on mount.
-// Uses VirtualGrid for windowed rendering at 5,000+ RGDs.
-// Search input is debounced (300ms) to avoid per-keystroke filter churn.
-// FR-007 (spec 031-deletion-debugger): background fetch of per-RGD terminating counts.
-// spec 069: RGD error banner — shows compile-error count, toggles error-only filter.
-// Issue #368: health filter chip synced to/from ?health= URL param so filtered
-// views survive refresh and can be shared.
+// Overview SRE Dashboard — Home.tsx
+// Spec: .specify/specs/062-overview-sre-dashboard/spec.md
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import type { K8sObject } from '@/lib/api'
-import { listRGDs, listInstances } from '@/lib/api'
-import { extractRGDName, extractReadyStatus } from '@/lib/format'
-import { aggregateHealth } from '@/lib/format'
-import type { HealthSummary } from '@/lib/format'
-import { matchesSearch } from '@/lib/catalog'
-import { isTerminating } from '@/lib/k8s'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  listAllInstances,
+  listRGDs,
+  getControllerMetrics,
+  getCapabilities,
+  listEvents,
+} from '@/lib/api'
+import type { AllInstancesResponse, ControllerMetrics, K8sList, KroCapabilities, K8sObject, InstanceSummary } from '@/lib/api'
+import {
+  buildHealthDistribution,
+  buildTopErroringRGDs,
+  countMayBeStuck,
+  getRecentlyCreated,
+  getMayBeStuck,
+  extractReadyStatus,
+  extractRGDName,
+  formatAge,
+  displayNamespace,
+} from '@/lib/format'
+import { buildErrorHint } from '@/components/RGDCard'
 import { usePageTitle } from '@/hooks/usePageTitle'
-import { useDebounce } from '@/hooks/useDebounce'
-import { translateApiError } from '@/lib/errors'
-import MetricsStrip from '@/components/MetricsStrip'
-import RGDCard from '@/components/RGDCard'
-import SearchBar from '@/components/SearchBar'
-import SkeletonCard from '@/components/SkeletonCard'
-import VirtualGrid from '@/components/VirtualGrid'
-import OverviewHealthBar from '@/components/OverviewHealthBar'
-import type { HealthFilterState } from '@/components/OverviewHealthBar'
+import OverviewWidget from '@/components/OverviewWidget'
+import InstanceHealthWidget from '@/components/InstanceHealthWidget'
 import './Home.css'
 
-// RGDCard height: 16px pad + 24px header + 8px gap + 18px meta + 16px meta-margin
-//   + 16px error-hint + 4px hint-margin + 24px chip-row + 8px chip-margin
-//   + 28px actions + 16px pad = 178px. MUST match height:178px in RGDCard.css.
-const RGD_CARD_HEIGHT = 178
+function lsGet(key: string, fallback: string): string {
+  try { return localStorage.getItem(key) ?? fallback } catch { return fallback }
+}
+function lsSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value) } catch { /* silent */ }
+}
+
+// keep lsGet/lsSet around — used for future preference keys
+void lsGet; void lsSet
+
+interface WidgetState<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
+}
+
+function initialWidget<T>(): WidgetState<T> {
+  return { data: null, loading: true, error: null }
+}
+
+// ── Component ────────────────────────────────────────────────────────────
 
 export default function Home() {
   usePageTitle('Overview')
 
-  // Issue #368: health filter synced to/from the ?health= URL param.
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [instancesState, setInstancesState] = useState<WidgetState<AllInstancesResponse>>(initialWidget)
+  const [rgdsState, setRgdsState] = useState<WidgetState<K8sList>>(initialWidget)
+  const [metricsState, setMetricsState] = useState<WidgetState<ControllerMetrics>>(initialWidget)
+  const [capabilitiesState, setCapabilitiesState] = useState<WidgetState<KroCapabilities>>(initialWidget)
+  const [eventsState, setEventsState] = useState<WidgetState<K8sList>>(initialWidget)
 
-  const [items, setItems] = useState<K8sObject[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
-  const debouncedQuery = useDebounce(query, 300)
+  const [isFetching, setIsFetching] = useState(false)
+  const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null)
+  const [lastAttemptFailed, setLastAttemptFailed] = useState(false)
+  const [, setTick] = useState(0)
 
-  // Health filter — set by clicking OverviewHealthBar chips (spec 060-health-filter).
-  // When set, the card grid shows only RGDs with instances in that health state.
-  // Issue #368: read initial value from ?health= URL param on mount.
-  const rawHealthParam = searchParams.get('health') as HealthFilterState | null
-  const validHealthFilters: HealthFilterState[] = ['ready', 'degraded', 'reconciling', 'error', 'pending', 'noInstances']
-  const [healthFilter, setHealthFilter] = useState<HealthFilterState | null>(
-    rawHealthParam && validHealthFilters.includes(rawHealthParam) ? rawHealthParam : null
-  )
-
-  // spec 069: RGD compile-error filter — toggled by clicking the error banner.
-  // When true, only error-state RGDs (Ready=False) are shown in the card grid.
-  const [showOnlyErrors, setShowOnlyErrors] = useState(false)
-
-  // FR-007: Map from rgdName → terminating instance count.
-  // Fetched in the background after the RGD list loads; absent = not yet fetched.
-  const [terminatingCounts, setTerminatingCounts] = useState<Map<string, number>>(new Map())
-  // Health summaries pre-computed alongside terminatingCounts — eliminates the
-  // per-card listInstances call in RGDCard (issue #235).
-  const [healthSummaries, setHealthSummaries] = useState<Map<string, HealthSummary>>(new Map())
-
-  // Abort controller ref — cancels in-flight listInstances fan-out on unmount or re-fetch.
   const abortRef = useRef<AbortController | null>(null)
 
-  const fetchRGDs = useCallback(() => {
-    // Abort any in-flight fan-out from a previous call
+  // ── Fetch orchestration ───────────────────────────────────────────────
+
+  const fetchAll = useCallback(() => {
     abortRef.current?.abort()
     const ac = new AbortController()
     abortRef.current = ac
+    const sig = { signal: ac.signal }
 
-    setIsLoading(true)
-    setError(null)
-    listRGDs()
-      .then((res) => {
-        if (ac.signal.aborted) return
-        setItems(res.items ?? [])
-        // FR-007: fire-and-forget background fetch of terminating counts and health summaries.
-        // Each RGD gets one listInstances call. Errors are silently ignored —
-        // absent count = no badge (graceful degradation).
-        // Passing healthSummary to RGDCard avoids a redundant second listInstances
-        // per card (issue #235).
-        const rgdNames = (res.items ?? []).map(extractRGDName).filter(Boolean)
-        Promise.allSettled(
-          rgdNames.map((name) =>
-            listInstances(name, undefined, { signal: ac.signal }).then((list) => ({
-              name,
-              count: (list.items ?? []).filter(isTerminating).length,
-              health: aggregateHealth(list.items ?? []),
-            }))
-          )
-        ).then((results) => {
-          if (ac.signal.aborted) return
-          const counts = new Map<string, number>()
-          const summaries = new Map<string, HealthSummary>()
-          for (const result of results) {
-            if (result.status === 'fulfilled') {
-              counts.set(result.value.name, result.value.count)
-              summaries.set(result.value.name, result.value.health)
-            }
-          }
-          setTerminatingCounts(counts)
-          setHealthSummaries(summaries)
-        })
-        // allSettled never rejects — no .catch needed
-      })
-      .catch((err: unknown) => {
-        if (ac.signal.aborted) return
-        setError(err instanceof Error ? err.message : String(err))
-      })
-      .finally(() => {
-        if (!ac.signal.aborted) setIsLoading(false)
-      })
+    setIsFetching(true)
+    setInstancesState(s => ({ ...s, loading: true, error: null }))
+    setRgdsState(s => ({ ...s, loading: true, error: null }))
+    setMetricsState(s => ({ ...s, loading: true, error: null }))
+    setCapabilitiesState(s => ({ ...s, loading: true, error: null }))
+    setEventsState(s => ({ ...s, loading: true, error: null }))
+
+    Promise.allSettled([
+      listAllInstances(sig),
+      listRGDs(),
+      getControllerMetrics(),
+      getCapabilities(),
+      listEvents(),
+    ]).then(([instances, rgds, metrics, caps, events]) => {
+      if (ac.signal.aborted) return
+
+      let anyFailed = false
+
+      if (instances.status === 'fulfilled') {
+        setInstancesState({ data: instances.value, loading: false, error: null })
+      } else {
+        const msg = instances.reason instanceof Error ? instances.reason.message : String(instances.reason)
+        setInstancesState(s => ({ ...s, loading: false, error: msg }))
+        anyFailed = true
+      }
+
+      if (rgds.status === 'fulfilled') {
+        setRgdsState({ data: rgds.value, loading: false, error: null })
+      } else {
+        const msg = rgds.reason instanceof Error ? rgds.reason.message : String(rgds.reason)
+        setRgdsState(s => ({ ...s, loading: false, error: msg }))
+        anyFailed = true
+      }
+
+      if (metrics.status === 'fulfilled') {
+        setMetricsState({ data: metrics.value, loading: false, error: null })
+      } else {
+        const msg = metrics.reason instanceof Error ? metrics.reason.message : String(metrics.reason)
+        setMetricsState(s => ({ ...s, loading: false, error: msg }))
+        anyFailed = true
+      }
+
+      if (caps.status === 'fulfilled') {
+        setCapabilitiesState({ data: caps.value, loading: false, error: null })
+      } else {
+        const msg = caps.reason instanceof Error ? caps.reason.message : String(caps.reason)
+        setCapabilitiesState(s => ({ ...s, loading: false, error: msg }))
+        anyFailed = true
+      }
+
+      if (events.status === 'fulfilled') {
+        setEventsState({ data: events.value, loading: false, error: null })
+      } else {
+        const msg = events.reason instanceof Error ? events.reason.message : String(events.reason)
+        setEventsState(s => ({ ...s, loading: false, error: msg }))
+        anyFailed = true
+      }
+
+      setLastAttemptFailed(anyFailed)
+      // Only advance lastFetchedAt on full success — when anyFailed is true
+      // the "Last attempt failed" banner replaces the "Updated X ago" label
+      // (FR-005/FR-007). Updating the timestamp on failure would make the
+      // "data may be stale" framing misleading.
+      if (!anyFailed) setLastFetchedAt(new Date())
+      setIsFetching(false)
+    })
   }, [])
 
   useEffect(() => {
-    fetchRGDs()
+    fetchAll()
     return () => { abortRef.current?.abort() }
-  }, [fetchRGDs])
+  }, [fetchAll])
 
-  // Client-side filter — reuses matchesSearch from catalog lib (no reimplementation).
-  // Runs only after the debounce fires, not on every keystroke.
-  // Also applies the healthFilter when a chip is active.
-  const filteredItems = useMemo(() => {
-    let result = items.filter((rgd) => matchesSearch(rgd, debouncedQuery))
+  // ── Staleness tick (10s interval) ────────────────────────────────────
 
-    // spec 069: error-only filter — show only RGDs with compile errors (Ready=False).
-    if (showOnlyErrors) {
-      result = result.filter((rgd) => extractReadyStatus(rgd).state === 'error')
-    }
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 10_000)
+    return () => clearInterval(id)
+  }, [])
 
-    // Health filter (spec 060): show only RGDs with instances in the selected state.
-    if (healthFilter !== null) {
-      result = result.filter((rgd) => {
-        const name = extractRGDName(rgd)
-        const summary = healthSummaries.get(name)
-        if (!summary) return false // not yet loaded — hide until resolved
-        if (healthFilter === 'noInstances') return summary.total === 0
-        return (summary[healthFilter as keyof typeof summary] as number) > 0
-      })
-    }
+  // ── Derived data ──────────────────────────────────────────────────────
 
-    return result
-  }, [items, debouncedQuery, healthFilter, healthSummaries, showOnlyErrors])
+  const instances: InstanceSummary[] = instancesState.data?.items ?? []
+  const rgdItems: K8sObject[] = rgdsState.data?.items ?? []
+  const distribution = buildHealthDistribution(instances)
+  const topErroring = buildTopErroringRGDs(instances)
+  const stuckCount = countMayBeStuck(instances)
+  const recentlyCreated = getRecentlyCreated(instances)
+  const mayBeStuckList = getMayBeStuck(instances)
 
-  // spec 069: count RGDs with compile errors (Ready=False) from the loaded list.
-  // Computed without async — extractReadyStatus reads already-fetched status fields.
-  const errorRgdCount = useMemo(
-    () => items.filter((rgd) => extractReadyStatus(rgd).state === 'error').length,
-    [items],
-  )
+  // W-3: erroring RGDs
+  const errorRGDs = rgdItems.filter(rgd => extractReadyStatus(rgd).state === 'error')
 
-  const emptyState =
-    debouncedQuery.trim() !== '' ? (
-      <div className="home__empty">
-        <p>No ResourceGraphDefinitions match &ldquo;{debouncedQuery}&rdquo;.</p>
-        <button className="home__clear-search" onClick={() => setQuery('')}>
-          Clear search
-        </button>
-      </div>
-    ) : (
-      <div className="home__empty home__empty--onboarding">
-        <h2 className="home__empty-title">No ResourceGraphDefinitions found</h2>
-        <p className="home__empty-desc">
-          <strong>kro-ui</strong> is a read-only observability dashboard for{' '}
-          <a href="https://kro.run" target="_blank" rel="noopener noreferrer">
-            kro
-          </a>{' '}
-          — the Kubernetes Resource Orchestrator. A ResourceGraphDefinition (RGD)
-          declares a graph of Kubernetes resources to manage as a unit.
-        </p>
-        <div className="home__empty-actions">
-          <a
-            href="https://kro.run/docs/getting-started"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="home__empty-cta"
-          >
-            Get started with kro
-          </a>
-          <a
-            href="https://github.com/kubernetes-sigs/kro"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="home__empty-cta home__empty-cta--secondary"
-          >
-            kro on GitHub
-          </a>
-          <Link
-            to="/author"
-            className="home__empty-cta home__empty-cta--secondary"
-            data-testid="home-new-rgd-link"
-          >
-            Open RGD Designer
-          </Link>
+  const fullPageError = instancesState.error !== null && rgdsState.error !== null
+    && !instancesState.loading && !rgdsState.loading
+
+  const isOnboarding = !instancesState.loading && !rgdsState.loading
+    && instancesState.error === null && rgdsState.error === null
+    && (instancesState.data?.total ?? 0) === 0 && rgdItems.length === 0
+
+  function truncate(s: string, n: number): string {
+    return s.length > n ? s.slice(0, n) + '…' : s
+  }
+
+  function eventBadgeClass(type: string, reason: string): string {
+    if (type === 'Warning') return 'home__event-badge--warning'
+    if (/condition/i.test(reason)) return 'home__event-badge--condition'
+    return 'home__event-badge--normal'
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────
+
+  if (fullPageError) {
+    return (
+      <div className="home">
+        <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
+        <div className="home__error" role="alert">
+          <p className="home__error-message">Could not load cluster data — check that kro-ui can reach the cluster.</p>
+          <button className="home__retry-btn" onClick={fetchAll}>Retry</button>
         </div>
       </div>
     )
+  }
 
   return (
     <div className="home">
-      <MetricsStrip />
-      <div className="home__header">
-        <div className="home__heading-group">
-          <h1 className="home__heading">Overview</h1>
-          <p className="home__tagline">
-            Controller and RGD health at a glance
-          </p>
+      <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
+
+      {isOnboarding && (
+        <div className="home__onboarding">
+          <h2 className="home__onboarding-title">Welcome to kro-ui</h2>
+          <p className="home__onboarding-desc">No ResourceGraphDefinitions or instances found yet.</p>
+          <Link to="/author" className="home__onboarding-cta">Open RGD Designer</Link>
         </div>
-        {/* Issue #242: toolbar always rendered to prevent layout jump;
-            SearchBar is disabled during loading so no input is accepted. */}
-        {error === null && (
-          <div className="home__toolbar">
-            <SearchBar
-              value={query}
-              onSearch={setQuery}
-              placeholder="Search by name or kind…"
-              disabled={isLoading}
+      )}
+
+      <div className="home__grid">
+
+        <OverviewWidget title="Instance health" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w1" data-testid="widget-instances">
+          <InstanceHealthWidget distribution={distribution} />
+        </OverviewWidget>
+
+        <OverviewWidget title="Controller metrics" loading={metricsState.loading || capabilitiesState.loading} error={metricsState.error ?? capabilitiesState.error} onRetry={fetchAll} className="home__w2" data-testid="widget-metrics">
+          <MetricsWidget metrics={metricsState.data} kroVersion={capabilitiesState.data?.version} />
+        </OverviewWidget>
+
+        <OverviewWidget title="RGD compile errors" loading={rgdsState.loading} error={rgdsState.error} onRetry={fetchAll} className="home__w3" data-testid="widget-rgd-errors">
+          <RGDErrorsWidget errorRGDs={errorRGDs} totalRGDs={rgdItems.length} />
+        </OverviewWidget>
+
+        <OverviewWidget title="Reconciling queue" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w4" data-testid="widget-reconciling">
+          <ReconcilingWidget reconcilingCount={distribution.reconciling} stuckCount={stuckCount} />
+        </OverviewWidget>
+
+        <OverviewWidget title="Top erroring RGDs" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w5" data-testid="widget-top-erroring">
+          <TopErroringWidget topErroring={topErroring} />
+        </OverviewWidget>
+
+        <OverviewWidget title="Recent events" loading={eventsState.loading} error={eventsState.error} onRetry={fetchAll} className="home__w6" data-testid="widget-events">
+          <EventsWidget items={eventsState.data?.items ?? []} eventBadgeClass={eventBadgeClass} truncate={truncate} />
+        </OverviewWidget>
+
+        <OverviewWidget title="Recent activity" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w7" data-testid="widget-activity">
+          <ActivityWidget recentlyCreated={recentlyCreated} mayBeStuck={mayBeStuckList} />
+        </OverviewWidget>
+
+      </div>
+    </div>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────
+
+interface HomeHeaderProps {
+  isFetching: boolean
+  lastFetchedAt: Date | null
+  lastAttemptFailed: boolean
+  onRefresh: () => void
+}
+
+function HomeHeader({ isFetching, lastFetchedAt, lastAttemptFailed, onRefresh }: HomeHeaderProps) {
+  return (
+    <div className="home__header">
+      <h1 className="home__heading">Overview</h1>
+      <div className="home__header-controls">
+        {!isFetching && lastAttemptFailed && (
+          <span className="home__staleness home__staleness--failed" data-testid="overview-staleness">
+            Last attempt failed — data may be stale
+          </span>
+        )}
+        {!isFetching && !lastAttemptFailed && lastFetchedAt && (
+          <span className="home__staleness" data-testid="overview-staleness">
+            Updated {formatAge(lastFetchedAt.toISOString())}
+          </span>
+        )}
+        <button
+          type="button"
+          className="home__refresh-btn"
+          onClick={onRefresh}
+          disabled={isFetching}
+          aria-label={isFetching ? 'Refreshing...' : 'Refresh now'}
+          data-testid="overview-refresh"
+        >
+          {isFetching ? '↻ Refreshing…' : '↻ Refresh'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── W-2: Controller Metrics ────────────────────────────────────────────
+
+interface MetricsWidgetProps {
+  metrics: ControllerMetrics | null
+  kroVersion: string | undefined
+}
+
+function MetricsWidget({ metrics, kroVersion }: MetricsWidgetProps) {
+  function Cell({ label, value, title }: { label: string; value: number | null | undefined; title?: string }) {
+    const isNotReported = value === null || value === undefined
+    return (
+      <div className="home__metrics-cell" title={title}>
+        <span className={`home__metrics-value${isNotReported ? ' home__metrics-value--not-reported' : ''}`}>
+          {isNotReported ? 'Not reported' : value!.toLocaleString()}
+        </span>
+        <span className="home__metrics-label">{label}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="home__metrics">
+      <Cell label="Active watches" value={metrics?.watchCount} title="Kubernetes resources currently watched by kro" />
+      <Cell label="GVRs served" value={metrics?.gvrCount} title="Resource types kro is currently managing" />
+      <Cell label="Queue depth (kro)" value={metrics?.queueDepth} title="Reconciliation requests in kro's work queue" />
+      <Cell label="Queue depth (client-go)" value={metrics?.workqueueDepth} title="Events in the client-go work queue" />
+      {kroVersion && kroVersion !== 'unknown' && (
+        <div className="home__metrics-version">kro v{kroVersion}</div>
+      )}
+    </div>
+  )
+}
+
+// ── W-3: RGD Compile Errors ────────────────────────────────────────────
+
+interface RGDErrorsWidgetProps {
+  errorRGDs: K8sObject[]
+  totalRGDs: number
+}
+
+function RGDErrorsWidget({ errorRGDs, totalRGDs }: RGDErrorsWidgetProps) {
+  if (errorRGDs.length === 0) {
+    return (
+      <p className="home__rgd-errors-clean">
+        ✓ All {totalRGDs} RGD{totalRGDs !== 1 ? 's' : ''} compile cleanly
+      </p>
+    )
+  }
+  return (
+    <div className="home__rgd-errors-list">
+      {errorRGDs.map(rgd => {
+        const name = extractRGDName(rgd)
+        const { reason, message } = extractReadyStatus(rgd)
+        const hint = buildErrorHint(reason, message)
+        return (
+          <Link key={name} to={`/rgds/${encodeURIComponent(name)}`} className="home__rgd-error-row">
+            <span className="home__rgd-error-name">{name}</span>
+            {hint && <span className="home__rgd-error-hint" title={hint}>{hint}</span>}
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── W-4: Reconciling Queue ─────────────────────────────────────────────
+
+interface ReconcilingWidgetProps {
+  reconcilingCount: number
+  stuckCount: number
+}
+
+function ReconcilingWidget({ reconcilingCount, stuckCount }: ReconcilingWidgetProps) {
+  if (reconcilingCount === 0) {
+    return <p className="home__reconciling-clean">✓ No instances reconciling</p>
+  }
+  return (
+    <div className="home__reconciling">
+      <span className="home__reconciling-count">{reconcilingCount}</span>
+      <span className="home__reconciling-label">instances actively reconciling</span>
+      {stuckCount > 0 && (
+        <p className="home__reconciling-stuck">
+          {stuckCount} may be stuck &gt; 5 min
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ── W-5: Top Erroring RGDs ─────────────────────────────────────────────
+
+interface TopErroringWidgetProps {
+  topErroring: Array<{ rgdName: string; errorCount: number }>
+}
+
+function TopErroringWidget({ topErroring }: TopErroringWidgetProps) {
+  if (topErroring.length === 0) {
+    return <p className="home__top-erroring-empty">No instance errors</p>
+  }
+  const maxCount = topErroring[0].errorCount
+  return (
+    <div className="home__top-erroring">
+      {topErroring.map(({ rgdName, errorCount }, i) => (
+        <Link
+          key={rgdName}
+          to={`/rgds/${encodeURIComponent(rgdName)}?tab=instances`}
+          className="home__top-erroring-row"
+        >
+          <span className="home__top-erroring-rank">{i + 1}</span>
+          <span className="home__top-erroring-name">{rgdName}</span>
+          <span className="home__top-erroring-count">{errorCount}</span>
+          <div className="home__top-erroring-bar-track">
+            <div
+              className="home__top-erroring-bar-fill"
+              style={{ width: `${(errorCount / maxCount) * 100}%` }}
             />
-            {!isLoading && items.length > 0 && (
-              <span className="home__count">
-                {filteredItems.length} of {items.length}
-                {(healthFilter !== null || showOnlyErrors) && (
-                  <button
-                    type="button"
-                    className="home__clear-filter"
-                    onClick={() => {
-                      setHealthFilter(null)
-                      setShowOnlyErrors(false)
-                      // Issue #368: clear URL param on filter clear
-                      setSearchParams((prev) => { prev.delete('health'); return prev }, { replace: true })
-                    }}
-                    title="Clear all filters"
-                    data-testid="clear-health-filter"
-                  >
-                    ×
-                  </button>
-                )}
+          </div>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+// ── W-6: Recent Events ─────────────────────────────────────────────────
+
+/** Typed shape of a Kubernetes Event object as returned by the API. */
+interface KubeEvent {
+  reason?: string
+  type?: string
+  message?: string
+  lastTimestamp?: string
+  eventTime?: string
+  metadata?: { creationTimestamp?: string }
+  involvedObject?: { name?: string; namespace?: string }
+}
+
+interface EventsWidgetProps {
+  items: K8sObject[]
+  eventBadgeClass: (type: string, reason: string) => string
+  truncate: (s: string, n: number) => string
+}
+
+function EventsWidget({ items, eventBadgeClass, truncate }: EventsWidgetProps) {
+  const events = items.slice(0, 10)
+
+  if (events.length === 0) {
+    return <p className="home__events-empty">No recent kro events</p>
+  }
+
+  return (
+    <div className="home__events">
+      <div className="home__events-list">
+        {events.map((ev, i) => {
+          const e = ev as KubeEvent
+          const reason = e.reason ?? ''
+          const type = e.type ?? 'Normal'
+          const message = e.message ?? ''
+          const ts = e.lastTimestamp ?? e.eventTime ?? e.metadata?.creationTimestamp ?? ''
+          const objName = e.involvedObject?.name ?? ''
+          const badgeClass = eventBadgeClass(type, reason)
+
+          return (
+            <div key={i} className="home__event-row">
+              <span className={`home__event-badge ${badgeClass}`} />
+              <span className="home__event-ts">{ts ? formatAge(ts) : '—'}</span>
+              <span className="home__event-reason">{reason || '—'}</span>
+              <span
+                className="home__event-obj"
+                title={objName}
+              >
+                {truncate(objName, 40)}
               </span>
-            )}
+              <span
+                className="home__event-msg"
+                title={message}
+              >
+                {truncate(message, 80)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      <Link to="/events" className="home__events-footer">View all events →</Link>
+    </div>
+  )
+}
+
+// ── W-7: Recent Activity ───────────────────────────────────────────────
+
+interface ActivityWidgetProps {
+  recentlyCreated: InstanceSummary[]
+  mayBeStuck: InstanceSummary[]
+}
+
+function ActivityWidget({ recentlyCreated, mayBeStuck: stuckList }: ActivityWidgetProps) {
+  return (
+    <div className="home__activity">
+      <div className="home__activity-panel">
+        <h3 className="home__activity-panel-title">Recently created</h3>
+        {recentlyCreated.length === 0 ? (
+          <p className="home__activity-empty">No instances</p>
+        ) : (
+          <div className="home__activity-list">
+            {recentlyCreated.map(item => (
+              <Link
+                key={`${item.namespace}/${item.name}`}
+                to={`/rgds/${encodeURIComponent(item.rgdName)}/instances/${encodeURIComponent(item.namespace)}/${encodeURIComponent(item.name)}`}
+                className="home__activity-row"
+              >
+                <span className="home__activity-name">{item.name}</span>
+                <span className="home__activity-ns">{displayNamespace(item.namespace)}</span>
+                <span className="home__activity-kind">{item.kind}</span>
+                <span className="home__activity-age">{formatAge(item.creationTimestamp)}</span>
+              </Link>
+            ))}
           </div>
         )}
       </div>
-
-      {isLoading && (
-        <div className="home__skeleton-grid" aria-busy="true">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      )}
-
-      {!isLoading && error !== null && (
-        <div className="home__error" role="alert">
-          <p className="home__error-message">{translateApiError(error)}</p>
-          <button className="home__retry-btn" onClick={fetchRGDs}>
-            Retry
-          </button>
-        </div>
-      )}
-
-      {!isLoading && error === null && healthSummaries.size > 0 && (
-        <OverviewHealthBar
-          summaries={healthSummaries}
-          totalRGDs={items.length}
-          activeFilter={healthFilter}
-          onFilter={(state) => {
-              setHealthFilter(state)
-              // Issue #368: sync to URL param so filter can be shared/bookmarked.
-              if (state === null) {
-                setSearchParams((prev) => { prev.delete('health'); return prev }, { replace: true })
-              } else {
-                setSearchParams((prev) => { prev.set('health', state); return prev }, { replace: true })
-              }
-            }}
-        />
-      )}
-
-      {/* spec 069: RGD compile-error banner — shown when ≥1 RGD has a compile error.
-          Clicking toggles the error-only filter so the operator can focus on broken RGDs. */}
-      {!isLoading && error === null && errorRgdCount > 0 && (
-        <div className="home__rgd-error-banner" data-testid="rgd-error-banner">
-          <button
-            type="button"
-            className={`home__rgd-error-btn${showOnlyErrors ? ' home__rgd-error-btn--active' : ''}`}
-            onClick={() => setShowOnlyErrors((v) => !v)}
-            aria-pressed={showOnlyErrors}
-            title={showOnlyErrors ? 'Show all RGDs' : 'Filter to RGDs with compile errors'}
-          >
-            <span className="home__rgd-error-count">{errorRgdCount}</span>
-            {' '}
-            {errorRgdCount === 1 ? 'RGD has a compile error' : 'RGDs have compile errors'}
-            {showOnlyErrors && (
-              <span className="home__rgd-error-clear"> — showing errors only ×</span>
-            )}
-          </button>
-        </div>
-      )}
-
-      {!isLoading && error === null && (
-        <VirtualGrid
-          items={filteredItems}
-          itemHeight={RGD_CARD_HEIGHT}
-          renderItem={(rgd) => {
-            const name = extractRGDName(rgd)
-            return (
-              <RGDCard
-                key={name}
-                rgd={rgd}
-                terminatingCount={terminatingCounts.get(name)}
-                healthSummary={healthSummaries.get(name)}
-              />
-            )
-          }}
-          emptyState={emptyState}
-          className="home__virtual-grid"
-        />
-      )}
+      <div className="home__activity-panel">
+        <h3 className="home__activity-panel-title">May be stuck</h3>
+        {stuckList.length === 0 ? (
+          <p className="home__activity-empty home__activity-empty--ok">✓ No stuck instances</p>
+        ) : (
+          <div className="home__activity-list">
+            {stuckList.map(item => (
+              <Link
+                key={`${item.namespace}/${item.name}`}
+                to={`/rgds/${encodeURIComponent(item.rgdName)}/instances/${encodeURIComponent(item.namespace)}/${encodeURIComponent(item.name)}`}
+                className="home__activity-row"
+              >
+                <span className="home__activity-name">{item.name}</span>
+                <span className="home__activity-ns">{displayNamespace(item.namespace)}</span>
+                <span className="home__activity-kind">{item.kind}</span>
+                <span className="home__activity-age home__activity-age--stuck">
+                  {formatAge(item.creationTimestamp)}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

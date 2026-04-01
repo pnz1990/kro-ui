@@ -15,16 +15,16 @@
 /**
  * Journey 022: Controller Metrics Panel
  *
- * Validates that the MetricsStrip component on the home page:
- * - Is rendered (className="metrics-strip" — no data-testid on root)
- * - Shows metric value cells or a degraded/loading state
- * - Handles unavailable metrics gracefully (shows "—" not a crash)
- * - Does not prevent RGD cards from rendering
+ * Validates that the W-2 Controller Metrics widget on the Overview dashboard:
+ * - Is rendered (data-testid="widget-metrics")
+ * - Shows metric value cells or graceful "Not reported" state
+ * - Does not prevent other widgets from rendering
  *
- * Component: web/src/components/MetricsStrip.tsx
- * The MetricsStrip root has className="metrics-strip" and
- * role="status" with aria-label="Controller metrics" in the loaded state.
+ * NOTE (spec 062): The MetricsStrip component was removed from the Overview
+ * page as part of the SRE dashboard rewrite. Controller metrics are now
+ * shown in the W-2 OverviewWidget. Tests updated accordingly.
  *
+ * Component: web/src/pages/Home.tsx (W-2 inline widget)
  * Spec ref: .specify/specs/022-controller-metrics-panel/
  *
  * Cluster pre-conditions:
@@ -39,47 +39,42 @@ const BASE = 'http://localhost:40107'
 test.describe('Journey 022 — Controller Metrics Panel', () => {
   test('Step 1: MetricsStrip is present on the home page', async ({ page }) => {
     await page.goto(BASE)
-    // MetricsStrip renders with className="metrics-strip" in various states.
-    // Wait for the grid cards first, then assert the strip.
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
-    await expect(page.locator('.metrics-strip, .metrics-strip--loading, .metrics-strip--degraded')).toBeVisible()
+    // W-2 Controller Metrics widget must be visible after dashboard loads
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-metrics"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
+    await expect(page.locator('[data-testid="widget-metrics"]')).toBeVisible()
   })
 
   test('Step 2: metrics strip resolves to loaded or degraded state', async ({ page }) => {
     await page.goto(BASE)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
-
-    // Wait up to 8s for the strip to move past the loading skeleton
-    await page.waitForFunction(
-      () => {
-        const strip = document.querySelector('.metrics-strip')
-        if (!strip) return false
-        // Loading state has aria-busy="true"; resolved state has role="status"
-        return strip.getAttribute('aria-busy') !== 'true'
-      },
-      { timeout: 8000 },
-    ).catch(() => {/* still in loading — acceptable */})
-
-    // At this point the strip is either loaded (cells) or degraded (message) — not crashed
-    await expect(page.locator('.metrics-strip, .metrics-strip--degraded')).toBeVisible()
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-metrics"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
+    // Widget is visible (loaded or inline error state — never crashes)
+    await expect(page.locator('[data-testid="widget-metrics"]')).toBeVisible()
   })
 
   test('Step 3: metrics strip content does not contain "undefined" or "[object Object]"', async ({ page }) => {
     await page.goto(BASE)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
-    await page.waitForTimeout(5000) // allow metrics fetch to resolve
-
-    const strip = page.locator('.metrics-strip, .metrics-strip--loading, .metrics-strip--degraded')
-    if (await strip.isVisible().catch(() => false)) {
-      const text = await strip.textContent()
-      expect(text).not.toContain('undefined')
-      expect(text).not.toContain('[object Object]')
-    }
+    await page.waitForFunction(() => {
+      const w = document.querySelector('[data-testid="widget-metrics"]')
+      return w !== null && !w.querySelector('[aria-busy="true"]')
+    }, { timeout: 20000 })
+    const text = await page.locator('[data-testid="widget-metrics"]').textContent()
+    expect(text).not.toContain('undefined')
+    expect(text).not.toContain('[object Object]')
   })
 
   test('Step 4: metrics strip does not crash the home page', async ({ page }) => {
     await page.goto(BASE)
-    // Home page must still show RGD cards even if metrics fail
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
+    // All 7 widgets must render — page cannot be crashed by metrics failure
+    await page.waitForFunction(() =>
+      document.querySelector('[data-testid="widget-instances"]') !== null,
+      { timeout: 20000 }
+    )
+    await expect(page.locator('[data-testid="widget-instances"]')).toBeVisible()
   })
 })
