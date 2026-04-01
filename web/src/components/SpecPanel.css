@@ -67,3 +67,22 @@
 .spec-value--empty {
   color: var(--color-text-faint);
 }
+
+/* GH #401: multiline YAML values (nested objects/arrays) — scrollable pre block. */
+.spec-value--yaml {
+  padding: 4px 8px 4px 16px;
+}
+
+.spec-value-pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 200px;
+  overflow-y: auto;
+}

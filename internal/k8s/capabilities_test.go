@@ -81,8 +81,11 @@ func (s *capStubNamespaceableResource) Get(_ context.Context, name string, _ met
 	return nil, fmt.Errorf("not found: %s", name)
 }
 
-func (s *capStubNamespaceableResource) List(context.Context, metav1.ListOptions) (*unstructured.UnstructuredList, error) {
-	panic("not used")
+func (s *capStubNamespaceableResource) List(_ context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	// Return empty list — called by the cluster-scoped fallback in
+	// detectFeatureGatesAndVersion (GH #400). Returning empty is correct:
+	// the fallback should produce no match and fall through gracefully.
+	return &unstructured.UnstructuredList{}, nil
 }
 func (s *capStubNamespaceableResource) Create(context.Context, *unstructured.Unstructured, metav1.CreateOptions, ...string) (*unstructured.Unstructured, error) {
 	panic("read-only stub")

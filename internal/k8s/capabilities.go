@@ -135,6 +135,16 @@ var kroDeploymentNames = []string{
 	"kro-controller",
 }
 
+// kroDeploymentLabelSelectors is used as a cluster-scoped fallback when no
+// deployment is found under kroDeploymentNames in kroNamespace (e.g. EKS
+// add-on installs use a different name or namespace). Mirrors the approach
+// used by metrics.go / rbac.go. GH #400.
+var kroDeploymentLabelSelectors = []string{
+	"app.kubernetes.io/name=kro",
+	"control-plane=kro-controller-manager",
+	"app=kro",
+}
+
 // DetectCapabilities probes the connected cluster and returns what the kro
 // installation supports. Falls back to Baseline() on any error.
 // All detection uses the dynamic client and discovery API — no typed clients.
@@ -314,11 +324,14 @@ func hasExternalRefSelector(resourceItemProps map[string]any) bool {
 
 // detectFeatureGatesAndVersion reads the kro controller Deployment and parses
 // --feature-gates from its container args, and extracts the version from the image tag.
-// Probes kroDeploymentNames in order; uses the first Deployment that resolves.
+// Probes kroDeploymentNames in kroNamespace first; if not found, falls back to a
+// cluster-scoped label-selector search (handles EKS add-on and custom installs). GH #400.
 func detectFeatureGatesAndVersion(ctx context.Context, dyn dynamic.Interface) (map[string]bool, string) {
 	log := zerolog.Ctx(ctx)
 
 	var deploy *unstructured.Unstructured
+
+	// Step 1: try well-known names in the default namespace (fast path).
 	for _, name := range kroDeploymentNames {
 		obj, err := dyn.Resource(deployGVR).Namespace(kroNamespace).Get(ctx, name, metav1.GetOptions{})
 		if err == nil {
@@ -327,8 +340,28 @@ func detectFeatureGatesAndVersion(ctx context.Context, dyn dynamic.Interface) (m
 		}
 		log.Debug().Str("name", name).Err(err).Msg("kro deployment candidate not found, trying next")
 	}
+
+	// Step 2: cluster-scoped label-selector fallback — handles EKS add-on and
+	// any installation that uses a different name or namespace (e.g. kro-system
+	// is only one possible namespace). GH #400.
 	if deploy == nil {
-		log.Debug().Msg("kro controller deployment not found under any known name, feature gates default to false")
+		for _, selector := range kroDeploymentLabelSelectors {
+			list, err := dyn.Resource(deployGVR).List(ctx, metav1.ListOptions{
+				LabelSelector: selector,
+				Limit:         5,
+			})
+			if err != nil || list == nil || len(list.Items) == 0 {
+				log.Debug().Str("selector", selector).Err(err).Msg("cluster-scoped kro deployment search found nothing")
+				continue
+			}
+			deploy = &list.Items[0]
+			log.Debug().Str("selector", selector).Str("name", deploy.GetName()).Str("namespace", deploy.GetNamespace()).Msg("found kro deployment via cluster-scoped label search")
+			break
+		}
+	}
+
+	if deploy == nil {
+		log.Debug().Msg("kro controller deployment not found under any known name or label; feature gates default to false")
 		return nil, ""
 	}
 

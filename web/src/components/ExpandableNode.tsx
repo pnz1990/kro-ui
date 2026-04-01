@@ -10,6 +10,7 @@
 
 import type { ReactNode } from 'react'
 import type { DAGNode } from '@/lib/dag'
+import { liveStateClass } from '@/lib/dag'
 import type { NodeLiveState } from '@/lib/instanceNodeState'
 import { translateApiError } from '@/lib/errors'
 import './DeepDAG.css'
@@ -63,18 +64,9 @@ const NESTED_PADDING_BOTTOM = 8
 const NESTED_MIN_WIDTH = 280
 const NESTED_LOADING_HEIGHT = 60
 
-// ── CSS class helpers (mirrors LiveDAG) ──────────────────────────────────
-
-function liveStateClass(state: NodeLiveState | undefined): string {
-  if (!state) return 'dag-node-live--notfound'
-  switch (state) {
-    case 'alive':       return 'dag-node-live--alive'
-    case 'reconciling': return 'dag-node-live--reconciling'
-    case 'error':       return 'dag-node-live--error'
-    case 'pending':     return 'dag-node-live--pending'
-    case 'not-found':   return 'dag-node-live--notfound'
-  }
-}
+// ── CSS class helpers ─────────────────────────────────────────────────────
+// liveStateClass is imported from @/lib/dag (constitution §IX — no copy-paste).
+// Previously defined locally here; removed in GH #399.
 
 function nodeClassName(
   node: DAGNode,

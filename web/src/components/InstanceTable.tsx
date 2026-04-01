@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth, formatAge, extractCreationTimestamp, displayNamespace } from '@/lib/format'
 import { isTerminating } from '@/lib/k8s'
+import { toYaml } from '@/lib/yaml'
 import ReadinessBadge from './ReadinessBadge'
 import './InstanceTable.css'
 
@@ -65,7 +66,8 @@ function flattenSpec(obj: unknown, prefix = ''): Record<string, string> {
     if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
       Object.assign(result, flattenSpec(v, path))
     } else {
-      result[path] = Array.isArray(v) ? JSON.stringify(v) : String(v ?? '')
+      // GH #401: render arrays as YAML (not compact JSON) for readability in the diff.
+      result[path] = Array.isArray(v) ? toYaml(v).trimEnd() : String(v ?? '')
     }
   }
   return result
