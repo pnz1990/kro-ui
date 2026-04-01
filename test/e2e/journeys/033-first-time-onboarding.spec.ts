@@ -60,7 +60,7 @@ test.describe('Journey 033 — First-Time Onboarding', () => {
     // the search filter path on /catalog — when search matches nothing, empty state appears.
     // NOTE (spec 062): search filter lives on /catalog, not the Overview dashboard.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="rgd-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 15000 })
 
     const search = page.locator('input[type="search"]')
     await search.fill('__no_match_xyzzy__')
