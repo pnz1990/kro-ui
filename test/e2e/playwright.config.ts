@@ -147,7 +147,7 @@ export default defineConfig({
       // (health-filter, fleet-reconciling, instances-filter, health-sort,
       //  status-message, error-banner, catalog-status-filter)
       name: 'chunk-9',
-      testMatch: /(060|062|064|065|066|069|070)-.*\.spec\.ts/,
+      testMatch: /(060|062[a-z]?|064|065|066|069|070)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,

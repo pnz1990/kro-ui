@@ -159,9 +159,11 @@ export default function Home() {
       }
 
       setLastAttemptFailed(anyFailed)
+      // Only advance lastFetchedAt on full success — when anyFailed is true
+      // the "Last attempt failed" banner replaces the "Updated X ago" label
+      // (FR-005/FR-007). Updating the timestamp on failure would make the
+      // "data may be stale" framing misleading.
       if (!anyFailed) setLastFetchedAt(new Date())
-      else if (!anyFailed) setLastFetchedAt(new Date()) // always update on any success
-      setLastFetchedAt(new Date()) // update regardless so staleness is meaningful
       setIsFetching(false)
     })
   }, [])
@@ -537,14 +539,13 @@ function TopErroringWidget({ topErroring }: TopErroringWidgetProps) {
   return (
     <div className="home__top-erroring">
       {topErroring.map(({ rgdName, errorCount }, i) => (
-        <div key={rgdName} className="home__top-erroring-row">
+        <Link
+          key={rgdName}
+          to={`/rgds/${encodeURIComponent(rgdName)}?tab=instances`}
+          className="home__top-erroring-row"
+        >
           <span className="home__top-erroring-rank">{i + 1}</span>
-          <Link
-            to={`/rgds/${encodeURIComponent(rgdName)}?tab=instances`}
-            className="home__top-erroring-name"
-          >
-            {rgdName}
-          </Link>
+          <span className="home__top-erroring-name">{rgdName}</span>
           <span className="home__top-erroring-count">{errorCount}</span>
           <div className="home__top-erroring-bar-track">
             <div
@@ -552,13 +553,24 @@ function TopErroringWidget({ topErroring }: TopErroringWidgetProps) {
               style={{ width: `${(errorCount / maxCount) * 100}%` }}
             />
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   )
 }
 
 // ── W-6: Recent Events ─────────────────────────────────────────────────
+
+/** Typed shape of a Kubernetes Event object as returned by the API. */
+interface KubeEvent {
+  reason?: string
+  type?: string
+  message?: string
+  lastTimestamp?: string
+  eventTime?: string
+  metadata?: { creationTimestamp?: string }
+  involvedObject?: { name?: string; namespace?: string }
+}
 
 interface EventsWidgetProps {
   items: K8sObject[]
@@ -577,13 +589,12 @@ function EventsWidget({ items, eventBadgeClass, truncate }: EventsWidgetProps) {
     <div className="home__events">
       <div className="home__events-list">
         {events.map((ev, i) => {
-          const meta = (ev.metadata ?? {}) as Record<string, unknown>
-          const reason = String((ev as Record<string, unknown>).reason ?? '')
-          const type = String((ev as Record<string, unknown>).type ?? 'Normal')
-          const message = String((ev as Record<string, unknown>).message ?? '')
-          const ts = String((ev as Record<string, unknown>).lastTimestamp ?? (ev as Record<string, unknown>).eventTime ?? meta.creationTimestamp ?? '')
-          const involvedObj = (ev as Record<string, unknown>).involvedObject as Record<string, unknown> | undefined
-          const objName = String(involvedObj?.name ?? '')
+          const e = ev as KubeEvent
+          const reason = e.reason ?? ''
+          const type = e.type ?? 'Normal'
+          const message = e.message ?? ''
+          const ts = e.lastTimestamp ?? e.eventTime ?? e.metadata?.creationTimestamp ?? ''
+          const objName = e.involvedObject?.name ?? ''
           const badgeClass = eventBadgeClass(type, reason)
 
           return (
