@@ -495,17 +495,8 @@ export default function LiveNodeDetailPanel({
               {extMeta?.selector != null && (
                 // GH #401: render selector as YAML, not compact JSON.
                 <div>
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>selector:</span>
-                  <pre style={{
-                    margin: '2px 0 0',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    background: 'var(--color-surface-3)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '4px 8px',
-                    overflowX: 'auto',
-                    whiteSpace: 'pre',
-                  }}>
+                  <span className="node-extref-selector-label">selector:</span>
+                  <pre className="node-extref-selector-pre">
                     {toYaml(extMeta.selector).trimEnd()}
                   </pre>
                 </div>

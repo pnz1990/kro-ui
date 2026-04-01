@@ -196,3 +196,23 @@
 .node-yaml-secret-toggle:hover {
   background: var(--color-primary-muted);
 }
+
+/* GH #401: external ref collection selector YAML block */
+.node-extref-selector-label {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.node-extref-selector-pre {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text);
+  background: var(--color-surface-3);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  overflow-x: auto;
+  white-space: pre;
+}
