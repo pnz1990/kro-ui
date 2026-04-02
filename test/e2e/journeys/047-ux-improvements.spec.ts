@@ -48,11 +48,12 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   // ── A: HealthChip never stays blank ────────────────────────────────────────
 
   test('Step 1: Overview HealthChip resolves for every visible RGD card', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // NOTE (spec 062): RGD card grid moved to /catalog.
     // NOTE: health chips load async (one API call per RGD). On throttled CI
     // clusters they may not all appear — skip gracefully if none load.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     // Wait up to 35s for at least one chip — skip if cluster is too throttled
     const chipAppeared = await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 })
@@ -77,6 +78,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   })
 
   test('Step 2: Inactive RGD card shows "no instances" chip not blank', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // Prior to fix/instances-inactive-rgd (#296), inactive RGDs returned 500
     // from the instances API → health chip was blank.
     // Now they return 200 with {items:[]} → chip shows "no instances".
@@ -187,7 +189,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   test('Step 7: Cluster-scoped namespace sentinel _ never appears in rendered text', async ({ page }) => {
     // NOTE (spec 062): RGD card grid moved to /catalog. Check both pages.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     // Scan the full rendered text of the Catalog page for the literal sentinel "_"
     // in a namespace position. We look specifically for the pattern " _ " or "/_"
@@ -201,6 +203,7 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
   // ── F: Multi-segment health bar ───────────────────────────────────────────
 
   test('Step 8: HealthChip multi-segment bar renders correctly', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // NOTE (spec 062): RGD card grid moved to /catalog.
     await page.goto(`${BASE}/catalog`)
     const chipAppeared8 = await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 })

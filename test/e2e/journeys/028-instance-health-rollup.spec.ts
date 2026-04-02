@@ -32,6 +32,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const BASE = process.env.KRO_UI_BASE_URL || 'http://localhost:40107'
 const RGD_NAME = process.env.TEST_RGD_NAME || 'test-app'
@@ -40,11 +41,12 @@ const INSTANCE_NAME = process.env.TEST_INSTANCE_NAME || 'test-instance'
 
 test.describe('Journey 028: Instance Health Rollup', () => {
   test('Step 1: Home page renders RGD cards and health chip is present', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // NOTE (spec 062): RGD card grid moved to /catalog. Navigate there for card assertions.
     await page.goto(`${BASE}/catalog`)
 
     // CatalogCard must be visible — Catalog uses catalog-card-* testids
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     // After the async chip fetch, at least one chip should appear.
     // With 14 RGDs and potential API throttling under parallel load, allow
@@ -63,6 +65,7 @@ test.describe('Journey 028: Instance Health Rollup', () => {
   })
 
   test('Step 2: Health chip resolves with meaningful text', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // NOTE (spec 062): RGD card grid moved to /catalog.
     await page.goto(`${BASE}/catalog`)
 

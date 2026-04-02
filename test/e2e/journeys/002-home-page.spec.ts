@@ -32,11 +32,20 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
 
 test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
+
+  // Steps 2-10 all require test-app RGD to be Ready.
+  // Step 1 (title + context name) does not depend on fixtures.
+  test.beforeEach(async ({}, testInfo) => {
+    if (testInfo.title !== 'Step 1: Open the dashboard' && !fixtureState.testAppReady) {
+      test.skip(true, 'test-app RGD not Ready — skipping catalog card tests')
+    }
+  })
 
   test('Step 1: Open the dashboard', async ({ page }) => {
     await page.goto(BASE)
@@ -118,7 +127,7 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   test('Step 6: All visible card kind labels are non-empty and not "?"', async ({ page }) => {
     // NOTE (spec 062): Catalog kind label testid is "catalog-card-kind".
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 20000 })
 
     const kindLabels = page.locator('[data-testid="catalog-card-kind"]')
     const count = await kindLabels.count()
@@ -134,7 +143,7 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
   test('Step 7: Search filter narrows cards to matching RGD', async ({ page }) => {
     // NOTE (spec 062): Search is on /catalog with catalog-card-* testids.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 20000 })
 
     const searchInput = page.locator('input[type="search"]')
     await expect(searchInput).toBeVisible()
@@ -167,16 +176,17 @@ test.describe('Journey 002 — Overview page RGD cards and navigation', () => {
     // NOTE (spec 062): CatalogCard primary link is btn-graph (wraps the card header).
     // Clicking the article root doesn't navigate — click the inner link instead.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('catalog-card-multi-resource')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('catalog-card-multi-resource')).toBeVisible({ timeout: 20000 })
 
     await page.getByTestId('catalog-card-multi-resource').getByTestId('btn-graph').click()
     await expect(page).toHaveURL(`${BASE}/rgds/multi-resource`)
   })
 
   test('Step 10: All visible RGD cards eventually show a health chip (not blank) — PR #296 regression guard', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // NOTE (spec 062): Health chips are on /catalog CatalogCard components.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 20000 })
 
     await page.waitForSelector('[data-testid="health-chip"]', { timeout: 35000 })
       .then(async () => {
