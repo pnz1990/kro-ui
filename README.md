@@ -15,7 +15,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 
 ## Features
 
-- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, multi-segment health chips (✗/⚠/↻ counts per state), controller metrics strip, terminating badges, debounced search, error count badges, **compile-error banner** (count of RGDs with compile errors + one-click error-only filter), and **health filter chips** synced to `?health=` URL (shareable/bookmarkable filtered views); virtualized for 5,000+ RGDs
+- **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, multi-segment health chips (✗/⚠/↻ counts per state), controller metrics strip, terminating badges, debounced search, error count badges, **compile-error banner** (count of RGDs with compile errors + one-click error-only filter), and **health filter chips** synced to `?health=` URL (shareable/bookmarkable filtered views); virtualized for 5,000+ RGDs; **SRE executive dashboard** — 7-widget single-cluster health view (fleet health summary, controller metrics, error patterns, reconciling count, degraded trends, event anomalies, top-failing RGDs) selectable via layout toggle
 - **Catalog page** (`/catalog`) — browsable RGD directory with search, label filter, **compile-status filter (All/Ready/Errors)**, sort controls, per-RGD instance counts, "Used by" chaining rows, and forEach collapse suggestions (optimization advisor)
 - **RGD static chaining graph** — detect and visualize chained RGD relationships; expand parent/child chains without a live cluster
 - **RGD detail** — nine tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate · Revisions
@@ -79,7 +79,7 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:v0.8.4
+  ghcr.io/pnz1990/kro-ui:v0.9.0
 # open http://localhost:40107
 ```
 
@@ -91,7 +91,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:v0.8.4
+  ghcr.io/pnz1990/kro-ui:v0.9.0
 # open http://localhost:40107
 ```
 
@@ -103,7 +103,7 @@ docker run -p 40107:40107 \
 
 ```bash
 helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
-  --version 0.8.4 \
+  --version 0.9.0 \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
@@ -124,6 +124,8 @@ All endpoints are read-only. No mutating k8s API calls are ever issued.
 | `/api/v1/rgds/{name}` | GET | Get single RGD |
 | `/api/v1/rgds/{name}/instances` | GET | List instances of an RGD |
 | `/api/v1/rgds/{name}/access` | GET | RBAC permission check for kro's service account (`?saNamespace=&saName=` for manual override) |
+| `/api/v1/rgds/validate` | POST | Online RGD validation (cluster-connected condition check) |
+| `/api/v1/rgds/validate/static` | POST | Offline static RGD analysis (no k8s API calls; GH #303) |
 | `/api/v1/instances` | GET | List all instances across all RGDs (fan-out, `?health=` filter) |
 | `/api/v1/instances/{ns}/{name}` | GET | Get instance detail |
 | `/api/v1/instances/{ns}/{name}/events` | GET | Instance events |
