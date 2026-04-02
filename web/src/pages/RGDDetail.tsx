@@ -515,7 +515,7 @@ export default function RGDDetail() {
       {/* Tab content */}
       <div className="rgd-tab-content">
         {activeTab === "graph" && (
-          <>
+          <div className="rgd-graph-column">
             {/* Issue #129: "refreshed X ago" indicator (constitution §XIII) */}
             {rgdLastFetched && (
               <div className="rgd-graph-refresh-hint" aria-live="polite">
@@ -593,7 +593,7 @@ export default function RGDDetail() {
                 onClose={() => setSelectedNodeId(null)}
               />
             )}
-          </>
+          </div>
         )}
 
         {activeTab === "instances" && (
