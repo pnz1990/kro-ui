@@ -18,7 +18,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 - **Overview page** (`/`) — operational health dashboard: RGD card grid with status dots, kind badges, resource count, age, multi-segment health chips (✗/⚠/↻ counts per state), controller metrics strip, terminating badges, debounced search, error count badges, **compile-error banner** (count of RGDs with compile errors + one-click error-only filter), and **health filter chips** synced to `?health=` URL (shareable/bookmarkable filtered views); virtualized for 5,000+ RGDs; **SRE executive dashboard** — 7-widget single-cluster health view (fleet health summary, controller metrics, error patterns, reconciling count, degraded trends, event anomalies, top-failing RGDs) selectable via layout toggle
 - **Catalog page** (`/catalog`) — browsable RGD directory with search, label filter, **compile-status filter (All/Ready/Errors)**, sort controls, per-RGD instance counts, "Used by" chaining rows, and forEach collapse suggestions (optimization advisor)
 - **RGD static chaining graph** — detect and visualize chained RGD relationships; expand parent/child chains without a live cluster
-- **RGD detail** — nine tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate · Revisions
+- **RGD detail** — nine tabs: Graph · Instances · Errors · YAML · Validation · Access · Docs · Generate · Revisions; **stat strip** (Age / Resources / Instances / Latest revision) below the header mirrors the instance telemetry panel; DAG rendered in a surface card matching the instance detail layout
   - **Graph tab** — interactive DAG with all managed resources, forEach collections, external refs, and `includeWhen` conditions; `readyWhen` CEL expressions and `forEach` cardinality badges (warnings at ≥900 items, error at 1000) on hover; instance overlay selector to visualize which nodes are active for a specific CR; "refreshed X ago" indicator
   - **Instances tab** — table of all CR instances with namespace filter, 6-state health badges (Ready/Degraded/Reconciling/Pending/Error/Unknown), health filter chips (synced to URL), fully-clickable rows, **instance spec diff** (select 2 rows to compare field-by-field), and links to live detail
   - **Errors tab** — cross-instance error aggregation: failures grouped by resource node with affected instance count, percentage, most common error message, and drill-down; `IN_PROGRESS` instances with `Ready=False` (stuck reconciling) are surfaced as actionable errors; genuinely transitioning instances (active `Progressing=True` condition) are skipped
@@ -79,7 +79,7 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:v0.9.0
+  ghcr.io/pnz1990/kro-ui:v0.9.1
 # open http://localhost:40107
 ```
 
@@ -91,7 +91,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:v0.9.0
+  ghcr.io/pnz1990/kro-ui:v0.9.1
 # open http://localhost:40107
 ```
 
@@ -103,7 +103,7 @@ docker run -p 40107:40107 \
 
 ```bash
 helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
-  --version 0.9.0 \
+  --version 0.9.1 \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
