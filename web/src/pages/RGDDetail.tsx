@@ -25,6 +25,7 @@ import InstanceOverlayBar from "@/components/InstanceOverlayBar"
 import RevisionsTab from "@/components/RevisionsTab"
 import type { PickerItem } from "@/components/InstanceOverlayBar"
 import { useCapabilities } from "@/lib/features"
+import RGDStatStrip from "@/components/RGDStatStrip"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
@@ -124,6 +125,17 @@ export default function RGDDetail() {
   const [instanceList, setInstanceList] = useState<K8sList | null>(null)
   const [instancesLoading, setInstancesLoading] = useState(false)
   const [instancesError, setInstancesError] = useState<string | null>(null)
+
+  // Eager instance count for the stat strip — fetched once when the RGD loads,
+  // not gated on the Instances tab being active. null=loading, undefined=failed.
+  const [eagerInstanceCount, setEagerInstanceCount] = useState<number | null | undefined>(null)
+  useEffect(() => {
+    if (!name) return
+    setEagerInstanceCount(null)
+    listInstances(name)
+      .then((data) => setEagerInstanceCount((data.items ?? []).length))
+      .catch(() => setEagerInstanceCount(undefined))
+  }, [name])
 
   // Fetch all instances (no namespace filter) when the Instances tab is active.
   // This provides the full list from which namespace options are derived (FR-003).
@@ -414,6 +426,13 @@ export default function RGDDetail() {
           </span>
         )}
       </div>
+
+      {/* Stat strip — Age / Resources / Instances / Latest revision */}
+      <RGDStatStrip
+        rgd={rgd}
+        instanceCount={eagerInstanceCount}
+        hasRevisions={hasRevisions}
+      />
 
       {/* Tab bar */}
       <div className="rgd-tab-bar" role="tablist">
