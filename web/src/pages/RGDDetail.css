@@ -136,12 +136,25 @@
 
 /* ── Graph tab ────────────────────────────────────────────────────────────── */
 
+/* Column wrapper: stacks the refresh hint above the graph area. */
+.rgd-graph-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Issue #129: "refreshed X ago" indicator (constitution §XIII). */
 .rgd-graph-refresh-hint {
   padding: 4px 32px;
   font-size: 11px;
   color: var(--color-text-faint);
-  text-align: right;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Inline resource complexity breakdown (e.g. "· 5 resources (2×Deployment, 2×HPA, ConfigMap)") */
@@ -150,6 +163,10 @@
   font-size: 11px;
   color: var(--color-text-faint);
   cursor: default;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .rgd-graph-area {
