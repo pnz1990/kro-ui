@@ -114,6 +114,27 @@ export default async function globalSetup() {
   ])
   console.log('[setup] kro installed')
 
+  // kro v0.9.0+: apply the GraphRevision CRD which lives in helm/crds/ (not
+  // helm/templates/) and is therefore NOT installed by `helm install`.
+  // Without it kro logs "CRD should be installed before calling Start" and
+  // lastIssuedRevision never appears in RGD status / hasGraphRevisions stays false.
+  console.log('[setup] Applying GraphRevision CRD (kro v0.9.0+)…')
+  try {
+    const crdYaml = execFileSync(
+      'curl',
+      ['-sL', `https://raw.githubusercontent.com/kubernetes-sigs/kro/v${kroVersion}/helm/crds/internal.kro.run_graphrevisions.yaml`],
+      { encoding: 'utf8', timeout: 15_000 }
+    )
+    if (crdYaml && !crdYaml.includes('404')) {
+      execFileSync('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', '-'], { input: crdYaml, encoding: 'utf8' })
+      console.log('[setup] GraphRevision CRD applied')
+    } else {
+      console.log('[setup] GraphRevision CRD not found for this kro version — skipping (pre-v0.9.0)')
+    }
+  } catch {
+    console.log('[setup] GraphRevision CRD apply skipped (pre-v0.9.0 cluster or network error)')
+  }
+
   // ── 3. Register additional kubeconfig contexts ───────────────────────────
   // Both contexts point at the same cluster — used by journey 007.
   console.log('[setup] Registering alternate kubeconfig contexts…')

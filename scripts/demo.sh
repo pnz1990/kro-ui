@@ -42,7 +42,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FIXTURES_DIR="${ROOT_DIR}/test/e2e/fixtures"
 BINARY="${ROOT_DIR}/bin/kro-ui"
 KUBECONFIG_PATH="${ROOT_DIR}/.demo-kubeconfig.yaml"
-FALLBACK_KRO_VERSION="0.8.5"
+FALLBACK_KRO_VERSION="0.9.0"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -108,18 +108,23 @@ fi
 KC=(kubectl --kubeconfig "${KUBECONFIG_PATH}")
 
 # ── 2. Install/upgrade kro via Helm ──────────────────────────────────────────
-# Use `helm upgrade --install` so re-running demo on an existing cluster is safe.
-if helm status kro --namespace kro-system --kubeconfig "${KUBECONFIG_PATH}" &>/dev/null; then
-  info "kro already installed — skipping Helm install (run 'helm upgrade kro …' to update)"
-else
-  info "Installing kro ${KRO_VERSION} via Helm…"
-  helm install kro oci://registry.k8s.io/kro/charts/kro \
-    --version "${KRO_VERSION}" \
-    --namespace kro-system --create-namespace \
-    --kubeconfig "${KUBECONFIG_PATH}" \
-    --wait --timeout 120s
-  ok "kro installed"
-fi
+# Use `helm upgrade --install` so re-running on an existing cluster upgrades kro.
+info "Installing/upgrading kro ${KRO_VERSION} via Helm…"
+helm upgrade --install kro oci://registry.k8s.io/kro/charts/kro \
+  --version "${KRO_VERSION}" \
+  --namespace kro-system --create-namespace \
+  --kubeconfig "${KUBECONFIG_PATH}" \
+  --wait --timeout 120s
+ok "kro ${KRO_VERSION} ready"
+
+# kro v0.9.0+: apply the GraphRevision CRD which lives in helm/crds/ (not
+# helm/templates/) and is therefore NOT installed by `helm upgrade`.
+# Without it kro logs "CRD should be installed before calling Start" and
+# lastIssuedRevision never appears in RGD status.
+info "Applying GraphRevision CRD (kro v0.9.0+)…"
+curl -sL "https://raw.githubusercontent.com/kubernetes-sigs/kro/v${KRO_VERSION}/helm/crds/internal.kro.run_graphrevisions.yaml" \
+  | kubectl --kubeconfig "${KUBECONFIG_PATH}" apply -f - 2>/dev/null \
+  || warn "GraphRevision CRD not available for kro v${KRO_VERSION} — skipping (pre-v0.9.0 cluster)"
 
 # ── 3. Create demo namespace ──────────────────────────────────────────────────
 info "Creating namespace '${NAMESPACE}'…"
