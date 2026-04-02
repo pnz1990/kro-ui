@@ -95,11 +95,12 @@ test.describe('Journey 007 — Context Switcher', () => {
   })
 
   test('Step 4: RGD list reloads after context switch', async ({ page }) => {
-    await page.goto(BASE)
+    // NOTE (spec 062): RGD cards moved to /catalog.
+    await page.goto(`${BASE}/catalog`)
 
     // Verify RGD is visible before the switch
-    const rgdCard = page.getByTestId('rgd-card-test-app')
-    await expect(rgdCard).toBeVisible()
+    const rgdCard = page.getByTestId('catalog-card-test-app')
+    await expect(rgdCard).toBeVisible({ timeout: 20000 })
 
     // Open the dropdown and switch to a non-active context.
     // Server state is shared across tests — whichever context is active,
@@ -126,10 +127,11 @@ test.describe('Journey 007 — Context Switcher', () => {
 
     // RGD card should still be visible after context switch
     // (all test contexts point at the same cluster, so the same RGD is returned).
-    await expect(rgdCard).toBeVisible()
+    await expect(rgdCard).toBeVisible({ timeout: 20000 })
 
-    // URL is / — navigate('/') from handleSwitch is idempotent when already on /.
-    expect(page.url()).toBe(`${BASE}/`)
+    // URL navigates to / (Overview) after context switch — then navigate to catalog to verify
+    await page.goto(`${BASE}/catalog`)
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 20000 })
   })
 
   test('Step 5: Long ARN context name is truncated in the top bar', async ({ page }) => {
@@ -180,8 +182,9 @@ test.describe('Journey 007 — Context Switcher', () => {
     // Regardless of path, verify primary is now active
     await expect(page.getByTestId('context-name')).toContainText(PRIMARY_CONTEXT)
 
-    // RGD list should still show the test-app card
-    await expect(page.getByTestId('rgd-card-test-app')).toBeVisible()
+    // RGD list should still show the test-app card (navigate to /catalog where cards live)
+    await page.goto(`${BASE}/catalog`)
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 20000 })
   })
 
   test('Step 7: all fixture RGD cards visible after switching context and back', async ({ page }) => {

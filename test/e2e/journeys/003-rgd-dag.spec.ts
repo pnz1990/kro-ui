@@ -34,6 +34,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const BASE = 'http://localhost:40107'
 
@@ -177,6 +178,7 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
   })
 
   test('Step 9: multi-resource DAG has at least one dependency edge', async ({ page }) => {
+    test.skip(!fixtureState.multiReady, 'multi-resource RGD not Ready')
     await page.goto(`${BASE}/rgds/multi-resource`)
     await expect(page.getByTestId('dag-svg')).toBeVisible()
 

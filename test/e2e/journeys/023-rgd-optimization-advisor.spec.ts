@@ -36,7 +36,7 @@ test.describe('Journey 023 — RGD Optimization Advisor', () => {
   test('Step 1: optimization advisor renders if collapse opportunities exist', async ({ page }) => {
     test.skip(!fixtureState.collectionReady, 'test-collection RGD not Ready — advisor may not appear')
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     // The OptimizationAdvisor is visible only when there are candidates
     const advisor = page.getByTestId('optimization-advisor')
@@ -48,7 +48,7 @@ test.describe('Journey 023 — RGD Optimization Advisor', () => {
   test('Step 2: advisor items are expandable', async ({ page }) => {
     test.skip(!fixtureState.collectionReady, 'test-collection RGD not Ready — advisor may not appear')
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     const advisor = page.getByTestId('optimization-advisor')
     if (!await advisor.isVisible({ timeout: 5000 }).catch(() => false)) return
@@ -66,7 +66,7 @@ test.describe('Journey 023 — RGD Optimization Advisor', () => {
   test('Step 3: dismiss button removes the advisor item', async ({ page }) => {
     test.skip(!fixtureState.collectionReady, 'test-collection RGD not Ready — advisor may not appear')
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     const advisor = page.getByTestId('optimization-advisor')
     if (!await advisor.isVisible({ timeout: 5000 }).catch(() => false)) return

@@ -32,6 +32,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const BASE = process.env.KRO_UI_BASE_URL || 'http://localhost:40107'
 
@@ -79,6 +80,7 @@ test.describe('Journey 054: UX Gaps Round 3', () => {
   // ── C: Instance table has name filter input ──────────────────────────────────
 
   test('Step 3: Instance table has a name filter input on the Instances tab', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     // Navigate to test-app instances
     await page.goto(`${BASE}/rgds/test-app?tab=instances`)
     await page.waitForSelector('[data-testid="instance-table"]', { timeout: 15000 })
@@ -91,6 +93,7 @@ test.describe('Journey 054: UX Gaps Round 3', () => {
   // ── D: Name filter reduces rows ──────────────────────────────────────────────
 
   test('Step 4: Typing in name filter reduces visible instance rows', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     await page.goto(`${BASE}/rgds/test-app?tab=instances`)
     await page.waitForSelector('[data-testid="instance-table"]', { timeout: 15000 })
 

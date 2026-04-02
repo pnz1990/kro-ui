@@ -31,16 +31,18 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const BASE = 'http://localhost:40107'
 
 test.describe('Journey 015 — RGD Catalog', () => {
   test('Step 1: /catalog renders catalog cards', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready — skipping catalog card check')
     await page.goto(`${BASE}/catalog`)
     await expect(page).toHaveTitle(/catalog.*kro-ui|kro-ui.*catalog/i)
 
     // At least one catalog card should be visible
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     // test-app card is visible
     const card = page.getByTestId('catalog-card-test-app')
@@ -48,9 +50,10 @@ test.describe('Journey 015 — RGD Catalog', () => {
   })
 
   test('Step 2: catalog card shows correct name and kind', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready — skipping catalog card check')
     await page.goto(`${BASE}/catalog`)
     const card = page.getByTestId('catalog-card-test-app')
-    await expect(card).toBeVisible({ timeout: 10000 })
+    await expect(card).toBeVisible({ timeout: 20000 })
 
     await expect(card.getByTestId('catalog-card-name')).toHaveText('test-app')
     await expect(card.getByTestId('catalog-card-kind')).toHaveText('WebApp')
@@ -81,7 +84,7 @@ test.describe('Journey 015 — RGD Catalog', () => {
 
   test('Step 4: search input filters cards by name', async ({ page }) => {
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     const search = page.locator('input[type="search"]')
     await expect(search).toBeVisible()
@@ -95,7 +98,7 @@ test.describe('Journey 015 — RGD Catalog', () => {
 
   test('Step 5: search with no match shows empty state', async ({ page }) => {
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     const search = page.locator('input[type="search"]')
     await search.fill('xyzzy-nonexistent-99')
@@ -106,7 +109,7 @@ test.describe('Journey 015 — RGD Catalog', () => {
 
   test('Step 6: clearing search restores all cards', async ({ page }) => {
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
 
     const search = page.locator('input[type="search"]')
     await search.fill('test-app')

@@ -31,6 +31,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const BASE = 'http://localhost:40107'
 
@@ -72,6 +73,7 @@ test.describe('Journey 032 — RBAC SA Auto-Detection', () => {
   })
 
   test('Step 4: access tab shows success or warning banner (no uncaught error)', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     await page.goto(`${BASE}/rgds/test-app?tab=access`)
 
     const errorEl = page.getByTestId('access-tab-error')

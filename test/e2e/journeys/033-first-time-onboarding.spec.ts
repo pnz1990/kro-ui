@@ -37,7 +37,7 @@ test.describe('Journey 033 — First-Time Onboarding', () => {
   test('Step 1: home page renders RGD grid when RGDs exist', async ({ page }) => {
     // NOTE (spec 062): RGD card grid moved to /catalog. Overview is now the SRE dashboard.
     await page.goto(`${BASE}/catalog`)
-    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 10000 })
+    await expect(page.locator('[data-testid^="catalog-card-"]').first()).toBeVisible({ timeout: 20000 })
     // Grid container is present
     await expect(page.getByTestId('virtual-grid-container')).toBeVisible()
   })

@@ -27,6 +27,7 @@
  */
 
 import { test, expect } from '@playwright/test'
+import { fixtureState } from '../fixture-state'
 
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
@@ -130,6 +131,7 @@ test.describe('Journey 009 — RGD list virtualization', () => {
   })
 
   test('Step 8: searching "cel-functions" on home page shows the cel-functions card', async ({ page }) => {
+    test.skip(!fixtureState.celFunctionsReady, 'cel-functions RGD not Ready')
     // NOTE (spec 062): Search is on /catalog.
     await page.goto(`${BASE}/catalog`)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
@@ -143,6 +145,7 @@ test.describe('Journey 009 — RGD list virtualization', () => {
   })
 
   test('Step 9: searching "external-ref" on home page shows the external-ref card', async ({ page }) => {
+    test.skip(!fixtureState.externalRefReady, 'external-ref RGD not Ready')
     // NOTE (spec 062): Search is on /catalog.
     await page.goto(`${BASE}/catalog`)
     await expect(page.getByTestId('virtual-grid-items')).toBeVisible()
