@@ -82,14 +82,29 @@ export default function RGDStatStrip({ rgd, instanceCount, hasRevisions }: RGDSt
     instanceCount > 0 ? 'alive' : 'muted'
 
   // ── Revisions ─────────────────────────────────────────────────────────
+  // kro v0.9.0 does not have status.lastIssuedRevision — the revision number
+  // is embedded in the GraphRevisionsResolved condition message:
+  //   "revision N compiled and active"
+  // Fall back to status.lastIssuedRevision for forward compatibility.
+  const conditions = (rgd.status as Record<string, unknown> | undefined)?.conditions
+  const grCondition = Array.isArray(conditions)
+    ? (conditions as Array<Record<string, unknown>>).find((c) => c.type === 'GraphRevisionsResolved')
+    : undefined
+  const grMessage = typeof grCondition?.message === 'string' ? grCondition.message : ''
+  const revFromCondition = grCondition?.status === 'True'
+    ? (grMessage.match(/^revision\s+(\d+)/i)?.[1] ?? null)
+    : null
   const rawRevision = (rgd.status as Record<string, unknown> | undefined)?.lastIssuedRevision
-  const lastRevision = typeof rawRevision === 'number' && rawRevision > 0 ? rawRevision : null
-  const revisionValue = !hasRevisions ? '—' : lastRevision !== null ? `#${lastRevision}` : '—'
-  const revisionTitle = !hasRevisions
-    ? 'GraphRevision requires kro v0.9.0+'
-    : lastRevision !== null
-      ? `Graph revision ${lastRevision} — most recently issued revision number from status.lastIssuedRevision`
-      : 'No revision issued yet'
+  const revFromStatus = typeof rawRevision === 'number' && rawRevision > 0 ? String(rawRevision) : null
+  const lastRevisionStr = revFromCondition ?? revFromStatus
+
+  const revisionValue = lastRevisionStr !== null ? `#${lastRevisionStr}` : (hasRevisions ? '—' : '—')
+  const revisionColor: StatCellProps['colorModifier'] = lastRevisionStr !== null ? 'alive' : 'muted'
+  const revisionTitle = lastRevisionStr !== null
+    ? `Graph revision ${lastRevisionStr} — ${grMessage || `status.lastIssuedRevision: ${lastRevisionStr}`}`
+    : hasRevisions
+      ? 'No revision issued yet'
+      : 'GraphRevision requires kro v0.9.0+'
 
   return (
     <div
@@ -120,7 +135,7 @@ export default function RGDStatStrip({ rgd, instanceCount, hasRevisions }: RGDSt
       <StatCell
         label="Latest revision"
         value={revisionValue}
-        colorModifier={lastRevision !== null && hasRevisions ? 'alive' : 'muted'}
+        colorModifier={revisionColor}
         testId="rgd-stat-revision"
         title={revisionTitle}
       />

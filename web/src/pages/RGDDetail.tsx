@@ -381,9 +381,20 @@ export default function RGDDetail() {
     ?.schema as Record<string, unknown> | undefined
   const isClusterScoped = (schemaObj?.scope as string | undefined) === 'Cluster'
 
-  // FR-050: lastIssuedRevision chip — shown when the value is a positive integer.
+  // FR-050: lastIssuedRevision chip — kro v0.9.0 surfaces the revision number
+  // in the GraphRevisionsResolved condition message ("revision N compiled and active"),
+  // not as status.lastIssuedRevision. Read from condition first, fall back to
+  // status.lastIssuedRevision for forward compat with future kro versions.
+  const rgdConditions = (rgd?.status as Record<string, unknown> | undefined)?.conditions
+  const grCond = Array.isArray(rgdConditions)
+    ? (rgdConditions as Array<Record<string, unknown>>).find((c) => c.type === 'GraphRevisionsResolved')
+    : undefined
+  const revFromCond = grCond?.status === 'True'
+    ? (String(grCond.message ?? '').match(/^revision\s+(\d+)/i)?.[1] ?? null)
+    : null
   const rawRevision = (rgd?.status as Record<string, unknown> | undefined)?.lastIssuedRevision
-  const lastIssuedRevision = typeof rawRevision === 'number' && rawRevision > 0 ? rawRevision : null
+  const revFromStatus = typeof rawRevision === 'number' && rawRevision > 0 ? String(rawRevision) : null
+  const lastIssuedRevision = revFromCond ?? revFromStatus
 
   return (
     <div className="rgd-detail">
