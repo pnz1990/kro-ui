@@ -36,6 +36,15 @@ import { fixtureState } from '../fixture-state'
 const BASE = 'http://localhost:40107'
 
 test.describe('Journey 015 — RGD Catalog', () => {
+
+  // All steps except infrastructure checks require at least one RGD to be Ready.
+  test.beforeEach(async ({}, testInfo) => {
+    if (!fixtureState.testAppReady) {
+      test.skip(true, 'test-app RGD not Ready — skipping catalog tests')
+    }
+    void testInfo
+  })
+
   test('Step 1: /catalog renders catalog cards', async ({ page }) => {
     test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready — skipping catalog card check')
     await page.goto(`${BASE}/catalog`)
@@ -60,6 +69,7 @@ test.describe('Journey 015 — RGD Catalog', () => {
   })
 
   test('Step 3: instance count resolves to a number or dash (not stuck at "…")', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     await page.goto(`${BASE}/catalog`)
     const card = page.getByTestId('catalog-card-test-app')
     await expect(card).toBeVisible({ timeout: 10000 })
