@@ -265,4 +265,5 @@ test.describe('Journey 007 — Context Switcher', () => {
       { timeout: 45000 }
     ).then(() => true).catch(() => false)
     if (!allCardsVisible) return // throttled cluster — skip without failing
+  })
 })

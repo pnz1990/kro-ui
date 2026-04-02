@@ -37,16 +37,14 @@ const BASE = 'http://localhost:40107'
 
 test.describe('Journey 015 — RGD Catalog', () => {
 
-  // All steps except infrastructure checks require at least one RGD to be Ready.
-  test.beforeEach(async ({}, testInfo) => {
+  // All steps require test-app RGD to be Ready.
+  test.beforeEach(() => {
     if (!fixtureState.testAppReady) {
       test.skip(true, 'test-app RGD not Ready — skipping catalog tests')
     }
-    void testInfo
   })
 
   test('Step 1: /catalog renders catalog cards', async ({ page }) => {
-    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready — skipping catalog card check')
     await page.goto(`${BASE}/catalog`)
     await expect(page).toHaveTitle(/catalog.*kro-ui|kro-ui.*catalog/i)
 
@@ -59,7 +57,6 @@ test.describe('Journey 015 — RGD Catalog', () => {
   })
 
   test('Step 2: catalog card shows correct name and kind', async ({ page }) => {
-    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready — skipping catalog card check')
     await page.goto(`${BASE}/catalog`)
     const card = page.getByTestId('catalog-card-test-app')
     await expect(card).toBeVisible({ timeout: 20000 })
@@ -69,7 +66,6 @@ test.describe('Journey 015 — RGD Catalog', () => {
   })
 
   test('Step 3: instance count resolves to a number or dash (not stuck at "…")', async ({ page }) => {
-    test.skip(!fixtureState.testAppReady, 'test-app RGD not Ready')
     await page.goto(`${BASE}/catalog`)
     const card = page.getByTestId('catalog-card-test-app')
     await expect(card).toBeVisible({ timeout: 10000 })
