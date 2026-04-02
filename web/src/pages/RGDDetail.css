@@ -141,7 +141,13 @@
   padding: 4px 32px;
   font-size: 11px;
   color: var(--color-text-faint);
-  text-align: right;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Inline resource complexity breakdown (e.g. "· 5 resources (2×Deployment, 2×HPA, ConfigMap)") */
@@ -150,6 +156,10 @@
   font-size: 11px;
   color: var(--color-text-faint);
   cursor: default;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .rgd-graph-area {
