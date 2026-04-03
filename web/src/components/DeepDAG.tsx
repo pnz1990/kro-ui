@@ -369,12 +369,24 @@ export default function DeepDAG({
           })}
         </g>
 
-        {/* Nodes */}
+        {/* Nodes — expanded nodes are sorted last so their foreignObject
+              panels paint on top of all sibling nodes (SVG uses DOM order
+              for paint order; z-index has no effect inside SVG). */}
         <g>
-          {graph.nodes.map((node) => {
+          {[...graph.nodes]
+            .sort((a, b) => {
+              const aExp = expansionMap.get(a.id)?.isExpanded ? 1 : 0
+              const bExp = expansionMap.get(b.id)?.isExpanded ? 1 : 0
+              return aExp - bExp
+            })
+            .map((node) => {
             const state = nodeStateForNode(node, nodeStateMap)
             const isSelected = node.id === selectedNodeId
-            const isKroNode = detectKroInstance(node.kind, rgds)
+            // Never expand the root CR (instance node) — it IS this instance,
+            // not a child resource of it. detectKroInstance would return true
+            // for the root kind (e.g. "AppPlatform") because the RGD exists,
+            // but clicking ▸ would then fail to find AppPlatform in children.
+            const isKroNode = node.nodeType !== 'instance' && detectKroInstance(node.kind, rgds)
             const expState = expansionMap.get(node.id)
 
             // Kro-managed CRD nodes → ExpandableNode
