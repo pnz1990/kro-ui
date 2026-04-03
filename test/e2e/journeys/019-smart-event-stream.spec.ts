@@ -53,8 +53,9 @@ test.describe('Journey 019 — Smart Event Stream', () => {
     await page.goto(`${BASE}/events`)
     await expect(page.getByTestId('events-page')).toBeVisible({ timeout: 10000 })
 
-    // Wait for the loading spinner to disappear
-    await expect(page.getByTestId('events-loading')).not.toBeVisible({ timeout: 15000 })
+    // Wait for the loading spinner to disappear — 30s to accommodate 5s/RGD fan-out
+    // on throttled CI clusters with 29+ RGDs (perRGDTimeout bumped 2s→5s in #428)
+    await expect(page.getByTestId('events-loading')).not.toBeVisible({ timeout: 30000 })
 
     // After load: either stream, grouped view, or empty state is shown — all valid
     const streamVisible = await page.getByTestId('events-stream').isVisible()
@@ -93,7 +94,7 @@ test.describe('Journey 019 — Smart Event Stream', () => {
   test('Step 6: anomaly banners are conditional — page does not crash without them', async ({ page }) => {
     await page.goto(`${BASE}/events`)
     await expect(page.getByTestId('events-page')).toBeVisible({ timeout: 10000 })
-    await expect(page.getByTestId('events-loading')).not.toBeVisible({ timeout: 15000 })
+    await expect(page.getByTestId('events-loading')).not.toBeVisible({ timeout: 30000 })
 
     // anomaly-banners is only rendered when anomalies.length > 0 (Events.tsx:266).
     // On a fresh kind cluster there are typically no anomalies — the absence is correct.
