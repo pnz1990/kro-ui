@@ -92,6 +92,13 @@ test.describe('Journey 009 — RGD list virtualization', () => {
 
     const gridItems = page.getByTestId('virtual-grid-items')
     await expect(gridItems).toBeVisible()
+
+    // Wait for at least 5 cards to be rendered before counting — the VirtualGrid
+    // may paint the container before cards are populated on slow CI runners.
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-testid^="catalog-card-"]').length >= 5,
+      { timeout: 15000 }
+    )
     const cardCount = await gridItems.locator('[data-testid^="catalog-card-"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(5)
     expect(cardCount).toBeLessThan(500)
@@ -118,13 +125,15 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     // NOTE (spec 062): VirtualGrid is on /catalog.
     await page.goto(`${BASE}/catalog`)
 
-    // Wait for at least 1 card — some fixture RGDs may not be ready under throttling
+    // Wait for at least 1 card — some fixture RGDs may not be ready under throttling.
+    // Use waitForFunction (not toBeVisible) because the count check comes right after.
     const hasCards = await page.waitForFunction(
       () => document.querySelectorAll('[data-testid^="catalog-card-"]').length >= 1,
       { timeout: 20000 }
     ).then(() => true).catch(() => false)
     if (!hasCards) { test.skip(true, 'No catalog cards rendered — fixture not ready'); return }
 
+    // Re-query after waitForFunction ensures cards are stable in the DOM
     const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="catalog-card-"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(1)
     expect(cardCount).toBeLessThan(500)

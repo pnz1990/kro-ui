@@ -90,11 +90,18 @@ export default function Home() {
     ]).then(([instances, rgds, metrics, caps, events]) => {
       if (ac.signal.aborted) return
 
+      // AbortError means fetchAll was intentionally re-triggered (e.g. polling
+      // interval fired while previous fetch was in-flight). This is NOT a data
+      // failure — treat aborted promises as fulfilled-with-no-data so they don't
+      // flip anyFailed and show the "Last attempt failed" banner. (#427 fix)
+      const isAbort = (r: PromiseRejectedResult) =>
+        r.reason instanceof DOMException && r.reason.name === 'AbortError'
+
       let anyFailed = false
 
       if (instances.status === 'fulfilled') {
         setInstancesState({ data: instances.value, loading: false, error: null })
-      } else {
+      } else if (!isAbort(instances)) {
         const msg = instances.reason instanceof Error ? instances.reason.message : String(instances.reason)
         setInstancesState(s => ({ ...s, loading: false, error: msg }))
         anyFailed = true
@@ -102,7 +109,7 @@ export default function Home() {
 
       if (rgds.status === 'fulfilled') {
         setRgdsState({ data: rgds.value, loading: false, error: null })
-      } else {
+      } else if (!isAbort(rgds)) {
         const msg = rgds.reason instanceof Error ? rgds.reason.message : String(rgds.reason)
         setRgdsState(s => ({ ...s, loading: false, error: msg }))
         anyFailed = true
@@ -110,7 +117,7 @@ export default function Home() {
 
       if (metrics.status === 'fulfilled') {
         setMetricsState({ data: metrics.value, loading: false, error: null })
-      } else {
+      } else if (!isAbort(metrics)) {
         const msg = metrics.reason instanceof Error ? metrics.reason.message : String(metrics.reason)
         setMetricsState(s => ({ ...s, loading: false, error: msg }))
         anyFailed = true
@@ -118,7 +125,7 @@ export default function Home() {
 
       if (caps.status === 'fulfilled') {
         setCapabilitiesState({ data: caps.value, loading: false, error: null })
-      } else {
+      } else if (!isAbort(caps)) {
         const msg = caps.reason instanceof Error ? caps.reason.message : String(caps.reason)
         setCapabilitiesState(s => ({ ...s, loading: false, error: msg }))
         anyFailed = true
@@ -126,7 +133,7 @@ export default function Home() {
 
       if (events.status === 'fulfilled') {
         setEventsState({ data: events.value, loading: false, error: null })
-      } else {
+      } else if (!isAbort(events)) {
         const msg = events.reason instanceof Error ? events.reason.message : String(events.reason)
         setEventsState(s => ({ ...s, loading: false, error: msg }))
         anyFailed = true
