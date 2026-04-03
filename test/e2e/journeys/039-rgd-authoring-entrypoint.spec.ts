@@ -69,7 +69,11 @@ test.describe('Journey 039 — RGD Designer Global Entrypoint', () => {
     // Type a search that matches nothing
     const search = page.locator('input[type="search"]')
     await search.fill('__no_match_xyzzy_039__')
-    await page.waitForTimeout(400)
+    // Wait for debounce to fire and empty state to appear (waitForTimeout replaced per AGENTS anti-pattern)
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="virtual-grid-container"] [role="status"]') !== null,
+      { timeout: 5000 }
+    ).catch(() => {}) // best-effort; toBeVisible below will fail with a clear message if absent
 
     // Empty state must be visible
     await expect(page.locator('[data-testid="virtual-grid-container"] [role="status"]')).toBeVisible({ timeout: 5000 })

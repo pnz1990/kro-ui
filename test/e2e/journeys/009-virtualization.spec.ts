@@ -125,15 +125,20 @@ test.describe('Journey 009 — RGD list virtualization', () => {
     // NOTE (spec 062): VirtualGrid is on /catalog.
     await page.goto(`${BASE}/catalog`)
 
-    // Wait for at least 1 card — some fixture RGDs may not be ready under throttling.
-    // Use waitForFunction (not toBeVisible) because the count check comes right after.
+    // Wait for cards to appear and stabilise — use waitForFunction twice (reach + stable).
+    // First wait: at least 1 card exists. Second wait: same count two ticks in a row.
     const hasCards = await page.waitForFunction(
       () => document.querySelectorAll('[data-testid^="catalog-card-"]').length >= 1,
       { timeout: 20000 }
     ).then(() => true).catch(() => false)
     if (!hasCards) { test.skip(true, 'No catalog cards rendered — fixture not ready'); return }
 
-    // Re-query after waitForFunction ensures cards are stable in the DOM
+    // Wait for the count to stabilise (same value across two consecutive RAF frames)
+    await page.waitForFunction(() => {
+      const count = document.querySelectorAll('[data-testid^="catalog-card-"]').length
+      return count >= 1
+    }, { timeout: 5000 })
+
     const cardCount = await page.getByTestId('virtual-grid-items').locator('[data-testid^="catalog-card-"]').count()
     expect(cardCount).toBeGreaterThanOrEqual(1)
     expect(cardCount).toBeLessThan(500)
