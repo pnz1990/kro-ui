@@ -228,6 +228,28 @@ export function buildNodeStateMap(
   ) {
     globalState = 'reconciling'
   }
+  // kro v0.9.0 dependency-waiting: when a template CEL expression references a
+  // dependency that isn't ready yet (e.g. vectordb.status.endpoint.address while RDS
+  // is provisioning), kro sets Ready=False + ResourcesReady=False with reason=NotReady
+  // and a message containing "waiting for node". This is NOT a graph error — it is
+  // normal reconciliation while a slow dependency (RDS, IAM, etc.) comes up.
+  // Without this check, every node shows red "Error" for the entire 8+ minutes it
+  // takes for an RDS instance to become available. (GH report by Carlos, fix #XXX)
+  if (globalState === 'error') {
+    const resourcesReadyCond = conditions.find((c) => c.type === 'ResourcesReady')
+    const msg = resourcesReadyCond?.message ?? ''
+    const reason = resourcesReadyCond?.reason ?? ''
+    // "waiting for node" appears when readyWhen is unmet OR when a template CEL
+    // expression references a not-yet-available dependency field.
+    // "NotReady" is the kro reason for both cases.
+    if (
+      reason === 'NotReady' ||
+      msg.includes('waiting for node') ||
+      msg.includes('waiting for readiness')
+    ) {
+      globalState = 'reconciling'
+    }
+  }
 
   const result: NodeStateMap = {}
 

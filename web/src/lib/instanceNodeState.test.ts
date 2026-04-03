@@ -87,6 +87,25 @@ function makeInstance(conditions: Array<{ type: string; status: string }>): K8sO
   }
 }
 
+/** makeInstanceRich — supports reason + message on conditions, for dependency-waiting tests. */
+function makeInstanceRich(
+  conditions: Array<{ type: string; status: string; reason?: string; message?: string }>,
+): K8sObject {
+  return {
+    metadata: { name: 'my-instance', namespace: 'default' },
+    spec: {},
+    status: {
+      conditions: conditions.map((c) => ({
+        type: c.type,
+        status: c.status,
+        reason: c.reason ?? 'SomeReason',
+        message: c.message ?? '',
+        lastTransitionTime: '2026-03-21T00:00:00Z',
+      })),
+    },
+  }
+}
+
 function makeNode(
   id: string,
   kind: string,
@@ -231,6 +250,72 @@ describe('buildNodeStateMap', () => {
     // Pure Ready=False (no Progressing/IN_PROGRESS) → globalState=error → child inherits
     const instance = makeInstance([{ type: 'Ready', status: 'False' }])
     const children = [makeChild('ConfigMap', 'my-configmap', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('error')
+  })
+
+  // ── T011g: dependency-waiting → reconciling not error (Carlos's report) ──
+
+  it('T011g: Ready=False + ResourcesReady NotReady "waiting for node" → globalState=reconciling, NOT error', () => {
+    // Scenario: dbcredentials references vectordb.status.endpoint.address which is
+    // empty while RDS is provisioning (8+ minutes). kro sets Ready=False with
+    // ResourcesReady.reason=NotReady and message "waiting for node vectordb".
+    // All children should show reconciling (amber), not error (red). (Carlos's report)
+    const instance = makeInstanceRich([
+      { type: 'ResourcesReady', status: 'False', reason: 'NotReady',
+        message: 'resource reconciliation failed: apply results contain errors: waiting for node "vectordb"' },
+      { type: 'Ready', status: 'False', reason: 'NotReady',
+        message: 'resource reconciliation failed: apply results contain errors: waiting for node "vectordb"' },
+    ])
+    const children = [
+      makeChild('ConfigMap', 'appnamespace', 'appnamespace'),
+      makeChild('Secret', 'dbcredentials', 'dbcredentials'),
+    ]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    // Both children should be judged on their own conditions (no error conditions → alive)
+    // NOT forced to 'error' because globalState is now 'reconciling'
+    expect(stateMap['appnamespace']?.state).toBe('alive')
+    expect(stateMap['dbcredentials']?.state).toBe('alive')
+  })
+
+  it('T011g: Ready=False + ResourcesReady NotReady "waiting for readiness" → reconciling', () => {
+    const instance = makeInstanceRich([
+      { type: 'ResourcesReady', status: 'False', reason: 'NotReady',
+        message: 'waiting for readiness of node "appConfig"' },
+      { type: 'Ready', status: 'False', reason: 'NotReady', message: '' },
+    ])
+    const children = [makeChild('ConfigMap', 'cfg', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('alive')
+  })
+
+  it('T011g: Ready=False + ResourcesReady reason=NotReady alone (no message) → reconciling', () => {
+    // reason=NotReady alone is sufficient — kro always uses this reason for waiting states
+    const instance = makeInstanceRich([
+      { type: 'ResourcesReady', status: 'False', reason: 'NotReady', message: '' },
+      { type: 'Ready', status: 'False', reason: 'NotReady', message: '' },
+    ])
+    const children = [makeChild('ConfigMap', 'cfg', 'appConfig')]
+
+    const stateMap = buildNodeStateMap(instance, children, [])
+
+    expect(stateMap['appConfig']?.state).toBe('alive')
+  })
+
+  it('T011g: Ready=False + ResourcesReady reason=ApplyFailed (genuine error) stays error', () => {
+    // ApplyFailed means kro couldn't apply the resource — a real problem, not waiting
+    const instance = makeInstanceRich([
+      { type: 'ResourcesReady', status: 'False', reason: 'ApplyFailed',
+        message: 'failed to apply resource: invalid field value' },
+      { type: 'Ready', status: 'False', reason: 'ApplyFailed', message: '' },
+    ])
+    const children = [makeChild('ConfigMap', 'cfg', 'appConfig')]
 
     const stateMap = buildNodeStateMap(instance, children, [])
 
