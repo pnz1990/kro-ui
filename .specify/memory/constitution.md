@@ -33,6 +33,9 @@ concepts with zero or minimal code changes.
 - No kro API field paths (e.g., `spec.resources[].id`) may be hardcoded outside
   of a single, isolated `internal/k8s/rgd.go` mapping file
   (CA-01: previous text said `internal/kro/` which does not exist)
+  **Exemption**: `internal/validate/` (the offline static YAML validator) may
+  access kro field paths directly because it operates on user-submitted YAML,
+  never on live cluster objects — the dynamic client is not involved. (#421)
 - **Only upstream features** (`kubernetes-sigs/kro`) are enabled by default.
   Fork-only concepts (`specPatch`, `stateFields`) MUST NOT appear in any spec,
   component, or UI label.

@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react'
 import type { K8sObject } from '@/lib/api'
-import { formatAge, extractResourceCount, extractCreationTimestamp } from '@/lib/format'
+import { formatAge, extractResourceCount, extractCreationTimestamp, extractLastRevision } from '@/lib/format'
 import './RGDStatStrip.css'
 
 // ── Props ─────────────────────────────────────────────────────────────────
@@ -82,26 +82,13 @@ export default function RGDStatStrip({ rgd, instanceCount, hasRevisions }: RGDSt
     instanceCount > 0 ? 'alive' : 'muted'
 
   // ── Revisions ─────────────────────────────────────────────────────────
-  // kro v0.9.0 does not have status.lastIssuedRevision — the revision number
-  // is embedded in the GraphRevisionsResolved condition message:
-  //   "revision N compiled and active"
-  // Fall back to status.lastIssuedRevision for forward compatibility.
-  const conditions = (rgd.status as Record<string, unknown> | undefined)?.conditions
-  const grCondition = Array.isArray(conditions)
-    ? (conditions as Array<Record<string, unknown>>).find((c) => c.type === 'GraphRevisionsResolved')
-    : undefined
-  const grMessage = typeof grCondition?.message === 'string' ? grCondition.message : ''
-  const revFromCondition = grCondition?.status === 'True'
-    ? (grMessage.match(/^revision\s+(\d+)/i)?.[1] ?? null)
-    : null
-  const rawRevision = (rgd.status as Record<string, unknown> | undefined)?.lastIssuedRevision
-  const revFromStatus = typeof rawRevision === 'number' && rawRevision > 0 ? String(rawRevision) : null
-  const lastRevisionStr = revFromCondition ?? revFromStatus
+  // Shared extractLastRevision() handles all kro version compat. (#413)
+  const lastRevisionStr = extractLastRevision(rgd)
 
-  const revisionValue = lastRevisionStr !== null ? `#${lastRevisionStr}` : (hasRevisions ? '—' : '—')
+  const revisionValue = lastRevisionStr !== null ? `#${lastRevisionStr}` : '—'
   const revisionColor: StatCellProps['colorModifier'] = lastRevisionStr !== null ? 'alive' : 'muted'
   const revisionTitle = lastRevisionStr !== null
-    ? `Graph revision ${lastRevisionStr} — ${grMessage || `status.lastIssuedRevision: ${lastRevisionStr}`}`
+    ? `Graph revision ${lastRevisionStr} — most recently compiled revision`
     : hasRevisions
       ? 'No revision issued yet'
       : 'GraphRevision requires kro v0.9.0+'

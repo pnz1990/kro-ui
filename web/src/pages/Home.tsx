@@ -86,7 +86,7 @@ export default function Home() {
       listRGDs(),
       getControllerMetrics(),
       getCapabilities(),
-      listEvents(),
+      listEvents(undefined, undefined, sig),
     ]).then(([instances, rgds, metrics, caps, events]) => {
       if (ac.signal.aborted) return
 
@@ -310,7 +310,7 @@ function MetricsWidget({ metrics, kroVersion }: MetricsWidgetProps) {
       <Cell label="Queue depth (kro)" value={metrics?.queueDepth} title="Reconciliation requests in kro's work queue" />
       <Cell label="Queue depth (client-go)" value={metrics?.workqueueDepth} title="Events in the client-go work queue" />
       {kroVersion && kroVersion !== 'unknown' && (
-        <div className="home__metrics-version">kro v{kroVersion}</div>
+        <div className="home__metrics-version">kro {kroVersion}</div>
       )}
     </div>
   )

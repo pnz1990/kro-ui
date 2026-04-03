@@ -30,8 +30,8 @@ var eventsGVR = schema.GroupVersionResource{Group: "", Version: "v1", Resource: 
 
 // perRGDTimeout is the per-RGD deadline for the instance-list fan-out in
 // buildRelevantUIDs. Constitution §XI: fan-out list operations must use a
-// per-resource timeout of 2 seconds.
-const perRGDTimeout = 2 * time.Second
+// per-goroutine timeout of 5 seconds (same as ListAllInstances — see PR #352).
+const perRGDTimeout = 5 * time.Second
 
 // ListEvents returns Kubernetes Events filtered to kro-relevant objects.
 //

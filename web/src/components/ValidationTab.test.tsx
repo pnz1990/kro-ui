@@ -30,12 +30,21 @@ function makeRGD(
   }
 }
 
-/** Standard "all passing" condition set (kro v0.4+ condition type names). */
+/** Standard "all passing" condition set — kro v0.9.0 names. */
 const allTrueConditions = [
-  { type: 'ResourceGraphAccepted', status: 'True',  reason: 'ResourceGraphAccepted', message: '' },
-  { type: 'KindReady',             status: 'True',  reason: 'KindReady',             message: '' },
-  { type: 'ControllerReady',       status: 'True',  reason: 'ControllerReady',       message: '' },
-  { type: 'Ready',                 status: 'True',  reason: 'Ready',                 message: '' },
+  { type: 'GraphAccepted',          status: 'True', reason: 'GraphAccepted',          message: '' },
+  { type: 'GraphRevisionsResolved', status: 'True', reason: 'GraphRevisionsResolved', message: '' },
+  { type: 'KindReady',              status: 'True', reason: 'KindReady',              message: '' },
+  { type: 'ControllerReady',        status: 'True', reason: 'ControllerReady',        message: '' },
+  { type: 'Ready',                  status: 'True', reason: 'Ready',                  message: '' },
+]
+
+/** kro v0.8.x condition set — ResourceGraphAccepted instead of GraphAccepted. */
+const allTrueConditionsV8 = [
+  { type: 'ResourceGraphAccepted', status: 'True', reason: 'ResourceGraphAccepted', message: '' },
+  { type: 'KindReady',             status: 'True', reason: 'KindReady',             message: '' },
+  { type: 'ControllerReady',       status: 'True', reason: 'ControllerReady',       message: '' },
+  { type: 'Ready',                 status: 'True', reason: 'Ready',                 message: '' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -50,11 +59,11 @@ describe('ValidationTab', () => {
 
   // ── SC-001 / FR-002: Green checkmarks for True conditions ──────────────
 
-  it('shows green checkmark (✓) and "Passed" for True conditions', () => {
+  it('shows green checkmark (✓) and "Passed" for True conditions (kro v0.9.0)', () => {
     renderValidationTab(makeRGD(allTrueConditions))
 
-    // All four known condition items should be rendered
-    const graphItem = screen.getByTestId('condition-item-ResourceGraphAccepted')
+    // v0.9.0 primary condition: GraphAccepted
+    const graphItem = screen.getByTestId('condition-item-GraphAccepted')
     expect(graphItem).toBeInTheDocument()
     expect(graphItem).toHaveClass('condition-item--true')
     expect(graphItem).toHaveTextContent('✓')
@@ -63,6 +72,19 @@ describe('ValidationTab', () => {
     const readyItem = screen.getByTestId('condition-item-Ready')
     expect(readyItem).toHaveClass('condition-item--true')
     expect(readyItem).toHaveTextContent('✓')
+  })
+
+  it('shows green checkmark (✓) for True conditions (kro v0.8.x — ResourceGraphAccepted)', () => {
+    renderValidationTab(makeRGD(allTrueConditionsV8))
+
+    // v0.8.x primary condition: ResourceGraphAccepted (omitIfAbsent — shown when present)
+    const graphItem = screen.getByTestId('condition-item-ResourceGraphAccepted')
+    expect(graphItem).toBeInTheDocument()
+    expect(graphItem).toHaveClass('condition-item--true')
+    expect(graphItem).toHaveTextContent('✓')
+
+    const readyItem = screen.getByTestId('condition-item-Ready')
+    expect(readyItem).toHaveClass('condition-item--true')
   })
 
   // ── SC-002 / FR-002: Red X for False conditions with error message ──────
@@ -89,20 +111,22 @@ describe('ValidationTab', () => {
   // ── FR-002: "Not reported" for absent conditions (kro version doesn't emit them) ──
 
   it('shows "Not reported" (–) with condition-item--absent for absent conditions', () => {
-    // RGD with NO conditions — all four known types should show as "Not reported",
-    // not "Pending". This kro version simply doesn't emit those condition types.
+    // RGD with NO conditions — v0.9.0 types (GraphAccepted etc.) show as "Not reported".
+    // ResourceGraphAccepted has omitIfAbsent=true so it is silently omitted.
     // See: https://github.com/pnz1990/kro-ui/issues/59
     renderValidationTab(makeRGD([]))
 
-    for (const type of ['ResourceGraphAccepted', 'KindReady', 'ControllerReady', 'Ready']) {
+    for (const type of ['GraphAccepted', 'GraphRevisionsResolved', 'KindReady', 'ControllerReady', 'Ready']) {
       const item = screen.getByTestId(`condition-item-${type}`)
       expect(item).toHaveClass('condition-item--absent')
       expect(item).toHaveTextContent('–')
       expect(item).toHaveTextContent('Not reported')
-      // Should NOT look like the controller is stuck
       expect(item).not.toHaveTextContent('Pending')
       expect(item).not.toHaveClass('condition-item--pending')
     }
+
+    // ResourceGraphAccepted should NOT appear when absent (omitIfAbsent=true)
+    expect(screen.queryByTestId('condition-item-ResourceGraphAccepted')).toBeNull()
   })
 
   it('shows "Pending" (○) for conditions that ARE present but have status Unknown', () => {

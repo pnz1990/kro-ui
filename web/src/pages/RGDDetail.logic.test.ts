@@ -1,15 +1,22 @@
 // RGDDetail.logic.test.ts — Pure logic tests for RGDDetail derived values.
 // T032: lastIssuedRevision chip logic (spec 046-kro-v090-upgrade)
+// T032b: extractLastRevision from @/lib/format — condition-message parsing (#416)
 //
 // These tests do NOT use React rendering (no document dependency),
 // making them immune to the jsdom environment issues in RGDDetail.test.tsx.
 
 import { describe, it, expect } from 'vitest'
+import { extractLastRevision } from '@/lib/format'
+import type { K8sObject } from '@/lib/api'
 
-// Inline the extraction logic (mirrors RGDDetail.tsx exactly).
-function extractRevision(rgd: Record<string, unknown>): number | null {
-  const rawRevision = (rgd?.status as Record<string, unknown> | undefined)?.lastIssuedRevision
-  return typeof rawRevision === 'number' && rawRevision > 0 ? rawRevision : null
+// ── helpers ───────────────────────────────────────────────────────────────
+
+function makeRgd(status: Record<string, unknown>): K8sObject {
+  return { metadata: {}, status } as unknown as K8sObject
+}
+
+function makeCondition(type: string, status: string, message = '') {
+  return { type, status, message }
 }
 
 // Inline scope extraction logic (mirrors RGDDetail.tsx exactly).
@@ -19,28 +26,74 @@ function extractIsClusterScoped(rgd: Record<string, unknown>): boolean {
   return (schemaObj?.scope as string | undefined) === 'Cluster'
 }
 
-describe('lastIssuedRevision extraction (T032)', () => {
-  it('returns positive number when lastIssuedRevision is > 0', () => {
-    expect(extractRevision({ status: { lastIssuedRevision: 3 } })).toBe(3)
-    expect(extractRevision({ status: { lastIssuedRevision: 1 } })).toBe(1)
-    expect(extractRevision({ status: { lastIssuedRevision: 100 } })).toBe(100)
+// ── extractLastRevision — condition-message path (kro v0.9.0) ────────────
+
+describe('extractLastRevision — condition-message path (kro v0.9.0, T032b / #416)', () => {
+  it('extracts revision number from GraphRevisionsResolved condition message', () => {
+    const rgd = makeRgd({
+      conditions: [makeCondition('GraphRevisionsResolved', 'True', 'revision 1 compiled and active')],
+    })
+    expect(extractLastRevision(rgd)).toBe('1')
+  })
+
+  it('extracts multi-digit revision numbers', () => {
+    const rgd = makeRgd({
+      conditions: [makeCondition('GraphRevisionsResolved', 'True', 'revision 42 compiled and active')],
+    })
+    expect(extractLastRevision(rgd)).toBe('42')
+  })
+
+  it('is case-insensitive for the "revision" keyword', () => {
+    const rgd = makeRgd({
+      conditions: [makeCondition('GraphRevisionsResolved', 'True', 'Revision 5 compiled and active')],
+    })
+    expect(extractLastRevision(rgd)).toBe('5')
+  })
+
+  it('returns null when GraphRevisionsResolved status is not True', () => {
+    const rgd = makeRgd({
+      conditions: [makeCondition('GraphRevisionsResolved', 'Unknown', 'awaiting reconciliation')],
+    })
+    expect(extractLastRevision(rgd)).toBeNull()
+  })
+
+  it('returns null when GraphRevisionsResolved condition is absent', () => {
+    const rgd = makeRgd({ conditions: [makeCondition('KindReady', 'True')] })
+    expect(extractLastRevision(rgd)).toBeNull()
+  })
+})
+
+describe('extractLastRevision — status.lastIssuedRevision fallback', () => {
+  it('falls back to status.lastIssuedRevision when condition absent', () => {
+    const rgd = makeRgd({ lastIssuedRevision: 3 })
+    expect(extractLastRevision(rgd)).toBe('3')
+  })
+
+  it('prefers condition over status.lastIssuedRevision', () => {
+    const rgd = makeRgd({
+      conditions: [makeCondition('GraphRevisionsResolved', 'True', 'revision 7 compiled and active')],
+      lastIssuedRevision: 3,
+    })
+    expect(extractLastRevision(rgd)).toBe('7')
   })
 
   it('returns null when lastIssuedRevision is 0 (chip absent per §XII)', () => {
-    expect(extractRevision({ status: { lastIssuedRevision: 0 } })).toBeNull()
-  })
-
-  it('returns null when lastIssuedRevision is absent (pre-v0.9.0 cluster)', () => {
-    expect(extractRevision({ status: {} })).toBeNull()
-    expect(extractRevision({})).toBeNull()
+    expect(extractLastRevision(makeRgd({ lastIssuedRevision: 0 }))).toBeNull()
   })
 
   it('returns null when lastIssuedRevision is non-numeric (graceful degradation §XII)', () => {
-    expect(extractRevision({ status: { lastIssuedRevision: 'three' } })).toBeNull()
-    expect(extractRevision({ status: { lastIssuedRevision: null } })).toBeNull()
-    expect(extractRevision({ status: { lastIssuedRevision: false } })).toBeNull()
+    expect(extractLastRevision(makeRgd({ lastIssuedRevision: 'three' }))).toBeNull()
+    expect(extractLastRevision(makeRgd({ lastIssuedRevision: null }))).toBeNull()
+    expect(extractLastRevision(makeRgd({ lastIssuedRevision: false }))).toBeNull()
+  })
+
+  it('returns null when status is empty', () => {
+    expect(extractLastRevision(makeRgd({}))).toBeNull()
+    expect(extractLastRevision({ metadata: {} } as unknown as K8sObject)).toBeNull()
   })
 })
+
+// ── isClusterScoped extraction (T022 / FR-020) ────────────────────────────
 
 describe('isClusterScoped extraction (T022 / FR-020)', () => {
   it('returns true when spec.schema.scope === "Cluster"', () => {

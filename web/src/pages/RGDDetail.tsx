@@ -5,7 +5,7 @@ import type { K8sObject, K8sList } from "@/lib/api"
 import { translateApiError } from "@/lib/errors"
 import { toYaml, cleanK8sObject } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
-import { extractRGDKind, extractReadyStatus } from "@/lib/format"
+import { extractRGDKind, extractReadyStatus, extractLastRevision } from "@/lib/format"
 import { buildNodeStateMap } from "@/lib/instanceNodeState"
 import type { NodeStateMap } from "@/lib/instanceNodeState"
 import { usePageTitle } from "@/hooks/usePageTitle"
@@ -128,13 +128,20 @@ export default function RGDDetail() {
 
   // Eager instance count for the stat strip — fetched once when the RGD loads,
   // not gated on the Instances tab being active. null=loading, undefined=failed.
+  // AbortController ensures no setState-after-unmount if user navigates away. #411
   const [eagerInstanceCount, setEagerInstanceCount] = useState<number | null | undefined>(null)
   useEffect(() => {
     if (!name) return
+    const ac = new AbortController()
     setEagerInstanceCount(null)
     listInstances(name)
-      .then((data) => setEagerInstanceCount((data.items ?? []).length))
-      .catch(() => setEagerInstanceCount(undefined))
+      .then((data) => {
+        if (!ac.signal.aborted) setEagerInstanceCount((data.items ?? []).length)
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setEagerInstanceCount(undefined)
+      })
+    return () => ac.abort()
   }, [name])
 
   // Fetch all instances (no namespace filter) when the Instances tab is active.
@@ -381,20 +388,8 @@ export default function RGDDetail() {
     ?.schema as Record<string, unknown> | undefined
   const isClusterScoped = (schemaObj?.scope as string | undefined) === 'Cluster'
 
-  // FR-050: lastIssuedRevision chip — kro v0.9.0 surfaces the revision number
-  // in the GraphRevisionsResolved condition message ("revision N compiled and active"),
-  // not as status.lastIssuedRevision. Read from condition first, fall back to
-  // status.lastIssuedRevision for forward compat with future kro versions.
-  const rgdConditions = (rgd?.status as Record<string, unknown> | undefined)?.conditions
-  const grCond = Array.isArray(rgdConditions)
-    ? (rgdConditions as Array<Record<string, unknown>>).find((c) => c.type === 'GraphRevisionsResolved')
-    : undefined
-  const revFromCond = grCond?.status === 'True'
-    ? (String(grCond.message ?? '').match(/^revision\s+(\d+)/i)?.[1] ?? null)
-    : null
-  const rawRevision = (rgd?.status as Record<string, unknown> | undefined)?.lastIssuedRevision
-  const revFromStatus = typeof rawRevision === 'number' && rawRevision > 0 ? String(rawRevision) : null
-  const lastIssuedRevision = revFromCond ?? revFromStatus
+  // FR-050: lastIssuedRevision chip — extracted via shared extractLastRevision() (#413).
+  const lastIssuedRevision = rgd ? extractLastRevision(rgd) : null
 
   return (
     <div className="rgd-detail">

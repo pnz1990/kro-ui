@@ -143,12 +143,12 @@ export const getGraphRevision = (name: string) =>
 
 // ── Events ───────────────────────────────────────────────────────────
 
-export const listEvents = (namespace?: string, rgd?: string) => {
+export const listEvents = (namespace?: string, rgd?: string, options?: { signal?: AbortSignal }) => {
   const params = new URLSearchParams()
   if (namespace) params.set('namespace', namespace)
   if (rgd) params.set('rgd', rgd)
   const qs = params.toString() ? '?' + params.toString() : ''
-  return get<K8sList>(`/events${qs}`)
+  return get<K8sList>(`/events${qs}`, options)
 }
 
 // ── Raw resource ─────────────────────────────────────────────────────

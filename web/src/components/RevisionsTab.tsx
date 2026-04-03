@@ -19,7 +19,7 @@
 // age, and compilation result.
 //
 // GH #13 (spec 009): Select 2 revisions to show a side-by-side YAML diff
-// (foundation for full graph diff once GraphRevision CRD is available in CI).
+// (side-by-side YAML diff is the remaining deliverable for spec 009).
 //
 // Spec ref: .specify/specs/046-kro-v090-upgrade/ (Phase 4 — Graph Revisions tab)
 // GH #274: kro v0.9.0 upgrade — Graph Revisions tab
@@ -43,7 +43,12 @@ function revisionNumber(rev: K8sObject): number {
   return typeof spec?.revision === 'number' ? spec.revision : 0
 }
 
-/** Extract the compiled state from a GraphRevision status. */
+/** Extract the compiled state from a GraphRevision status.
+ *
+ * Condition type mapping by kro version:
+ *   kro v0.9.0+: GraphVerified (status=True → compiled)
+ *   kro v0.8.x:  ResourceGraphAccepted (status=True → compiled)
+ */
 function revisionState(rev: K8sObject): 'compiled' | 'failed' | 'unknown' {
   const status = rev.status as Record<string, unknown> | undefined
   if (!status) return 'unknown'
@@ -53,11 +58,17 @@ function revisionState(rev: K8sObject): 'compiled' | 'failed' | 'unknown' {
     if (lower.includes('fail') || lower.includes('invalid') || lower.includes('error')) return 'failed'
     if (lower.includes('compil') || lower.includes('success') || lower.includes('active')) return 'compiled'
   }
-  // Check conditions: ResourceGraphAccepted=True → compiled
+  // Check conditions — accept both v0.9.0 (GraphVerified) and v0.8.x (ResourceGraphAccepted)
   const conditions = status.conditions
   if (Array.isArray(conditions)) {
     for (const c of conditions as Array<Record<string, unknown>>) {
-      if (c.type === 'ResourceGraphAccepted') {
+      if (c.type === 'GraphVerified' || c.type === 'ResourceGraphAccepted') {
+        return c.status === 'True' ? 'compiled' : 'failed'
+      }
+    }
+    // Fallback: Ready=True on the GraphRevision also means compiled
+    for (const c of conditions as Array<Record<string, unknown>>) {
+      if (c.type === 'Ready') {
         return c.status === 'True' ? 'compiled' : 'failed'
       }
     }
@@ -65,14 +76,18 @@ function revisionState(rev: K8sObject): 'compiled' | 'failed' | 'unknown' {
   return 'unknown'
 }
 
-/** Get the compilation error message if the revision failed. */
+/** Get the compilation error message if the revision failed.
+ * Checks both kro v0.9.0 (GraphVerified) and v0.8.x (ResourceGraphAccepted). */
 function revisionError(rev: K8sObject): string {
   const status = rev.status as Record<string, unknown> | undefined
   if (!status) return ''
   const conditions = status.conditions
   if (!Array.isArray(conditions)) return ''
   for (const c of conditions as Array<Record<string, unknown>>) {
-    if (c.type === 'ResourceGraphAccepted' && c.status === 'False') {
+    if (
+      (c.type === 'GraphVerified' || c.type === 'ResourceGraphAccepted') &&
+      c.status === 'False'
+    ) {
       return typeof c.message === 'string' ? c.message : ''
     }
   }

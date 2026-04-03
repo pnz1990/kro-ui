@@ -25,7 +25,7 @@ vi.mock('@/lib/api', () => ({
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function makeCapabilities(version = '0.9.0'): KroCapabilities {
+function makeCapabilities(version = 'v0.9.0'): KroCapabilities {
   return {
     version, apiVersion: 'kro.run/v1alpha1', featureGates: {},
     knownResources: [], isSupported: true,

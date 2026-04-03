@@ -347,7 +347,41 @@ export function extractCreationTimestamp(obj: K8sObject): string {
   return typeof ts === 'string' ? ts : ''
 }
 
-// ── Context name abbreviation ─────────────────────────────────────────
+// ── kro v0.9.0 GraphRevisions ─────────────────────────────────────────
+
+/**
+ * extractLastRevision — reads the latest graph revision number from an RGD.
+ *
+ * kro v0.9.0 surfaces the revision in the GraphRevisionsResolved condition
+ * message: "revision N compiled and active". Older kro versions used
+ * status.lastIssuedRevision (number) which is checked as a fallback.
+ *
+ * Returns the revision as a string (e.g. "1") or null if unavailable.
+ */
+export function extractLastRevision(obj: K8sObject): string | null {
+  const status = obj.status as Record<string, unknown> | undefined
+  if (!status) return null
+
+  // kro v0.9.0+: read from GraphRevisionsResolved condition message
+  const conditions = status.conditions
+  if (Array.isArray(conditions)) {
+    const grCond = (conditions as Array<Record<string, unknown>>).find(
+      (c) => c.type === 'GraphRevisionsResolved',
+    )
+    if (grCond?.status === 'True') {
+      const match = String(grCond.message ?? '').match(/^revision\s+(\d+)/i)
+      if (match) return match[1]
+    }
+  }
+
+  // Fallback: status.lastIssuedRevision (future kro versions)
+  const raw = status.lastIssuedRevision
+  if (typeof raw === 'number' && raw > 0) return String(raw)
+
+  return null
+}
+
+
 
 /**
  * Abbreviate a kubeconfig context name for display.

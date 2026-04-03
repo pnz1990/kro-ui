@@ -59,7 +59,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `021-collection-node-cardinality` | #81 | forEach cardinality badge and expression on DAG nodes | Merged (PR #81) |
 | `025-rgd-static-chain-graph` | #82 | RGD static chaining graph — detect, expand, navigate | Merged (PR #82) |
 | `021-readywhen-cel-dag` | #83 | Surface readyWhen CEL expressions on DAG nodes | Merged (PR #83) |
-| `009-rgd-graph-diff` | #13 | RGD graph revision diff | Unblocked (kro v0.9.0 ships GraphRevision CRD) |
+| `009-rgd-graph-diff` | #13 | RGD graph revision diff | In Progress (foundation in RevisionsTab; side-by-side YAML diff pending) |
 | `027-instance-telemetry-panel` | — | Per-instance telemetry panel (age, state, children health) | Merged (PR #134) |
 | `030-error-patterns-tab` | — | Cross-instance error aggregation — Errors tab on RGD detail | Merged (PR #135) |
 | `028-instance-health-rollup` | — | Instance health roll-up — 5-state badges, error count on cards | Merged (PR #136) |
@@ -125,6 +125,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `fix/fleet-kro-version` | — | Fleet kro version from RGD annotation — avoids DetectCapabilities delay | Merged (PR #355) |
 | `069-overview-rgd-error-banner` | — | Overview RGD compile-error banner — count + error-only filter toggle | Merged (PR #356) |
 | `070-catalog-status-filter` | — | Catalog compile-status filter — All / Ready / Errors toggle | Merged (PR #357) |
+| `062-overview-sre-dashboard` | — | Overview SRE executive dashboard — 7-widget single-cluster health view (fleet health summary, controller metrics, error patterns, reconciling count, degraded trends, event anomalies, top-failing RGDs) | Merged (PR #405) |
 
 ### Worktrunk (required workflow)
 
@@ -293,7 +294,7 @@ SKIP_KIND_DELETE=true make test-e2e  # keep cluster for iteration
 ```
 
 Fixtures: `test/e2e/fixtures/` — `test-app` RGD (WebApp kind, 3 resources)
-Journeys: `test/e2e/journeys/001-*.spec.ts` through `008-*.spec.ts`
+Journeys: `test/e2e/journeys/001-*.spec.ts` through `070-*.spec.ts` (70+ files across 9 parallel Playwright chunks)
 
 ---
 
@@ -456,6 +457,9 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - `localStorage` (layout mode key `"overview-layout"`, chart mode key `"overview-health-chart"`) (062-overview-sre-dashboard)
 
  ## Recent Changes
+ - v0.9.2: fix(deep-dag) root CR expand toggle removed; DAG expanded panel SVG paint order fix; ValidationTab kro v0.9.0 condition names (GraphAccepted/GraphRevisionsResolved); RevisionsTab GraphVerified condition; double-v version display; listEvents AbortSignal; events.go 5s timeout; extractLastRevision() to @/lib/format; Helm chart CRDs vendor; RGDStatStrip + RGDDetail.logic tests; AGENTS.md docs fixes
+ - v0.9.1: RGD detail stat strip (Age/Resources/Instances/Latest revision); RGD Graph tab DAG card panel matching instance detail layout; kro demo cluster upgraded to v0.9.0; GraphRevision CRD applied in demo + CI setup
+ - v0.9.0: initial v0.9.0 release — fix(rgd-revision) read revision from GraphRevisionsResolved condition; fix(kro-version) demo/E2E setup apply GraphRevision CRD; kro v0.9.0 Helm install on kind demo cluster
  - v0.8.4: audit fixes batch (PR #396) — 026 E2E journey now runs in CI (#387); ListAllInstances unit tests ×8 (#388); --color-status-degraded token added to design spec (#389); NodeDetailPanel overflow-x:hidden (#390); page-title spec updated (#391); 005 waitForTimeout→waitForFunction (#392); kro.ts constants test + dag.ts NODE_CONCEPT_TEXT tests (#394); CONCEPT_TEXT deduplicated into shared NODE_CONCEPT_TEXT in dag.ts (#395); POST route §III comments; External Ref casing fixed in authoring form
  - v0.8.3: Available=True wins over Progressing=True in live DAG (PR #381); external refs show alive not reconciling while CR is IN_PROGRESS (PR #380); overflow-x: hidden on all scroll containers — kills spurious horizontal scrollbars (PR #382)
  - v0.8.2: Live DAG per-child node state fix — each child judged on own conditions, not inherited CR reconciling state (PR #379); TypeScript 6.0 compat — remove deprecated baseUrl, add env.d.ts (PR #378); spec corpus audit fixes D1–D12 (PR #372); Dependabot dependency bumps (PRs #373-#377)
@@ -489,5 +493,4 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - v0.3.1: DAG legend; required-field a11y; overlay crash fix; expand accordion fix; demo hardening
 - v0.3.0: instance telemetry panel; cross-instance error aggregation (Errors tab); instance health roll-up; DAG instance overlay; global footer; first-time onboarding; deletion debugger; RBAC SA auto-detection; RGD detail header enrichment
 
-## Recent Changes
 - 062-overview-sre-dashboard: Added TypeScript 5.x / React 19 / Vite + React Router v7 (navigation), existing `@/lib/api` and `@/lib/format` (no new deps)

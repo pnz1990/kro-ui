@@ -12,19 +12,27 @@ import type { RGDCondition } from './ConditionItem'
 import ResourceSummary from './ResourceSummary'
 import './ValidationTab.css'
 
-/** The condition types kro emits on every RGD (kro v0.4+), in display order.
+/** The condition types kro emits on every RGD, in display order.
  *
- * kro v0.4+ emits: ResourceGraphAccepted, KindReady, ControllerReady, Ready
+ * kro v0.9.0+ emits: GraphAccepted, GraphRevisionsResolved, KindReady, ControllerReady, Ready
+ * kro v0.4–v0.8 emitted: ResourceGraphAccepted, KindReady, ControllerReady, Ready
  * kro ≤v0.3 emitted: GraphVerified, TopologyReady, CustomResourceDefinitionSynced, Ready
  *
- * Unknown condition types present in status.conditions are appended at the end
- * of the checklist automatically — so future kro versions are handled gracefully.
+ * Both the v0.9.0 and v0.8.x names are listed so the tab works on all supported
+ * cluster versions. `omitIfAbsent: true` means the entry is only shown when the
+ * condition is actually present — used for version-specific conditions that would
+ * always show "Not reported" on older/newer clusters and create noise.
  */
-const KNOWN_CONDITION_TYPES: ReadonlyArray<{ type: string; label: string }> = [
-  { type: 'ResourceGraphAccepted', label: 'Graph Accepted' },
-  { type: 'KindReady',             label: 'Kind Ready' },
-  { type: 'ControllerReady',       label: 'Controller Ready' },
-  { type: 'Ready',                 label: 'Ready' },
+const KNOWN_CONDITION_TYPES: ReadonlyArray<{ type: string; label: string; omitIfAbsent?: boolean }> = [
+  // kro v0.9.0+ names
+  { type: 'GraphAccepted',          label: 'Graph Accepted' },
+  { type: 'GraphRevisionsResolved', label: 'Graph Revisions Resolved' },
+  // kro v0.4–v0.8 name — omit when absent (not emitted on v0.9.0+)
+  { type: 'ResourceGraphAccepted',  label: 'Graph Accepted', omitIfAbsent: true },
+  // Common to all versions
+  { type: 'KindReady',              label: 'Kind Ready' },
+  { type: 'ControllerReady',        label: 'Controller Ready' },
+  { type: 'Ready',                  label: 'Ready' },
 ]
 
 /** Friendly label for a condition type. Unknown types use the raw type value. */
@@ -61,14 +69,15 @@ function buildDisplayConditions(
   const result: Array<{ condition: RGDCondition; label: string; isAbsent: boolean }> = []
 
   // Known types first, in order
-  for (const { type, label } of KNOWN_CONDITION_TYPES) {
+  for (const { type, label, omitIfAbsent } of KNOWN_CONDITION_TYPES) {
     const c = byType.get(type)
     if (c) {
       result.push({ condition: c, label, isAbsent: false })
-    } else {
+    } else if (!omitIfAbsent) {
       // Condition absent from status.conditions — show as "Not reported"
       result.push({ condition: { type, status: 'Unknown' }, label, isAbsent: true })
     }
+    // omitIfAbsent=true → silently skip when not present (version-specific condition)
   }
 
   // Append any unknown types that are present in the actual conditions
