@@ -97,8 +97,10 @@ function RefreshIndicator({
 }
 
 // ── Reconcile-paused detection ────────────────────────────────────────────
-// kro v0.9.0 changed from a label to an annotation:
-//   Annotation: metadata.annotations["kro.run/reconcile"] === "disabled"
+// kro v0.9.1 made `suspended` the canonical annotation value (PR #1221).
+// kro v0.9.0 used `disabled`. Both are still accepted by kro ≥v0.9.1.
+// kro-ui detects either value so the banner shows on both old and new clusters.
+//   Annotation: metadata.annotations["kro.run/reconcile"] === "suspended" | "disabled"
 // When present, kro stops reconciling the instance until the annotation is removed.
 
 function isReconcilePaused(instance: K8sObject | null): boolean {
@@ -107,7 +109,8 @@ function isReconcilePaused(instance: K8sObject | null): boolean {
   if (!meta) return false
   const annotations = meta.annotations
   if (typeof annotations !== 'object' || annotations === null) return false
-  return (annotations as Record<string, unknown>)['kro.run/reconcile'] === 'disabled'
+  const val = (annotations as Record<string, unknown>)['kro.run/reconcile']
+  return val === 'suspended' || val === 'disabled'
 }
 
 // ── Reconciling duration ──────────────────────────────────────────────────
@@ -460,17 +463,17 @@ export default function InstanceDetail() {
         />
       )}
 
-      {/* Reconciliation paused banner (kro v0.9.0 — annotation kro.run/reconcile=disabled) */}
+      {/* Reconciliation paused banner (kro v0.9.1 — annotation kro.run/reconcile=suspended (also accepts legacy 'disabled')) */}
       {fastData && isReconcilePaused(fastData.instance) && (
         <div
           className="reconcile-paused-banner"
           role="status"
           aria-live="polite"
-          title="kro.run/reconcile: disabled annotation is present. Remove the annotation to resume reconciliation: kubectl annotate <kind> <name> kro.run/reconcile-"
+          title="kro.run/reconcile: suspended annotation is present. Remove the annotation to resume reconciliation: kubectl annotate <kind> <name> kro.run/reconcile-"
         >
           <span className="reconcile-paused-banner__icon" aria-hidden="true">⏸</span>
           Reconciliation paused — kro will not apply changes until the{' '}
-          <code className="reconcile-paused-banner__code">kro.run/reconcile: disabled</code>
+          <code className="reconcile-paused-banner__code">kro.run/reconcile: suspended</code>
           {' '}annotation is removed.
         </div>
       )}

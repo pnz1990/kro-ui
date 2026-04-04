@@ -43,6 +43,22 @@ function revisionNumber(rev: K8sObject): number {
   return typeof spec?.revision === 'number' ? spec.revision : 0
 }
 
+/** Read the compiled graph hash from the GraphRevision label (kro v0.9.1+).
+ *
+ * Returns the first 8 chars of `kro.run/graph-revision-hash` for display,
+ * and the full value for the title tooltip. Returns "—" when absent
+ * (kro v0.9.0 objects and any revision created before the label existed).
+ */
+function hashFromRevision(rev: K8sObject): { display: string; full: string | undefined } {
+  const labels = (rev.metadata as Record<string, unknown> | undefined)?.labels
+  const full =
+    typeof labels === 'object' && labels !== null
+      ? ((labels as Record<string, unknown>)['kro.run/graph-revision-hash'] as string | undefined)
+      : undefined
+  if (!full) return { display: '—', full: undefined }
+  return { display: full.length > 8 ? full.slice(0, 8) : full, full }
+}
+
 /** Extract the compiled state from a GraphRevision status.
  *
  * Condition type mapping by kro version:
@@ -265,6 +281,7 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
           <tr>
             {revisions.length > 1 && <th className="revisions-table__th revisions-table__th--check" />}
             <th className="revisions-table__th">Revision</th>
+            <th className="revisions-table__th revisions-table__th--hash">Hash</th>
             <th className="revisions-table__th">Status</th>
             <th className="revisions-table__th">Age</th>
             <th className="revisions-table__th revisions-table__th--msg">Message</th>
@@ -279,6 +296,7 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
             const createdAt = extractCreationTimestamp(rev)
             const age = createdAt ? formatAge(createdAt) : '—'
             const revNum = revisionNumber(rev)
+            const { display: hashDisplay, full: hashFull } = hashFromRevision(rev)
             const isExpanded = expanded === name
 
             return (
@@ -308,6 +326,13 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
                     <span className="revisions-table__rev-num">#{revNum}</span>
                     <span className="revisions-table__rev-name" title={name}>{name}</span>
                   </td>
+                  <td className="revisions-table__td revisions-table__td--hash">
+                    {hashFull ? (
+                      <span className="revisions-table__hash" title={hashFull}>{hashDisplay}</span>
+                    ) : (
+                      <span className="revisions-table__hash revisions-table__hash--absent">—</span>
+                    )}
+                  </td>
                   <td className="revisions-table__td">
                     <span className={`revisions-table__badge revisions-table__badge--${state}`}>
                       {state === 'compiled' ? 'Compiled' : state === 'failed' ? 'Failed' : 'Unknown'}
@@ -324,7 +349,7 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
                 </tr>
                 {isExpanded && (
                   <tr key={`${name}-detail`} className="revisions-table__detail-row">
-                    <td colSpan={4} className="revisions-table__detail-cell">
+                    <td colSpan={5} className="revisions-table__detail-cell">
                       <KroCodeBlock
                         code={toYaml(cleanK8sObject(rev))}
                         title={`Revision ${name}`}

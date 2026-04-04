@@ -513,7 +513,7 @@ function registerAltContext(kubeconfigPath: string, sourceContext: string, newCo
  * Falls back to a known-good version if the API call fails.
  */
 function detectLatestKroVersion(): string {
-  const FALLBACK_VERSION = '0.9.0'
+  const FALLBACK_VERSION = '0.9.1'
   try {
     const output = execFileSync(
       'curl',

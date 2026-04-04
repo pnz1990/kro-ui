@@ -98,7 +98,7 @@ jobs:
           KRO_UI_BINARY: ${{ github.workspace }}/bin/kro-ui
           # Pin kro chart version to avoid a GitHub API call per run.
           # Bump this when upgrading kro in CI.
-          KRO_CHART_VERSION: "0.9.0"
+          KRO_CHART_VERSION: "0.9.1"
           CI: "true"
 
       # ── Artifacts ─────────────────────────────────────────────────────────

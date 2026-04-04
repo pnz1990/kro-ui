@@ -654,7 +654,7 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                 />
                 <span
                   className="rgd-authoring-form__cel-badge"
-                  title="CEL — Common Expression Language. References schema fields with ${schema.spec.fieldName}. Example: ${schema.spec.replicas}"
+                  title="CEL — Common Expression Language. References schema fields with ${schema.spec.fieldName}. Example: ${schema.spec.replicas} | hash functions (kro ≥0.9.1): hash.fnv64a(str)→bytes (recommended), hash.sha256(str)→bytes, hash.md5(str)→bytes"
                 >CEL</span>
               </div>
               <button
@@ -1095,7 +1095,7 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
                             />
                             <span
                               className="rgd-authoring-form__cel-badge"
-                              title="CEL — Common Expression Language. This expression must evaluate to true for the resource to be considered Ready. Example: ${web.status.availableReplicas} >= 1"
+                              title="CEL — Common Expression Language. This expression must evaluate to true for the resource to be considered Ready. Example: ${web.status.availableReplicas} >= 1 | hash functions (kro ≥0.9.1): hash.fnv64a(str)→bytes (recommended), hash.sha256(str)→bytes, hash.md5(str)→bytes"
                             >CEL</span>
                           </div>
                           <button
