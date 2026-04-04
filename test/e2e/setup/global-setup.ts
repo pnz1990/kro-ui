@@ -17,7 +17,7 @@
  *
  * Executed once before all test suites. Performs:
  *   1. Create a kind cluster (kro-ui-e2e)
- *   2. Install kro via Helm
+ *   2. Install kro via Helm (kro controller, not kro-ui)
  *   3. Register additional kubeconfig contexts (alt + long-name) pointing at
  *      the same cluster endpoint — used by the context-switcher journey
  *   4. Create the kro-ui-e2e namespace
@@ -30,7 +30,7 @@
  *   9. Wait for /healthz to respond
  *
  * Environment variables:
- *   KRO_CHART_VERSION  — kro Helm chart version to install (default: auto-detect latest from GitHub)
+ *   KRO_CHART_VERSION  — kro controller Helm chart version to install (default: auto-detect latest from GitHub)
  *   KRO_UI_BINARY      — path to the kro-ui binary (default: ../../bin/kro-ui)
  *   KRO_UI_PORT        — port for kro-ui server (default: 40107)
  *   SKIP_KIND_CREATE   — if set, skip cluster creation (use existing context)
@@ -114,8 +114,8 @@ export default async function globalSetup() {
   ])
   console.log('[setup] kro installed')
 
-  // kro v0.9.0+: apply the GraphRevision CRD which lives in helm/crds/ (not
-  // helm/templates/) and is therefore NOT installed by `helm install`.
+  // kro v0.9.0+: apply the GraphRevision CRD separately — it lives in
+  // the kro chart's crds/ directory and is NOT installed by `helm install`.
   // Without it kro logs "CRD should be installed before calling Start" and
   // lastIssuedRevision never appears in RGD status / hasGraphRevisions stays false.
   console.log('[setup] Applying GraphRevision CRD (kro v0.9.0+)…')

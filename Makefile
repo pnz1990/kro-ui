@@ -71,7 +71,7 @@ test-e2e-install:
 	cd test/e2e && bunx playwright install chromium --with-deps
 
 ## Run all E2E journeys against a kind cluster.
-## Prerequisites: kind, helm, and kubectl must be in PATH.
+## Prerequisites: kind and kubectl must be in PATH.
 ## The kind cluster and kro installation are managed automatically by
 ## global-setup.ts / global-teardown.ts.
 ##
@@ -88,9 +88,9 @@ test-e2e-report:
 	cd test/e2e && bunx playwright show-report
 
 ## Start a local kro-ui demo cluster with all fixtures loaded.
-## Prerequisites: kind, helm, and kubectl must be in PATH.
+## Prerequisites: kind and kubectl must be in PATH.
 ## Idempotent: re-running on an existing cluster is safe — the kind cluster,
-## kro Helm release, and all fixture resources are created-or-reused.
+## kro installation, and all fixture resources are created-or-reused.
 ## Builds the binary, applies fixtures, and starts the server at http://localhost:40107.
 ##
 ## To stop: press Ctrl+C. The cluster is left running for further exploration.

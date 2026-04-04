@@ -326,7 +326,7 @@ workflow level (proxy.golang.org is blocked).
 ### E2E (`e2e.yml`)
 
 - Full Playwright journey suite against a kind cluster
-- Installs kro via Helm, applies test fixtures, starts kro-ui binary
+- Installs the kro controller via Helm, applies test fixtures, starts kro-ui binary
 - 20-minute timeout
 - Uploads Playwright report + traces as artifacts on failure
 - **Required status check** — blocks merge on failure
@@ -408,7 +408,6 @@ web/
   memory/constitution.md  # NON-NEGOTIABLE rules
   specs/                  # 000-design-system through 008-feature-flags
 test/e2e/                 # Playwright journeys + kind cluster infra
-helm/kro-ui/              # Helm chart
 Dockerfile                # multi-stage bun → go → distroless
 SECURITY.md               # Responsible disclosure policy
 .config/wt.toml           # worktrunk project hooks
@@ -459,6 +458,7 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - `localStorage` (layout mode key `"overview-layout"`, chart mode key `"overview-health-chart"`) (062-overview-sre-dashboard)
 
  ## Recent Changes
+ - v0.9.4: drop kro-ui Helm chart — helm/ directory removed; README/AGENTS/SECURITY/CONTRIBUTING/Makefile/CODEOWNERS updated; Helm remains only for kro controller install in CI/demo
  - v0.9.3 (063-kro-v091-upgrade): kro v0.9.1 upgrade — version pins bumped (scripts/demo.sh, global-setup.ts, e2e.yml); RevisionsTab hash column from `kro.run/graph-revision-hash` label (8-char truncation, graceful "—" on v0.9.0); CEL hash help in Designer (hash.fnv64a/sha256/md5); reconcile-paused banner uses canonical `suspended` annotation (accepts legacy `disabled`)
  - v0.9.2: fix(deep-dag) root CR expand toggle removed; DAG expanded panel SVG paint order fix; ValidationTab kro v0.9.0 condition names (GraphAccepted/GraphRevisionsResolved); RevisionsTab GraphVerified condition; double-v version display; listEvents AbortSignal; events.go 5s timeout; extractLastRevision() to @/lib/format; Helm chart CRDs vendor; RGDStatStrip + RGDDetail.logic tests; AGENTS.md docs fixes
  - v0.9.1: RGD detail stat strip (Age/Resources/Instances/Latest revision); RGD Graph tab DAG card panel matching instance detail layout; kro demo cluster upgraded to v0.9.0; GraphRevision CRD applied in demo + CI setup

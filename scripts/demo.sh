@@ -24,8 +24,8 @@
 # touches ~/.kube/config or any production cluster.
 #
 # Prerequisites (not installed automatically):
-#   - kind   https://kind.sigs.k8s.io/docs/user/quick-start/#installation
-#   - helm   https://helm.sh/docs/intro/install/
+#   - kind    https://kind.sigs.k8s.io/docs/user/quick-start/#installation
+#   - helm    https://helm.sh/docs/intro/install/ (used to install kro)
 #   - kubectl https://kubernetes.io/docs/tasks/tools/
 #
 # The kro-ui binary must already be built (make build runs it first via the
@@ -67,7 +67,7 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   warn ""
   warn "Install them and re-run:"
   warn "  kind    → https://kind.sigs.k8s.io/docs/user/quick-start/#installation"
-  warn "  helm    → https://helm.sh/docs/intro/install/"
+  warn "  helm    → https://helm.sh/docs/intro/install/ (used to install kro)"
   warn "  kubectl → https://kubernetes.io/docs/tasks/tools/"
   exit 1
 fi
@@ -117,10 +117,9 @@ helm upgrade --install kro oci://registry.k8s.io/kro/charts/kro \
   --wait --timeout 120s
 ok "kro ${KRO_VERSION} ready"
 
-# kro v0.9.0+: apply the GraphRevision CRD which lives in helm/crds/ (not
-# helm/templates/) and is therefore NOT installed by `helm upgrade`.
-# Without it kro logs "CRD should be installed before calling Start" and
-# lastIssuedRevision never appears in RGD status.
+# kro v0.9.0+: apply the GraphRevision CRD separately — it lives in
+# the kro chart's crds/ directory and is NOT installed by `helm upgrade`.
+# Without it kro logs "CRD should be installed before calling Start".
 info "Applying GraphRevision CRD (kro v0.9.0+)…"
 curl -sL "https://raw.githubusercontent.com/kubernetes-sigs/kro/v${KRO_VERSION}/helm/crds/internal.kro.run_graphrevisions.yaml" \
   | kubectl --kubeconfig "${KUBECONFIG_PATH}" apply -f - 2>/dev/null \

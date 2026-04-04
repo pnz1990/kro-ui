@@ -97,15 +97,12 @@ docker run -p 40107:40107 \
 
 **Controller metrics** are now auto-discovered via pod proxy — no `--metrics-url` flag required. kro-ui finds the kro controller pod automatically using label selectors and proxies through the kube-apiserver.
 
-### In-cluster (Helm)
+### In-cluster
 
-> **Pinned to the latest release** — update this version on every new release.
+> In-cluster Helm chart support is not yet available. Use the binary or Docker image with `kubectl port-forward` for now.
 
 ```bash
-helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
-  --version 0.9.4 \
-  --namespace kro-system --create-namespace
-
+# Run locally, pointing at your in-cluster kubeconfig
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system
 # open http://localhost:40107
 ```
@@ -173,13 +170,13 @@ cd web && bun run test
 # TypeScript strict mode check
 cd web && bun run typecheck
 
-# E2E tests (requires kind, helm, kubectl)
+# E2E tests (requires kind and kubectl)
 make test-e2e-install   # one-time: install Playwright + Chromium
 make test-e2e           # full run (creates kind cluster, runs tests, teardown)
 ```
 
 E2E tests auto-detect the latest kro release and install it via Helm from
-`registry.k8s.io/kro/charts/kro`. Override with `KRO_CHART_VERSION=0.8.5`.
+`registry.k8s.io/kro/charts/kro`. Override with `KRO_CHART_VERSION=0.9.1`.
 
 ## CI & Security
 
@@ -216,7 +213,7 @@ web/
     pages/          # Home, Catalog, Fleet, RGDDetail, InstanceDetail, Events
     lib/            # api.ts, dag.ts, highlighter.ts, schema.ts, events.ts, ...
     hooks/          # usePolling (5s refresh), useCapabilities
-helm/kro-ui/        # Helm chart for in-cluster deployment
+helm/kro-ui/        # (removed — Helm chart support not yet available)
 test/e2e/           # Playwright E2E journeys + kind cluster infra
 Dockerfile          # Multi-stage: bun → go → distroless (~15MB)
 ```
@@ -225,7 +222,7 @@ Dockerfile          # Multi-stage: bun → go → distroless (~15MB)
 - All k8s access via the **dynamic client** — no hardcoded type assumptions, survives kro API changes
 - **Discovery-based** resource resolution — new kro CRDs are picked up automatically
 - Frontend is **embedded** in the Go binary via `go:embed` — single binary, no file server config
-- **Read-only** — never issues mutating k8s API calls; Helm RBAC enforces `get`/`list`/`watch` only
+- **Read-only** — never issues mutating k8s API calls; all k8s access uses `get`/`list`/`watch` verbs only
 - **No CSS frameworks, no component libraries, no state management libraries** — plain CSS with design tokens, plain React state
 
 ## Port

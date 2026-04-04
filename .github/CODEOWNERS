@@ -10,7 +10,6 @@
 
 # Infrastructure / CI
 /.github/     @pnz1990
-/helm/        @pnz1990
 /Dockerfile   @pnz1990
 /Makefile     @pnz1990
 

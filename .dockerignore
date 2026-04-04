@@ -50,8 +50,5 @@ cover.out
 unit-cover.out
 integration-cover.out
 
-# ── Helm chart (not needed in app image) ─────────────────────────────
-helm/
-
 # ── OpenCode ─────────────────────────────────────────────────────────
 .opencode/

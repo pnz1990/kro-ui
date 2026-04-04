@@ -78,7 +78,7 @@ Reference specs: "Implements spec 001-server-core FR-004."
 ```
 
 **Types**: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`  
-**Scopes**: `api`, `k8s`, `server`, `dag`, `highlighter`, `helm`, `web`, `spec`
+**Scopes**: `api`, `k8s`, `server`, `dag`, `highlighter`, `web`, `spec`
 
 Examples:
 ```

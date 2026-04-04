@@ -38,7 +38,7 @@ jobs:
       - name: Build kro-ui binary
         run: make go
 
-      # ── Kind + Helm ───────────────────────────────────────────────────────
+      # ── Kind + Helm (Helm is used to install the kro controller) ─────────────
       - uses: helm/kind-action@v1
         with:
           cluster_name: kro-ui-e2e
@@ -96,8 +96,8 @@ jobs:
           # Tell global-setup to skip kind create (kind-action already did it)
           SKIP_KIND_CREATE: "true"
           KRO_UI_BINARY: ${{ github.workspace }}/bin/kro-ui
-          # Pin kro chart version to avoid a GitHub API call per run.
-          # Bump this when upgrading kro in CI.
+          # Pin kro controller chart version to avoid a GitHub API call per run.
+          # Bump this when upgrading the kro controller in CI.
           KRO_CHART_VERSION: "0.9.1"
           CI: "true"
 

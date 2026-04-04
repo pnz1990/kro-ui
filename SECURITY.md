@@ -56,5 +56,4 @@ We follow [coordinated disclosure](https://en.wikipedia.org/wiki/Coordinated_vul
 - **Container scanning**: Trivy scans the Docker image on every PR and release
 - **Minimal runtime image**: Production container uses `distroless/static:nonroot`
   (no shell, no package manager, non-root user)
-- **RBAC enforcement**: The Helm chart's `ClusterRole` permits only `get`, `list`,
-  and `watch` verbs
+- **RBAC enforcement**: kro-ui never issues mutating Kubernetes API calls; only `get`, `list`, and `watch` verbs are used
