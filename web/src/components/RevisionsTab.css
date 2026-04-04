@@ -70,6 +70,28 @@
   width: 40%;
 }
 
+/* ── Hash column (kro v0.9.1+ — kro.run/graph-revision-hash label) ────────── */
+
+.revisions-table__th--hash {
+  min-width: 90px;
+}
+
+.revisions-table__td--hash {
+  white-space: nowrap;
+}
+
+.revisions-table__hash {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.revisions-table__hash--absent {
+  color: var(--color-text-disabled, var(--color-text-muted));
+  opacity: 0.5;
+}
+
 .revisions-table__td {
   padding: 8px 12px;
   border-bottom: 1px solid var(--color-border-subtle);

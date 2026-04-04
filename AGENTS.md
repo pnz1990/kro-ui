@@ -121,6 +121,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `060-health-filter` | — | Clickable OverviewHealthBar chips — filter Overview by health state | Merged (PR #329) |
 | `061-helm-security` | — | Helm chart security hardening — runAsNonRoot, readOnlyRootFilesystem, drop ALL | Merged (PR #330) |
 | `062-instance-namespace-filter` | — | /instances namespace dropdown + health state filter chips | Merged (PR #345) |
+| `063-kro-v091-upgrade` | — | kro v0.9.1 upgrade — GraphRevision hash column, CEL hash help, reconcile suspended, version pins | In Progress |
 | `064-fleet-reconciling-count` | — | Fleet cluster card shows reconciling instance count separately from degraded | Merged (PR #347) |
 | `fix/fleet-kro-version` | — | Fleet kro version from RGD annotation — avoids DetectCapabilities delay | Merged (PR #355) |
 | `069-overview-rgd-error-banner` | — | Overview RGD compile-error banner — count + error-only filter toggle | Merged (PR #356) |
@@ -452,12 +453,13 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - Go 1.25 backend + TypeScript 5.x + React 19 + React Router v7 + Vite — no new npm or Go dependencies introduced since v0.2.1
 - All state is local React `useState`; no persistence layer; no state management libraries
 - 6-state `InstanceHealthState` (ready/degraded/reconciling/error/pending/unknown); state map keyed by `kro.run/node-id` label (not by kind)
-- kro v0.9.0 API: GraphRevision CRD, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`)
+- kro v0.9.1 API: GraphRevision CRD + `kro.run/graph-revision-hash` label, scope badge, capabilities baseline (`hasGraphRevisions`, `hasExternalRefSelector`, `hasCELOmitFunction`); CEL hash functions `hash.fnv64a/sha256/md5`; `kro.run/reconcile=suspended` canonical annotation (also accepts legacy `disabled`)
 - Stress-test fixture RGDs on kind cluster: `never-ready`, `invalid-cel-rgd`, `typed-schema`, `optimization-candidate`, `triple-config`, `crashloop-app`, `multi-ns-app`, `multi-conditional`, `deep-dependency-chain`, `large-schema`, `multi-hpa-app`, `webapp-with-pdb`, `secret-configmap-pair`, `cross-namespace-config`
 - TypeScript 5.x / React 19 / Vite + React Router v7 (navigation), existing `@/lib/api` and `@/lib/format` (no new deps) (062-overview-sre-dashboard)
 - `localStorage` (layout mode key `"overview-layout"`, chart mode key `"overview-health-chart"`) (062-overview-sre-dashboard)
 
  ## Recent Changes
+ - v0.9.3 (063-kro-v091-upgrade): kro v0.9.1 upgrade — version pins bumped (scripts/demo.sh, global-setup.ts, e2e.yml); RevisionsTab hash column from `kro.run/graph-revision-hash` label (8-char truncation, graceful "—" on v0.9.0); CEL hash help in Designer (hash.fnv64a/sha256/md5); reconcile-paused banner uses canonical `suspended` annotation (accepts legacy `disabled`)
  - v0.9.2: fix(deep-dag) root CR expand toggle removed; DAG expanded panel SVG paint order fix; ValidationTab kro v0.9.0 condition names (GraphAccepted/GraphRevisionsResolved); RevisionsTab GraphVerified condition; double-v version display; listEvents AbortSignal; events.go 5s timeout; extractLastRevision() to @/lib/format; Helm chart CRDs vendor; RGDStatStrip + RGDDetail.logic tests; AGENTS.md docs fixes
  - v0.9.1: RGD detail stat strip (Age/Resources/Instances/Latest revision); RGD Graph tab DAG card panel matching instance detail layout; kro demo cluster upgraded to v0.9.0; GraphRevision CRD applied in demo + CI setup
  - v0.9.0: initial v0.9.0 release — fix(rgd-revision) read revision from GraphRevisionsResolved condition; fix(kro-version) demo/E2E setup apply GraphRevision CRD; kro v0.9.0 Helm install on kind demo cluster
@@ -492,6 +494,4 @@ Always read the spec before writing code. Always run `go vet ./...` and
 - v0.3.3: cluster-wide child resource search; parallel events fan-out; DAG width fitted; null items guard
 - v0.3.2: Docker image includes aws CLI v2 for EKS exec credential plugin
 - v0.3.1: DAG legend; required-field a11y; overlay crash fix; expand accordion fix; demo hardening
-- v0.3.0: instance telemetry panel; cross-instance error aggregation (Errors tab); instance health roll-up; DAG instance overlay; global footer; first-time onboarding; deletion debugger; RBAC SA auto-detection; RGD detail header enrichment
-
-- 062-overview-sre-dashboard: Added TypeScript 5.x / React 19 / Vite + React Router v7 (navigation), existing `@/lib/api` and `@/lib/format` (no new deps)
+ - v0.3.0: instance telemetry panel; cross-instance error aggregation (Errors tab); instance health roll-up; DAG instance overlay; global footer; first-time onboarding; deletion debugger; RBAC SA auto-detection; RGD detail header enrichment

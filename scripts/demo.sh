@@ -42,7 +42,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 FIXTURES_DIR="${ROOT_DIR}/test/e2e/fixtures"
 BINARY="${ROOT_DIR}/bin/kro-ui"
 KUBECONFIG_PATH="${ROOT_DIR}/.demo-kubeconfig.yaml"
-FALLBACK_KRO_VERSION="0.9.0"
+FALLBACK_KRO_VERSION="0.9.1"
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'
