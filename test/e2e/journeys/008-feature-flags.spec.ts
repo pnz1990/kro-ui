@@ -82,9 +82,11 @@ test.describe('Journey 008 — Feature flags and capabilities', () => {
     // (ExternalRef node rendering is tested in spec 003 unit tests with mock data.)
     await expect(page.locator('body')).toBeVisible()
 
-    // No GraphRevision tab should appear (kind cluster has no GraphRevision CRD).
+    // kro v0.9.1 ships the GraphRevision CRD — the Revisions tab now appears on
+    // the kind CI cluster. Assert it is present (≥1) rather than absent.
+    // (Previously asserted 0 when CI ran kro v0.9.0 which had no GraphRevision CRD.)
     const revisionsTab = page.locator('text=Revisions')
-    await expect(revisionsTab).toHaveCount(0)
+    await expect(revisionsTab).toHaveCount(1)
   })
 
   test('Step 3: hasForEach and hasExternalRef are true given fixture RGDs applied successfully', async ({ request }) => {
