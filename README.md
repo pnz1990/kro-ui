@@ -27,7 +27,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, custom type definitions (kro v0.9.0+ `spec.schema.types`), required fields sorted first with a summary banner, and a copyable example manifest
   - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion, `{}` defaults for map/object fields) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
-  - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled status (Compiled/Failed), age, compilation error; click to expand YAML
+  - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled graph hash (kro v0.9.1+ `kro.run/graph-revision-hash` label, 8-char display with full value on hover, graceful "—" on older clusters), compiled status (Compiled/Failed), age, compilation error; click to expand YAML; select 2 revisions to show side-by-side YAML diff
 - **Live instance detail** — live DAG with 5s polling, **6-state** per-node colors (alive/reconciling/degraded/error/pending/not-found), node YAML inspection (clean — no managedFields), spec/conditions/events/telemetry panels
   - **Per-child node state** — each child resource is judged on its *own* `status.conditions`, not the CR-level reconciling state; a Namespace or ConfigMap created in wave 1 shows green even while a downstream RDS instance is still provisioning
   - `Available=True` wins over `Progressing=True` — a Deployment serving traffic during a rolling update shows green, not amber; amber only shows when `Progressing=True` without `Available=True` (not yet serving)
@@ -35,7 +35,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Degraded state** — shown when the CR is Ready=True but a child resource has `Available=False` (distinct orange from amber reconciling)
   - Per-node state derived from each child resource's own `status.conditions` via `kro.run/node-id` label (not kind) — kube-generated resources (EndpointSlice etc.) are silently skipped
   - `IN_PROGRESS` kro state maps to Reconciling (amber) at the CR level — shown when readyWhen is unmet but kro is still working; escalates to a banner with human-readable duration (e.g. "2d 16h") and actionable hint after 5 minutes
-  - **Reconcile-paused banner** — shown when `kro.run/reconcile: disabled` annotation is present (kro v0.9.0+)
+  - **Reconcile-paused banner** — shown when `kro.run/reconcile: suspended` (canonical kro v0.9.1+) or `kro.run/reconcile: disabled` (legacy kro v0.9.0) annotation is present; copy always shows canonical `suspended` value
   - **Stuck finalizer escalation** — when deletion is blocked by finalizers for ≥5 minutes, shows the exact `kubectl patch` command to force-remove them
   - Hover tooltip shows live state label with per-state explanatory hint for every node
   - **Refresh now** button (↻) — triggers immediate re-poll instead of waiting for the next 5s cycle
@@ -53,7 +53,7 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
 - **Controller metrics panel** — kro controller metrics auto-discovered via pod proxy (zero configuration); per-context correct after context switch; powers Fleet metrics column via `?context=` fan-out
 - **Context switcher** — switch kubeconfig contexts at runtime without restart; subtitle shown for all abbreviated context names (EKS ARNs, long names)
 - **CEL/schema highlighting** — custom pure-TS tokenizer for kro YAML (CEL expressions, kro keywords, SimpleSchema types, JSON Schema object/array/map types rendered correctly)
-- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API (Revisions tab), cluster-scoped RGD badges, collection limit badges, condition-transition events, `omit()` CEL function; multi-version kro support with version warning banner
+- **Capabilities detection** — auto-detects kro features via cluster introspection, gates UI accordingly; kro v0.9.0+ features: `GraphRevision` API (Revisions tab), cluster-scoped RGD badges, collection limit badges, condition-transition events, `omit()` CEL function; kro v0.9.1+ features: `hash.fnv64a/sha256/md5` CEL hash functions (surfaced in Designer help), `kro.run/graph-revision-hash` label (Revisions tab Hash column); multi-version kro support with version warning banner
 - **First-time onboarding** — Overview page tagline, descriptive empty state with getting-started kubectl snippets, global footer with kro.run and GitHub links, and live version display
 - **Dark/light theme** — dark default, full design token system, SVG favicon
 
@@ -79,7 +79,7 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:v0.9.3
+  ghcr.io/pnz1990/kro-ui:v0.9.4
 # open http://localhost:40107
 ```
 
@@ -91,7 +91,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:v0.9.3
+  ghcr.io/pnz1990/kro-ui:v0.9.4
 # open http://localhost:40107
 ```
 
@@ -103,7 +103,7 @@ docker run -p 40107:40107 \
 
 ```bash
 helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
-  --version 0.9.3 \
+  --version 0.9.4 \
   --namespace kro-system --create-namespace
 
 kubectl port-forward svc/kro-ui 40107:40107 -n kro-system

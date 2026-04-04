@@ -121,7 +121,7 @@ All changes go through PRs. Direct push to `main` is blocked.
 | `060-health-filter` | — | Clickable OverviewHealthBar chips — filter Overview by health state | Merged (PR #329) |
 | `061-helm-security` | — | Helm chart security hardening — runAsNonRoot, readOnlyRootFilesystem, drop ALL | Merged (PR #330) |
 | `062-instance-namespace-filter` | — | /instances namespace dropdown + health state filter chips | Merged (PR #345) |
-| `063-kro-v091-upgrade` | — | kro v0.9.1 upgrade — GraphRevision hash column, CEL hash help, reconcile suspended, version pins | In Progress |
+| `063-kro-v091-upgrade` | — | kro v0.9.1 upgrade — GraphRevision hash column, CEL hash help, reconcile suspended, version pins | Merged (PR #430) |
 | `064-fleet-reconciling-count` | — | Fleet cluster card shows reconciling instance count separately from degraded | Merged (PR #347) |
 | `fix/fleet-kro-version` | — | Fleet kro version from RGD annotation — avoids DetectCapabilities delay | Merged (PR #355) |
 | `069-overview-rgd-error-banner` | — | Overview RGD compile-error banner — count + error-only filter toggle | Merged (PR #356) |
