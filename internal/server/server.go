@@ -174,7 +174,10 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			r.With(responsecache.Middleware(rc, ttlGraphRevs)).Get("/kro/graph-revisions/{name}", h.GetGraphRevision)
 
 			// Smart event stream — NOT cached (realtime)
-			r.Get("/events", h.ListEvents)
+			// Events fan-out: 29+ RGDs × 1.18s throttle needs more than the 5s outer
+			// deadline. Use 30s like FleetSummary — goroutines still have their own
+			// 5s per-RGD inner timeout (perRGDTimeout), so individual slow RGDs are bounded.
+			r.With(middleware.Timeout(30*time.Second)).Get("/events", h.ListEvents)
 
 			// Controller metrics — NOT cached (realtime counter data)
 			r.Get("/kro/metrics", h.GetMetrics)

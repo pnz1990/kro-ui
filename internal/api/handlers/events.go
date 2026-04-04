@@ -102,7 +102,7 @@ func (h *Handler) ListEvents(w http.ResponseWriter, r *http.Request) {
 // relevant events. See: https://github.com/pnz1990/kro-ui/issues/57
 //
 // The per-RGD instance-list fan-out is parallelized (issue #153): each RGD gets
-// its own goroutine with a 2s deadline. Constitution §XI: no sequential API calls
+// its own goroutine with a 5s deadline. Constitution §XI: no sequential API calls
 // in a loop when concurrent fan-out is possible.
 func (h *Handler) buildRelevantUIDs(r *http.Request, namespace, rgdFilter string) (map[string]bool, error) {
 	relevant := make(map[string]bool)
