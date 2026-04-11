@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -81,21 +80,25 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a ClientFactory from the given kubeconfig path and context.
-// If kubeconfigPath is empty it falls back to $KUBECONFIG then ~/.kube/config.
+// If kubeconfigPath is empty it falls back to $KUBECONFIG.
+// If neither is set, it attempts in-cluster config (for running inside a Kubernetes cluster).
 // If context is empty it uses the current context in the kubeconfig.
 func NewClientFactory(kubeconfigPath, context string) (*ClientFactory, error) {
-	if kubeconfigPath == "" {
-		if env := os.Getenv("KUBECONFIG"); env != "" {
-			kubeconfigPath = env
-		} else {
-			home, _ := os.UserHomeDir()
-			kubeconfigPath = filepath.Join(home, ".kube", "config")
+	path := kubeconfigPath
+	if path == "" {
+		path = os.Getenv("KUBECONFIG")
+	}
+	if path != "" {
+		f := &ClientFactory{kubeconfigPath: path}
+		if err := f.load(context); err != nil {
+			return nil, err
 		}
+		return f, nil
 	}
 
-	f := &ClientFactory{kubeconfigPath: kubeconfigPath}
-	if err := f.load(context); err != nil {
-		return nil, err
+	f := &ClientFactory{kubeconfigPath: ""}
+	if err := f.loadInCluster(); err != nil {
+		return nil, fmt.Errorf("no kubeconfig and in-cluster unavailable: %w", err)
 	}
 	return f, nil
 }
@@ -146,6 +149,34 @@ func (f *ClientFactory) load(context string) error {
 	f.discovery = disc
 	f.activeContext = active
 	// Invalidate discovery cache on context switch so the new cluster is discovered fresh.
+	f.discCache.invalidate()
+	return nil
+}
+
+// loadInCluster builds clients using in-cluster config (ServiceAccount token).
+// This is used when running inside a Kubernetes cluster without a kubeconfig file.
+func (f *ClientFactory) loadInCluster() error {
+	restCfg, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("in-cluster config: %w", err)
+	}
+
+	dyn, err := dynamic.NewForConfig(restCfg)
+	if err != nil {
+		return fmt.Errorf("build dynamic client: %w", err)
+	}
+
+	disc, err := discovery.NewDiscoveryClientForConfig(restCfg)
+	if err != nil {
+		return fmt.Errorf("build discovery client: %w", err)
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.restConfig = restCfg
+	f.dynamic = dyn
+	f.discovery = disc
+	f.activeContext = "in-cluster"
 	f.discCache.invalidate()
 	return nil
 }
