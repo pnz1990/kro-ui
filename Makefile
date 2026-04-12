@@ -4,7 +4,8 @@ COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 
 .PHONY: all build web go run docker dev-web typecheck tidy clean \
         test-web test-web-watch test-e2e test-e2e-install test-e2e-report \
-        demo demo-clean dump-fixtures
+        demo demo-clean dump-fixtures \
+        helm-docs helm-test helm-lint helm-package helm-push
 
 ## Build everything (frontend + Go binary)
 all: build
@@ -109,3 +110,39 @@ demo-clean:
 ##   git diff test/e2e/fixtures/upstream-*.yaml
 dump-fixtures:
 	GOPROXY=direct GONOSUMDB="*" go run -tags tools ./cmd/dump-fixtures
+
+## Helm chart targets
+
+## Install helm plugins (helm-docs, unittest)
+helm-install:
+	helm plugin install https://github.com/nicholasjng/helm-docs --version latest || true
+	helm plugin install https://github.com/helm-unittest/helm-unittest --version latest || true
+
+## Generate README.md from README.md.gotmpl (requires helm-docs)
+helm-docs:
+	helm-docs --chart-search-root=helm/kro-ui --sort-values-order=file --skip-version-footer=true
+
+## Run helm-unittest tests
+helm-test:
+	helm unittest helm/kro-ui
+
+## Lint the helm chart
+helm-lint:
+	helm lint helm/kro-ui
+
+## Package the helm chart into a .tgz
+helm-package:
+	helm package helm/kro-ui --destination dist/
+
+## Bump chart version and package for release.
+## Usage: make helm-bump VERSION=0.9.4 (bumps from X.Y.Z to X.Y.Z+1, sets appVersion)
+helm-bump:
+	@CHART_VERSION=$$(grep '^version:' helm/kro-ui/Chart.yaml | awk '{print $$2}') && \
+	MAJOR=$$(echo $$CHART_VERSION | cut -d. -f1) && \
+	MINOR=$$(echo $$CHART_VERSION | cut -d. -f2) && \
+	PATCH=$$(echo $$CHART_VERSION | cut -d. -f3) && \
+	NEW_VERSION="$$MAJOR.$$MINOR.$$((PATCH + 1))" && \
+	echo "Bumping chart version: $$CHART_VERSION -> $$NEW_VERSION" && \
+	sed -i "s/^version: $$CHART_VERSION/version: $$NEW_VERSION/" helm/kro-ui/Chart.yaml && \
+	sed -i "s/^appVersion: \"[0-9.]*\"/appVersion: \"$(VERSION)\"/" helm/kro-ui/Chart.yaml && \
+	grep -E '^(version|appVersion):' helm/kro-ui/Chart.yaml
