@@ -1,0 +1,219 @@
+########################################
+# Global
+########################################
+
+# -- Namespace for all resources
+namespace: kro-system
+
+# -- Overrides the chart's name
+nameOverride: ""
+# -- Overrides the chart's computed fullname
+fullnameOverride: ""
+
+########################################
+# Image
+########################################
+
+image:
+  # -- Image repository
+  repository: ghcr.io/pnz1990/kro-ui
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (default is chart appVersion)
+  tag: ""
+
+# -- Number of replicas
+replicaCount: 1
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+
+########################################
+# Service Account
+########################################
+
+serviceAccount:
+  # -- If true, creates a ServiceAccount
+  create: true
+  # -- If true, mounts the ServiceAccount token into the pod
+  automount: true
+  # -- Annotations to add to the ServiceAccount
+  annotations: {}
+  # -- Name of the ServiceAccount (defaults to release name if not specified)
+  name: ""
+
+########################################
+# RBAC
+########################################
+
+rbac:
+  # -- If true, creates ClusterRole and ClusterRoleBinding
+  create: true
+  # -- RBAC rules for the ClusterRole
+  rules:
+    - apiGroups: ["kro.run"]
+      resources: ["resourcegraphdefinitions", "graphrevisions"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apiextensions.k8s.io"]
+      resources: ["customresourcedefinitions"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["events", "namespaces"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["pods/proxy"]
+      verbs: ["get"]
+
+########################################
+# Pod
+########################################
+
+# -- Annotations to add to the Pod
+podAnnotations: {}
+# -- Labels to add to the Pod
+podLabels: {}
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+########################################
+# Service
+########################################
+
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 40107
+
+########################################
+# HTTPRoute (Gateway API)
+########################################
+
+httproute:
+  # -- If true, creates an HTTPRoute for the Gateway
+  enabled: false
+  gateway:
+    # -- Gateway name to reference
+    name: ingress
+    # -- Gateway namespace
+    namespace: gateway
+  # -- Hostnames to match
+  hostnames:
+    - kro.internal
+  # -- Annotations to add to the HTTPRoute
+  annotations: {}
+
+########################################
+# Ingress (legacy)
+########################################
+
+ingress:
+  # -- If true, creates an Ingress
+  enabled: false
+  # -- Ingress class name
+  className: ""
+  # -- Annotations to add to the Ingress
+  annotations: {}
+  # -- Ingress host configuration
+  hosts:
+    - host: kro.internal
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  # -- TLS configuration
+  tls: []
+
+########################################
+# Probes
+########################################
+
+# -- Liveness probe configuration
+livenessProbe:
+  httpGet:
+    path: /api/v1/healthz
+    port: http
+
+# -- Readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /api/v1/healthz
+    port: http
+
+########################################
+# Resources
+########################################
+
+# -- Resource limits and requests
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+########################################
+# Autoscaling
+########################################
+
+autoscaling:
+  # -- If true, enables HorizontalPodAutoscaler
+  enabled: false
+  # -- Minimum number of replicas
+  minReplicas: 1
+  # -- Maximum number of replicas
+  maxReplicas: 100
+  # -- Target CPU utilization percentage
+  targetCPUUtilizationPercentage: 80
+
+########################################
+# Volumes
+########################################
+
+# -- Additional volumes to mount in the pod
+volumes: []
+# -- Additional volume mounts for the container
+volumeMounts: []
+
+########################################
+# Kubeconfig
+########################################
+
+# -- Name of existing Secret containing kubeconfig.
+# Mutually exclusive with in-cluster mode: when set, kro-ui uses this kubeconfig
+# instead of the ServiceAccount token. Must be set to connect to clusters other
+# than where kro-ui is installed.
+kubeconfig:
+  secretName: ""
+  # -- Key in the Secret containing kubeconfig (default: config)
+  secretKey: "config"
+  # -- Kubernetes context to pre-select from kubeconfig
+  context: ""
+
+########################################
+# Scheduling
+########################################
+
+# -- Node selector labels
+nodeSelector: {}
+# -- Tolerations for node taints
+tolerations: []
+# -- Affinity rules
+affinity: {}

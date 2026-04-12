@@ -73,3 +73,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
+
+      - name: Update and push Helm chart
+        run: |
+          VERSION={{ github.ref_name }}
+          STRIP_VERSION=${VERSION#v}
+
+          # Package and push to OCI
+          helm package helm/kro-ui --destination dist/
+          helm push dist/kro-ui-$STRIP_VERSION.tgz oci://${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-chart

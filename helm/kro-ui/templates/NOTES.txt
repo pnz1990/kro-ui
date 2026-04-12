@@ -1,0 +1,50 @@
+Thank you for installing kro-ui {{ .Chart.Version }}
+
+## Getting Started
+
+To access the UI, port-forward the service:
+  kubectl port-forward -n {{ .Values.namespace }} svc/{{ include "kro-ui.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Then open http://localhost:{{ .Values.service.port }}
+
+## Kubeconfig Modes
+
+kro-ui supports two kubeconfig modes:
+
+### 1. In-cluster mode (default)
+When no kubeconfig is configured, kro-ui uses the ServiceAccount token mounted in the pod.
+This connects to the cluster where kro-ui is running.
+
+### 2. Multi-cluster mode
+To connect to clusters other than where kro-ui runs, provide an existing Secret containing a kubeconfig:
+
+  kubeconfig:
+    secretName: my-kubeconfig   # Name of existing Secret
+    context: prod-cluster     # Optional: pre-select this context
+
+The Secret must contain a valid kubeconfig under the key specified by `secretKey` (default: "config").
+
+Example Secret:
+  kubectl create secret generic my-kubeconfig \
+    --from-file=config=/path/to/kubeconfig.yaml \
+    -n {{ .Values.namespace }}
+
+## RBAC for Multi-Cluster
+
+When using multi-cluster mode, the kubeconfig credentials must have appropriate RBAC permissions
+in each target cluster. The RBAC configured by this chart only applies to the cluster
+where kro-ui is installed.
+
+For target clusters, ensure the kubeconfig user has at least:
+  - get, list, watch on kro.run/resourcegraphdefinitions
+  - get, list, watch on kro.run/graphrevisions
+  - get, list, watch on apiextensions.k8s.io/customresourcedefinitions
+  - get, list, watch on *
+  - get, list, watch on events, namespaces
+  - get on pods/proxy
+
+## Fleet View
+
+After installing with a kubeconfig containing multiple contexts, use the context switcher
+in the UI to switch between clusters. Each context appears as a cluster card
+in the Fleet view.

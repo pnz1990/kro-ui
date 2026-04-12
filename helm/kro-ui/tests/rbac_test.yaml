@@ -1,0 +1,98 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/master/schema/helm-testsuite.json
+suite: kro-ui rbac tests
+templates:
+  - rbac.yaml
+release:
+  name: kro-ui
+  namespace: kro-system
+tests:
+  - it: should render ClusterRole when rbac enabled
+    set:
+      rbac:
+        create: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - documentIndex: 0
+        isKind:
+          of: ClusterRole
+
+  - it: should not render when rbac disabled
+    set:
+      rbac:
+        create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should have kro.run rules
+    set:
+      rbac:
+        create: true
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: rules[0].apiGroups[0]
+          value: kro.run
+      - equal:
+          path: rules[0].resources[0]
+          value: resourcegraphdefinitions
+
+  - it: should render ClusterRoleBinding
+    set:
+      rbac:
+        create: true
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+
+  - it: should bind to ClusterRole
+    set:
+      rbac:
+        create: true
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: roleRef.kind
+          value: ClusterRole
+      - equal:
+          path: roleRef.name
+          value: kro-ui
+
+  - it: should bind service account subject
+    set:
+      rbac:
+        create: true
+      namespace: kro-system
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: subjects[0].kind
+          value: ServiceAccount
+      - equal:
+          path: subjects[0].name
+          value: kro-ui
+      - equal:
+          path: subjects[0].namespace
+          value: kro-system
+
+  - it: should skip RBAC when kubeconfig.secretName is set
+    set:
+      rbac:
+        create: true
+      kubeconfig:
+        secretName: my-kubeconfig
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should still create RBAC when only kubeconfig.context is set (no secretName)
+    set:
+      rbac:
+        create: true
+      kubeconfig:
+        context: prod-cluster
+    asserts:
+      - hasDocuments:
+          count: 2
