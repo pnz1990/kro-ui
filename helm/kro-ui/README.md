@@ -9,13 +9,13 @@ A Helm chart for kro-ui - Kubernetes Resource Orchestrator UI
 ## Installation
 
 ```bash
-# Add the repository
-helm repo add kro-ui https://pnz1990.github.io/kro-ui-chart
-helm repo update
-
-# Install the chart
-helm install kro-ui kro-ui/kro-ui --namespace kro-system --create-namespace
+# Install from OCI registry (published on release)
+helm install kro-ui oci://ghcr.io/pnz1990/kro-ui-chart/kro-ui \
+  --namespace kro-system --create-namespace
 ```
+
+> **Note:** The chart is distributed as an OCI artifact. It is pushed to the
+> registry automatically when a new release tag is created.
 
 ## Kubeconfig Configuration
 

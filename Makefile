@@ -115,7 +115,7 @@ dump-fixtures:
 
 ## Install helm plugins (helm-docs, unittest)
 helm-install:
-	helm plugin install https://github.com/nicholasjng/helm-docs --version latest || true
+	helm plugin install https://github.com/norwoodj/helm-docs --version latest || true
 	helm plugin install https://github.com/helm-unittest/helm-unittest --version latest || true
 
 ## Generate README.md from README.md.gotmpl (requires helm-docs)
