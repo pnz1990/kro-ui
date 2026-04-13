@@ -32,12 +32,15 @@ package validate
 //
 //	{
 //	    minVersion: "X.Y.Z",
-//	    build: func() (func(string) error, error) {
-//	        env, err := cel.NewEnv(
-//	            krocel.BaseDeclarations()...,
-//	            // ── add ONLY the libraries introduced in vX.Y.Z here ──
+//	    build: func() (func(string, []string) error, error) {
+//	        env, err := cel.NewEnv(append(
+//	            baseCELOptions(),
+//	            // ── include ALL libraries from all prior versions ──
+//	            library.Omit(),   // v0.9.0
+//	            library.Hash(),   // v0.9.1
+//	            // ── add ONLY the new libraries introduced in vX.Y.Z ──
 //	            cel.Lib(library.NewThing()),
-//	        )
+//	        )...)
 //	        if err != nil { return nil, err }
 //	        return checkFunc(env), nil
 //	    },
@@ -142,6 +145,14 @@ var celVersionRegistry = []*celVersionEntry{
 		build: func() (func(expr string, varNames []string) error, error) {
 			env, err := cel.NewEnv(append(
 				baseCELOptions(),
+				// v0.9.0 additions
+				library.Omit(),
+				library.Maps(),
+				library.JSON(),
+				library.Lists(),
+				ext.Bindings(),
+				ext.TwoVarComprehensions(),
+				// v0.9.1 additions
 				library.Hash(),
 			)...)
 			if err != nil {
@@ -160,6 +171,7 @@ var celVersionRegistry = []*celVersionEntry{
 		build: func() (func(expr string, varNames []string) error, error) {
 			env, err := cel.NewEnv(append(
 				baseCELOptions(),
+				// v0.9.0 additions
 				library.Omit(),
 				library.Maps(),
 				library.JSON(),
