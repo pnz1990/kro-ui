@@ -16,9 +16,16 @@
 // content using kro's own library packages. It does NOT contact the Kubernetes
 // API server — all checks are purely local.
 //
-// This package is the single point of contact with kro library code.
+// # Version-accurate CEL validation
+//
+// CEL function availability differs across kro versions. To avoid false
+// positives (e.g. hash.fnv64a() appearing valid on a v0.8.5 cluster),
+// ValidateCELExpressions accepts the connected cluster's kro version string
+// and selects the matching CEL environment from cel_versions.go.
+//
 // When upgrading kro (go get github.com/kubernetes-sigs/kro@vX.Y.Z && make tidy),
-// only this package needs updating if kro's library API changes.
+// add a new entry to celVersionRegistry in cel_versions.go if the release
+// introduced new CEL library functions. No other file needs changing.
 //
 // Spec: .specify/specs/045-rgd-designer-validation-optimizer/ US10
 package validate
@@ -27,10 +34,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"sync"
 
-	cel "github.com/google/cel-go/cel"
-	krocel "github.com/kubernetes-sigs/kro/pkg/cel"
 	kroschema "github.com/kubernetes-sigs/kro/pkg/simpleschema"
 
 	apitypes "github.com/pnz1990/kro-ui/internal/api/types"
@@ -47,24 +51,7 @@ type ResourceExpressions struct {
 	Expressions []string
 }
 
-// ── CEL environment singleton ──────────────────────────────────────────────
-
-var (
-	celEnvOnce sync.Once
-	celEnv     *cel.Env
-	celEnvErr  error
-)
-
-// celEnvironment returns the cached kro CEL environment.
-// Initialised once on first call. Thread-safe.
-func celEnvironment() (*cel.Env, error) {
-	celEnvOnce.Do(func() {
-		celEnv, celEnvErr = krocel.DefaultEnvironment()
-	})
-	return celEnv, celEnvErr
-}
-
-// ── lowerCamelCase regex ───────────────────────────────────────────────────
+// ── regexes ───────────────────────────────────────────────────────────────
 
 // kro requires resource IDs to be lowerCamelCase:
 // starts with a lowercase letter, followed by alphanumeric characters only.
@@ -129,7 +116,12 @@ func ValidateSpecFields(fieldMap map[string]string) (issues []apitypes.StaticIss
 
 // ── ValidateCELExpressions ────────────────────────────────────────────────
 
-// ValidateCELExpressions validates CEL syntax in resource template expressions.
+// ValidateCELExpressions validates CEL syntax in resource template expressions
+// using the CEL environment that matches the connected cluster's kro version.
+//
+// kroVersion is the version string reported by the cluster (e.g. "v0.9.1",
+// "0.8.5"). Pass "" or "unknown" to use the most conservative (oldest)
+// environment, which never produces false positives.
 //
 // Each entry in resources carries a resource ID and a list of raw "${...}"
 // strings extracted from the template body. Non-"${...}" strings are skipped.
@@ -137,7 +129,7 @@ func ValidateSpecFields(fieldMap map[string]string) (issues []apitypes.StaticIss
 // Returns one StaticIssue per expression that fails CEL parsing, referencing
 // the resource ID.
 // Panic-safe: any panic from kro library code is recovered and returned as an issue.
-func ValidateCELExpressions(resources []ResourceExpressions) (issues []apitypes.StaticIssue) {
+func ValidateCELExpressions(kroVersion string, resources []ResourceExpressions) (issues []apitypes.StaticIssue) {
 	defer func() {
 		if r := recover(); r != nil {
 			issues = append(issues, apitypes.StaticIssue{
@@ -147,7 +139,7 @@ func ValidateCELExpressions(resources []ResourceExpressions) (issues []apitypes.
 		}
 	}()
 
-	env, err := celEnvironment()
+	parse, err := envForVersion(kroVersion)
 	if err != nil {
 		return []apitypes.StaticIssue{{
 			Field:   "internal",
@@ -163,14 +155,12 @@ func ValidateCELExpressions(resources []ResourceExpressions) (issues []apitypes.
 			}
 			// Strip the ${ } wrappers to get raw CEL text
 			celText := raw[2 : len(raw)-1]
-			ast, iss := env.Parse(celText)
-			if iss != nil && iss.Err() != nil {
+			if err := parse(celText); err != nil {
 				issues = append(issues, apitypes.StaticIssue{
 					Field:   fmt.Sprintf("spec.resources[%s].template", res.ID),
-					Message: iss.Err().Error(),
+					Message: err.Error(),
 				})
 			}
-			_ = ast
 		}
 	}
 	return issues

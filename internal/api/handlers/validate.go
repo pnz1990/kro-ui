@@ -30,6 +30,17 @@ import (
 
 const maxBodyBytes = 1 << 20 // 1 MiB
 
+// kroVersionForRequest returns the kro version string for the currently active
+// context. It reads from the capabilities cache (populated by GetCapabilities),
+// returning "" when the cache is cold so ValidateCELExpressions falls back to
+// the most conservative environment.
+func kroVersionForRequest() string {
+	if cached := capCache.get(); cached != nil {
+		return cached.Version
+	}
+	return ""
+}
+
 // ValidateRGD performs OFFLINE static validation of the RGD YAML in the request
 // body using kro's own Go library packages. It does NOT contact the Kubernetes
 // API server and does NOT issue any PATCH/Apply verb.
@@ -37,6 +48,10 @@ const maxBodyBytes = 1 << 20 // 1 MiB
 // This replaced the previous server-side apply (SSA) dry-run implementation which
 // violated Constitution §III (read-only contract) and required a PATCH ClusterRole
 // that the Helm chart never granted (GH #303).
+//
+// CEL expressions are validated against the CEL environment matching the connected
+// cluster's kro version (read from the capabilities cache). This prevents false
+// positives where a function like hash.fnv64a() appears valid on kro v0.8.5.
 //
 // POST /api/v1/rgds/validate
 // Content-Type: text/plain  (raw YAML body)
@@ -76,6 +91,7 @@ func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
 
 	// Run offline static validation — same logic as ValidateRGDStatic.
 	// No PATCH/Apply verb is issued; no cluster contact.
+	kroVersion := kroVersionForRequest()
 	var allIssues []apitypes.StaticIssue
 
 	specMap := extractSpecFields(obj.Object)
@@ -112,7 +128,7 @@ func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
 			allIssues = append(allIssues, validate.ValidateResourceIDs(ids)...)
 		}
 		if len(celResources) > 0 {
-			allIssues = append(allIssues, validate.ValidateCELExpressions(celResources)...)
+			allIssues = append(allIssues, validate.ValidateCELExpressions(kroVersion, celResources)...)
 		}
 	}
 
@@ -142,6 +158,9 @@ func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
 // kro's own Go library packages (pkg/simpleschema and pkg/cel). It does NOT
 // contact the Kubernetes API server — all checks are purely local.
 //
+// CEL expressions are validated against the CEL environment matching the connected
+// cluster's kro version (read from the capabilities cache).
+//
 // POST /api/v1/rgds/validate/static
 // Content-Type: text/plain  (raw YAML body)
 //
@@ -167,6 +186,7 @@ func (h *Handler) ValidateRGDStatic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	kroVersion := kroVersionForRequest()
 	var allIssues []apitypes.StaticIssue
 
 	// ── Extract and validate spec.schema.spec fields ─────────────────────
@@ -207,7 +227,7 @@ func (h *Handler) ValidateRGDStatic(w http.ResponseWriter, r *http.Request) {
 			allIssues = append(allIssues, validate.ValidateResourceIDs(ids)...)
 		}
 		if len(celResources) > 0 {
-			allIssues = append(allIssues, validate.ValidateCELExpressions(celResources)...)
+			allIssues = append(allIssues, validate.ValidateCELExpressions(kroVersion, celResources)...)
 		}
 	}
 
