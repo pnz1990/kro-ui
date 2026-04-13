@@ -80,13 +80,18 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a ClientFactory from the given kubeconfig path and context.
-// If kubeconfigPath is empty it falls back to $KUBECONFIG.
-// If neither is set, it attempts in-cluster config (for running inside a Kubernetes cluster).
+// Fallback chain: explicit path → $KUBECONFIG → ~/.kube/config → in-cluster.
 // If context is empty it uses the current context in the kubeconfig.
 func NewClientFactory(kubeconfigPath, context string) (*ClientFactory, error) {
 	path := kubeconfigPath
 	if path == "" {
 		path = os.Getenv("KUBECONFIG")
+	}
+	if path == "" {
+		defaultPath := os.ExpandEnv("$HOME/.kube/config")
+		if _, err := os.Stat(defaultPath); err == nil {
+			path = defaultPath
+		}
 	}
 	if path != "" {
 		f := &ClientFactory{kubeconfigPath: path}
@@ -182,11 +187,15 @@ func (f *ClientFactory) loadInCluster() error {
 }
 
 // SwitchContext reloads all clients for the given context.
-// Returns an error if the context name is empty or not found in the kubeconfig.
+// Returns an error if the factory was created with in-cluster mode
+// (context switching is not supported when running inside a pod).
 // After a successful switch, all registered context-switch hooks are called.
 func (f *ClientFactory) SwitchContext(ctx string) error {
 	if ctx == "" {
 		return errors.New("context name must not be empty")
+	}
+	if f.kubeconfigPath == "" {
+		return errors.New("context switching not supported in in-cluster mode")
 	}
 	if err := f.load(ctx); err != nil {
 		return err
@@ -267,7 +276,13 @@ func (f *ClientFactory) ActiveContext() string {
 }
 
 // ListContexts returns all available contexts from the kubeconfig and the active context.
+// When running in-cluster (no kubeconfig file), returns a synthetic single-context list
+// containing only the in-cluster context.
 func (f *ClientFactory) ListContexts() ([]Context, string, error) {
+	if f.kubeconfigPath == "" {
+		return []Context{{Name: "in-cluster", Cluster: "", User: ""}}, "in-cluster", nil
+	}
+
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: f.kubeconfigPath}
 	rawCfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		loadingRules, &clientcmd.ConfigOverrides{},
