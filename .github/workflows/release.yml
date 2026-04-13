@@ -76,7 +76,7 @@ jobs:
 
       - name: Update and push Helm chart
         run: |
-          VERSION={{ github.ref_name }}
+          VERSION=${{ github.ref_name }}
           STRIP_VERSION=${VERSION#v}
 
           # Package and push to OCI
