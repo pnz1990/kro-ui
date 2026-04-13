@@ -11,7 +11,7 @@ RUN bun run build
 # (linux/amd64). apk, go mod download, and go build all run natively — no QEMU.
 # TARGETARCH is injected by BuildKit and passed to GOARCH so the output binary
 # targets the correct architecture (Go cross-compilation is near-instant).
-FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS go-builder
+FROM --platform=$BUILDPLATFORM golang:1.26.2-alpine AS go-builder
 # git is required by go mod download when GOPROXY=direct fetches from VCS
 RUN apk add --no-cache git
 WORKDIR /app
@@ -38,7 +38,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
 #     -v ~/.aws:/home/nonroot/.aws:ro \
 #     ghcr.io/pnz1990/kro-ui:latest
 FROM alpine:3.21
-RUN apk add --no-cache aws-cli ca-certificates && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache aws-cli ca-certificates && \
     adduser -D -u 65532 nonroot
 COPY --from=go-builder /kro-ui /kro-ui
 EXPOSE 40107
