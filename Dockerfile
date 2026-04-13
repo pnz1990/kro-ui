@@ -38,7 +38,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
 #     -v ~/.aws:/home/nonroot/.aws:ro \
 #     ghcr.io/pnz1990/kro-ui:latest
 FROM alpine:3.21
-RUN apk add --no-cache aws-cli ca-certificates && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache aws-cli ca-certificates && \
     adduser -D -u 65532 nonroot
 COPY --from=go-builder /kro-ui /kro-ui
 EXPOSE 40107
