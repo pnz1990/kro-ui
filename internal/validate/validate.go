@@ -116,8 +116,9 @@ func ValidateSpecFields(fieldMap map[string]string) (issues []apitypes.StaticIss
 
 // ── ValidateCELExpressions ────────────────────────────────────────────────
 
-// ValidateCELExpressions validates CEL syntax in resource template expressions
-// using the CEL environment that matches the connected cluster's kro version.
+// ValidateCELExpressions validates CEL syntax and function availability in
+// resource template expressions using the CEL environment that matches the
+// connected cluster's kro version.
 //
 // kroVersion is the version string reported by the cluster (e.g. "v0.9.1",
 // "0.8.5"). Pass "" or "unknown" to use the most conservative (oldest)
@@ -126,8 +127,13 @@ func ValidateSpecFields(fieldMap map[string]string) (issues []apitypes.StaticIss
 // Each entry in resources carries a resource ID and a list of raw "${...}"
 // strings extracted from the template body. Non-"${...}" strings are skipped.
 //
-// Returns one StaticIssue per expression that fails CEL parsing, referencing
-// the resource ID.
+// Validation performs both syntax (Parse) and semantic (Check) analysis.
+// The resource ID and "schema" are declared as dynamic-typed variables so
+// field-access chains (e.g. schema.spec.replicas) pass type-checking without
+// requiring the full OpenAPI schema. Unknown functions from newer kro versions
+// (e.g. hash.fnv64a on a v0.8.x cluster) are correctly rejected.
+//
+// Returns one StaticIssue per expression that fails, referencing the resource ID.
 // Panic-safe: any panic from kro library code is recovered and returned as an issue.
 func ValidateCELExpressions(kroVersion string, resources []ResourceExpressions) (issues []apitypes.StaticIssue) {
 	defer func() {
@@ -139,7 +145,7 @@ func ValidateCELExpressions(kroVersion string, resources []ResourceExpressions) 
 		}
 	}()
 
-	parse, err := envForVersion(kroVersion)
+	check, err := envForVersion(kroVersion)
 	if err != nil {
 		return []apitypes.StaticIssue{{
 			Field:   "internal",
@@ -148,6 +154,10 @@ func ValidateCELExpressions(kroVersion string, resources []ResourceExpressions) 
 	}
 
 	for _, res := range resources {
+		// varNames declares the variables in scope for this resource's expressions:
+		// "schema" is always present; the resource's own ID is also in scope so
+		// expressions can reference sibling resources.
+		varNames := []string{res.ID}
 		for _, raw := range res.Expressions {
 			// Only process "${...}" expressions
 			if !strings.HasPrefix(raw, "${") || !strings.HasSuffix(raw, "}") {
@@ -155,7 +165,7 @@ func ValidateCELExpressions(kroVersion string, resources []ResourceExpressions) 
 			}
 			// Strip the ${ } wrappers to get raw CEL text
 			celText := raw[2 : len(raw)-1]
-			if err := parse(celText); err != nil {
+			if err := check(celText, varNames); err != nil {
 				issues = append(issues, apitypes.StaticIssue{
 					Field:   fmt.Sprintf("spec.resources[%s].template", res.ID),
 					Message: err.Error(),

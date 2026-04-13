@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	apitypes "github.com/pnz1990/kro-ui/internal/api/types"
+	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -329,3 +330,109 @@ spec:
 
 // Ensure the rgdGVR variable from rgds.go is accessible in this file.
 var _ = schema.GroupVersionResource{}
+
+// ── TestKroVersionForRequest ───────────────────────────────────────────────
+
+// TestKroVersionForRequest verifies that kroVersionForRequest returns the
+// version from the capabilities cache when warm, and "" when cold.
+// It also verifies that a warm cache with an older kro version causes
+// ValidateRGDStatic to reject expressions using newer kro functions.
+func TestKroVersionForRequest(t *testing.T) {
+	t.Cleanup(func() { capCache.invalidate() })
+
+	t.Run("cold cache returns empty string", func(t *testing.T) {
+		capCache.invalidate()
+		v := kroVersionForRequest()
+		if v != "" {
+			t.Errorf("cold cache: expected \"\", got %q", v)
+		}
+	})
+
+	t.Run("warm cache returns stored version", func(t *testing.T) {
+		capCache.invalidate()
+		capCache.set(&k8sclient.KroCapabilities{Version: "v0.9.1"})
+		v := kroVersionForRequest()
+		if v != "v0.9.1" {
+			t.Errorf("warm cache: expected \"v0.9.1\", got %q", v)
+		}
+	})
+
+	// End-to-end: when capCache is warm with v0.8.5, ValidateRGDStatic must
+	// reject hash.fnv64a (a v0.9.1-only function).
+	t.Run("ValidateRGDStatic rejects v0.9.1 function on v0.8.5 cluster", func(t *testing.T) {
+		capCache.invalidate()
+		capCache.set(&k8sclient.KroCapabilities{Version: "v0.8.5"})
+
+		h := newStaticHandler()
+		yaml := `apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: my-app
+spec:
+  schema:
+    kind: MyApp
+    apiVersion: v1alpha1
+  resources:
+    - id: web
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${hash.fnv64a("hello")}
+`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate/static", strings.NewReader(yaml))
+		w := httptest.NewRecorder()
+
+		h.ValidateRGDStatic(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		var res apitypes.StaticValidationResult
+		if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		if len(res.Issues) == 0 {
+			t.Error("expected at least 1 issue: hash.fnv64a should be rejected on v0.8.5 cluster")
+		}
+	})
+
+	// End-to-end: same expression must be accepted on a v0.9.1 cluster.
+	t.Run("ValidateRGDStatic accepts v0.9.1 function on v0.9.1 cluster", func(t *testing.T) {
+		capCache.invalidate()
+		capCache.set(&k8sclient.KroCapabilities{Version: "v0.9.1"})
+
+		h := newStaticHandler()
+		yaml := `apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: my-app
+spec:
+  schema:
+    kind: MyApp
+    apiVersion: v1alpha1
+  resources:
+    - id: web
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${hash.fnv64a("hello")}
+`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate/static", strings.NewReader(yaml))
+		w := httptest.NewRecorder()
+
+		h.ValidateRGDStatic(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		var res apitypes.StaticValidationResult
+		if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		if len(res.Issues) != 0 {
+			t.Errorf("expected 0 issues for hash.fnv64a on v0.9.1 cluster, got: %v", res.Issues)
+		}
+	})
+}
