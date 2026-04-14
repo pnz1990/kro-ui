@@ -188,7 +188,7 @@
 
 .dag-tooltip {
   position: fixed;
-  z-index: 9999;
+  z-index: var(--z-tooltip);
   pointer-events: none;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);

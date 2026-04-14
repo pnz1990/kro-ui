@@ -16,6 +16,7 @@ package handlers
 
 // ListAllInstances returns a flat list of all live CR instances across all active RGDs.
 // Fan-out: one goroutine per RGD, each with a 5s deadline (constitution §XI; was 2s, increased in PR #352).
+// Uses errgroup so request cancellation (client disconnect) propagates to all goroutines.
 // Response: {"items": [...InstanceSummary...], "total": N}
 //
 // Used by the global instance search page (/instances) in the frontend.
@@ -26,8 +27,10 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -69,7 +72,8 @@ type ListAllInstancesResponse struct {
 // Increased to 5s (was 2s): on throttled clusters the DiscoverPlural call alone
 // can take 1-2s, leaving insufficient time for the List call under the 2s limit.
 // Since goroutines run in parallel the overall handler stays within the 5s budget.
-const perRGDAllInstancesTimeout = 5
+// Typed as time.Duration to prevent accidental raw nanosecond arithmetic.
+const perRGDAllInstancesTimeout = 5 * time.Second
 
 func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
@@ -84,19 +88,20 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 
 	var (
 		mu    sync.Mutex
-		wg    sync.WaitGroup
 		items = make([]InstanceSummary, 0, len(rgdList.Items)*2)
 	)
 
-	wg.Add(len(rgdList.Items))
+	// errgroup propagates request cancellation to all goroutines — if the
+	// HTTP client disconnects, in-flight k8s List calls are cancelled promptly.
+	// We never return the group error (each RGD is best-effort), but the
+	// group's derived context ensures goroutines stop early on cancellation.
+	g, gctx := errgroup.WithContext(r.Context())
 
 	for i := range rgdList.Items {
 		rgd := &rgdList.Items[i]
-		go func() {
-			defer wg.Done()
-
+		g.Go(func() error {
 			rgdName := rgd.GetName()
-			rctx, cancel := context.WithTimeout(r.Context(), perRGDAllInstancesTimeout*1_000_000_000)
+			rctx, cancel := context.WithTimeout(gctx, perRGDAllInstancesTimeout)
 			defer cancel()
 
 			// Extract kind/group/version from the already-fetched RGD object —
@@ -107,7 +112,7 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 			version, _, _ := k8sclient.UnstructuredString(rgd.Object, "spec", "schema", "apiVersion")
 			if kind == "" {
 				log.Debug().Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — no schema kind")
-				return
+				return nil
 			}
 			if group == "" {
 				group = k8sclient.KroGroup
@@ -124,8 +129,10 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 
 			list, err := h.factory.Dynamic().Resource(gvr).List(rctx, metav1.ListOptions{})
 			if err != nil {
-				log.Debug().Err(err).Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — list failed")
-				return
+				// Warn (not Debug) so RBAC misconfigurations are visible in production logs
+				// without requiring verbose debug logging. Best-effort: skip this RGD.
+				log.Warn().Err(err).Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — list failed (RBAC or unavailable)")
+				return nil
 			}
 
 			summaries := make([]InstanceSummary, 0, len(list.Items))
@@ -174,12 +181,12 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 				}
 
 				// kind comes from the CRD kind embedded in the object itself
-				kind := strings.TrimSpace(obj.GetKind())
+				objKind := strings.TrimSpace(obj.GetKind())
 
 				summaries = append(summaries, InstanceSummary{
 					Name:              name,
 					Namespace:         obj.GetNamespace(),
-					Kind:              kind,
+					Kind:              objKind,
 					RGDName:           rgdName,
 					State:             stateStr,
 					Ready:             ready,
@@ -191,10 +198,15 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 			mu.Lock()
 			items = append(items, summaries...)
 			mu.Unlock()
-		}()
+			return nil
+		})
 	}
 
-	wg.Wait()
+	// Wait for all goroutines. We ignore the error return because each goroutine
+	// returns nil on RGD-level failures (best-effort) and only the group context
+	// cancellation (client disconnect) would propagate non-nil errors — in that
+	// case we still respond with whatever was collected.
+	_ = g.Wait()
 
 	resp := ListAllInstancesResponse{
 		Items: items,

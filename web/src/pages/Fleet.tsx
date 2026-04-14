@@ -5,7 +5,7 @@
 // Issue #62: deduplicates clusters pointing to the same server URL.
 // Spec 040: per-cluster metrics fan-out via ?context= param.
 
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   getFleetSummary,
@@ -115,8 +115,10 @@ export default function Fleet() {
   const fetchFleet = useCallback(() => {
     setIsLoading(true)
     setError(null)
+    const ac = new AbortController()
     getFleetSummary()
       .then((res) => {
+        if (ac.signal.aborted) return
         setClusters(res.clusters)
         setLastRefresh(new Date())
 
@@ -135,6 +137,7 @@ export default function Fleet() {
             ),
           ),
         ).then((results) => {
+          if (ac.signal.aborted) return
           const map = new Map<string, ControllerMetrics | null>()
           for (const r of results) {
             if (r.status === 'fulfilled') {
@@ -147,28 +150,37 @@ export default function Fleet() {
         })
       })
       .catch((err: unknown) => {
+        if (ac.signal.aborted) return
         setError(err instanceof Error ? err.message : String(err))
       })
       .finally(() => {
-        setIsLoading(false)
+        if (!ac.signal.aborted) setIsLoading(false)
       })
+    return ac
   }, [])
 
   useEffect(() => {
-    fetchFleet()
+    const ac = fetchFleet()
+    return () => ac.abort()
   }, [fetchFleet])
 
   // Cluster card click: switch context then navigate home (FR-004).
+  // Use a ref to abort any in-flight switch if the user clicks another cluster rapidly.
+  const switchACRef = React.useRef<AbortController | null>(null)
   const handleSwitch = useCallback(
     (context: string) => {
+      // Abort any previous in-flight context switch
+      switchACRef.current?.abort()
+      const ac = new AbortController()
+      switchACRef.current = ac
       switchContext(context)
         .then(() => {
-          navigate('/')
+          if (!ac.signal.aborted) navigate('/')
         })
         .catch(() => {
           // Best-effort: even if switch fails, navigate home so the user can
           // retry or see the current cluster state.
-          navigate('/')
+          if (!ac.signal.aborted) navigate('/')
         })
     },
     [navigate],

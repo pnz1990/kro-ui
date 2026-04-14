@@ -20,6 +20,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -46,7 +47,11 @@ func (h *Handler) GetInstance(w http.ResponseWriter, r *http.Request) {
 	obj, err := h.factory.Dynamic().Resource(gvr).Namespace(namespace).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Str("namespace", namespace).Str("name", name).Msg("failed to get instance")
-		respondError(w, http.StatusNotFound, err.Error())
+		if k8serrors.IsNotFound(err) {
+			respondError(w, http.StatusNotFound, err.Error())
+		} else {
+			respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())
+		}
 		return
 	}
 	log.Debug().Str("namespace", namespace).Str("name", name).Msg("fetched instance")
@@ -65,6 +70,7 @@ func (h *Handler) GetInstanceEvents(w http.ResponseWriter, r *http.Request) {
 		r.Context(), metav1.ListOptions{FieldSelector: fieldSelector},
 	)
 	if err != nil {
+		log.Error().Err(err).Str("namespace", namespace).Str("name", name).Msg("failed to list instance events")
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
