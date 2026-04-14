@@ -1,0 +1,45 @@
+project:
+  name: kro-ui
+  repo: pnz1990/kro-ui
+  report_issue: 439
+  board_url: ""
+  pr_label: "kro-ui"
+
+maqa:
+  mode: standalone
+  agents_path: ~/.otherness/agents
+  status_update_cycles: 5
+  product_validation_cycles: 3
+
+ci:
+  provider: github-actions
+  github_actions:
+    workflow: ci.yml
+  wait_timeout_seconds: 1200
+  block_on_red: true
+
+github_projects:
+  project_id: ""
+  project_number: ""
+  linked_repo: pnz1990/kro-ui
+  status_field_id: ""
+  todo_option_id: ""
+  in_progress_option_id: ""
+  in_review_option_id: ""
+  done_option_id: ""
+  blocked_option_id: ""
+  team_field_id: ""
+  team_standalone_option_id: ""
+  priority_field_id: ""
+  priority_critical_option_id: ""
+  priority_high_option_id: ""
+  priority_medium_option_id: ""
+  priority_low_option_id: ""
+  size_field_id: ""
+  size_xs_option_id: ""
+  size_s_option_id: ""
+  size_m_option_id: ""
+  size_l_option_id: ""
+  size_xl_option_id: ""
+  start_date_field_id: ""
+  target_date_field_id: ""
