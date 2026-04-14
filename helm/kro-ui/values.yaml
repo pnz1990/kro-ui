@@ -2,9 +2,6 @@
 # Global
 ########################################
 
-# -- Namespace for all resources
-namespace: kro-system
-
 # -- Overrides the chart's name
 nameOverride: ""
 # -- Overrides the chart's computed fullname

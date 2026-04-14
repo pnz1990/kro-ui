@@ -64,7 +64,6 @@ tests:
     set:
       rbac:
         create: true
-      namespace: kro-system
     documentIndex: 1
     asserts:
       - equal:

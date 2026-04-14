@@ -37,7 +37,6 @@ tests:
 
   - it: should set namespace
     set:
-      namespace: kro-system
       service:
         type: ClusterIP
         port: 40107

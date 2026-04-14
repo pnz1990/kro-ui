@@ -3,7 +3,7 @@ Thank you for installing kro-ui {{ .Chart.Version }}
 ## Getting Started
 
 To access the UI, port-forward the service:
-  kubectl port-forward -n {{ .Values.namespace }} svc/{{ include "kro-ui.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "kro-ui.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
 
 Then open http://localhost:{{ .Values.service.port }}
 
@@ -27,7 +27,7 @@ The Secret must contain a valid kubeconfig under the key specified by `secretKey
 Example Secret:
   kubectl create secret generic my-kubeconfig \
     --from-file=config=/path/to/kubeconfig.yaml \
-    -n {{ .Values.namespace }}
+    -n {{ .Release.Namespace }}
 
 ## RBAC for Multi-Cluster
 

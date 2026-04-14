@@ -31,7 +31,6 @@ tests:
 
   - it: should have correct namespace
     set:
-      namespace: kro-system
       image:
         repository: ghcr.io/pnz1990/kro-ui
         tag: "0.9.4"

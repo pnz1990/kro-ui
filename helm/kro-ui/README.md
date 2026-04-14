@@ -65,7 +65,6 @@ Then open http://localhost:40107
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| namespace | string | `"kro-system"` | Namespace for all resources |
 | nameOverride | string | `""` | Overrides the chart's name |
 | fullnameOverride | string | `""` | Overrides the chart's computed fullname |
 | image.repository | string | `"ghcr.io/pnz1990/kro-ui"` | Image repository |
