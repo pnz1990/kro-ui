@@ -262,4 +262,20 @@ describe('RGDDiffView', () => {
     await user.keyboard('{Enter}')
     expect(screen.getByTestId('dag-diff-cel-panel')).toBeInTheDocument()
   })
+
+  // ── No-changes banner ──────────────────────────────────────────
+
+  it('shows "no changes" banner when both revisions are identical', () => {
+    const snap = makeSnapshot([resourceNode('svc'), resourceNode('deploy', 'Deployment')])
+    render(<RGDDiffView revA={makeRevision(snap)} revB={makeRevision(snap)} />)
+    expect(screen.getByTestId('rgd-diff-no-changes')).toBeInTheDocument()
+    expect(screen.getByText(/No changes detected/i)).toBeInTheDocument()
+  })
+
+  it('does NOT show "no changes" banner when there are actual changes', () => {
+    const snapA = makeSnapshot([resourceNode('svc')])
+    const snapB = makeSnapshot([resourceNode('svc'), resourceNode('deploy', 'Deployment')])
+    render(<RGDDiffView revA={makeRevision(snapA)} revB={makeRevision(snapB)} />)
+    expect(screen.queryByTestId('rgd-diff-no-changes')).not.toBeInTheDocument()
+  })
 })

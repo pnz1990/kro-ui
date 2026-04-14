@@ -53,8 +53,13 @@
 - Expand E2E coverage for new features
 - Performance and accessibility improvements
 
-### Known gaps (open issues)
-- Graph revision YAML diff (spec 009, foundation shipped in PR #318, side-by-side pending)
+### Recently shipped (post-v0.9.4)
+- Graph revision merged DAG diff — spec 009 fully implemented (PR #440, GH #13 closed)
+- Production hardening — 15 security/correctness fixes (PR #441)
+- Unit test coverage — 5 untested components + E2E journey 063 (PR #442)
+- RGDDiffView "no changes" banner; extractExpressionsFromMap slice coverage (PR #443)
+
+### Known gaps
 - Any issues opened after v0.9.4
 
 ---
