@@ -18,8 +18,12 @@
 // creates a new revision. This tab shows the revision history with status,
 // age, and compilation result.
 //
-// GH #13 (spec 009): Select 2 revisions to show a side-by-side YAML diff
-// (side-by-side YAML diff is the remaining deliverable for spec 009).
+// Spec 009 (GH #13): Two views are provided:
+//   1. DAG Diff view — a single merged DAG with color-coded overlays for
+//      added/removed/modified/unchanged nodes and edges (FR-005, this PR).
+//      Implemented via RevisionSelector + RGDDiffView.
+//   2. YAML diff — the existing side-by-side raw YAML view (PR #318 foundation).
+//      Remains below the DAG diff as a complementary raw-data fallback.
 //
 // Spec ref: .specify/specs/046-kro-v090-upgrade/ (Phase 4 — Graph Revisions tab)
 // GH #274: kro v0.9.0 upgrade — Graph Revisions tab
@@ -30,6 +34,9 @@ import type { K8sObject } from '@/lib/api'
 import { formatAge, extractCreationTimestamp } from '@/lib/format'
 import { toYaml, cleanK8sObject } from '@/lib/yaml'
 import KroCodeBlock from './KroCodeBlock'
+import RevisionSelector from './RevisionSelector'
+import type { RevisionPair } from './RevisionSelector'
+import RGDDiffView from './RGDDiffView'
 import './RevisionsTab.css'
 
 interface RevisionsTabProps {
@@ -129,9 +136,12 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  // GH #13 (spec 009): Select 2 revisions to show side-by-side YAML diff
+  // Spec 009: diff pair selected via RevisionSelector
+  const [diffPair, setDiffPair] = useState<RevisionPair | null>(null)
+
+  // Legacy checkbox-based YAML diff (PR #318 foundation) — kept as raw-data fallback
   const [selectedRevs, setSelectedRevs] = useState<Set<string>>(new Set())
-  const [diffPair, setDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
+  const [yamlDiffPair, setYamlDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
 
   function toggleSelect(name: string, e: React.MouseEvent | React.ChangeEvent) {
     e.stopPropagation()
@@ -152,7 +162,7 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
     const b = revisions.find((r) => {
       const m = r.metadata as Record<string, unknown>; return m?.name === keys[1]
     })
-    if (a && b) setDiffPair([a, b])
+    if (a && b) setYamlDiffPair([a, b])
   }
 
   const fetchRevisions = useCallback(() => {
@@ -211,7 +221,29 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
 
   return (
     <div className="revisions-tab" data-testid="revisions-tab">
-      {/* GH #13 (spec 009): compare action bar */}
+
+      {/* ── Spec 009: DAG diff view ─────────────────────────────────────── */}
+      {/* RevisionSelector auto-defaults to latest → second-latest pair     */}
+      {revisions.length >= 2 && (
+        <div className="revisions-tab__dag-diff-section" data-testid="revisions-dag-diff-section">
+          <div className="revisions-tab__dag-diff-header">
+            <span className="revisions-tab__dag-diff-title">Graph Diff</span>
+            <span className="revisions-tab__dag-diff-subtitle">
+              Select two revisions to visualise node and edge changes
+            </span>
+          </div>
+          <RevisionSelector
+            revisions={revisions}
+            onChange={(pair) => setDiffPair(pair)}
+          />
+          {diffPair && (
+            <RGDDiffView revA={diffPair.revA} revB={diffPair.revB} />
+          )}
+        </div>
+      )}
+
+      {/* ── Legacy YAML diff action bar (PR #318 foundation) ─────────────── */}
+      {/* Kept as a complementary raw-data view (spec 009 §Foundation note)  */}
       {revisions.length > 1 && (
         <div className="revisions-tab__compare-bar">
           {selectedRevs.size === 2 ? (
@@ -222,33 +254,33 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
                 onClick={handleCompare}
                 data-testid="revisions-compare-btn"
               >
-                Compare revisions
+                Compare YAML
               </button>
               <button
                 type="button"
                 className="revisions-tab__compare-clear"
-                onClick={() => { setSelectedRevs(new Set()); setDiffPair(null) }}
+                onClick={() => { setSelectedRevs(new Set()); setYamlDiffPair(null) }}
               >
                 Clear
               </button>
             </>
           ) : selectedRevs.size === 1 ? (
-            <span className="revisions-tab__compare-hint">Select 1 more to compare</span>
+            <span className="revisions-tab__compare-hint">Select 1 more to compare YAML</span>
           ) : (
-            <span className="revisions-tab__compare-hint">Select 2 revisions to compare</span>
+            <span className="revisions-tab__compare-hint">Or select 2 revisions to compare raw YAML</span>
           )}
         </div>
       )}
 
-      {/* GH #13 diff panel */}
-      {diffPair && (
+      {/* ── YAML diff panel (PR #318 foundation, retained as raw-data fallback) ── */}
+      {yamlDiffPair && (
         <div className="revisions-tab__diff-panel" data-testid="revisions-diff-panel">
           <div className="revisions-tab__diff-header">
-            <span className="revisions-tab__diff-title">Revision diff</span>
+            <span className="revisions-tab__diff-title">Raw YAML diff</span>
             <button
               type="button"
               className="revisions-tab__diff-close"
-              onClick={() => { setDiffPair(null); setSelectedRevs(new Set()) }}
+              onClick={() => { setYamlDiffPair(null); setSelectedRevs(new Set()) }}
             >
               Close diff
             </button>
@@ -257,20 +289,20 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
             <div className="revisions-tab__diff-col">
               <div className="revisions-tab__diff-col-header">
                 {(() => {
-                  const m = diffPair[0].metadata as Record<string, unknown>
-                  return `Rev #${revisionNumber(diffPair[0])} — ${m?.name}`
+                  const m = yamlDiffPair[0].metadata as Record<string, unknown>
+                  return `Rev #${revisionNumber(yamlDiffPair[0])} — ${m?.name}`
                 })()}
               </div>
-              <KroCodeBlock code={toYaml(cleanK8sObject(diffPair[0]))} title="Rev A" />
+              <KroCodeBlock code={toYaml(cleanK8sObject(yamlDiffPair[0]))} title="Rev A" />
             </div>
             <div className="revisions-tab__diff-col">
               <div className="revisions-tab__diff-col-header">
                 {(() => {
-                  const m = diffPair[1].metadata as Record<string, unknown>
-                  return `Rev #${revisionNumber(diffPair[1])} — ${m?.name}`
+                  const m = yamlDiffPair[1].metadata as Record<string, unknown>
+                  return `Rev #${revisionNumber(yamlDiffPair[1])} — ${m?.name}`
                 })()}
               </div>
-              <KroCodeBlock code={toYaml(cleanK8sObject(diffPair[1]))} title="Rev B" />
+              <KroCodeBlock code={toYaml(cleanK8sObject(yamlDiffPair[1]))} title="Rev B" />
             </div>
           </div>
         </div>

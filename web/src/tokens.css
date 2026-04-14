@@ -44,6 +44,22 @@
   --color-error:           #f43f5e;   /* Ready=False — rose */
   --color-not-found:       #6b7280;   /* absent / unknown — gray */
 
+  /* Semantic: graph diff (spec 009-rgd-graph-diff — FR-007)
+   * Same hues as existing state tokens; distinct names for diff-specific semantics.
+   * Background variants use low-opacity fills for node rect backgrounds.         */
+  --color-diff-added:          #10b981;   /* emerald — same hue as --color-alive   */
+  --color-diff-removed:        #f43f5e;   /* rose    — same hue as --color-error   */
+  --color-diff-modified:       #f59e0b;   /* amber   — same hue as --color-reconciling */
+  --color-diff-unchanged:      var(--color-text-muted);   /* gray muted text for unchanged */
+  --color-diff-added-bg:       rgba(16, 185, 129, 0.14);
+  --color-diff-removed-bg:     rgba(244, 63, 94, 0.14);
+  --color-diff-modified-bg:    rgba(245, 158, 11, 0.14);
+  --color-diff-unchanged-bg:   transparent;
+  --color-diff-added-border:   #10b981;
+  --color-diff-removed-border: #f43f5e;
+  --color-diff-modified-border: #f59e0b;
+  --color-diff-unchanged-border: var(--color-border);
+
   /* Semantic: UI status badges (same hue, separate tokens for semantics) */
   --color-status-ready:          #10b981;
   --color-status-degraded:       #f97316;   /* Degraded: CR ready but child has errors — orange */
@@ -177,6 +193,17 @@
   --color-pending:         #7c3aed;   /* darker violet */
   --color-error:           #e11d48;   /* darker rose */
   --color-not-found:       #6b7280;
+
+  /* Semantic: graph diff — light mode (darker variants for contrast on light bg) */
+  --color-diff-added:          #059669;   /* darker emerald */
+  --color-diff-removed:        #e11d48;   /* darker rose */
+  --color-diff-modified:       #d97706;   /* darker amber */
+  --color-diff-added-bg:       rgba(5, 150, 105, 0.10);
+  --color-diff-removed-bg:     rgba(225, 29, 72, 0.10);
+  --color-diff-modified-bg:    rgba(217, 119, 6, 0.10);
+  --color-diff-added-border:   #059669;
+  --color-diff-removed-border: #e11d48;
+  --color-diff-modified-border: #d97706;
 
   /* Semantic: UI status */
   --color-status-ready:          #059669;

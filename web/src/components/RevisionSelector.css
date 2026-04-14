@@ -1,0 +1,63 @@
+/* RevisionSelector — two-select diff pair picker.
+ * All colors via var(--token-name) — no hardcoded hex or rgba values.
+ * Spec: 009-rgd-graph-diff Phase 1 (T008).
+ */
+
+.revision-selector {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px 0 16px;
+  flex-wrap: wrap;
+}
+
+.revision-selector__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.revision-selector__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.revision-selector__select {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.875rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  min-width: 220px;
+  transition: border-color 0.15s ease;
+}
+
+.revision-selector__select:hover {
+  border-color: var(--color-primary);
+}
+
+.revision-selector__select:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 2px var(--color-primary-muted);
+}
+
+.revision-selector__arrow {
+  font-size: 1.125rem;
+  color: var(--color-text-muted);
+  padding-bottom: 8px; /* align vertically with the select boxes */
+  user-select: none;
+}
+
+.revision-selector__single-msg {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  padding: 12px 0;
+  margin: 0;
+}
