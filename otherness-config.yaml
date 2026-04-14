@@ -2,7 +2,7 @@ project:
   name: kro-ui
   repo: pnz1990/kro-ui
   report_issue: 439
-  board_url: ""
+  board_url: "https://github.com/users/pnz1990/projects/2/views/1"
   pr_label: "kro-ui"
 
 maqa:
@@ -19,27 +19,32 @@ ci:
   block_on_red: true
 
 github_projects:
-  project_id: ""
-  project_number: ""
+  project_id: "PVT_kwHOC22HhM4BUowm"
+  project_number: "2"
   linked_repo: pnz1990/kro-ui
-  status_field_id: ""
-  todo_option_id: ""
-  in_progress_option_id: ""
-  in_review_option_id: ""
-  done_option_id: ""
-  blocked_option_id: ""
+  # Status field (Todo / In Progress / Done — add In Review + Blocked in board UI)
+  status_field_id: "PVTSSF_lAHOC22HhM4BUowmzhByuRg"
+  todo_option_id: "f75ad846"
+  in_progress_option_id: "47fc9ee4"
+  in_review_option_id: ""   # add "In Review" option in board UI → paste ID here
+  done_option_id: "98236657"
+  blocked_option_id: ""     # add "Blocked" option in board UI → paste ID here
+  # Team field — add single-select field "Team" in board UI → paste IDs here
   team_field_id: ""
   team_standalone_option_id: ""
+  # Priority field — add single-select field "Priority" in board UI → paste IDs here
   priority_field_id: ""
   priority_critical_option_id: ""
   priority_high_option_id: ""
   priority_medium_option_id: ""
   priority_low_option_id: ""
+  # Size field — add single-select field "Size" in board UI → paste IDs here
   size_field_id: ""
   size_xs_option_id: ""
   size_s_option_id: ""
   size_m_option_id: ""
   size_l_option_id: ""
   size_xl_option_id: ""
+  # Date fields — add "Target date" date field in board UI → paste ID here
   start_date_field_id: ""
   target_date_field_id: ""
