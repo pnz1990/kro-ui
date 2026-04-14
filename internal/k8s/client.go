@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -88,9 +89,11 @@ func NewClientFactory(kubeconfigPath, context string) (*ClientFactory, error) {
 		path = os.Getenv("KUBECONFIG")
 	}
 	if path == "" {
-		defaultPath := os.ExpandEnv("$HOME/.kube/config")
-		if _, err := os.Stat(defaultPath); err == nil {
-			path = defaultPath
+		if home, err := os.UserHomeDir(); err == nil {
+			defaultPath := filepath.Join(home, ".kube", "config")
+			if _, err := os.Stat(defaultPath); err == nil {
+				path = defaultPath
+			}
 		}
 	}
 	if path != "" {
