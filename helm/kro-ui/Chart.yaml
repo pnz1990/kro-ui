@@ -1,0 +1,12 @@
+apiVersion: v2
+name: kro-ui
+description: A Helm chart for kro-ui - Kubernetes Resource Orchestrator UI
+type: application
+version: 0.1.0
+appVersion: "0.9.4"
+keywords:
+  - kro
+  - kubernetes
+  - resourcegraphdefinition
+  - dashboard
+home: https://github.com/pnz1990/kro-ui
