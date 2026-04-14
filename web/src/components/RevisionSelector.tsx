@@ -18,6 +18,7 @@
 // Emits onChange({ revA, revB }) when both selects have distinct selections.
 // Shows an informational message when < 2 revisions exist.
 
+import { useState, useEffect } from 'react'
 import type { K8sObject } from '@/lib/api'
 import './RevisionSelector.css'
 
@@ -68,6 +69,19 @@ interface RevisionSelectorProps {
  * Spec: T007 (Phase 1).
  */
 export default function RevisionSelector({ revisions, onChange }: RevisionSelectorProps) {
+  // Default: Rev A = latest, Rev B = second-latest
+  const [nameA, setNameA] = useState(() => revisions.length >= 1 ? revisionName(revisions[0]) : '')
+  const [nameB, setNameB] = useState(() => revisions.length >= 2 ? revisionName(revisions[1]) : '')
+
+  // Emit the initial default pair on first render (auto-seeds the diff view)
+  useEffect(() => {
+    if (revisions.length < 2) return
+    const revA = revisions[0]
+    const revB = revisions[1]
+    onChange({ revA, revB })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally empty — only on mount
+
   if (revisions.length < 2) {
     if (revisions.length === 1) {
       return (
@@ -82,27 +96,25 @@ export default function RevisionSelector({ revisions, onChange }: RevisionSelect
     return null
   }
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLSelectElement>,
-    role: 'a' | 'b',
-    currentOther: string,
-  ) {
-    const selected = e.target.value
-    const nameA = role === 'a' ? selected : currentOther
-    const nameB = role === 'b' ? selected : currentOther
-    if (!nameA || !nameB || nameA === nameB) {
-      onChange(null)
-      return
-    }
-    const revA = revisions.find((r) => revisionName(r) === nameA)
+  function handleChangeA(e: React.ChangeEvent<HTMLSelectElement>) {
+    const next = e.target.value
+    setNameA(next)
+    if (!next || !nameB || next === nameB) { onChange(null); return }
+    const revA = revisions.find((r) => revisionName(r) === next)
     const revB = revisions.find((r) => revisionName(r) === nameB)
     if (revA && revB) onChange({ revA, revB })
     else onChange(null)
   }
 
-  // Default: Rev A = latest, Rev B = second-latest
-  const defaultA = revisionName(revisions[0])
-  const defaultB = revisionName(revisions[1])
+  function handleChangeB(e: React.ChangeEvent<HTMLSelectElement>) {
+    const next = e.target.value
+    setNameB(next)
+    if (!nameA || !next || nameA === next) { onChange(null); return }
+    const revA = revisions.find((r) => revisionName(r) === nameA)
+    const revB = revisions.find((r) => revisionName(r) === next)
+    if (revA && revB) onChange({ revA, revB })
+    else onChange(null)
+  }
 
   return (
     <div className="revision-selector" data-testid="revision-selector">
@@ -114,11 +126,8 @@ export default function RevisionSelector({ revisions, onChange }: RevisionSelect
           id="rev-select-a"
           className="revision-selector__select"
           aria-label="Select revision A (before)"
-          defaultValue={defaultA}
-          onChange={(e) => {
-            const bSelect = document.getElementById('rev-select-b') as HTMLSelectElement | null
-            handleChange(e, 'a', bSelect?.value ?? defaultB)
-          }}
+          value={nameA}
+          onChange={handleChangeA}
         >
           {revisions.map((rev) => {
             const name = revisionName(rev)
@@ -141,11 +150,8 @@ export default function RevisionSelector({ revisions, onChange }: RevisionSelect
           id="rev-select-b"
           className="revision-selector__select"
           aria-label="Select revision B (after)"
-          defaultValue={defaultB}
-          onChange={(e) => {
-            const aSelect = document.getElementById('rev-select-a') as HTMLSelectElement | null
-            handleChange(e, 'b', aSelect?.value ?? defaultA)
-          }}
+          value={nameB}
+          onChange={handleChangeB}
         >
           {revisions.map((rev) => {
             const name = revisionName(rev)
