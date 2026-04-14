@@ -197,31 +197,41 @@ test.describe('Journey 063 — US2: GraphRevision hash column in Revisions tab',
 // ── US3: CEL hash help in Designer ───────────────────────────────────────────
 
 test.describe('Journey 063 — US3: CEL hash functions in Designer help text', () => {
-  test('Step 5: Designer CEL help mentions hash.fnv64a', async ({ page, request }) => {
+  test('Step 5: Designer CEL help mentions hash.fnv64a after adding a status field', async ({ page }) => {
     await page.goto(`${BASE}/author`)
 
-    // Wait for the Designer to load — the authoring form should render
+    // Wait for the Designer form to render
     await page.waitForFunction(() => {
       return (
-        document.querySelector('[data-testid="authoring-form"]') !== null ||
-        document.querySelector('form') !== null ||
-        document.title.includes('Designer')
+        document.querySelector('[data-testid="add-status-field-btn"]') !== null ||
+        document.querySelector('[data-testid="rgd-authoring-form"]') !== null
       )
     }, { timeout: 15_000 })
 
-    // The hash.fnv64a text lives in `title` attributes on CEL input elements.
-    // Use page.evaluate() to read all title attributes, which includes tooltip text
-    // that may not be visible in the rendered text content.
+    // Add a status field so that its CEL badge (which contains hash.fnv64a help) appears.
+    // The hash.fnv64a text is in the title attribute of .rgd-authoring-form__cel-badge elements
+    // that are only rendered when at least one status field or readyWhen row exists.
+    const addBtn = page.getByTestId('add-status-field-btn')
+    if (await addBtn.isVisible()) {
+      await addBtn.click()
+    }
+
+    // Wait for the CEL badge to appear in the DOM
+    await page.waitForFunction(() => {
+      const badges = document.querySelectorAll('[title*="hash.fnv64a"]')
+      return badges.length > 0
+    }, { timeout: 10_000 })
+
+    // Verify the hash.fnv64a text is present in a title attribute
     const mentionsHash = await page.evaluate(() => {
-      const allTitles = Array.from(document.querySelectorAll('[title]'))
-        .map((el) => el.getAttribute('title') ?? '')
-        .join(' ')
-      const bodyText = document.body.innerHTML
-      return allTitles.includes('hash.fnv64a') || bodyText.includes('hash.fnv64a') ||
-             allTitles.includes('hash.sha256') || bodyText.includes('hash.sha256')
+      const badges = Array.from(document.querySelectorAll('[title]'))
+      return badges.some((el) => {
+        const t = el.getAttribute('title') ?? ''
+        return t.includes('hash.fnv64a') || t.includes('hash.sha256')
+      })
     })
 
-    expect(mentionsHash, 'Designer should mention hash.fnv64a in CEL help title attributes').toBe(true)
+    expect(mentionsHash, 'CEL badge title should mention hash.fnv64a after adding a status field').toBe(true)
   })
 })
 
