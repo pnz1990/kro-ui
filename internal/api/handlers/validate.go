@@ -15,6 +15,7 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -77,7 +78,7 @@ func (h *Handler) ValidateRGD(w http.ResponseWriter, r *http.Request) {
 
 	// Decode YAML body into an unstructured object
 	obj := &unstructured.Unstructured{}
-	decoder := yaml.NewYAMLToJSONDecoder(io.NopCloser(&bytesReader{data: body, pos: 0}))
+	decoder := yaml.NewYAMLToJSONDecoder(io.NopCloser(bytes.NewReader(body)))
 	if decErr := decoder.Decode(obj); decErr != nil {
 		respondError(w, http.StatusBadRequest, "invalid YAML: "+decErr.Error())
 		return
@@ -179,7 +180,7 @@ func (h *Handler) ValidateRGDStatic(w http.ResponseWriter, r *http.Request) {
 
 	// Decode YAML into unstructured for field extraction
 	obj := &unstructured.Unstructured{}
-	decoder := yaml.NewYAMLToJSONDecoder(io.NopCloser(&bytesReader{data: body, pos: 0}))
+	decoder := yaml.NewYAMLToJSONDecoder(io.NopCloser(bytes.NewReader(body)))
 	if decErr := decoder.Decode(obj); decErr != nil {
 		log.Warn().Err(decErr).Msg("static validate: YAML decode failed")
 		respond(w, http.StatusOK, apitypes.StaticValidationResult{Issues: []apitypes.StaticIssue{}})
@@ -284,18 +285,5 @@ func extractExpressionsFromMap(m map[string]any) []string {
 	return exprs
 }
 
-// bytesReader is a simple io.Reader over a []byte slice (avoids bytes.NewReader
-// allocation in the hot path and keeps the handler self-contained).
-type bytesReader struct {
-	data []byte
-	pos  int
-}
-
-func (b *bytesReader) Read(p []byte) (int, error) {
-	if b.pos >= len(b.data) {
-		return 0, io.EOF
-	}
-	n := copy(p, b.data[b.pos:])
-	b.pos += n
-	return n, nil
-}
+// bytesReader removed — use bytes.NewReader from stdlib instead.
+// bytes.Reader implements io.ReadSeeker which handles multi-document YAML correctly.

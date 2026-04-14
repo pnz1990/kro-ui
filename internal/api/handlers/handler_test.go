@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -176,7 +177,8 @@ func (s *stubNamespaceableResource) Get(_ context.Context, name string, _ metav1
 			return obj, nil
 		}
 	}
-	return nil, fmt.Errorf("not found: %s", name)
+	// Return a proper k8s NotFound error so handlers can distinguish 404 from 503.
+	return nil, k8serrors.NewNotFound(schema.GroupResource{Resource: "resource"}, name)
 }
 
 // Unused mutating methods — panics are fine since read-only per constitution.
@@ -244,7 +246,7 @@ func (s *stubResourceClient) Get(_ context.Context, name string, _ metav1.GetOpt
 			return obj, nil
 		}
 	}
-	return nil, fmt.Errorf("not found: %s", name)
+	return nil, k8serrors.NewNotFound(schema.GroupResource{Resource: "resource"}, name)
 }
 
 func (s *stubResourceClient) Create(context.Context, *unstructured.Unstructured, metav1.CreateOptions, ...string) (*unstructured.Unstructured, error) {

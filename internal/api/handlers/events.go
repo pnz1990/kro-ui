@@ -131,7 +131,7 @@ func (h *Handler) buildRelevantUIDs(r *http.Request, namespace, rgdFilter string
 		rgdsToQuery = append(rgdsToQuery, &rgdList.Items[i])
 	}
 
-	// 3. Fan out — one goroutine per RGD, each with a 2s deadline.
+	// 3. Fan out — one goroutine per RGD, each with a 5s deadline (perRGDTimeout).
 	//    Constitution §XI: no sequential API calls in a loop.
 	var (
 		mu sync.Mutex

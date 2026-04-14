@@ -127,7 +127,7 @@ export default defineConfig({
       // (UX audit, RGD Designer validation, kro v0.9.0 upgrade, ux-improvements,
       //  live-dag state-map fixes)
       name: 'chunk-7',
-      testMatch: /(041|045|046|047[a-z]?)-.*\.spec\.ts/,
+      testMatch: /(041|042|044|045|046|047[a-z]?|048|049|050)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,

@@ -48,14 +48,25 @@ func (h *Handler) ListRGDs(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetRGD returns a single RGD by name.
+// Returns 404 when the RGD does not exist, 503 for all other k8s errors (network
+// partition, RBAC denial, API server restart) so the frontend can distinguish
+// "not found — may have been deleted" from "temporarily unreachable — retry".
 func (h *Handler) GetRGD(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
 	name := chi.URLParam(r, "name")
 
 	obj, err := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			// RGD genuinely does not exist — tell the frontend it can show "not found".
+			log.Debug().Str("rgd", name).Msg("RGD not found")
+			respondError(w, http.StatusNotFound, "resourcegraphdefinition \""+name+"\" not found")
+			return
+		}
+		// Any other error (RBAC, network, timeout) — return 503 so the frontend
+		// shows a transient error instead of "RGD deleted".
 		log.Error().Err(err).Str("rgd", name).Msg("failed to get RGD")
-		respondError(w, http.StatusNotFound, "resourcegraphdefinition \""+name+"\" not found")
+		respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())
 		return
 	}
 	log.Debug().Str("rgd", name).Msg("fetched RGD")
@@ -74,7 +85,11 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 	rgd, err := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Str("rgd", name).Msg("failed to get RGD for instance listing")
-		respondError(w, http.StatusNotFound, err.Error())
+		if k8serrors.IsNotFound(err) {
+			respondError(w, http.StatusNotFound, err.Error())
+		} else {
+			respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())
+		}
 		return
 	}
 

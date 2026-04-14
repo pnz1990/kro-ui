@@ -165,25 +165,29 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
     if (a && b) setYamlDiffPair([a, b])
   }
 
-  const fetchRevisions = useCallback(() => {
+  const fetchRevisions = useCallback((signal?: AbortSignal) => {
     if (!rgdName) return
     setLoading(true)
     setError(null)
     listGraphRevisions(rgdName)
       .then((list) => {
+        if (signal?.aborted) return
         const items = (list.items ?? []) as K8sObject[]
         // Sort descending by revision number (latest first)
         items.sort((a, b) => revisionNumber(b) - revisionNumber(a))
         setRevisions(items)
       })
       .catch((err: Error) => {
+        if (signal?.aborted) return
         setError(err.message)
       })
-      .finally(() => setLoading(false))
+      .finally(() => { if (!signal?.aborted) setLoading(false) })
   }, [rgdName])
 
   useEffect(() => {
-    fetchRevisions()
+    const ac = new AbortController()
+    fetchRevisions(ac.signal)
+    return () => ac.abort()
   }, [fetchRevisions])
 
   if (loading) {
@@ -199,7 +203,7 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
       <div className="revisions-tab revisions-tab--error" data-testid="revisions-tab">
         <p className="revisions-tab__error-msg">
           Could not load revisions.{' '}
-          <button type="button" className="revisions-tab__retry" onClick={fetchRevisions}>
+          <button type="button" className="revisions-tab__retry" onClick={() => fetchRevisions()}>
             Retry
           </button>
         </p>

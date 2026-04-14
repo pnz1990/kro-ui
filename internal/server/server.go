@@ -105,14 +105,18 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			// Response cache (spec 052-response-cache).
 			// Singleton shared across all cacheable routes.
 			// Purge expired entries every 2 minutes to prevent unbounded growth.
+			// Use time.NewTicker (not time.Tick) so the ticker is stoppable and does
+			// not leak goroutines if NewRouter is called more than once (e.g. tests).
 			// Flush (purge ALL) on context switch — prevents stale entries from the
 			// previous cluster being served on the new cluster (spec 057).
 			rc := responsecache.New()
+			cacheTicker := time.NewTicker(2 * time.Minute)
 			go func() {
-				for range time.Tick(2 * time.Minute) {
+				for range cacheTicker.C {
 					rc.Purge()
 				}
 			}()
+			_ = cacheTicker // ticker is intentionally not stopped — lives for server lifetime
 			// Register a hook so every context switch immediately flushes the entire cache.
 			// This ensures that after switching from cluster-A to cluster-B, the next request
 			// always hits the new cluster and not a cached response from cluster-A.
@@ -254,6 +258,16 @@ func Run(cfg Config) error {
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: r,
+		// ReadHeaderTimeout prevents Slowloris DoS — a client that sends HTTP
+		// headers one byte at a time would otherwise hold a goroutine open
+		// indefinitely. The chi Timeout middleware only starts after the full
+		// request is received, so this is the only protection for the
+		// header-reading phase.
+		ReadHeaderTimeout: 10 * time.Second,
+		// WriteTimeout caps the total time kro-ui has to write a response.
+		// Set to 35s to accommodate the /events and /fleet/summary routes
+		// which legitimately use a 30s outer deadline (see server.go route wiring).
+		WriteTimeout: 35 * time.Second,
 	}
 
 	// Graceful shutdown on SIGINT/SIGTERM.

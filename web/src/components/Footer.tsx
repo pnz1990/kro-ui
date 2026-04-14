@@ -14,13 +14,16 @@ export default function Footer() {
   const [version, setVersion] = useState<string | null>(null)
 
   useEffect(() => {
+    const ac = new AbortController()
     getVersion()
       .then((v) => {
+        if (ac.signal.aborted) return
         if (v.version && v.version !== 'dev' && v.version !== '') {
           setVersion(v.version)
         }
       })
       .catch(() => {/* silently swallow — version is non-critical */})
+    return () => ac.abort()
   }, [])
 
   return (
