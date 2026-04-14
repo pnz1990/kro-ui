@@ -78,14 +78,12 @@ test.describe('Journey 009 — Graph Diff (spec 009)', () => {
     }
 
     await page.goto(`${BASE}/rgds/test-app`)
-    await page.waitForFunction(
-      () => document.querySelector('[data-testid="rgd-detail"]') !== null ||
-            document.querySelector('[role="main"]') !== null,
-      { timeout: 15_000 }
-    )
+
+    // Wait for the RGD detail page to load (dag-svg is a reliable indicator)
+    await expect(page.getByTestId('dag-svg')).toBeVisible({ timeout: 20_000 })
 
     // Click the Revisions tab
-    await page.getByRole('tab', { name: /revisions/i }).click()
+    await page.getByTestId('tab-revisions').click()
 
     // Wait for the revisions tab to render (loading state resolves)
     await page.waitForFunction(
@@ -121,6 +119,18 @@ test.describe('Journey 009 — Graph Diff (spec 009)', () => {
     }
 
     await page.goto(`${BASE}/rgds/test-app?tab=revisions`)
+
+    // Wait for page to load, then navigate to revisions tab if needed
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="dag-svg"]') !== null ||
+            document.querySelector('[data-testid="revisions-tab"]') !== null,
+      { timeout: 20_000 }
+    )
+    // If the graph tab loaded by default, click Revisions
+    const isDagVisible = await page.locator('[data-testid="dag-svg"]').isVisible({ timeout: 500 }).catch(() => false)
+    if (isDagVisible) {
+      await page.getByTestId('tab-revisions').click()
+    }
     await page.waitForFunction(
       () => document.querySelector('[data-testid="revisions-tab"]') !== null,
       { timeout: 15_000 }
@@ -177,6 +187,17 @@ test.describe('Journey 009 — Graph Diff (spec 009)', () => {
     }
 
     await page.goto(`${BASE}/rgds/test-app?tab=revisions`)
+
+    // Wait for page to load, then navigate to revisions tab if needed
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="dag-svg"]') !== null ||
+            document.querySelector('[data-testid="revisions-tab"]') !== null,
+      { timeout: 20_000 }
+    )
+    const isDagVisibleStep4 = await page.locator('[data-testid="dag-svg"]').isVisible({ timeout: 500 }).catch(() => false)
+    if (isDagVisibleStep4) {
+      await page.getByTestId('tab-revisions').click()
+    }
     await page.waitForFunction(
       () => document.querySelector('[data-testid="revisions-tab"]') !== null,
       { timeout: 15_000 }
