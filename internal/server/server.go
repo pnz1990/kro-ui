@@ -265,9 +265,14 @@ func Run(cfg Config) error {
 		// header-reading phase.
 		ReadHeaderTimeout: 10 * time.Second,
 		// WriteTimeout caps the total time kro-ui has to write a response.
-		// Set to 35s to accommodate the /events and /fleet/summary routes
-		// which legitimately use a 30s outer deadline (see server.go route wiring).
-		WriteTimeout: 35 * time.Second,
+		// Set to 45s to accommodate the /events and /fleet/summary routes
+		// which legitimately use a 30s outer deadline (see server.go route wiring),
+		// plus additional buffer for response serialization and network latency.
+		// The chi middleware.Timeout(30s) writes a 503 response at 30s — the
+		// WriteTimeout must be larger to avoid the "superfluous WriteHeader" warning
+		// that fires when the server's deadline fires between the middleware write
+		// and the handler's deferred write.
+		WriteTimeout: 45 * time.Second,
 	}
 
 	// Graceful shutdown on SIGINT/SIGTERM.
