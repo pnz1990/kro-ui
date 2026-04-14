@@ -436,3 +436,101 @@ spec:
 		}
 	})
 }
+
+// TestExtractExpressionsFromMap tests the private helper that recursively
+// walks a YAML-decoded map and collects "${...}" CEL expression strings.
+// Exercises all three type branches: string, nested map, and slice.
+func TestExtractExpressionsFromMap(t *testing.T) {
+	t.Run("string value with expression", func(t *testing.T) {
+		m := map[string]any{
+			"name": "${schema.spec.appName}",
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 1 {
+			t.Fatalf("expected 1 expression, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("nested map recursion", func(t *testing.T) {
+		m := map[string]any{
+			"metadata": map[string]any{
+				"name": "${schema.spec.name}",
+				"labels": map[string]any{
+					"app": "${schema.spec.appLabel}",
+				},
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("slice of maps", func(t *testing.T) {
+		// A YAML array of objects, e.g. spec.containers
+		m := map[string]any{
+			"spec": map[string]any{
+				"containers": []any{
+					map[string]any{"name": "${schema.spec.containerName}"},
+					map[string]any{"image": "${schema.spec.image}"},
+				},
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions from slice of maps, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("slice of strings", func(t *testing.T) {
+		// A YAML array of plain strings, e.g. spec.args
+		m := map[string]any{
+			"spec": map[string]any{
+				"args": []any{
+					"--config=${schema.spec.configPath}",
+					"--replicas=${schema.spec.replicas}",
+					"--static-value", // no expression
+				},
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions from slice of strings, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("empty map returns empty result", func(t *testing.T) {
+		got := extractExpressionsFromMap(map[string]any{})
+		if len(got) != 0 {
+			t.Fatalf("expected empty slice, got %v", got)
+		}
+	})
+
+	t.Run("no expressions returns empty result", func(t *testing.T) {
+		m := map[string]any{
+			"name": "static-name",
+			"labels": map[string]any{
+				"env": "production",
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 0 {
+			t.Fatalf("expected 0 expressions, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("mixed slice: map and string items", func(t *testing.T) {
+		m := map[string]any{
+			"items": []any{
+				map[string]any{"key": "${schema.spec.key}"},
+				"${schema.spec.inlineVal}",
+				42,  // non-string, non-map: ignored
+				nil, // nil: ignored
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions from mixed slice, got %d: %v", len(got), got)
+		}
+	})
+}

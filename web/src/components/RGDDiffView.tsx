@@ -358,6 +358,11 @@ export default function RGDDiffView({ revA, revB }: RGDDiffViewProps) {
   const graphB = buildDAGGraph(snapB)
   const diff: DiffGraph = diffDAGGraphs(graphA, graphB)
 
+  // Check if all nodes are unchanged (identical revisions or no structural diff)
+  const allUnchanged = diff.nodes.length > 0 &&
+    diff.nodes.every((n) => n.diffStatus === 'unchanged') &&
+    diff.edges.every((e) => e.diffStatus === 'unchanged')
+
   const nodeMap = new Map<string, DiffNode>(diff.nodes.map((n) => [n.id, n]))
   const { width: svgWidth, height: svgHeight } = fittedDimensions(diff.nodes)
 
@@ -390,6 +395,12 @@ export default function RGDDiffView({ revA, revB }: RGDDiffViewProps) {
   return (
     <div className="rgd-diff-view" data-testid="rgd-diff-view">
       <DiffLegend />
+
+      {allUnchanged && (
+        <p className="rgd-diff-view__no-changes" data-testid="rgd-diff-no-changes">
+          No changes detected between these two revisions.
+        </p>
+      )}
 
       <div className="rgd-diff-view__canvas">
         <svg
