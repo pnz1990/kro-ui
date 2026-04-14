@@ -197,20 +197,31 @@ test.describe('Journey 063 — US2: GraphRevision hash column in Revisions tab',
 // ── US3: CEL hash help in Designer ───────────────────────────────────────────
 
 test.describe('Journey 063 — US3: CEL hash functions in Designer help text', () => {
-  test('Step 5: Designer CEL help mentions hash.fnv64a', async ({ page }) => {
+  test('Step 5: Designer CEL help mentions hash.fnv64a', async ({ page, request }) => {
     await page.goto(`${BASE}/author`)
 
-    // Wait for the Designer to load (the form should appear)
+    // Wait for the Designer to load — the authoring form should render
     await page.waitForFunction(() => {
-      return document.querySelector('[data-testid="authoring-form"]') !== null ||
-             document.title.includes('Designer')
+      return (
+        document.querySelector('[data-testid="authoring-form"]') !== null ||
+        document.querySelector('form') !== null ||
+        document.title.includes('Designer')
+      )
     }, { timeout: 15_000 })
 
-    // Look for any element that mentions hash CEL functions
-    // The help text appears in title attributes on CEL-related form inputs
-    const pageContent = await page.content()
-    const mentionsHash = pageContent.includes('hash.fnv64a') || pageContent.includes('hash.sha256')
-    expect(mentionsHash, 'Designer should mention hash.fnv64a in CEL help').toBe(true)
+    // The hash.fnv64a text lives in `title` attributes on CEL input elements.
+    // Use page.evaluate() to read all title attributes, which includes tooltip text
+    // that may not be visible in the rendered text content.
+    const mentionsHash = await page.evaluate(() => {
+      const allTitles = Array.from(document.querySelectorAll('[title]'))
+        .map((el) => el.getAttribute('title') ?? '')
+        .join(' ')
+      const bodyText = document.body.innerHTML
+      return allTitles.includes('hash.fnv64a') || bodyText.includes('hash.fnv64a') ||
+             allTitles.includes('hash.sha256') || bodyText.includes('hash.sha256')
+    })
+
+    expect(mentionsHash, 'Designer should mention hash.fnv64a in CEL help title attributes').toBe(true)
   })
 })
 
