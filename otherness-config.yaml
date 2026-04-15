@@ -4,6 +4,7 @@ project:
   report_issue: 439
   board_url: "https://github.com/users/pnz1990/projects/2/views/1"
   pr_label: "kro-ui"
+  job_family: FEE
 
 maqa:
   mode: standalone
