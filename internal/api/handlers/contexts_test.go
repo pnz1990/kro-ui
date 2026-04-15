@@ -15,6 +15,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -71,6 +72,21 @@ func TestListContexts(t *testing.T) {
 				t.Helper()
 				require.Equal(t, http.StatusOK, rr.Code)
 				assert.Contains(t, rr.Body.String(), `"staging"`)
+			},
+		},
+		{
+			name: "returns 500 when factory.ListContexts fails",
+			build: func(t *testing.T) (*Handler, *stubClientFactory) {
+				t.Helper()
+				stub := &stubClientFactory{
+					listErr: fmt.Errorf("kubeconfig not readable"),
+				}
+				return newTestHandler(stub), stub
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder, stub *stubClientFactory) {
+				t.Helper()
+				require.Equal(t, http.StatusInternalServerError, rr.Code)
+				assert.Contains(t, rr.Body.String(), `"error"`)
 			},
 		},
 	}
