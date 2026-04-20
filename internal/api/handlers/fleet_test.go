@@ -238,6 +238,195 @@ func TestFleetSummary(t *testing.T) {
 	}
 }
 
+// ── TestFleetSummaryEdgePaths covers summariseContext edge paths ──────────────
+
+// TestFleetSummaryEdgePaths exercises the RGD-field defaulting logic and the
+// degraded-cluster health path — all paths that TestFleetSummary doesn't reach.
+func TestFleetSummaryEdgePaths(t *testing.T) {
+	t.Run("RGD with empty kind is skipped — no GVR created for that RGD", func(t *testing.T) {
+		// makeRGDObject with kind="" — kind is not set in the schema
+		rgdNoKind := makeRGDObject("no-kind-rgd", "", "kro.run", "v1alpha1")
+		rgdValid := makeRGDObject("valid-rgd", "WebApp", "kro.run", "v1alpha1")
+
+		instanceGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "webapps"}
+		instance := &unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "wa", "namespace": "default"},
+		}}
+
+		dyn := newStubDynamic()
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*rgdNoKind, *rgdValid},
+		}
+		dyn.resources[instanceGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*instance},
+		}
+
+		ctxStub := &stubClientFactory{
+			contexts: []k8sclient.Context{{Name: "prod", Cluster: "prod", User: "u"}},
+		}
+		builder := &stubFleetClientBuilder{
+			clients: map[string]*stubK8sClients{
+				"prod": {dyn: dyn, disc: newStubDiscovery()},
+			},
+		}
+		h := newFleetTestHandler(ctxStub, builder)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet/summary", nil)
+		rr := httptest.NewRecorder()
+		h.FleetSummary(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		body := rr.Body.String()
+		// The valid RGD produced 1 instance; the no-kind RGD was skipped
+		assert.Contains(t, body, `"prod"`)
+		assert.Contains(t, body, `"rgdCount":2`) // both RGDs counted in rgdCount
+	})
+
+	t.Run("RGD with empty group defaults to KroGroup", func(t *testing.T) {
+		// makeRGDObject with group="" — group falls back to KroGroup
+		rgdNoGroup := makeRGDObject("no-group-rgd", "MyApp", "", "v1alpha1")
+		// Instance GVR uses KroGroup as fallback
+		instanceGVR := schema.GroupVersionResource{Group: k8sclient.KroGroup, Version: "v1alpha1", Resource: "myapps"}
+
+		dyn := newStubDynamic()
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*rgdNoGroup},
+		}
+		dyn.resources[instanceGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{},
+		}
+
+		ctxStub := &stubClientFactory{
+			contexts: []k8sclient.Context{{Name: "prod", Cluster: "prod", User: "u"}},
+		}
+		builder := &stubFleetClientBuilder{
+			clients: map[string]*stubK8sClients{
+				"prod": {dyn: dyn, disc: newStubDiscovery()},
+			},
+		}
+		h := newFleetTestHandler(ctxStub, builder)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet/summary", nil)
+		rr := httptest.NewRecorder()
+		h.FleetSummary(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, rr.Body.String(), `"prod"`)
+	})
+
+	t.Run("RGD with empty apiVersion defaults to v1alpha1", func(t *testing.T) {
+		// makeRGDObject with apiVersion="" — apiVersion falls back to "v1alpha1"
+		rgdNoVer := makeRGDObject("no-ver-rgd", "MyApp", "kro.run", "")
+		instanceGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "myapps"}
+
+		dyn := newStubDynamic()
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*rgdNoVer},
+		}
+		dyn.resources[instanceGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{},
+		}
+
+		ctxStub := &stubClientFactory{
+			contexts: []k8sclient.Context{{Name: "prod", Cluster: "prod", User: "u"}},
+		}
+		builder := &stubFleetClientBuilder{
+			clients: map[string]*stubK8sClients{
+				"prod": {dyn: dyn, disc: newStubDiscovery()},
+			},
+		}
+		h := newFleetTestHandler(ctxStub, builder)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet/summary", nil)
+		rr := httptest.NewRecorder()
+		h.FleetSummary(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		assert.Contains(t, rr.Body.String(), `"prod"`)
+	})
+
+	t.Run("degraded instances → ClusterDegraded health", func(t *testing.T) {
+		// Instance with Ready=False and no IN_PROGRESS state → degraded
+		rgd := makeRGDObject("webapp", "WebApp", "kro.run", "v1alpha1")
+		instanceGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "webapps"}
+
+		// Degraded instance: Ready=False, not IN_PROGRESS
+		degradedInstance := &unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "wa", "namespace": "default"},
+			"status": map[string]any{
+				"conditions": []any{
+					map[string]any{"type": "Ready", "status": "False"},
+				},
+			},
+		}}
+
+		dyn := newStubDynamic()
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*rgd},
+		}
+		dyn.resources[instanceGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*degradedInstance},
+		}
+
+		ctxStub := &stubClientFactory{
+			contexts: []k8sclient.Context{{Name: "prod", Cluster: "prod", User: "u"}},
+		}
+		builder := &stubFleetClientBuilder{
+			clients: map[string]*stubK8sClients{
+				"prod": {dyn: dyn, disc: newStubDiscovery()},
+			},
+		}
+		h := newFleetTestHandler(ctxStub, builder)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet/summary", nil)
+		rr := httptest.NewRecorder()
+		h.FleetSummary(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		body := rr.Body.String()
+		assert.Contains(t, body, string(types.ClusterDegraded),
+			"cluster with degraded instances must have ClusterDegraded health")
+		assert.Contains(t, body, `"degradedInstances":1`)
+	})
+
+	t.Run("reconciling instances counted separately from degraded", func(t *testing.T) {
+		rgd := makeRGDObject("webapp", "WebApp", "kro.run", "v1alpha1")
+		instanceGVR := schema.GroupVersionResource{Group: "kro.run", Version: "v1alpha1", Resource: "webapps"}
+
+		// IN_PROGRESS instance → reconciling (not degraded)
+		reconcilingInstance := &unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "wa", "namespace": "default"},
+			"status": map[string]any{
+				"state": "IN_PROGRESS",
+			},
+		}}
+
+		dyn := newStubDynamic()
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*rgd},
+		}
+		dyn.resources[instanceGVR] = &stubNamespaceableResource{
+			items: []unstructured.Unstructured{*reconcilingInstance},
+		}
+
+		ctxStub := &stubClientFactory{
+			contexts: []k8sclient.Context{{Name: "prod", Cluster: "prod", User: "u"}},
+		}
+		builder := &stubFleetClientBuilder{
+			clients: map[string]*stubK8sClients{
+				"prod": {dyn: dyn, disc: newStubDiscovery()},
+			},
+		}
+		h := newFleetTestHandler(ctxStub, builder)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet/summary", nil)
+		rr := httptest.NewRecorder()
+		h.FleetSummary(rr, req)
+
+		require.Equal(t, http.StatusOK, rr.Code)
+		body := rr.Body.String()
+		// IN_PROGRESS → not degraded, cluster stays healthy
+		assert.NotContains(t, body, `"health":"degraded"`,
+			"cluster with only reconciling instances must NOT have degraded health")
+		assert.Contains(t, body, `"reconcilingInstances":1`)
+	})
+}
+
 // ── isInstanceDegraded unit tests ─────────────────────────────────────────────
 
 func TestIsInstanceDegraded(t *testing.T) {
