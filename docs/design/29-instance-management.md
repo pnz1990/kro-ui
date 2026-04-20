@@ -33,6 +33,7 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 - 🔲 Instance diff: full side-by-side comparison between two instance snapshots
 - 🔲 Instance resource graph: show all k8s resources owned by this instance
 - 🔲 Partial-RBAC instance visibility: when the operator only has RBAC access to a subset of namespaces, `ListAllInstances` silently skips the inaccessible RGDs and the UI shows a smaller count with no explanation; add a `skippedRGDs` field to `ListAllInstancesResponse` and a "N RGD(s) hidden — insufficient permissions" advisory notice on the /instances page; without this, an operator with restricted access has no way to know they are seeing incomplete data (silent data loss is worse than an error message)
+- 🔲 Fleet per-cluster timeout not implemented: `docs/design/proposals/003-fleet-timeout-budget.md` documents a 2s per-cluster deadline in `summariseContext` but the implementation in `fleet.go` passes `r.Context()` (the 30s route-level context) directly with no inner per-cluster deadline; a single hung cluster can block the Fleet page for up to 30s; implement `context.WithTimeout(r.Context(), perClusterFleetTimeout)` in `summariseContext` and add the `TestFleetSummaryHandler_ContextTimeout` test documented in the proposal but never written
 
 ---
 
