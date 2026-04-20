@@ -1,7 +1,8 @@
-/* ConditionsPanel.css — Conditions list panel.
+/* ConditionsPanel.css — Conditions list panel with expand/collapse drill-down.
  *
  * All colors from tokens.css custom properties.
  * Spec: .specify/specs/028-instance-health-rollup/
+ * Spec: .specify/specs/pr-565/ — condition detail drill-down
  */
 
 .conditions-panel {
@@ -25,22 +26,48 @@
 }
 
 .condition-row {
-  padding: 10px 16px;
   border-bottom: 1px solid var(--color-border-subtle);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .condition-row:last-child {
   border-bottom: none;
 }
 
+/* Collapsed header — always shown */
 .condition-header {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  padding: 10px 16px;
+  user-select: none;
+}
+
+/* Clickable header when the row has detail content */
+.condition-header--clickable {
+  cursor: pointer;
+}
+
+.condition-header--clickable:hover {
+  background: var(--color-surface-raised, var(--color-bg-subtle, rgba(0,0,0,.03)));
+}
+
+.condition-header--clickable:focus-visible {
+  outline: 2px solid var(--color-focus-ring, var(--color-primary));
+  outline-offset: -2px;
+}
+
+/* Expand/collapse chevron */
+.condition-chevron {
+  font-size: 9px;
+  color: var(--color-text-faint);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.condition-chevron--open {
+  transform: rotate(90deg);
 }
 
 .condition-type {
@@ -81,10 +108,44 @@
   font-family: var(--font-mono);
 }
 
+/* Inline reason shown in the collapsed header (truncated) */
+.condition-reason--inline {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Expanded detail section */
+.condition-detail {
+  padding: 0 16px 10px 34px; /* left-indent aligns with text after chevron */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.condition-detail-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.condition-detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  min-width: 90px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
 .condition-message {
   font-size: 12px;
   color: var(--color-text-muted);
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .condition-time {

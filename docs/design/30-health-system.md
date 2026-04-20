@@ -26,11 +26,14 @@ and the SRE dashboard. It provides the primary signal for operators monitoring a
 - ✅ Overview RGD error banner: compile-error count + error-only filter (PR #356, 2026-04)
 - ✅ Error states UX audit: translateApiError, enriched empty states (PR #208, 2026-04)
 
+## Present (✅) — continued
+
+- ✅ Condition detail drill-down: per-condition expand/collapse — unhealthy conditions auto-expand; healthy conditions collapsed by default; keyboard accessible (PR #565, 2026-04)
+
 ## Future (🔲)
 
 - 🔲 Health trend chart: sparkline showing health state changes over last 24h per RGD
 - 🔲 Health alert subscriptions: notify when RGD/instance enters error state
-- 🔲 Condition detail drill-down: expand each condition with message, last transition time, reason
 
 ---
 
