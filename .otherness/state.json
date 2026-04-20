@@ -1898,8 +1898,44 @@
       ],
       "pr_merged": true,
       "done_at": "2026-04-20T06:03:04Z"
+    },
+    "472": {
+      "state": "done",
+      "title": "test(handlers): InvalidateCapabilitiesCache, GetCapabilities error paths, GetGraphRevision",
+      "issue": 472,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/api/handlers/"
+      ],
+      "assigned_to": "sess-cd3d97d9",
+      "assigned_at": "2026-04-20T07:10:27Z",
+      "branch": "feat/472",
+      "worktree": "../kro-ui.472",
+      "pr_merged": true,
+      "done_at": "2026-04-20T07:29:40Z"
+    },
+    "473": {
+      "state": "done",
+      "title": "test(k8s): metrics.go parseMetricLine, pickPodFromClusterList, error types",
+      "issue": 473,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/k8s/"
+      ],
+      "pr_merged": true,
+      "done_at": "2026-04-20T07:29:40Z"
+    },
+    "ci-security-workflow-fix": {
+      "state": "done",
+      "title": "fix(ci): security-checks workflow push-noop",
+      "pr_merged": true,
+      "done_at": "2026-04-20T07:29:40Z"
     }
   },
-  "sm_cycle_count": 1,
+  "sm_cycle_count": 2,
   "pm_cycle_count": 1
 }
