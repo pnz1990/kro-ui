@@ -1,0 +1,100 @@
+name: otherness security checks
+
+# Runs on every PR to enforce:
+#   M8: AGENTS.md changes require collaborator — block prompt injection via merged PR
+#   M10: otherness label restriction — prevent external queue injection
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [labeled]
+
+jobs:
+  # ── M8: AGENTS.md change detection ────────────────────────────────────────
+  agents-md-guard:
+    name: M8 — AGENTS.md security check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Check if AGENTS.md was modified
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          # Check if AGENTS.md is in the changed files
+          CHANGED=$(gh api "repos/$REPO/pulls/$PR_NUMBER/files" \
+            --jq '[.[] | .filename] | contains(["AGENTS.md"])' 2>/dev/null || echo "false")
+
+          if [ "$CHANGED" != "true" ]; then
+            echo "AGENTS.md not modified — no security check needed."
+            exit 0
+          fi
+
+          echo "::warning::AGENTS.md was modified in this PR."
+
+          # Check if the PR author has write access
+          PERM=$(gh api "repos/$REPO/collaborators/$AUTHOR/permission" \
+            --jq '.permission' 2>/dev/null || echo "none")
+
+          if [[ "$PERM" == "admin" || "$PERM" == "write" || "$PERM" == "maintain" ]]; then
+            echo "✅ AGENTS.md modified by collaborator ($AUTHOR, $PERM) — permitted."
+            gh pr comment $PR_NUMBER --repo $REPO \
+              --body "⚠️ **Security notice**: \`AGENTS.md\` was modified in this PR.
+
+This file is read by the autonomous agent on every scheduled run. Changes to it affect how the agent behaves — effectively changing the agent's instructions.
+
+**Reviewer checklist:**
+- [ ] No instructions that redirect \`agents_path\` to an external location
+- [ ] No instructions that exfiltrate environment variables or secrets
+- [ ] No instructions that push to repos outside \`pnz1990/\`
+- [ ] Changes are consistent with the project's documented SDLC process
+
+See \`docs/design/27-security-model.md §2A\` for the full threat model." 2>/dev/null || true
+          else
+            echo "::error::AGENTS.md modified by non-collaborator ($AUTHOR, permission=$PERM). This is a security risk."
+            gh pr comment $PR_NUMBER --repo $REPO \
+              --body "🚫 **Security block**: \`AGENTS.md\` was modified by \`$AUTHOR\` who does not have collaborator access.
+
+\`AGENTS.md\` is read by the autonomous agent on every run. Modifications by external contributors could inject malicious instructions that run with full repository credentials.
+
+This check must pass before this PR can be merged. See \`docs/design/27-security-model.md §M8\`." 2>/dev/null || true
+            exit 1
+          fi
+
+  # ── M10: Issue label restriction ──────────────────────────────────────────
+  label-guard:
+    name: M10 — otherness label restriction
+    if: |
+      github.event_name == 'issues' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'otherness'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Restrict otherness label to collaborators
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.event.sender.login }}
+        run: |
+          PERM=$(gh api "repos/$REPO/collaborators/$ACTOR/permission" \
+            --jq '.permission' 2>/dev/null || echo "none")
+
+          if [[ "$PERM" == "admin" || "$PERM" == "write" || "$PERM" == "maintain" ]]; then
+            echo "✅ otherness label applied by collaborator ($ACTOR, $PERM)"
+          else
+            echo "⚠️ otherness label applied by non-collaborator ($ACTOR, $PERM) — removing."
+            gh issue edit $ISSUE_NUMBER --repo $REPO --remove-label "otherness" 2>/dev/null || true
+            gh issue comment $ISSUE_NUMBER --repo $REPO \
+              --body "The \`otherness\` label can only be applied by repository collaborators. It has been removed. This label controls which issues enter the autonomous agent's work queue." 2>/dev/null || true
+          fi
