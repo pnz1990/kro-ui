@@ -991,3 +991,32 @@ func TestScrapeWithCache(t *testing.T) {
 		assert.Equal(t, 2, callCount, "must have called scrape twice (initial + retry)")
 	})
 }
+
+// ── TestScrapeMetricsContextName (T025) ─────────────────────────────────────
+
+// TestScrapeMetricsContextName covers the non-empty contextName branches in
+// ScrapeMetrics — the paths exercised when a per-context scrape is requested.
+func TestScrapeMetricsContextName(t *testing.T) {
+	t.Run("valid contextName — BuildContextClient succeeds — empty metrics when no pod", func(t *testing.T) {
+		// testKubeconfig defines a "prod" context pointing at https://prod.example.com.
+		// BuildContextClient and buildRESTConfig will both succeed (just build HTTP
+		// clients; no actual network call happens here). discoverKroPod will fail to
+		// list pods (unreachable server) and return empty metrics.
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+
+		md := NewMetricsDiscoverer(f)
+		// Use the kubeconfig path so BuildContextClient can find the "prod" context.
+		md.kubeconfigPath = path
+
+		result, err := md.ScrapeMetrics(context.Background(), "prod")
+		// The dynamic client points at an unreachable server; List() returns an error
+		// internally but discoverKroPod treats any list failure as "not found" →
+		// returns empty ControllerMetrics, no error.
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Nil(t, result.WatchCount, "no reachable pod means nil WatchCount")
+		assert.False(t, result.ScrapedAt.IsZero(), "ScrapedAt must always be set")
+	})
+}
