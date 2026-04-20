@@ -234,7 +234,7 @@ export function buildNodeStateMap(
   // and a message containing "waiting for node". This is NOT a graph error — it is
   // normal reconciliation while a slow dependency (RDS, IAM, etc.) comes up.
   // Without this check, every node shows red "Error" for the entire 8+ minutes it
-  // takes for an RDS instance to become available. (GH report by Carlos, fix #XXX)
+  // takes for an RDS instance to become available. (fix #464, AGENTS.md anti-pattern §ResourcesReady.reason=NotReady)
   if (globalState === 'error') {
     const resourcesReadyCond = conditions.find((c) => c.type === 'ResourcesReady')
     const msg = resourcesReadyCond?.message ?? ''
