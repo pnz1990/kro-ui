@@ -27,3 +27,49 @@ chosen to be consistent with or stricter than the practices used in the kro code
 v0.9.4 — mature, production-capable. 70+ features merged across 430+ PRs. kro v0.9.1 support.
 Pending work: remaining open GitHub issues, E2E journey improvements, and kro upstream features
 as they land (new CRDs, GraphRevision hash, CEL extensions).
+
+---
+
+## Donation Readiness Gap Analysis
+
+> Last updated: 2026-04-20 — autonomous vision scan (vibe-vision-auto)
+
+The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
+reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
+
+### Hard blockers (would prevent donation acceptance)
+
+| Gap | Design doc item | Why it blocks |
+|-----|----------------|---------------|
+| No `GOVERNANCE.md` | doc 27 §27.8 | kubernetes-sigs requires a governance model with maintainer list and decision process |
+| No `CODE_OF_CONDUCT.md` at repo root | doc 27 §27.9 | kubernetes-sigs org requires this file to exist (not just a link in CONTRIBUTING.md) |
+| No signed artifacts or SBOM in release | doc 27 §27.10 | kubernetes-sigs projects are expected to produce cosign-signed images and SBOM; goreleaser v2 supports this natively |
+| Single approver in `OWNERS` | doc 27 §27.11 | kubernetes-sigs rejects donations with a single-person bus factor; >= 2 approvers required |
+
+### Significant gaps (would produce review comments)
+
+| Gap | Design doc item | Impact |
+|-----|----------------|--------|
+| DAG unusable at 200+ nodes | doc 28 + doc 27 §27.13 | Large production RGDs render as a dense locked-up SVG; no collapse, minimap, or text fallback |
+| GraphRevision diff incomplete | doc 28 | PR #318 laid foundation but the full two-panel line-level diff is missing; appears as a half-built feature |
+| No partial-RBAC test | doc 27 §27.12 | User with access to some namespaces but not others gets silent omissions; no visible "N hidden" indicator |
+| Color as sole health differentiator | doc 30 | HealthChip bar segments rely on hue only; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
+| 521KB bundle / Lighthouse ~60 | doc 27 §27.14 | No code splitting; initial load on a slow connection is poor; perf.yml threshold set to 50 acknowledges this |
+
+### Minor gaps (should be addressed before donation, not blockers)
+
+| Gap | Design doc item | Impact |
+|-----|----------------|--------|
+| axe-core covers only 4 pages | doc 30 | Designer, Fleet, SRE dashboard, Errors tab not scanned; could have WCAG violations |
+| No "cluster unreachable" global banner | doc 30 | First-time users see many individual error fragments instead of one actionable message |
+| E2E has no scale test | doc 27 §27.13 | No journey exercises 50+ RGDs or 200-node DAG; regressions at scale are invisible |
+
+### Already addressed (recent PRs)
+
+- ✅ OWNERS file (kubernetes-sigs format) — PR shipped
+- ✅ DCO sign-off enforcement (`dco.yml`) — PR shipped
+- ✅ CONTRIBUTING.md with DCO section — PR shipped
+- ✅ WCAG 2.1 AA axe-core scan on 4 Tier-1 pages (journey 074) — PR shipped
+- ✅ Lighthouse CI performance budget (perf.yml) — PR shipped
+- ✅ kro upstream release tracking automation — PR shipped
+
