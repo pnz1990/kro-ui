@@ -8,3 +8,4 @@
 | 2026-04-20 | 4 | 44 | 0 | 0 | 12 | 1 | session sess-7780ed82; merged PR #503 (usePageTitle test + cache WriteHeader 94.3%→98.6%) |
 | 2026-04-20 | 5 | 47 | 0 | 0 | 12 | 1 | session sess-bea1648c; merged PR #509 (pickPod/pickPodFromClusterList 100% cov); closed PR #508 (dup); merged PR #504 (e2e error resilience) |
 | 2026-04-20 | 6 | 48 | 0 | 0 | 12 | 1 | session sess-a2827ba4; merged PR #514 (scrapeWithCache 100%, ValidateCELExpressions 100%, validate 91.9%→95.5%) |
+| 2026-04-20 | 7 | 49 | 0 | 0 | 12 | 1 | session sess-a2827ba4; merged PR #516 (handlers 95.9%→97.0%, summariseContext 97.8%, ValidateRGD 92.2%) |
