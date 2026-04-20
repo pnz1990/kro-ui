@@ -1,0 +1,119 @@
+name: kro upstream release check
+
+# Checks kubernetes-sigs/kro for new releases weekly.
+# If a release newer than the version in go.mod is found, opens a tracking issue.
+# Design ref: docs/design/27-stage3-kro-tracking.md §27.1
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"    # Monday 09:00 UTC — kro release cadence is at most weekly
+  workflow_dispatch:         # manual trigger for testing
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Check for new kro release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Compare kro versions and open issue if newer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PYEOF'
+          import subprocess, re, sys, os
+
+          REPO = os.environ.get('REPO', '')
+
+          # Step 1: Read current kro version from go.mod
+          try:
+              gomod = open('go.mod').read()
+              m = re.search(r'github\.com/kubernetes-sigs/kro\s+v([\d]+\.[\d]+\.[\d]+)', gomod)
+              if not m:
+                  print('[kro-upstream-check] kubernetes-sigs/kro not found in go.mod — skipping.')
+                  sys.exit(0)
+              current_version = m.group(1)
+              print(f'[kro-upstream-check] Current go.mod version: v{current_version}')
+          except Exception as e:
+              print(f'[kro-upstream-check] Could not read go.mod (non-fatal): {e}')
+              sys.exit(0)
+
+          # Step 2: Fetch latest release from GitHub API (fail-safe)
+          try:
+              r = subprocess.run(
+                  ['gh', 'api', 'repos/kubernetes-sigs/kro/releases/latest',
+                   '--jq', '.tag_name'],
+                  capture_output=True, text=True, timeout=30)
+              if r.returncode != 0:
+                  print(f'[kro-upstream-check] GitHub API error (non-fatal): {r.stderr.strip()[:100]}')
+                  sys.exit(0)
+              latest_tag = r.stdout.strip().lstrip('v')
+              print(f'[kro-upstream-check] Latest kro release: v{latest_tag}')
+          except Exception as e:
+              print(f'[kro-upstream-check] API fetch failed (non-fatal): {e}')
+              sys.exit(0)
+
+          # Step 3: Compare versions (semantic)
+          def parse_ver(v):
+              parts = v.lstrip('v').split('.')
+              try:
+                  return tuple(int(x) for x in parts[:3])
+              except ValueError:
+                  return (0, 0, 0)
+
+          current_tuple = parse_ver(current_version)
+          latest_tuple = parse_ver(latest_tag)
+
+          if latest_tuple <= current_tuple:
+              print(f'[kro-upstream-check] No new release (current=v{current_version}, latest=v{latest_tag}) — no action.')
+              sys.exit(0)
+
+          print(f'[kro-upstream-check] New kro release detected: v{current_version} → v{latest_tag}')
+
+          # Step 4: Deduplicate — skip if issue already open
+          title = f'feat(kro-v{latest_tag}): support new kro v{latest_tag} features'
+          check = subprocess.run(
+              ['gh', 'issue', 'list', '--repo', REPO, '--state', 'open',
+               '--search', f'kro v{latest_tag}', '--json', 'number', '--jq', 'length'],
+              capture_output=True, text=True, timeout=15)
+          try:
+              if int(check.stdout.strip() or '0') > 0:
+                  print(f'[kro-upstream-check] Issue for v{latest_tag} already open — skipping duplicate.')
+                  sys.exit(0)
+          except Exception:
+              pass
+
+          # Step 5: Open tracking issue
+          body = (
+              f"## kro upstream release detected\n\n"
+              f"A new kro release is available:\n\n"
+              f"- **Current version** (in `go.mod`): `v{current_version}`\n"
+              f"- **Latest release**: `v{latest_tag}`\n\n"
+              f"## Action required\n\n"
+              f"1. Review the [kro v{latest_tag} release notes](https://github.com/kubernetes-sigs/kro/releases/tag/v{latest_tag})\n"
+              f"2. Identify any CRD schema changes, new fields, new API paths, or new health states\n"
+              f"3. For each change that affects kro-ui: open a separate implementation issue\n"
+              f"4. Upgrade `go.mod` via `GOPROXY=direct GONOSUMDB=\"*\" go get github.com/kubernetes-sigs/kro@v{latest_tag}`\n\n"
+              f"## Design reference\n\n"
+              f"Design doc: `docs/design/27-stage3-kro-tracking.md §kro Upstream Tracking`\n\n"
+              f"*Opened automatically by kro-upstream-check workflow (27.1).*"
+          )
+          r2 = subprocess.run(
+              ['gh', 'issue', 'create', '--repo', REPO,
+               '--title', title,
+               '--label', 'kind/enhancement,priority/medium,kro-ui',
+               '--body', body],
+              capture_output=True, text=True, timeout=15)
+          if r2.returncode == 0:
+              print(f'[kro-upstream-check] Opened issue: {r2.stdout.strip()}')
+          else:
+              print(f'[kro-upstream-check] Failed to open issue: {r2.stderr.strip()[:100]}')
+              sys.exit(1)
+          PYEOF
