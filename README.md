@@ -27,7 +27,11 @@ A read-only web dashboard for [kro](https://kro.run) — visualize ResourceGraph
   - **Access tab** — RBAC permission matrix for kro's auto-detected service account (runtime-discovered from the kro controller Deployment) against all managed resources, with kubectl fix suggestions and manual SA override form
   - **Docs tab** — auto-generated API documentation from the RGD schema: field types, defaults, CEL status expressions, custom type definitions (kro v0.9.0+ `spec.schema.types`), required fields sorted first with a summary banner, and a copyable example manifest
   - **Generate tab** — two-mode YAML generator: interactive instance form (per-field controls with type coercion, `{}` defaults for map/object fields) and batch mode (one line = one manifest); link to RGD Designer for new RGD authoring
-  - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled graph hash (kro v0.9.1+ `kro.run/graph-revision-hash` label, 8-char display with full value on hover, graceful "—" on older clusters), compiled status (Compiled/Failed), age, compilation error; click to expand YAML; select 2 revisions to show side-by-side YAML diff
+   - **Revisions tab** (kro v0.9.0+) — GraphRevision history: revision number, compiled graph hash (kro v0.9.1+ `kro.run/graph-revision-hash` label, 8-char display with full value on hover, graceful "—" on older clusters), compiled status (Compiled/Failed), age, compilation error; click to expand YAML; select 2 revisions to show side-by-side YAML diff with merged DAG overlay showing added/removed/changed nodes
+- **GraphRevision diff** — select any 2 revisions in the Revisions tab to see a merged DAG with colored overlays: green for added nodes, red for removed, amber for changed; or view a side-by-side YAML diff panel
+- **Condition detail drill-down** — every condition row (on RGD detail, Instance detail, and Validation tab) is expandable to show the full message, reason, last transition time, and status; collapse back to the summary row
+- **Cluster-unreachable banner** — a global banner is shown on first load when the kube-apiserver is unreachable; displays the error message and prompts the user to check their kubeconfig
+
 - **Live instance detail** — live DAG with 5s polling, **6-state** per-node colors (alive/reconciling/degraded/error/pending/not-found), node YAML inspection (clean — no managedFields), spec/conditions/events/telemetry panels
   - **Per-child node state** — each child resource is judged on its *own* `status.conditions`, not the CR-level reconciling state; a Namespace or ConfigMap created in wave 1 shows green even while a downstream RDS instance is still provisioning
   - `Available=True` wins over `Progressing=True` — a Deployment serving traffic during a rolling update shows green, not amber; amber only shows when `Progressing=True` without `Available=True` (not yet serving)
@@ -79,7 +83,7 @@ Download pre-built binaries from [Releases](https://github.com/pnz1990/kro-ui/re
 ```bash
 docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
-  ghcr.io/pnz1990/kro-ui:v0.9.4
+  ghcr.io/pnz1990/kro-ui:v0.10.0
 # open http://localhost:40107
 ```
 
@@ -91,7 +95,7 @@ docker run -p 40107:40107 \
   -v ~/.kube/config:/home/nonroot/.kube/config:ro \
   -v ~/.aws:/home/nonroot/.aws:ro \
   -e AWS_PROFILE=<your-aws-profile> \
-  ghcr.io/pnz1990/kro-ui:v0.9.4
+  ghcr.io/pnz1990/kro-ui:v0.10.0
 # open http://localhost:40107
 ```
 
