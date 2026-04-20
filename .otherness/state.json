@@ -2056,8 +2056,8 @@
       "done_at": "2026-04-20T18:46:56Z"
     },
     "issue-534": {
-      "state": "todo",
-      "title": "feat: RGD list: bulk operations (delete multiple, export selected)",
+      "state": "done",
+      "title": "feat(catalog): bulk YAML export \u2014 multi-select RGDs and download as clean YAML",
       "issue_number": 534,
       "labels": [
         "kind/enhancement",
@@ -2065,7 +2065,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "pr_number": 596,
+      "done_at": "2026-04-20T23:06:23Z"
     },
     "issue-535": {
       "state": "todo",
