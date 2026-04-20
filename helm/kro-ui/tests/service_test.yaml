@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/master/schema/helm-testsuite.json
+suite: kro-ui service tests
+templates:
+  - service.yaml
+release:
+  name: kro-ui
+  namespace: kro-system
+tests:
+  - it: should render ClusterIP service
+    set:
+      service:
+        type: ClusterIP
+        port: 40107
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].port
+          value: 40107
+      - equal:
+          path: spec.ports[0].name
+          value: http
+
+  - it: should use correct selector
+    set:
+      service:
+        type: ClusterIP
+        port: 40107
+    asserts:
+      - exists:
+          path: spec.selector["app.kubernetes.io/name"]
+      - exists:
+          path: spec.selector["app.kubernetes.io/instance"]
+
+  - it: should set namespace
+    set:
+      namespace: kro-system
+      service:
+        type: ClusterIP
+        port: 40107
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: kro-system

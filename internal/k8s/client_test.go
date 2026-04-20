@@ -263,3 +263,45 @@ func TestConcurrentAccess(t *testing.T) {
 	active := f.ActiveContext()
 	assert.Contains(t, []string{"dev", "prod"}, active)
 }
+
+func TestInClusterFallback(t *testing.T) {
+	t.Run("returns clear error when not running in a pod", func(t *testing.T) {
+		// Point HOME to a temp dir so ~/.kube/config doesn't exist,
+		// forcing the code past the kubeconfig fallback into the in-cluster path.
+		t.Setenv("HOME", t.TempDir())
+		t.Setenv("KUBECONFIG", "")
+		t.Setenv("KUBERNETES_SERVICE_HOST", "")
+		t.Setenv("KUBERNETES_SERVICE_PORT", "")
+
+		_, err := NewClientFactory("", "")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "in-cluster unavailable")
+	})
+}
+
+func TestInClusterModeListContexts(t *testing.T) {
+	// Simulate in-cluster mode by constructing a factory with no kubeconfig path.
+	f := &ClientFactory{
+		kubeconfigPath: "",
+		activeContext:  "in-cluster",
+	}
+
+	contexts, active, err := f.ListContexts()
+	require.NoError(t, err)
+	assert.Equal(t, "in-cluster", active)
+	require.Len(t, contexts, 1)
+	assert.Equal(t, "in-cluster", contexts[0].Name)
+}
+
+func TestInClusterModeSwitchContext(t *testing.T) {
+	f := &ClientFactory{
+		kubeconfigPath: "",
+		activeContext:  "in-cluster",
+	}
+
+	err := f.SwitchContext("some-context")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "in-cluster mode")
+	// Active context unchanged.
+	assert.Equal(t, "in-cluster", f.ActiveContext())
+}

@@ -12,6 +12,9 @@ cover.out
 unit-cover.out
 integration-cover.out
 
+# ── Helm chart ────────────────────────────────────────────────────────
+dist/
+
 # ── Frontend build ────────────────────────────────────────────────────
 web/dist/
 web/node_modules/

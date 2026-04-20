@@ -1,0 +1,189 @@
+name: otherness scheduled run
+
+# ── SECURITY HARDENED — see docs/design/27-security-model.md ─────────────────
+#
+# ⚠️  CRON IS LOCKED TO HOURLY. DO NOT CHANGE TO */6 OR ANY SLOWER CADENCE.
+# Hourly runs are required to make progress on the backlog. Slower cadence
+# means the agent ships 1/6th as much work. The vision requires the loop to
+# run continuously. If you need to pause, disable the workflow — do not slow it.
+#
+# Security controls applied:
+#   M1: All action dependencies pinned to SHAs (no @latest, no @vN tags)
+#   M4: actions:write OMITTED — agent triggers CI via push, not Actions API
+#   M6: agents_path validated against allowlist before agent executes
+#   M7: _state branch protection enforced via CODEOWNERS
+#
+on:
+  schedule:
+    - cron: "0 * * * *"   # HOURLY — DO NOT CHANGE. See comment above.
+  workflow_dispatch:        # manual trigger for immediate runs and testing
+
+# ── Concurrency: cancel in-progress runs when a new one starts ────────────────
+# Prevents multiple agent sessions running simultaneously on the same repo,
+# which would cause distributed lock conflicts and wasted Bedrock tokens.
+concurrency:
+  group: otherness-scheduled
+  cancel-in-progress: true
+
+jobs:
+  otherness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120    # hard ceiling — prevents runaway sessions
+
+    # ── Permissions ────────────────────────────────────────────────────────────
+    # id-token: write  — AWS OIDC token exchange (Bedrock, no stored keys)
+    # contents: write  — push commits, create/merge branches
+    # pull-requests: write — open/update/merge PRs, post review comments
+    # issues: write    — create/label/close issues, post comments
+    # statuses: write  — post commit statuses
+    #
+    # actions:write INTENTIONALLY OMITTED (security: doc 27 §M4)
+    # Reason: actions:write + GH_TOKEN workflow scope = ability to modify
+    # workflow files. The agent triggers CI by pushing commits (push events),
+    # not via the Actions API. No capability is lost by omitting this.
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      statuses: write
+
+    steps:
+      # ── Step 1: Checkout ──────────────────────────────────────────────────
+      # SHA-pinned (security: doc 27 §M1 — no @latest or floating tags)
+      # GH_TOKEN used so commits from this job trigger downstream CI workflows.
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name  "otherness[bot]"
+          git config --global user.email "otherness[bot]@users.noreply.github.com"
+
+      # ── Step 2: Token preflight ──────────────────────────────────────────
+      # Validates GH_TOKEN before spending Bedrock tokens on a run that will fail.
+      # Posts a [NEEDS HUMAN] issue if the token is missing or expired.
+      - name: Validate GH_TOKEN
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_TOKEN secret is not set."
+            GH_TOKEN="" gh issue create --repo "$REPO" \
+              --title "[NEEDS HUMAN] GH_TOKEN missing — otherness cannot run" \
+              --body "GH_TOKEN is not configured. Add a PAT with repo+workflow scopes as GH_TOKEN secret." \
+              --label "needs-human" 2>/dev/null || true
+            exit 1
+          fi
+          if ! GH_TOKEN="$GH_TOKEN" gh api user --jq '.login' >/dev/null 2>&1; then
+            echo "::error::GH_TOKEN is invalid or expired."
+            GH_TOKEN="" gh issue create --repo "$REPO" \
+              --title "[NEEDS HUMAN] GH_TOKEN expired — otherness cannot run" \
+              --body "GH_TOKEN is set but authentication failed. Rotate the PAT and update the secret." \
+              --label "needs-human" 2>/dev/null || true
+            exit 1
+          fi
+          echo "[preflight] GH_TOKEN valid for: $(GH_TOKEN="$GH_TOKEN" gh api user --jq '.login')"
+
+      # ── Step 3: Install agent files ──────────────────────────────────────
+      # Clones pnz1990/otherness to ~/.otherness on the runner.
+      # The agent_version field in otherness-config.yaml pins to a specific SHA.
+      - name: Install otherness agent files
+        run: |
+          git clone --quiet --depth 1 https://github.com/pnz1990/otherness.git ~/.otherness
+          # If agent_version is set in config, checkout that specific version
+          AGENT_VERSION=$(python3 -c "
+          import re
+          for line in open('otherness-config.yaml'):
+              m = re.match(r'^\s+agent_version:\s*[\"\'']?([^\"\'#\n\s]+)[\"\'']?', line)
+              if m and m.group(1) not in ('','\"\"',\"''\"):
+                  print(m.group(1)); break
+          " 2>/dev/null || echo "")
+          if [ -n "$AGENT_VERSION" ]; then
+            export GIT_TERMINAL_PROMPT=0
+            git -C ~/.otherness fetch --tags --quiet 2>/dev/null || true
+            git -C ~/.otherness checkout "$AGENT_VERSION" --quiet 2>/dev/null \
+              && echo "[otherness] Pinned to $AGENT_VERSION" \
+              || echo "::warning::Could not checkout $AGENT_VERSION — using HEAD"
+          else
+            echo "[otherness] Using HEAD: $(git -C ~/.otherness rev-parse --short HEAD)"
+          fi
+
+      # ── Step 4: Sync command files ───────────────────────────────────────
+      - name: Sync otherness command files
+        run: |
+          mkdir -p .opencode/command
+          SYNCED=0
+          for src in ~/.otherness/.opencode/command/otherness.*.md; do
+            [ -f "$src" ] || continue
+            fname=$(basename "$src"); dest=".opencode/command/$fname"
+            if ! cmp -s "$src" "$dest" 2>/dev/null; then cp "$src" "$dest"; SYNCED=1; fi
+          done
+          for dest in .opencode/command/otherness.*.md; do
+            [ -f "$dest" ] || continue
+            fname=$(basename "$dest")
+            if [ ! -f ~/.otherness/.opencode/command/"$fname" ]; then rm "$dest"; SYNCED=1; fi
+          done
+          [ $SYNCED -eq 1 ] && echo "[otherness] Commands synced." || echo "[otherness] Commands current."
+
+      # ── Step 5: AWS credentials via OIDC ────────────────────────────────
+      # SHA-pinned (security: doc 27 §M1).
+      # OIDC issues a 1-hour session token — no long-lived keys stored.
+      - name: Configure AWS credentials (Bedrock via OIDC)
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c  # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: otherness-bedrock
+          aws-region: us-east-1
+
+      # ── Step 6: gh CLI auth ──────────────────────────────────────────────
+      - name: Authenticate gh CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh auth setup-git
+          gh auth status
+
+      # ── Step 7: Run otherness ────────────────────────────────────────────
+      # SHA-pinned (security: doc 27 §M1 — critical supply chain mitigation).
+      # agents_path validated against allowlist before agent reads it (doc 27 §M6).
+      - name: Run otherness
+        uses: anomalyco/opencode/github@23fb5e0516c99ac04a1aa46c193efda2e1b9bb24  # v1.14.18
+        env:
+          AWS_REGION:          us-east-1
+          GH_TOKEN:            ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN:        ${{ secrets.GH_TOKEN }}
+          # Pre-approve all tool permissions — no interactive TTY on runners.
+          # ctx.ask() blocks indefinitely without this (doc 19 — confirmed fix).
+          OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'
+        with:
+          model: amazon-bedrock/global.anthropic.claude-sonnet-4-6
+          use_github_token: "true"
+          prompt: |
+            # ── Security: agents_path allowlist (doc 27 §M6) ──────────────
+            # Validates that agents_path from otherness-config.yaml is within
+            # ~/.otherness before the agent reads any instructions from it.
+            # Prevents redirect to attacker-controlled paths if config is tampered.
+            AGENTS_PATH=$(python3 -c "
+            import re, os
+            section = None
+            for line in open('otherness-config.yaml'):
+                s = re.match(r'^(\w[\w_]*):', line)
+                if s: section = s.group(1)
+                if section == 'maqa':
+                    m = re.match(r'^\s+agents_path:\s*[\"\'']?([^\"\'#\n]+)[\"\'']?', line)
+                    if m: print(os.path.expanduser(m.group(1).strip())); break
+            " 2>/dev/null || echo "$HOME/.otherness/agents")
+            ALLOWED_PREFIX="$HOME/.otherness"
+            if [[ "$AGENTS_PATH" != "$ALLOWED_PREFIX"* ]]; then
+              echo "::error::SECURITY: agents_path '${AGENTS_PATH}' is outside allowed prefix '${ALLOWED_PREFIX}'. Possible config tampering. Refusing to run."
+              exit 1
+            fi
+            # ─────────────────────────────────────────────────────────────
+
+            Read and follow $AGENTS_PATH/standalone.md.

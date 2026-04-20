@@ -226,3 +226,50 @@ func indexOf(s, substr string) int {
 	}
 	return -1
 }
+
+// TestRevisionNum tests the revisionNum helper which extracts spec.revision
+// from a GraphRevision object map, handling the three numeric Go type variants
+// produced by json.Unmarshal and unstructured client (int64, float64, int).
+func TestRevisionNum(t *testing.T) {
+	t.Run("float64 value (JSON default)", func(t *testing.T) {
+		obj := map[string]any{"spec": map[string]any{"revision": float64(3)}}
+		if got := revisionNum(obj); got != 3 {
+			t.Errorf("expected 3, got %d", got)
+		}
+	})
+
+	t.Run("int64 value (unstructured client)", func(t *testing.T) {
+		obj := map[string]any{"spec": map[string]any{"revision": int64(7)}}
+		if got := revisionNum(obj); got != 7 {
+			t.Errorf("expected 7, got %d", got)
+		}
+	})
+
+	t.Run("int value", func(t *testing.T) {
+		obj := map[string]any{"spec": map[string]any{"revision": int(42)}}
+		if got := revisionNum(obj); got != 42 {
+			t.Errorf("expected 42, got %d", got)
+		}
+	})
+
+	t.Run("missing spec returns 0", func(t *testing.T) {
+		obj := map[string]any{}
+		if got := revisionNum(obj); got != 0 {
+			t.Errorf("expected 0, got %d", got)
+		}
+	})
+
+	t.Run("missing revision field returns 0", func(t *testing.T) {
+		obj := map[string]any{"spec": map[string]any{}}
+		if got := revisionNum(obj); got != 0 {
+			t.Errorf("expected 0, got %d", got)
+		}
+	})
+
+	t.Run("non-numeric type returns 0", func(t *testing.T) {
+		obj := map[string]any{"spec": map[string]any{"revision": "not-a-number"}}
+		if got := revisionNum(obj); got != 0 {
+			t.Errorf("expected 0, got %d", got)
+		}
+	})
+}

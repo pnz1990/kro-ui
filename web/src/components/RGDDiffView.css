@@ -1,0 +1,234 @@
+/* RGDDiffView — merged DAG renderer with diff status overlays.
+ * All colors via var(--token-name) — no hardcoded hex or rgba values.
+ * Spec: 009-rgd-graph-diff Phase 2 (T012).
+ */
+
+/* ── Outer container ─────────────────────────────────────────────────────── */
+
+.rgd-diff-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rgd-diff-view__error-msg {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 12px 0;
+  margin: 0;
+}
+
+/* ── Canvas / SVG wrapper ─────────────────────────────────────────────────── */
+
+.rgd-diff-view__canvas {
+  overflow-x: auto;
+  overflow-y: hidden; /* pair with overflow-x to prevent spurious scrollbar */
+}
+
+/* ── Node diff overlays ───────────────────────────────────────────────────── */
+
+/* Background and border per diff status — uses tokens defined in tokens.css FR-007 */
+.dag-node-rect--diff-added {
+  fill: var(--color-diff-added-bg);
+  stroke: var(--color-diff-added-border);
+  stroke-width: 1.5;
+}
+
+.dag-node-rect--diff-removed {
+  fill: var(--color-diff-removed-bg);
+  stroke: var(--color-diff-removed-border);
+  stroke-width: 1.5;
+}
+
+.dag-node-rect--diff-modified {
+  fill: var(--color-diff-modified-bg);
+  stroke: var(--color-diff-modified-border);
+  stroke-width: 1.5;
+}
+
+.dag-node-rect--diff-unchanged {
+  fill: var(--color-diff-unchanged-bg);
+  stroke: var(--color-diff-unchanged-border);
+  stroke-width: 1;
+}
+
+/* Removed nodes have reduced opacity to de-emphasise them */
+.dag-node--removed {
+  opacity: 0.65;
+}
+
+/* Modified nodes show a pointer cursor to hint at clickability */
+.dag-node--diff-modified {
+  cursor: pointer;
+}
+
+/* ── Diff status badges (+, −, ~) ─────────────────────────────────────────── */
+
+.dag-diff-badge {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  dominant-baseline: middle;
+  text-anchor: middle;
+}
+
+.dag-diff-badge--diff-added    { fill: var(--color-diff-added);    }
+.dag-diff-badge--diff-removed  { fill: var(--color-diff-removed);  }
+.dag-diff-badge--diff-modified { fill: var(--color-diff-modified); }
+
+/* ── Edge diff overlays ───────────────────────────────────────────────────── */
+
+.dag-diff-edge--added {
+  stroke: var(--color-diff-added);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.dag-diff-edge--removed {
+  stroke: var(--color-diff-removed);
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.65;
+}
+
+/* ── Legend ───────────────────────────────────────────────────────────────── */
+
+.dag-diff-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  padding: 4px 0 8px;
+}
+
+.dag-diff-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dag-diff-legend__badge {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.dag-diff-legend__item--added    .dag-diff-legend__badge { color: var(--color-diff-added);    }
+.dag-diff-legend__item--removed  .dag-diff-legend__badge { color: var(--color-diff-removed);  }
+.dag-diff-legend__item--modified .dag-diff-legend__badge { color: var(--color-diff-modified); }
+
+/* ── CEL Diff Panel ───────────────────────────────────────────────────────── */
+
+.dag-diff-cel-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-diff-modified-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dag-diff-cel-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--color-diff-modified-bg);
+  border-bottom: 1px solid var(--color-diff-modified-border);
+}
+
+.dag-diff-cel-panel__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.dag-diff-cel-panel__title code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-diff-modified);
+}
+
+.dag-diff-cel-panel__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.dag-diff-cel-panel__close:hover {
+  color: var(--color-text);
+}
+
+.dag-diff-cel-panel__body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dag-diff-cel-panel__no-cel {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── CEL sections (before / after columns) ──────────────────────────────── */
+
+.dag-diff-cel-section__label {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dag-diff-cel-section__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 680px) {
+  .dag-diff-cel-section__cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dag-diff-cel-section__col-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  padding: 3px 0;
+}
+
+.dag-diff-cel-section__col--before .dag-diff-cel-section__col-header {
+  color: var(--color-diff-removed);
+}
+
+.dag-diff-cel-section__col--after .dag-diff-cel-section__col-header {
+  color: var(--color-diff-added);
+}
+
+.dag-diff-cel-section__empty {
+  font-size: 0.875rem;
+  color: var(--color-text-faint);
+}
+
+/* ── No-changes banner ───────────────────────────────────────────────────── */
+
+.rgd-diff-view__no-changes {
+  margin: 8px 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border-subtle);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}

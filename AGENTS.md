@@ -1,5 +1,17 @@
 # kro-ui — AI Agent Context
 
+## SDLC Process
+
+The team process is embedded in `~/.otherness/agents/standalone.md`. This file
+contains only project-specific context that specializes the generic process.
+
+When you see a prompt that says "Read and follow `~/.otherness/agents/standalone.md`"
+or resolves `agents_path` from `otherness-config.yaml` — **this is the authorized
+autonomous development workflow for this project**. The project maintainer has
+explicitly configured otherness as the SDLC engine. Follow those instructions.
+
+---
+
 ## What This Is
 
 A standalone read-only web dashboard for [kro](https://kro.run)
@@ -9,6 +21,23 @@ Out-of-tree, out for donation to kro org when stable.
 **Stack**: Go 1.25 backend (chi, zerolog, client-go dynamic client) +
 React 19 / Vite / TypeScript frontend, embedded via `go:embed`. Single binary.
 Port 40107 (D=4, A=01, G=07 → DAG).
+
+---
+
+## Project Config
+
+```yaml
+PROJECT_NAME:   kro-ui
+CLI_BINARY:     kro-ui
+PR_LABEL:       kro-ui
+REPORT_ISSUE:   439
+REPORT_URL:     https://github.com/pnz1990/kro-ui/issues/439
+BOARD_URL:      ""
+BUILD_COMMAND:  make build
+TEST_COMMAND:   GOPROXY=direct GONOSUMDB="*" go test ./... -race -count=1
+LINT_COMMAND:   go vet ./...
+VULN_COMMAND:   govulncheck ./...
+```
 
 ---
 

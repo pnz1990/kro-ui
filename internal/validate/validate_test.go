@@ -187,39 +187,50 @@ func TestValidateCELExpressionsVersionRouting(t *testing.T) {
 		name       string
 		kroVersion string
 		resources  []validate.ResourceExpressions
-		// wantIssues: true means we expect at least one issue (false positive guard).
+		// wantIssues: true means we expect at least one issue.
 		// false means we expect no issues (valid for that version).
 		wantIssues bool
 	}{
-		// ── hash.fnv64a ───────────────────────────────────────────────────
-		// Parse phase: function calls are syntax, so hash.fnv64a() parses on
-		// all versions. The version gate matters for type-checking (future).
-		// Current behaviour: parse always succeeds for well-formed call syntax.
+		// ── hash.fnv64a: type-check enforces version boundary ─────────────
+		// hash.fnv64a is registered only in v0.9.1+; type-checking rejects
+		// it on v0.8.x and v0.9.0 with "undeclared reference to 'hash.fnv64a'"
 		{
-			name:       "hash.fnv64a valid syntax on v0.9.1",
+			name:       "hash.fnv64a accepted on v0.9.1",
 			kroVersion: "v0.9.1",
 			resources:  hashExpr,
 			wantIssues: false,
 		},
 		{
-			name:       "hash.fnv64a valid syntax on v0.8.5 (parse-only check)",
+			name:       "hash.fnv64a rejected on v0.8.5 (type-check)",
 			kroVersion: "v0.8.5",
 			resources:  hashExpr,
-			wantIssues: false,
+			wantIssues: true, // type-check: hash.fnv64a not registered in v0.8.x env
+		},
+		{
+			name:       "hash.fnv64a rejected on v0.9.0 (type-check)",
+			kroVersion: "0.9.0",
+			resources:  hashExpr,
+			wantIssues: true, // hash is only in v0.9.1+
 		},
 
-		// ── omit() ────────────────────────────────────────────────────────
+		// ── omit(): type-check enforces version boundary ──────────────────
 		{
-			name:       "omit() valid syntax on v0.9.0",
+			name:       "omit() accepted on v0.9.0",
 			kroVersion: "v0.9.0",
 			resources:  omitExpr,
 			wantIssues: false,
 		},
 		{
-			name:       "omit() valid syntax on v0.9.1",
+			name:       "omit() accepted on v0.9.1",
 			kroVersion: "v0.9.1",
 			resources:  omitExpr,
 			wantIssues: false,
+		},
+		{
+			name:       "omit() rejected on v0.8.5 (type-check)",
+			kroVersion: "0.8.5",
+			resources:  omitExpr,
+			wantIssues: true, // omit() not registered in v0.8.x env
 		},
 
 		// ── base expressions work on every version ────────────────────────
@@ -242,41 +253,53 @@ func TestValidateCELExpressionsVersionRouting(t *testing.T) {
 			wantIssues: false,
 		},
 
-		// ── unknown / empty version uses conservative env ─────────────────
+		// ── unknown / empty / below-minimum version ───────────────────────
 		{
-			name:       "unknown version uses conservative env",
+			name:       "unknown version uses conservative env (base expr ok)",
 			kroVersion: "unknown",
 			resources:  baseExpr,
 			wantIssues: false,
 		},
 		{
-			name:       "empty version uses conservative env",
+			name:       "empty version uses conservative env (base expr ok)",
 			kroVersion: "",
 			resources:  baseExpr,
 			wantIssues: false,
 		},
+		{
+			name:       "below-minimum version (0.7.0) uses oldest bucket",
+			kroVersion: "0.7.0",
+			resources:  baseExpr,
+			wantIssues: false,
+		},
+		{
+			name:       "below-minimum version rejects v0.9.1 functions",
+			kroVersion: "0.7.0",
+			resources:  hashExpr,
+			wantIssues: true,
+		},
 
 		// ── version bucketing boundaries ──────────────────────────────────
 		{
-			name:       "v0.9.1 bucket selected for v0.9.1",
+			name:       "v0.9.1 bucket: hash accepted",
 			kroVersion: "v0.9.1",
 			resources:  hashExpr,
 			wantIssues: false,
 		},
 		{
-			name:       "v0.9.0 bucket selected for v0.9.0",
+			name:       "v0.9.0 bucket: omit accepted",
 			kroVersion: "0.9.0",
 			resources:  omitExpr,
 			wantIssues: false,
 		},
 		{
-			name:       "v0.8.x bucket selected for v0.8.5",
+			name:       "v0.8.x bucket: base accepted",
 			kroVersion: "0.8.5",
 			resources:  baseExpr,
 			wantIssues: false,
 		},
 		{
-			name:       "future version falls into newest bucket",
+			name:       "future version falls into newest bucket (hash accepted)",
 			kroVersion: "v1.0.0",
 			resources:  hashExpr,
 			wantIssues: false,
@@ -295,32 +318,49 @@ func TestValidateCELExpressionsVersionRouting(t *testing.T) {
 	}
 }
 
-// TestCELVersionEnvIsolation verifies that each version bucket is built
-// independently and can be used concurrently without data races.
+// TestCELVersionEnvIsolation verifies that version buckets are independent and
+// safe for concurrent use. It runs multiple goroutines simultaneously with
+// different versions, checking both pass and fail outcomes to ensure each
+// goroutine uses its own environment without cross-contamination.
 func TestCELVersionEnvIsolation(t *testing.T) {
-	versions := []string{"v0.8.5", "v0.9.0", "v0.9.1", "unknown", ""}
-	expr := []validate.ResourceExpressions{
-		{ID: "r", Expressions: []string{"${schema.spec.name}"}},
+	type workItem struct {
+		version    string
+		resources  []validate.ResourceExpressions
+		wantIssues bool
+	}
+	items := []workItem{
+		// Base expression: valid on all versions
+		{"v0.8.5", []validate.ResourceExpressions{{ID: "r", Expressions: []string{"${schema.spec.name}"}}}, false},
+		{"v0.9.0", []validate.ResourceExpressions{{ID: "r", Expressions: []string{"${schema.spec.name}"}}}, false},
+		{"v0.9.1", []validate.ResourceExpressions{{ID: "r", Expressions: []string{"${schema.spec.name}"}}}, false},
+		// hash.fnv64a: rejected on v0.8.5, accepted on v0.9.1
+		{"v0.8.5", []validate.ResourceExpressions{{ID: "r", Expressions: []string{`${hash.fnv64a("x")}`}}}, true},
+		{"v0.9.1", []validate.ResourceExpressions{{ID: "r", Expressions: []string{`${hash.fnv64a("x")}`}}}, false},
+		// omit(): rejected on v0.8.5, accepted on v0.9.0
+		{"v0.8.5", []validate.ResourceExpressions{{ID: "r", Expressions: []string{`${schema.spec.x != "" ? schema.spec.x : omit()}`}}}, true},
+		{"v0.9.0", []validate.ResourceExpressions{{ID: "r", Expressions: []string{`${schema.spec.x != "" ? schema.spec.x : omit()}`}}}, false},
 	}
 
-	// Run concurrently to surface any sync.Once or closure sharing bugs.
-	done := make(chan struct{}, len(versions)*3)
-	for i := 0; i < 3; i++ {
-		for _, v := range versions {
-			v := v
+	const goroutinesPerItem = 4
+	total := len(items) * goroutinesPerItem
+	done := make(chan struct{}, total)
+
+	for _, item := range items {
+		for i := 0; i < goroutinesPerItem; i++ {
+			item := item
 			go func() {
 				defer func() { done <- struct{}{} }()
-				issues := validate.ValidateCELExpressions(v, expr)
-				if len(issues) != 0 {
-					t.Errorf("unexpected issues for version %q: %v", v, issues)
+				issues := validate.ValidateCELExpressions(item.version, item.resources)
+				hasIssues := len(issues) > 0
+				if hasIssues != item.wantIssues {
+					t.Errorf("concurrent: version=%q wantIssues=%v got issues=%v (%v)",
+						item.version, item.wantIssues, hasIssues, issues)
 				}
 			}()
 		}
 	}
-	for range versions {
-		for i := 0; i < 3; i++ {
-			<-done
-		}
+	for i := 0; i < total; i++ {
+		<-done
 	}
 }
 

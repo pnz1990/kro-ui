@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/master/schema/helm-testsuite.json
+suite: kro-ui hpa tests
+templates:
+  - hpa.yaml
+release:
+  name: kro-ui
+  namespace: kro-system
+tests:
+  - it: should not render when autoscaling disabled
+    set:
+      autoscaling:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render HPA when enabled
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 10
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HorizontalPodAutoscaler
+
+  - it: should reference deployment
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 10
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.apiVersion
+          value: apps/v1
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: kro-ui
+
+  - it: should set min and max replicas
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 20
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 20
+
+  - it: should set CPU target
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 80
+    asserts:
+      - equal:
+          path: spec.metrics[0].type
+          value: Resource
+      - equal:
+          path: spec.metrics[0].resource.name
+          value: cpu
+      - equal:
+          path: spec.metrics[0].resource.target.type
+          value: Utilization
+      - equal:
+          path: spec.metrics[0].resource.target.averageUtilization
+          value: 80
+
+  - it: should set memory target
+    set:
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 0
+        targetMemoryUtilizationPercentage: 70
+    asserts:
+      - equal:
+          path: spec.metrics[0].type
+          value: Resource
+      - equal:
+          path: spec.metrics[0].resource.name
+          value: memory
+      - equal:
+          path: spec.metrics[0].resource.target.type
+          value: Utilization
+      - equal:
+          path: spec.metrics[0].resource.target.averageUtilization
+          value: 70

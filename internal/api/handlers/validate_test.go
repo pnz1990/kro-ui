@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	apitypes "github.com/pnz1990/kro-ui/internal/api/types"
+	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -329,3 +330,207 @@ spec:
 
 // Ensure the rgdGVR variable from rgds.go is accessible in this file.
 var _ = schema.GroupVersionResource{}
+
+// ── TestKroVersionForRequest ───────────────────────────────────────────────
+
+// TestKroVersionForRequest verifies that kroVersionForRequest returns the
+// version from the capabilities cache when warm, and "" when cold.
+// It also verifies that a warm cache with an older kro version causes
+// ValidateRGDStatic to reject expressions using newer kro functions.
+func TestKroVersionForRequest(t *testing.T) {
+	t.Cleanup(func() { capCache.invalidate() })
+
+	t.Run("cold cache returns empty string", func(t *testing.T) {
+		capCache.invalidate()
+		v := kroVersionForRequest()
+		if v != "" {
+			t.Errorf("cold cache: expected \"\", got %q", v)
+		}
+	})
+
+	t.Run("warm cache returns stored version", func(t *testing.T) {
+		capCache.invalidate()
+		capCache.set(&k8sclient.KroCapabilities{Version: "v0.9.1"})
+		v := kroVersionForRequest()
+		if v != "v0.9.1" {
+			t.Errorf("warm cache: expected \"v0.9.1\", got %q", v)
+		}
+	})
+
+	// End-to-end: when capCache is warm with v0.8.5, ValidateRGDStatic must
+	// reject hash.fnv64a (a v0.9.1-only function).
+	t.Run("ValidateRGDStatic rejects v0.9.1 function on v0.8.5 cluster", func(t *testing.T) {
+		capCache.invalidate()
+		capCache.set(&k8sclient.KroCapabilities{Version: "v0.8.5"})
+
+		h := newStaticHandler()
+		yaml := `apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: my-app
+spec:
+  schema:
+    kind: MyApp
+    apiVersion: v1alpha1
+  resources:
+    - id: web
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${hash.fnv64a("hello")}
+`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate/static", strings.NewReader(yaml))
+		w := httptest.NewRecorder()
+
+		h.ValidateRGDStatic(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		var res apitypes.StaticValidationResult
+		if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		if len(res.Issues) == 0 {
+			t.Error("expected at least 1 issue: hash.fnv64a should be rejected on v0.8.5 cluster")
+		}
+	})
+
+	// End-to-end: same expression must be accepted on a v0.9.1 cluster.
+	t.Run("ValidateRGDStatic accepts v0.9.1 function on v0.9.1 cluster", func(t *testing.T) {
+		capCache.invalidate()
+		capCache.set(&k8sclient.KroCapabilities{Version: "v0.9.1"})
+
+		h := newStaticHandler()
+		yaml := `apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: my-app
+spec:
+  schema:
+    kind: MyApp
+    apiVersion: v1alpha1
+  resources:
+    - id: web
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${hash.fnv64a("hello")}
+`
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate/static", strings.NewReader(yaml))
+		w := httptest.NewRecorder()
+
+		h.ValidateRGDStatic(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", w.Code)
+		}
+		var res apitypes.StaticValidationResult
+		if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		if len(res.Issues) != 0 {
+			t.Errorf("expected 0 issues for hash.fnv64a on v0.9.1 cluster, got: %v", res.Issues)
+		}
+	})
+}
+
+// TestExtractExpressionsFromMap tests the private helper that recursively
+// walks a YAML-decoded map and collects "${...}" CEL expression strings.
+// Exercises all three type branches: string, nested map, and slice.
+func TestExtractExpressionsFromMap(t *testing.T) {
+	t.Run("string value with expression", func(t *testing.T) {
+		m := map[string]any{
+			"name": "${schema.spec.appName}",
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 1 {
+			t.Fatalf("expected 1 expression, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("nested map recursion", func(t *testing.T) {
+		m := map[string]any{
+			"metadata": map[string]any{
+				"name": "${schema.spec.name}",
+				"labels": map[string]any{
+					"app": "${schema.spec.appLabel}",
+				},
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("slice of maps", func(t *testing.T) {
+		// A YAML array of objects, e.g. spec.containers
+		m := map[string]any{
+			"spec": map[string]any{
+				"containers": []any{
+					map[string]any{"name": "${schema.spec.containerName}"},
+					map[string]any{"image": "${schema.spec.image}"},
+				},
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions from slice of maps, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("slice of strings", func(t *testing.T) {
+		// A YAML array of plain strings, e.g. spec.args
+		m := map[string]any{
+			"spec": map[string]any{
+				"args": []any{
+					"--config=${schema.spec.configPath}",
+					"--replicas=${schema.spec.replicas}",
+					"--static-value", // no expression
+				},
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions from slice of strings, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("empty map returns empty result", func(t *testing.T) {
+		got := extractExpressionsFromMap(map[string]any{})
+		if len(got) != 0 {
+			t.Fatalf("expected empty slice, got %v", got)
+		}
+	})
+
+	t.Run("no expressions returns empty result", func(t *testing.T) {
+		m := map[string]any{
+			"name": "static-name",
+			"labels": map[string]any{
+				"env": "production",
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 0 {
+			t.Fatalf("expected 0 expressions, got %d: %v", len(got), got)
+		}
+	})
+
+	t.Run("mixed slice: map and string items", func(t *testing.T) {
+		m := map[string]any{
+			"items": []any{
+				map[string]any{"key": "${schema.spec.key}"},
+				"${schema.spec.inlineVal}",
+				42,  // non-string, non-map: ignored
+				nil, // nil: ignored
+			},
+		}
+		got := extractExpressionsFromMap(m)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 expressions from mixed slice, got %d: %v", len(got), got)
+		}
+	})
+}

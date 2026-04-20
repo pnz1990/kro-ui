@@ -10,6 +10,8 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      issues: write
 
     steps:
       - uses: actions/checkout@v6
@@ -90,7 +92,7 @@ jobs:
         working-directory: test/e2e
 
       - name: Run E2E journeys
-        run: bun run test
+        run: bun run test -- --reporter=list,html,json
         working-directory: test/e2e
         env:
           # Tell global-setup to skip kind create (kind-action already did it)
@@ -100,6 +102,26 @@ jobs:
           # Bump this when upgrading the kro controller in CI.
           KRO_CHART_VERSION: "0.9.1"
           CI: "true"
+          # Write JSON results to a file so the anchor step can read pass/fail counts.
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+
+      - name: Post anchor score
+        if: always()
+        working-directory: test/e2e
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          JOURNEYS=$(ls journeys/*.spec.ts 2>/dev/null | wc -l | tr -d ' ')
+          PASS=0
+          FAIL=0
+          if [ -f results.json ]; then
+            PASS=$(python3 -c "import json,sys; d=json.load(open('results.json')); print(d.get('stats',{}).get('expected',0))" 2>/dev/null || echo 0)
+            FAIL=$(python3 -c "import json,sys; d=json.load(open('results.json')); print(d.get('stats',{}).get('unexpected',0))" 2>/dev/null || echo 0)
+          fi
+          DATE=$(date -u +%Y-%m-%d)
+          gh issue comment 439 --repo pnz1990/kro-ui \
+            --body "[ANCHOR | kro-ui | ${DATE}] journeys: ${JOURNEYS} | pass: ${PASS} fail: ${FAIL}" \
+            || true  # non-fatal: anchor comment failure must not block CI
 
       # ── Artifacts ─────────────────────────────────────────────────────────
       - name: Upload Playwright report

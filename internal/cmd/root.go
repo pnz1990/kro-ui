@@ -66,7 +66,7 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	serveCmd.Flags().IntVarP(&port, "port", "p", 40107, "Port to listen on (40107 = D,A,G)")
-	serveCmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to kubeconfig (defaults to $KUBECONFIG or ~/.kube/config)")
+	serveCmd.Flags().StringVar(&kubeconfig, "kubeconfig", "", "Path to kubeconfig (defaults to $KUBECONFIG; if unset, attempts in-cluster config)")
 	serveCmd.Flags().StringVar(&context, "context", "", "Kubernetes context to use (defaults to current context)")
 
 	rootCmd.AddCommand(serveCmd)

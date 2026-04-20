@@ -29,6 +29,12 @@ $ARGUMENTS
 
 4. **Store** as `$PREV_VERSION` and `$NEXT_VERSION` (e.g. `v0.0.0` and `v0.1.0`)
 
+5. **Compute version without 'v' prefix**:
+   ```bash
+   NEXT_VERSION_NO_V="$${NEXT_VERSION#v}"
+   ```
+   Store as `$NEXT_VERSION_NO_V` (e.g. `0.1.0`)
+
 ---
 
 ## Pre-flight Checks
@@ -108,7 +114,7 @@ $ARGUMENTS
       ghcr.io/pnz1990/kro-ui:$NEXT_VERSION
 
     # Helm
-    helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui/charts/kro-ui \
+    helm upgrade --install kro-ui oci://ghcr.io/pnz1990/kro-ui-chart \
       --version $NEXT_VERSION_NO_V \
       --namespace kro-system --create-namespace
     ```

@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/helm-unittest/helm-unittest/master/schema/helm-testsuite.json
+suite: kro-ui ingress tests
+templates:
+  - ingress.yaml
+release:
+  name: kro-ui
+  namespace: kro-system
+tests:
+  - it: should not render when ingress disabled
+    set:
+      ingress:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render Ingress when enabled
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: kro.example.com
+            paths:
+              - path: /
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Ingress
+
+  - it: should use ingressClassName when set
+    set:
+      ingress:
+        enabled: true
+        className: nginx
+        hosts:
+          - host: kro.example.com
+            paths:
+              - path: /
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: should render host rule
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: kro.example.com
+            paths:
+              - path: /
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: kro.example.com
+
+  - it: should render path with pathType
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: kro.example.com
+            paths:
+              - path: /
+                pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+
+  - it: should route to service with port
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: kro.example.com
+            paths:
+              - path: /
+      service:
+        port: 40107
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: kro-ui
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.number
+          value: 40107
+
+  - it: should render TLS when configured
+    set:
+      ingress:
+        enabled: true
+        hosts:
+          - host: kro.example.com
+            paths:
+              - path: /
+        tls:
+          - secretName: kro-tls
+            hosts:
+              - kro.example.com
+    asserts:
+      - equal:
+          path: spec.tls[0].secretName
+          value: kro-tls
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: kro.example.com

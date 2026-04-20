@@ -199,4 +199,37 @@ test.describe('004: Instance List', () => {
     await expect(page.getByTestId('instance-table')).toBeVisible()
     await expect(page.getByTestId('instance-row-test-instance')).toBeVisible()
   })
+
+  // ── Step 11: empty state — RGD with no instances ──────────────────────────
+
+  test('Step 11: Instances tab for chain-parent (no instances) shows empty state', async ({ page }) => {
+    // chain-parent RGD is applied in globalSetup step 6f (fire-and-forget).
+    // It has no instance CRs, so the Instances tab must render the empty state.
+    // Verify the API confirms no instances first.
+    const apiRes = await page.request.get(`${BASE}/api/v1/rgds/chain-parent/instances`)
+    // API returns 200 with empty items array (not 404) for a known RGD with no instances
+    if (apiRes.status() !== 200) {
+      test.skip(true, 'chain-parent RGD not yet registered — skipping empty-state check')
+      return
+    }
+    const body = await apiRes.json() as { items: unknown[] }
+    if (!Array.isArray(body.items) || body.items.length > 0) {
+      test.skip(true, 'chain-parent has instances or unknown items shape — skipping')
+      return
+    }
+
+    await page.goto(`${BASE}/rgds/chain-parent?tab=instances`)
+    await expect(page.getByTestId('tab-instances')).toHaveAttribute('aria-selected', 'true')
+
+    // Wait for instance table or empty state (both are valid rendered states)
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="instance-table"]') !== null ||
+        document.querySelector('[data-testid="instance-empty-state"]') !== null,
+      { timeout: 15000 }
+    )
+
+    // When items array is empty, the empty state must be rendered
+    await expect(page.getByTestId('instance-empty-state')).toBeVisible({ timeout: 5000 })
+  })
 })

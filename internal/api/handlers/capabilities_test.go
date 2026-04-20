@@ -175,3 +175,152 @@ func TestCapabilitiesCacheInvalidate(t *testing.T) {
 	capCache.invalidate()
 	require.Nil(t, capCache.get(), "cache should be nil after explicit invalidate")
 }
+
+// TestKroVersionFallbackFromInstances tests the version recovery fallback path in
+// GetCapabilities. When DetectCapabilities returns "unknown" (e.g. throttled cluster,
+// RBAC gap), kroVersionFromInstances scans RGD instances for the kro.run/kro-version
+// label and returns it as the cluster version.
+func TestKroVersionFallbackFromInstances(t *testing.T) {
+	// RGD instance GVR for the test-app kind
+	instGVR := schema.GroupVersionResource{
+		Group:    "e2e.kro-ui.dev",
+		Version:  "v1alpha1",
+		Resource: "webapps",
+	}
+
+	// Create a handler where discovery fails (caps.Version = "unknown"),
+	// but there is an RGD with a matching instance that has the kro-version label.
+	t.Run("recovers version from instance label when discovery returns unknown", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		// Discovery error → DetectCapabilities returns baseline with Version="unknown"
+		disc.err = fmt.Errorf("connection refused")
+
+		dyn := newStubDynamic()
+
+		// RGD stub: returns one RGD with schema kind=WebApp
+		rgdItem := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "test-app"},
+			"spec": map[string]any{
+				"schema": map[string]any{
+					"kind":       "WebApp",
+					"group":      "e2e.kro-ui.dev",
+					"apiVersion": "v1alpha1",
+				},
+			},
+		}}
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{rgdItem}}
+
+		// Instance stub: returns one instance with kro.run/kro-version label
+		instItem := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{
+				"name":      "my-webapp",
+				"namespace": "default",
+				"labels": map[string]any{
+					"kro.run/kro-version": "v0.9.1",
+				},
+			},
+		}}
+		dyn.resources[instGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{instItem}}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		assert.Equal(t, "v0.9.1", caps.Version, "version should be recovered from instance label")
+	})
+
+	t.Run("returns unknown when RGDs exist but instances have no kro-version label", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		disc.err = fmt.Errorf("connection refused")
+
+		dyn := newStubDynamic()
+
+		rgdItem := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "test-app"},
+			"spec": map[string]any{
+				"schema": map[string]any{
+					"kind":       "WebApp",
+					"group":      "e2e.kro-ui.dev",
+					"apiVersion": "v1alpha1",
+				},
+			},
+		}}
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{rgdItem}}
+
+		// Instances exist but have no kro.run/kro-version label
+		instItem := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{
+				"name": "my-webapp",
+				"labels": map[string]any{
+					"app": "my-webapp", // different label, no kro-version
+				},
+			},
+		}}
+		dyn.resources[instGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{instItem}}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		assert.Equal(t, "unknown", caps.Version, "version should remain unknown when no label found")
+	})
+
+	t.Run("returns unknown when RGD list is empty", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		disc.err = fmt.Errorf("connection refused")
+
+		dyn := newStubDynamic()
+		// RGD resource exists but returns empty list
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		assert.Equal(t, "unknown", caps.Version, "version should remain unknown when no RGDs")
+	})
+
+	t.Run("skips RGD with missing schema kind", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		disc.err = fmt.Errorf("connection refused")
+
+		dyn := newStubDynamic()
+		// RGD with no spec.schema.kind
+		badRGD := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "broken-rgd"},
+			"spec":     map[string]any{"schema": map[string]any{}}, // missing kind
+		}}
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{badRGD}}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		// Should not panic, should return unknown
+		assert.Equal(t, "unknown", caps.Version)
+	})
+}

@@ -1,0 +1,70 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+## Installation
+
+```bash
+# Install from OCI registry (published on release)
+helm install kro-ui oci://ghcr.io/pnz1990/kro-ui-chart/kro-ui \
+  --namespace kro-system --create-namespace
+```
+
+> **Note:** The chart is distributed as an OCI artifact. It is pushed to the
+> registry automatically when a new release tag is created.
+
+## Kubeconfig Configuration
+
+kro-ui connects to a Kubernetes cluster using one of two modes (mutually exclusive):
+
+### In-cluster mode (default)
+
+When `kubeconfig.secretName` is not set, kro-ui uses the ServiceAccount token mounted in the pod.
+This connects to the cluster where kro-ui is installed.
+
+### External kubeconfig mode
+
+To connect to clusters other than where kro-ui runs, set `kubeconfig.secretName` to reference an existing Secret containing a kubeconfig:
+
+```yaml
+kubeconfig:
+  secretName: my-kubeconfig   # Name of existing Secret containing kubeconfig
+  context: prod-cluster     # Optional: pre-select this context
+```
+
+The Secret must contain a valid kubeconfig under the key specified by `kubeconfig.secretKey` (default: "config").
+
+Example Secret:
+
+```bash
+kubectl create secret generic my-kubeconfig \
+  --from-file=config=/path/to/kubeconfig.yaml \
+  -n <namespace>
+```
+
+When `kubeconfig.secretName` is set, kro-ui uses the mounted kubeconfig and will NOT use the in-cluster ServiceAccount.
+
+The RBAC for external clusters is handled by the kubeconfig credentials themselves - ensure the user/role in the kubeconfig has appropriate permissions on the target clusters.
+
+## Getting Started
+
+To access the UI, port-forward the service:
+
+```bash
+kubectl port-forward -n <namespace> svc/<release-name> 40107:40107
+```
+
+Replace `<namespace>` with your namespace and `<release-name>` with your helm release name.
+Then open http://localhost:40107
+
+{{ template "chart.valuesSection" . }}

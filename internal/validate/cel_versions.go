@@ -32,14 +32,17 @@ package validate
 //
 //	{
 //	    minVersion: "X.Y.Z",
-//	    build: func() (func(string) error, error) {
-//	        env, err := cel.NewEnv(
-//	            krocel.BaseDeclarations()...,
-//	            // ── add ONLY the libraries introduced in vX.Y.Z here ──
+//	    build: func() (func(string, []string) error, error) {
+//	        env, err := cel.NewEnv(append(
+//	            baseCELOptions(),
+//	            // ── include ALL libraries from all prior versions ──
+//	            library.Omit(),   // v0.9.0
+//	            library.Hash(),   // v0.9.1
+//	            // ── add ONLY the new libraries introduced in vX.Y.Z ──
 //	            cel.Lib(library.NewThing()),
-//	        )
+//	        )...)
 //	        if err != nil { return nil, err }
-//	        return parseFunc(env), nil
+//	        return checkFunc(env), nil
 //	    },
 //	},
 //
@@ -67,21 +70,55 @@ type celVersionEntry struct {
 	minVersion string
 
 	once    sync.Once
-	fn      func(string) error // set by build on first use
+	fn      func(expr string, varNames []string) error // set by build on first use
 	initErr error
 
 	// build constructs the CEL environment for this bucket.
 	// It is only invoked once; the result is cached in fn.
-	build func() (func(string) error, error)
+	build func() (func(expr string, varNames []string) error, error)
 }
 
-// parseFunc wraps a *cel.Env into the string-in/error-out closure used by
-// ValidateCELExpressions. The *cel.Env type from github.com/google/cel-go is
-// captured inside the closure so callers never need to import cel-go directly.
-func parseFunc(env *cel.Env) func(string) error {
-	return func(expr string) error {
-		_, iss := env.Parse(expr)
-		if iss != nil {
+// checkFunc wraps a *cel.Env into the (expr, varNames) → error closure used by
+// ValidateCELExpressions. It performs both syntax (Parse) and semantic
+// (Check) validation so that calls to unknown functions — e.g. hash.fnv64a()
+// on a v0.8.x cluster — are correctly rejected.
+//
+// varNames are the resource IDs visible in the current expression context
+// (e.g. "schema", "vpc", "subnet"). Each is declared as cel.DynType so that
+// field-access chains like schema.spec.replicas type-check without requiring
+// the full OpenAPI schema.
+//
+// The *cel.Env type from github.com/google/cel-go is captured inside the
+// closure so callers never need to import cel-go directly.
+func checkFunc(env *cel.Env) func(expr string, varNames []string) error {
+	return func(expr string, varNames []string) error {
+		// Build a per-check extension of the base env that declares the
+		// resource variables as dynamic-typed. env.Extend() is cheap —
+		// it inherits all library registrations from the parent.
+		vars := make([]cel.EnvOption, 0, len(varNames)+1)
+		// "schema" is always in scope in kro CEL expressions.
+		vars = append(vars, cel.Variable("schema", cel.DynType))
+		for _, name := range varNames {
+			if name != "" && name != "schema" {
+				vars = append(vars, cel.Variable(name, cel.DynType))
+			}
+		}
+		checkEnv, err := env.Extend(vars...)
+		if err != nil {
+			// Fallback: parse-only if the extension fails (should never happen).
+			_, iss := env.Parse(expr)
+			if iss != nil {
+				return iss.Err()
+			}
+			return nil
+		}
+
+		ast, iss := checkEnv.Parse(expr)
+		if iss != nil && iss.Err() != nil {
+			return iss.Err()
+		}
+		_, iss = checkEnv.Check(ast)
+		if iss != nil && iss.Err() != nil {
 			return iss.Err()
 		}
 		return nil
@@ -105,15 +142,23 @@ var celVersionRegistry = []*celVersionEntry{
 	// Ref:   https://github.com/kubernetes-sigs/kro/releases/tag/v0.9.1
 	{
 		minVersion: "0.9.1",
-		build: func() (func(string) error, error) {
+		build: func() (func(expr string, varNames []string) error, error) {
 			env, err := cel.NewEnv(append(
 				baseCELOptions(),
+				// v0.9.0 additions
+				library.Omit(),
+				library.Maps(),
+				library.JSON(),
+				library.Lists(),
+				ext.Bindings(),
+				ext.TwoVarComprehensions(),
+				// v0.9.1 additions
 				library.Hash(),
 			)...)
 			if err != nil {
 				return nil, fmt.Errorf("build v0.9.1 CEL env: %w", err)
 			}
-			return parseFunc(env), nil
+			return checkFunc(env), nil
 		},
 	},
 
@@ -123,9 +168,10 @@ var celVersionRegistry = []*celVersionEntry{
 	// Ref:   https://github.com/kubernetes-sigs/kro/releases/tag/v0.9.0
 	{
 		minVersion: "0.9.0",
-		build: func() (func(string) error, error) {
+		build: func() (func(expr string, varNames []string) error, error) {
 			env, err := cel.NewEnv(append(
 				baseCELOptions(),
+				// v0.9.0 additions
 				library.Omit(),
 				library.Maps(),
 				library.JSON(),
@@ -136,7 +182,7 @@ var celVersionRegistry = []*celVersionEntry{
 			if err != nil {
 				return nil, fmt.Errorf("build v0.9.0 CEL env: %w", err)
 			}
-			return parseFunc(env), nil
+			return checkFunc(env), nil
 		},
 	},
 
@@ -146,12 +192,12 @@ var celVersionRegistry = []*celVersionEntry{
 	// and so does "unknown" after envForVersion's fallback logic.
 	{
 		minVersion: "0.8.0",
-		build: func() (func(string) error, error) {
+		build: func() (func(expr string, varNames []string) error, error) {
 			env, err := cel.NewEnv(baseCELOptions()...)
 			if err != nil {
 				return nil, fmt.Errorf("build v0.8.x CEL env: %w", err)
 			}
-			return parseFunc(env), nil
+			return checkFunc(env), nil
 		},
 	},
 }
@@ -179,13 +225,13 @@ func baseCELOptions() []cel.EnvOption {
 	}
 }
 
-// envForVersion returns the parse function for the given kro version string.
+// envForVersion returns the check function for the given kro version string.
 // It selects the newest registry entry whose minVersion is ≤ kroVersion.
 // When kroVersion is empty or "unknown", the oldest (most conservative) entry
 // is returned so validation never produces false positives.
 //
 // The selected entry's build func is called at most once (sync.Once).
-func envForVersion(kroVersion string) (func(string) error, error) {
+func envForVersion(kroVersion string) (func(expr string, varNames []string) error, error) {
 	// Determine which entry to use.
 	selected := celVersionRegistry[len(celVersionRegistry)-1] // oldest = safest default
 

@@ -153,33 +153,37 @@ export default function RGDDetail() {
     setInstancesLoading(true)
     setInstancesError(null)
 
+    const ac = new AbortController()
     const ns = namespaceParam || undefined
-    const fetchFiltered = listInstances(name, ns)
+    const fetchFiltered = listInstances(name, ns, { signal: ac.signal })
     const fetchAll = namespaceParam
-      ? listInstances(name)
+      ? listInstances(name, undefined, { signal: ac.signal })
       : fetchFiltered
 
     fetchFiltered
       .then((data) => {
+        if (ac.signal.aborted) return
         setInstanceList(data)
         setInstancesError(null)
       })
       .catch((err: Error) => {
+        if (ac.signal.aborted) return
         setInstancesError(err.message)
         setInstanceList(null)
       })
-      .finally(() => setInstancesLoading(false))
+      .finally(() => { if (!ac.signal.aborted) setInstancesLoading(false) })
 
     // Fetch unfiltered list to populate namespace dropdown (only when filtered)
     if (namespaceParam) {
       fetchAll
-        .then((data) => setAllInstances(data))
+        .then((data) => { if (!ac.signal.aborted) setAllInstances(data) })
         .catch(() => {
           // Non-critical: namespace options fall back to current filtered list
         })
     } else {
-      fetchFiltered.then((data) => setAllInstances(data)).catch(() => {})
+      fetchFiltered.then((data) => { if (!ac.signal.aborted) setAllInstances(data) }).catch(() => {})
     }
+    return () => ac.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, name, namespaceParam])
 
@@ -236,8 +240,10 @@ export default function RGDDetail() {
     if (pickerItems.length > 0 || pickerLoading || pickerError) return
     setPickerLoading(true)
     setPickerError(null)
-     listInstances(name)
+    const pickerAC = new AbortController()
+     listInstances(name, undefined, { signal: pickerAC.signal })
       .then((data) => {
+        if (pickerAC.signal.aborted) return
         const items: PickerItem[] = (data.items ?? []).map((item) => {
           const meta = item.metadata as Record<string, unknown> | undefined
           return {
@@ -249,9 +255,11 @@ export default function RGDDetail() {
         setPickerError(null)
       })
       .catch((err: Error) => {
+        if (pickerAC.signal.aborted) return
         setPickerError(err.message)
       })
-      .finally(() => setPickerLoading(false))
+      .finally(() => { if (!pickerAC.signal.aborted) setPickerLoading(false) })
+    return () => pickerAC.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, name])
   useEffect(() => {
@@ -271,21 +279,25 @@ export default function RGDDetail() {
     setOverlayError(null)
     setOverlayNodeStateMap(null)
 
+    const overlayAC = new AbortController()
     Promise.all([
       getInstance(ns, instanceName, String(name)),
       getInstanceChildren(ns, instanceName, String(name)),
     ])
       .then(([instance, childrenRes]) => {
+        if (overlayAC.signal.aborted) return
         setOverlayInstance(instance)
         setOverlayNodeStateMap(buildNodeStateMap(instance, childrenRes.items ?? [], dagGraph?.nodes ?? []))
         setOverlayError(null)
       })
       .catch((err: Error) => {
+        if (overlayAC.signal.aborted) return
         setOverlayError(err.message)
         setOverlayInstance(null)
         setOverlayNodeStateMap(null)
       })
-      .finally(() => setOverlayLoading(false))
+      .finally(() => { if (!overlayAC.signal.aborted) setOverlayLoading(false) })
+    return () => overlayAC.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlayKey, name, overlayRetry, dagGraph])
 

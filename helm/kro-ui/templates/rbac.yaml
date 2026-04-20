@@ -1,0 +1,29 @@
+{{- if and .Values.rbac.create (not .Values.kubeconfig.secretName) }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "kro-ui.fullname" . }}
+  labels:
+    {{- include "kro-ui.labels" . | nindent 4 }}
+rules:
+{{- range .Values.rbac.rules }}
+  - apiGroups: {{ .apiGroups | toJson }}
+    resources: {{ .resources | toJson }}
+    verbs: {{ .verbs | toJson }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "kro-ui.fullname" . }}
+  labels:
+    {{- include "kro-ui.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "kro-ui.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kro-ui.serviceAccountName" . }}
+    namespace: {{ .Values.namespace }}
+{{- end }}

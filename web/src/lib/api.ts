@@ -89,7 +89,7 @@ export interface AllInstancesResponse {
 
 /**
  * List all live CR instances across ALL RGDs.
- * Fan-out on the backend: each RGD has a 2s deadline, results merged.
+ * Fan-out on the backend: each RGD has a 5s deadline, results merged.
  * Spec: .specify/specs/058-global-instance-search/spec.md
  */
 export const listAllInstances = (options?: { signal?: AbortSignal }) =>

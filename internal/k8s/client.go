@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -81,21 +80,30 @@ type ClientFactory struct {
 }
 
 // NewClientFactory creates a ClientFactory from the given kubeconfig path and context.
-// If kubeconfigPath is empty it falls back to $KUBECONFIG then ~/.kube/config.
+// Fallback chain: explicit path → $KUBECONFIG → ~/.kube/config → in-cluster.
 // If context is empty it uses the current context in the kubeconfig.
 func NewClientFactory(kubeconfigPath, context string) (*ClientFactory, error) {
-	if kubeconfigPath == "" {
-		if env := os.Getenv("KUBECONFIG"); env != "" {
-			kubeconfigPath = env
-		} else {
-			home, _ := os.UserHomeDir()
-			kubeconfigPath = filepath.Join(home, ".kube", "config")
+	path := kubeconfigPath
+	if path == "" {
+		path = os.Getenv("KUBECONFIG")
+	}
+	if path == "" {
+		defaultPath := os.ExpandEnv("$HOME/.kube/config")
+		if _, err := os.Stat(defaultPath); err == nil {
+			path = defaultPath
 		}
 	}
+	if path != "" {
+		f := &ClientFactory{kubeconfigPath: path}
+		if err := f.load(context); err != nil {
+			return nil, err
+		}
+		return f, nil
+	}
 
-	f := &ClientFactory{kubeconfigPath: kubeconfigPath}
-	if err := f.load(context); err != nil {
-		return nil, err
+	f := &ClientFactory{kubeconfigPath: ""}
+	if err := f.loadInCluster(); err != nil {
+		return nil, fmt.Errorf("no kubeconfig and in-cluster unavailable: %w", err)
 	}
 	return f, nil
 }
@@ -150,12 +158,44 @@ func (f *ClientFactory) load(context string) error {
 	return nil
 }
 
+// loadInCluster builds clients using in-cluster config (ServiceAccount token).
+// This is used when running inside a Kubernetes cluster without a kubeconfig file.
+func (f *ClientFactory) loadInCluster() error {
+	restCfg, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("in-cluster config: %w", err)
+	}
+
+	dyn, err := dynamic.NewForConfig(restCfg)
+	if err != nil {
+		return fmt.Errorf("build dynamic client: %w", err)
+	}
+
+	disc, err := discovery.NewDiscoveryClientForConfig(restCfg)
+	if err != nil {
+		return fmt.Errorf("build discovery client: %w", err)
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.restConfig = restCfg
+	f.dynamic = dyn
+	f.discovery = disc
+	f.activeContext = "in-cluster"
+	f.discCache.invalidate()
+	return nil
+}
+
 // SwitchContext reloads all clients for the given context.
-// Returns an error if the context name is empty or not found in the kubeconfig.
+// Returns an error if the factory was created with in-cluster mode
+// (context switching is not supported when running inside a pod).
 // After a successful switch, all registered context-switch hooks are called.
 func (f *ClientFactory) SwitchContext(ctx string) error {
 	if ctx == "" {
 		return errors.New("context name must not be empty")
+	}
+	if f.kubeconfigPath == "" {
+		return errors.New("context switching not supported in in-cluster mode")
 	}
 	if err := f.load(ctx); err != nil {
 		return err
@@ -236,7 +276,13 @@ func (f *ClientFactory) ActiveContext() string {
 }
 
 // ListContexts returns all available contexts from the kubeconfig and the active context.
+// When running in-cluster (no kubeconfig file), returns a synthetic single-context list
+// containing only the in-cluster context.
 func (f *ClientFactory) ListContexts() ([]Context, string, error) {
+	if f.kubeconfigPath == "" {
+		return []Context{{Name: "in-cluster", Cluster: "", User: ""}}, "in-cluster", nil
+	}
+
 	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: f.kubeconfigPath}
 	rawCfg, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		loadingRules, &clientcmd.ConfigOverrides{},
