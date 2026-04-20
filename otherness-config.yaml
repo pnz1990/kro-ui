@@ -1,6 +1,7 @@
 project:
   name: kro-ui
   repo: pnz1990/kro-ui
+  agent_version: 4daf5ea695f0147ac255dc434ccf703055e85a1c  # pin otherness to this SHA (security: doc 27 §M2)
   report_issue: 439
   board_url: "https://github.com/users/pnz1990/projects/2/views/1"
   pr_label: "kro-ui"
