@@ -149,9 +149,9 @@ export default defineConfig({
        // (health-filter, fleet-reconciling, instances-filter, health-sort,
        //  status-message, error-banner, catalog-status-filter, kro-v091,
        //  operator-persona-journey, sre-persona-journey, developer-persona-journey,
-       //  fleet-persona-journey)
+       //  accessibility (074), fleet-persona-journey)
       name: 'chunk-9',
-      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|075)-.*\.spec\.ts/,
+      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
