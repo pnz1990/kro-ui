@@ -2091,13 +2091,16 @@
       ]
     },
     "issue-523": {
-      "state": "todo",
-      "title": "27.1 \u2014 kro release tracking automation",
+      "state": "done",
+      "title": "feat(ci): kro upstream release tracking automation",
       "issue_number": 523,
       "priority": "medium",
       "labels": [
         "kind/enhancement"
-      ]
+      ],
+      "pr_merged": true,
+      "pr_number": 545,
+      "done_at": "2026-04-20T17:03:10Z"
     },
     "issue-525": {
       "state": "todo",
