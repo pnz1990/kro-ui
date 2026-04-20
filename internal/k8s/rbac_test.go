@@ -1269,3 +1269,280 @@ func TestMatchesResource_NoMatch(t *testing.T) {
 func TestMatchesResource_EmptyList(t *testing.T) {
 	assert.False(t, matchesResource([]string{}, "deployments"))
 }
+
+// ── fetchClusterRoleRules aggregation coverage ────────────────────────────────
+
+// TestFetchClusterRoleRules_AggregationRule verifies that a ClusterRole with an
+// aggregationRule resolves the aggregate ClusterRoles by label selector and
+// combines their rules with the base rules.
+func TestFetchClusterRoleRules_AggregationRule(t *testing.T) {
+	ctx := context.Background()
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+
+	// Base ClusterRole: one direct rule + aggregationRule with one selector.
+	baseRole := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-cluster-admin"},
+		"rules": []any{
+			map[string]any{
+				"apiGroups": []any{"kro.run"},
+				"resources": []any{"resourcegraphdefinitions"},
+				"verbs":     []any{"get", "list", "watch"},
+			},
+		},
+		"aggregationRule": map[string]any{
+			"clusterRoleSelectors": []any{
+				map[string]any{
+					"matchLabels": map[string]any{
+						"rbac.authorization.k8s.io/aggregate-to-kro": "true",
+					},
+				},
+			},
+		},
+	}}
+
+	// Aggregated ClusterRole: returned by label selector.
+	aggRole := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{
+			"name": "kro-configmap-reader",
+			"labels": map[string]any{
+				"rbac.authorization.k8s.io/aggregate-to-kro": "true",
+			},
+		},
+		"rules": []any{
+			map[string]any{
+				"apiGroups": []any{""},
+				"resources": []any{"configmaps"},
+				"verbs":     []any{"get", "list"},
+			},
+		},
+	}}
+
+	dyn := newStubDynamic()
+	// baseRole is returned by Get("kro-cluster-admin").
+	dyn.resources[crGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"kro-cluster-admin": &baseRole},
+		// labelItems maps the selector string to aggregated roles for List().
+		labelItems: map[string][]unstructured.Unstructured{
+			"rbac.authorization.k8s.io/aggregate-to-kro=true": {aggRole},
+		},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	cache := map[string][]policyRule{}
+
+	rules, err := fetchClusterRoleRules(ctx, clients, "kro-cluster-admin", cache)
+	require.NoError(t, err)
+	// Should have base rule + aggregated rule.
+	require.Len(t, rules, 2, "base rule + aggregated rule expected")
+	groups := make(map[string]bool)
+	for _, r := range rules {
+		for _, res := range r.Resources {
+			groups[res] = true
+		}
+	}
+	assert.True(t, groups["resourcegraphdefinitions"], "base rule must be present")
+	assert.True(t, groups["configmaps"], "aggregated rule must be present")
+}
+
+// TestFetchClusterRoleRules_AggregationListError verifies that an error listing
+// aggregated ClusterRoles is logged and skipped (non-fatal).
+func TestFetchClusterRoleRules_AggregationListError(t *testing.T) {
+	ctx := context.Background()
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+
+	// Base ClusterRole with aggregation rule, but List will return an error.
+	baseRole := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-role"},
+		"rules":    []any{},
+		"aggregationRule": map[string]any{
+			"clusterRoleSelectors": []any{
+				map[string]any{
+					"matchLabels": map[string]any{"agg": "true"},
+				},
+			},
+		},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[crGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"kro-role": &baseRole},
+		listErr:  fmt.Errorf("list aggregated ClusterRoles forbidden"),
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	cache := map[string][]policyRule{}
+
+	rules, err := fetchClusterRoleRules(ctx, clients, "kro-role", cache)
+	require.NoError(t, err, "aggregation list error must be logged and skipped, not propagated")
+	assert.Empty(t, rules, "no rules when aggregated list fails")
+}
+
+// TestFetchClusterRoleRules_NonMapSelector verifies that a non-map selector
+// entry in clusterRoleSelectors is silently skipped.
+func TestFetchClusterRoleRules_NonMapSelector(t *testing.T) {
+	ctx := context.Background()
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+
+	baseRole := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-role"},
+		"rules":    []any{},
+		"aggregationRule": map[string]any{
+			"clusterRoleSelectors": []any{
+				"not-a-map",  // invalid entry — must be skipped
+			},
+		},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[crGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"kro-role": &baseRole},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	cache := map[string][]policyRule{}
+
+	rules, err := fetchClusterRoleRules(ctx, clients, "kro-role", cache)
+	require.NoError(t, err)
+	assert.Empty(t, rules, "non-map selector skipped → no rules")
+}
+
+// TestFetchClusterRoleRules_EmptyMatchLabels verifies that a selector with
+// empty matchLabels is silently skipped.
+func TestFetchClusterRoleRules_EmptyMatchLabels(t *testing.T) {
+	ctx := context.Background()
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+
+	baseRole := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-role"},
+		"rules":    []any{},
+		"aggregationRule": map[string]any{
+			"clusterRoleSelectors": []any{
+				map[string]any{
+					"matchLabels": map[string]any{}, // empty — must be skipped
+				},
+			},
+		},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[crGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"kro-role": &baseRole},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	cache := map[string][]policyRule{}
+
+	rules, err := fetchClusterRoleRules(ctx, clients, "kro-role", cache)
+	require.NoError(t, err)
+	assert.Empty(t, rules)
+}
+
+// ── extractPolicyRules branch coverage ───────────────────────────────────────
+
+// TestExtractPolicyRules_NonMapEntry verifies that a non-map entry in the
+// rules slice is silently skipped.
+func TestExtractPolicyRules_NonMapEntry(t *testing.T) {
+	obj := map[string]any{
+		"rules": []any{
+			"not-a-map",  // invalid rule entry
+			map[string]any{
+				"apiGroups": []any{"apps"},
+				"resources": []any{"deployments"},
+				"verbs":     []any{"get"},
+			},
+		},
+	}
+
+	rules := extractPolicyRules(obj)
+	require.Len(t, rules, 1, "non-map entry must be skipped, valid entry kept")
+	assert.Equal(t, []string{"apps"}, rules[0].APIGroups)
+}
+
+// TestExtractPolicyRules_EmptyRules verifies that an empty rules slice returns
+// an empty result without panicking.
+func TestExtractPolicyRules_EmptyRules(t *testing.T) {
+	obj := map[string]any{"rules": []any{}}
+	rules := extractPolicyRules(obj)
+	assert.Empty(t, rules)
+}
+
+// TestExtractPolicyRules_NoRulesKey verifies that a missing "rules" key
+// returns an empty result.
+func TestExtractPolicyRules_NoRulesKey(t *testing.T) {
+	obj := map[string]any{"metadata": map[string]any{"name": "test"}}
+	rules := extractPolicyRules(obj)
+	assert.Empty(t, rules)
+}
+
+// ── ComputeAccessResult error path coverage ───────────────────────────────────
+
+// TestComputeAccessResult_FetchRulesError verifies that a FetchEffectiveRules
+// error propagates as an error from ComputeAccessResult.
+func TestComputeAccessResult_FetchRulesError(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	dyn := newStubDynamic()
+	// CRB list error — FetchEffectiveRules propagates this as an error.
+	dyn.resources[crbGVR] = &stubNamespaceableResource{listErr: fmt.Errorf("forbidden")}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rgdObj := map[string]any{"spec": map[string]any{"resources": []any{}}}
+
+	_, err := ComputeAccessResult(ctx, clients, rgdObj, "kro-system", "kro", true)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fetch effective rules")
+}
+
+// TestComputeAccessResult_ReadOnlyResource verifies that externalRef resources
+// (ReadOnly=true) use ReadOnlyVerbs, not ManagedVerbs.
+func TestComputeAccessResult_ReadOnlyResource(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	dyn.resources[crGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+	disc := newStubDiscovery()
+	disc.resources["networking.k8s.io/v1"] = &metav1.APIResourceList{
+		GroupVersion: "networking.k8s.io/v1",
+		APIResources: []metav1.APIResource{
+			{Name: "ingresses", Kind: "Ingress", Namespaced: true},
+		},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: disc}
+
+	// RGD with an externalRef resource (read-only).
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"id": "my-ingress",
+					"externalRef": map[string]any{
+						"metadata": map[string]any{
+							"name":      "my-ingress",
+							"namespace": "default",
+						},
+						"apiVersion": "networking.k8s.io/v1",
+						"kind":       "Ingress",
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ComputeAccessResult(ctx, clients, rgdObj, "kro-system", "kro", true)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Permissions, 1)
+	// ReadOnly resource must use ReadOnlyVerbs.
+	assert.ElementsMatch(t, ReadOnlyVerbs, result.Permissions[0].Required,
+		"externalRef resource must require ReadOnlyVerbs only")
+}
