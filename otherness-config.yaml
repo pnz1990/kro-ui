@@ -50,3 +50,9 @@ github_projects:
   size_xl_option_id: "6bb35ed8"
   start_date_field_id: ""
   target_date_field_id: "PVTF_lAHOC22HhM4BUowmzhBz_0Y"
+
+# ── Continuous code hygiene ────────────────────────────────────────────────────
+hygiene:
+  enabled: true
+  max_issues_per_scan: 3
+  cycle_interval: 3
