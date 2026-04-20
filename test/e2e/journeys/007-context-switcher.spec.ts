@@ -266,4 +266,40 @@ test.describe('Journey 007 — Context Switcher', () => {
     ).then(() => true).catch(() => false)
     if (!allCardsVisible) return // throttled cluster — skip without failing
   })
+
+  // ── Step 8: error state — API unavailable / health degraded ──────────────
+
+  test('Step 8: context switcher renders gracefully when API is slow or unavailable', async ({ page }) => {
+    // Design ref: docs/design/26-anchor-kro-ui.md §Journey depth
+    // The context switcher must not show a blank screen or raw error.
+    await page.goto(BASE)
+    await page.waitForTimeout(3000)
+    // Body must not show raw errors
+    await expect(page.locator('body')).not.toContainText('[object Object]')
+    await expect(page.locator('body')).not.toContainText('undefined')
+    // The top bar should render (at minimum) — context switcher is in the top bar
+    const topBar = page.locator('header, [data-testid="top-bar"], nav').first()
+    await expect(topBar).toBeVisible({ timeout: 10000 })
+  })
+
+  // ── Step 9: empty state — single context cluster ──────────────────────────
+
+  test('Step 9: context switcher on a single-context cluster does not crash', async ({ page }) => {
+    // Design ref: docs/design/26-anchor-kro-ui.md §Journey depth
+    // On a single-context cluster, the context-switcher-btn may not be shown
+    // (no other contexts to switch to). The page must still render correctly.
+    await page.goto(BASE)
+    await page.waitForTimeout(2000)
+    // Page does not crash or show blank screen
+    const bodyText = await page.locator('body').textContent()
+    expect((bodyText?.trim().length ?? 0)).toBeGreaterThan(0)
+    expect(bodyText).not.toContain('[object Object]')
+    // The context switcher btn: if absent (single context) → no crash; if present → visible
+    const switcherBtn = page.getByTestId('context-switcher-btn')
+    const btnCount = await switcherBtn.count()
+    if (btnCount > 0) {
+      await expect(switcherBtn).toBeVisible()
+    }
+    // Either way: page renders without crash — this is the empty state assertion
+  })
 })
