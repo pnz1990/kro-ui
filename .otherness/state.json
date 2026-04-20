@@ -1815,10 +1815,10 @@
       "done_at": "2026-04-20T03:30:15Z"
     },
     "issue-458": {
-      "state": "todo",
-      "assigned_to": null,
-      "pr_number": null,
-      "pr_merged": false,
+      "state": "done",
+      "assigned_to": "sess-412931da",
+      "pr_number": 460,
+      "pr_merged": true,
       "title": "feat(e2e): SRE persona journey \u2014 fleet anomaly investigation",
       "issue_number": 458,
       "labels": [
@@ -1829,7 +1829,15 @@
       ],
       "areas": [
         "area/e2e"
-      ]
+      ],
+      "assigned_at": "2026-04-20T03:35:21Z",
+      "branch": "feat/issue-458",
+      "worktree": "../kro-ui.issue-458",
+      "file_spaces": [
+        "test/e2e/journeys/",
+        "test/e2e/playwright.config.ts"
+      ],
+      "done_at": "2026-04-20T03:50:41Z"
     },
     "issue-459": {
       "state": "todo",
