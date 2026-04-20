@@ -332,6 +332,27 @@ func TestGetMetrics_ContextNotFound(t *testing.T) {
 	assert.Contains(t, errResp.Error, "no-such-context")
 }
 
+// TestGetMetrics_ContextListFails verifies that when ?context= is provided
+// and ListContexts returns an error, GetMetrics returns 500.
+func TestGetMetrics_ContextListFails(t *testing.T) {
+	h := &Handler{
+		metrics: &stubMetricsDiscoverer{result: &k8s.ControllerMetrics{ScrapedAt: time.Now().UTC()}},
+		ctxMgr: &stubClientFactory{
+			listErr: assert.AnError,
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/metrics?context=any-context", nil)
+	rr := httptest.NewRecorder()
+	h.GetMetrics(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
+
+	var errResp types.ErrorResponse
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&errResp))
+	assert.Contains(t, errResp.Error, "failed to list contexts")
+}
+
 // metricsFixture is retained for documentation purposes and potential future
 // integration tests that wire a real httptest.Server to a stub MetricsDiscoverer.
 // The blank reference below prevents the compiler from removing the httptest import
