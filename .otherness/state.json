@@ -2041,6 +2041,14 @@
       "state": "done",
       "pr_merged": true,
       "done_at": "2026-04-20T14:19:43Z"
+    },
+    "pr-565": {
+      "state": "done",
+      "title": "feat: Condition detail drill-down: expand each condition with message, last transition time, reason",
+      "issue": 565,
+      "pr_number": 566,
+      "pr_merged": true,
+      "done_at": "2026-04-20T18:46:56Z"
     }
   },
   "sm_cycle_count": 5,
