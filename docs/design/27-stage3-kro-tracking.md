@@ -40,6 +40,7 @@ release has landed since our last check:
  ✅ 27.6 — Error state coverage: E2E journeys 076-079 added and registered in Playwright chunk-9; each uses `page.route()` to mock 5xx API responses and asserts the error state element is visible on Overview, Fleet, RGD detail, and Instance detail pages. (PR TBD, issue #531)
  ✅ 27.4 — Performance budget: `.github/workflows/perf.yml` Lighthouse CI check (score ≥ 50, calibrated for 521KB bundle on GA runners) + HTTP response time check (<500ms); E2E journey `080-performance-budget.spec.ts` asserts Overview DOM Interactive ≤1000ms and content-ready ≤1500ms; registered in Playwright chunk-9. (PR #549, issue #530)
  ✅ 27.7 — Donation readiness: `OWNERS` file (kubernetes-sigs format, approvers/reviewers: pnz1990); `.github/workflows/dco.yml` enforces DCO sign-off on all PRs; `CONTRIBUTING.md` updated with DCO section explaining `git commit -s` requirement. (issue #532)
+ ✅ 27.15 — release.yml stale helm/ reference removed: the `Update and push Helm chart` step that references `helm/kro-ui` (removed in v0.9.4) has been deleted from `.github/workflows/release.yml`; v0.10.0 tag push will now succeed. (PR #587, issue #587)
 
 ---
 
@@ -53,6 +54,8 @@ release has landed since our last check:
 - 🔲 27.12 — Partial-RBAC / restricted-namespace testing: add a Go unit test and an E2E journey that verifies kro-ui returns partial results (not 500) when the operator only has RBAC access to a subset of namespaces; both `ListAllInstances` and `ListInstances` must degrade gracefully with a visible "N namespaces hidden — insufficient permissions" indicator in the UI
 - 🔲 27.13 — DAG scale: RGDs with 200+ nodes currently render as a single dense SVG with no escape hatch; add a node-count guard (> 100 nodes) that offers: (a) collapsed-by-depth view, (b) text-mode list fallback, (c) minimap for navigation; without this, large production RGDs are unusable in the browser
 - 🔲 27.14 — Frontend code splitting: the current 521KB bundle scores ~60 on Lighthouse CI; implement route-based code splitting (React.lazy + Suspense per route) to reduce initial bundle below 200KB; raise perf.yml threshold to 70 after splitting; this is a prerequisite for a production-grade donation
+- 🔲 27.16 — Google Fonts external dependency removal: `web/index.html` loads Inter and JetBrains Mono from `fonts.googleapis.com`; this (a) breaks in air-gapped cluster environments where the UI binary is the only internet-accessible service, (b) is a privacy concern for clusters with strict egress policies, and (c) blocks font rendering until the CDN responds; self-host both font families as static assets inside the embedded binary (download WOFF2 files, serve via `go:embed`); kubernetes-sigs reviewers from regulated industries will flag this immediately
+- 🔲 27.17 — OS-preference light mode: `tokens.css` defines `[data-theme="light"]` but nothing in the app reads `window.matchMedia('(prefers-color-scheme: light)')` or exposes a theme toggle; users whose OS is in light mode see the dark theme; add a `useTheme()` hook that reads the OS preference on mount and syncs `document.documentElement.setAttribute('data-theme', ...)`, with a local-storage override for manual toggling; WCAG 2.1 SC 1.4.3 contrast ratios are calibrated per mode — the wrong mode can fail contrast requirements
 
 ---
 

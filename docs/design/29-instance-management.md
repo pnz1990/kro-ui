@@ -32,6 +32,7 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 - 🔲 Instance bulk operations: select multiple instances, bulk delete with confirmation
 - 🔲 Instance diff: full side-by-side comparison between two instance snapshots
 - 🔲 Instance resource graph: show all k8s resources owned by this instance
+- 🔲 Partial-RBAC instance visibility: when the operator only has RBAC access to a subset of namespaces, `ListAllInstances` silently skips the inaccessible RGDs and the UI shows a smaller count with no explanation; add a `skippedRGDs` field to `ListAllInstancesResponse` and a "N RGD(s) hidden — insufficient permissions" advisory notice on the /instances page; without this, an operator with restricted access has no way to know they are seeing incomplete data (silent data loss is worse than an error message)
 
 ---
 

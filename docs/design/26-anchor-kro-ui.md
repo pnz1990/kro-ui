@@ -64,4 +64,6 @@ They do not map 1:1 to a feature spec; they map to a persona and a dod-journey.
 
 ## Future
 
-*(All 3 anchor journeys shipped — future work may add Fleet persona and advanced authoring journeys)*
+- 🔲 Degraded-cluster persona anchor journey: an operator who sees a degraded cluster in the Fleet view investigates — Fleet matrix → failing RGD → Errors tab → raw YAML → conditions panel; this path is not covered by any existing anchor journey and is a key production-use scenario
+- 🔲 RBAC-restricted persona journey: an operator with read-only access to only 2 of 5 namespaces opens the /instances page; the journey must assert the "N RGDs hidden — insufficient permissions" advisory is visible (tests the partial-RBAC gap in 29-instance-management.md)
+- 🔲 Air-gapped environment smoke test: start kro-ui binary with no external network access (block fonts.googleapis.com at the host level); assert the UI is still fully functional and all text renders with a system fallback font — required before self-hosting fonts (spec 27.16) to prove the fallback path works
