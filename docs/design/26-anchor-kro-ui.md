@@ -52,10 +52,16 @@ They do not map 1:1 to a feature spec; they map to a persona and a dod-journey.
 ## Present
 
 ✅ 26.1 — Operator persona journey (PR #457): deploys RGD, verifies instances, checks health (covers DoD journeys 1 + 2).
-✅ 26.2 — SRE persona journey (PR #TBD): fleet anomaly investigation — Overview SRE dashboard → RGD errors tab → instance detail → events panel.
+✅ 26.2 — SRE persona journey (PR #460): fleet anomaly investigation — Overview SRE dashboard → RGD errors tab → instance detail → events panel.
+
+---
+
+## Present (continued)
+
+✅ 26.3 — Developer persona journey (PR #TBD): RGD Designer workflow — /author nav → authoring form → YAML preview → DAG preview → scope configuration.
 
 ---
 
 ## Future
 
-- 🔲 Developer persona journey — RGD authoring, validation, generate YAML (covers DoD journey 4)
+*(All 3 anchor journeys shipped — future work may add Fleet persona and advanced authoring journeys)*
