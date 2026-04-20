@@ -1797,10 +1797,10 @@
       "done_at": "2026-04-20T02:31:04Z"
     },
     "issue-450": {
-      "state": "todo",
+      "state": "done",
       "assigned_to": null,
       "pr_number": null,
-      "pr_merged": false,
+      "pr_merged": true,
       "title": "feat(e2e): first persona journey \u2014 Operator deploys RGD, verifies instances, checks health",
       "issue_number": 450,
       "labels": [
@@ -1811,7 +1811,8 @@
       ],
       "areas": [
         "area/e2e"
-      ]
+      ],
+      "done_at": "2026-04-20T03:30:15Z"
     }
   }
 }
