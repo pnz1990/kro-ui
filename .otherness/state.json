@@ -18,6 +18,11 @@
       "last_seen": "2026-04-20T10:42:22Z",
       "item": "coord",
       "cycle": 1
+    },
+    "sess-24f3554a": {
+      "last_seen": "2026-04-20T21:30:10Z",
+      "item": "issue-584",
+      "cycle": 1
     }
   },
   "features": {
@@ -2315,13 +2320,23 @@
       "priority": "medium"
     },
     "issue-584": {
-      "state": "todo",
-      "title": "test(layout): unit test for cluster-unreachable banner",
+      "state": "done",
+      "title": "test(web): unit tests for cluster-unreachable banner in Layout",
       "issue_number": 584,
       "labels": [
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "assigned_to": "sess-24f3554a",
+      "assigned_at": "2026-04-20T21:30:10Z",
+      "branch": "feat/issue-584",
+      "worktree": "../kro-ui.issue-584",
+      "file_spaces": [
+        "web/src/"
+      ],
+      "pr_number": 591,
+      "pr_merged": true,
+      "done_at": "2026-04-20T21:55:13Z"
     }
   },
   "sm_cycle_count": 6,
