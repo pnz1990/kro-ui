@@ -1,0 +1,79 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# DCO (Developer Certificate of Origin) sign-off check.
+#
+# All commits in a PR must include a "Signed-off-by: Name <email>" trailer,
+# added automatically by `git commit -s` or `git commit --signoff`.
+#
+# Design ref: docs/design/27-stage3-kro-tracking.md §Future 27.7
+#   "Donation readiness checklist: … DCO sign-off enforcement"
+#
+# What the DCO says:
+#   By contributing to this project, you certify that you have the right to
+#   submit the work under the open source license (Apache 2.0) and that you
+#   agree to the Developer Certificate of Origin (https://developercertificate.org/).
+#
+# This check runs on all PRs and fails if any commit is missing the sign-off.
+# Maintainers can add the sign-off by amending commits and force-pushing.
+
+name: DCO
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  dco:
+    name: DCO sign-off check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check DCO sign-off
+        run: |
+          # Get list of commits in this PR (from base to HEAD)
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          echo "Checking commits from ${BASE_SHA}..${HEAD_SHA}"
+
+          MISSING=0
+          while IFS= read -r commit; do
+            MSG=$(git log --format="%B" -n 1 "$commit")
+            if ! echo "$MSG" | grep -qiE "^Signed-off-by:"; then
+              AUTHOR=$(git log --format="%an <%ae>" -n 1 "$commit")
+              SHORT=$(git log --format="%h %s" -n 1 "$commit")
+              echo "::error::Commit '$SHORT' by $AUTHOR is missing DCO sign-off."
+              echo "  Add 'Signed-off-by: Name <email>' to the commit message."
+              echo "  Use 'git commit -s' to add automatically."
+              MISSING=$((MISSING + 1))
+            fi
+          done < <(git rev-list "${BASE_SHA}..${HEAD_SHA}" 2>/dev/null || true)
+
+          if [ "$MISSING" -gt 0 ]; then
+            echo ""
+            echo "::error::$MISSING commit(s) are missing DCO sign-off."
+            echo "See https://developercertificate.org/ for details."
+            echo "Fix: git rebase --signoff HEAD~${MISSING} && git push --force-with-lease"
+            exit 1
+          fi
+
+          echo "DCO check: all commits have Signed-off-by trailer."
