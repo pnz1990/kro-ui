@@ -201,3 +201,62 @@ func TestCacheKey_SortsQueryParams(t *testing.T) {
 	r2, _ := http.NewRequest("GET", "/api/v1/rgds?a=1&b=2", nil)
 	assert.Equal(t, cacheKey(r1), cacheKey(r2), "same params in different order should produce the same key")
 }
+
+// TestMiddleware_NonOKResponseNotCached verifies that a handler returning a
+// non-200 status code (e.g. 500) exercises responseRecorder.WriteHeader and
+// that the response is NOT stored in the cache.
+func TestMiddleware_NonOKResponseNotCached(t *testing.T) {
+	c := New()
+	callCount := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"error":"internal"}`))
+	})
+
+	wrapped := Middleware(c, 30*time.Second)(handler)
+
+	// First request — cache MISS, handler returns 500
+	req1 := httptest.NewRequest("GET", "/api/v1/rgds/missing", nil)
+	w1 := httptest.NewRecorder()
+	wrapped.ServeHTTP(w1, req1)
+	assert.Equal(t, 1, callCount)
+	assert.Equal(t, http.StatusInternalServerError, w1.Code, "500 status should be forwarded")
+	assert.Equal(t, "MISS", w1.Header().Get("X-Cache"))
+
+	// Second request — should NOT be served from cache (500 responses are not cached)
+	req2 := httptest.NewRequest("GET", "/api/v1/rgds/missing", nil)
+	w2 := httptest.NewRecorder()
+	wrapped.ServeHTTP(w2, req2)
+	assert.Equal(t, 2, callCount, "handler should be called again — 500 responses are not cached")
+	assert.Equal(t, http.StatusInternalServerError, w2.Code)
+}
+
+// TestMiddleware_CachedNonOKStatusCode verifies that when a cached entry has a
+// non-200 status code, WriteHeader is called with that code on cache HIT.
+// This covers the responseRecorder.WriteHeader path for cached non-200 responses.
+func TestMiddleware_CachedNonOKStatusCode(t *testing.T) {
+	c := New()
+
+	// Manually store a 404 entry in the cache (simulates a prior cached non-200)
+	c.set("GET:/api/v1/rgds/gone", []byte(`{"error":"not found"}`), "application/json", http.StatusNotFound, 30*time.Second)
+
+	callCount := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		_, _ = w.Write([]byte(`{}`))
+	})
+
+	wrapped := Middleware(c, 30*time.Second)(handler)
+
+	req := httptest.NewRequest("GET", "/api/v1/rgds/gone", nil)
+	w := httptest.NewRecorder()
+	wrapped.ServeHTTP(w, req)
+
+	// Cache HIT — handler must NOT be called
+	assert.Equal(t, 0, callCount, "handler should not be called on cache HIT")
+	assert.Equal(t, "HIT", w.Header().Get("X-Cache"))
+	// WriteHeader must have been called with 404 (the stored status code)
+	assert.Equal(t, http.StatusNotFound, w.Code, "cached non-200 status code must be forwarded via WriteHeader")
+}
