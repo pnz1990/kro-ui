@@ -1860,5 +1860,7 @@
       "worktree": "../kro-ui.issue-459",
       "done_at": "2026-04-20T04:05:40Z"
     }
-  }
+  },
+  "sm_cycle_count": 1,
+  "pm_cycle_count": 1
 }
