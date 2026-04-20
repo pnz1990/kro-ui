@@ -8,7 +8,18 @@
   "last_sm_review": null,
   "last_pm_review": null,
   "batches_since_competitive_analysis": 0,
-  "session_heartbeats": {},
+  "session_heartbeats": {
+    "sess-c7326c5b": {
+      "last_seen": "2026-04-20T08:56:14Z",
+      "item": "coord",
+      "cycle": 1
+    },
+    "sess-475a6159": {
+      "last_seen": "2026-04-20T10:42:22Z",
+      "item": "coord",
+      "cycle": 1
+    }
+  },
   "features": {
     "pr-437": {
       "state": "done",
@@ -1934,8 +1945,94 @@
       "title": "fix(ci): security-checks workflow push-noop",
       "pr_merged": true,
       "done_at": "2026-04-20T07:29:40Z"
+    },
+    "issue-477": {
+      "state": "done",
+      "title": "test(k8s): cover capabilities \u2014 detectSchemaCapabilities, getResourceItemProperties, String()",
+      "issue_number": 477,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/k8s/"
+      ],
+      "assigned_to": "sess-c7326c5b",
+      "assigned_at": "2026-04-20T09:05:17Z",
+      "branch": "feat/issue-477",
+      "worktree": "/home/runner/work/kro-ui/kro-ui.issue-477",
+      "pr_number": 481
+    },
+    "issue-478": {
+      "state": "done",
+      "title": "test(k8s): cover rbac.go \u2014 FetchEffectiveRules, extractRGDGVRs, matchesResource",
+      "issue_number": 478,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/k8s/"
+      ],
+      "pr_number": 482
+    },
+    "issue-479": {
+      "state": "done",
+      "title": "test(k8s): cover rgd.go ResolveInstanceGVR and DiscoverPlural edge cases",
+      "issue_number": 479,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/k8s/"
+      ],
+      "pr_number": 483
+    },
+    "fix-security-workflow-yaml": {
+      "state": "done",
+      "pr_number": 480,
+      "pr_merged": true,
+      "title": "fix-security-workflow-yaml"
+    },
+    "issue-484": {
+      "state": "done",
+      "title": "test(handlers): cover GetRGD and ListInstances error paths",
+      "issue_number": 484,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/api/handlers/"
+      ],
+      "pr_number": 486
+    },
+    "issue-485": {
+      "state": "done",
+      "title": "test(handlers): cover FleetSummary, ListEvents, buildRelevantUIDs error paths",
+      "issue_number": 485,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/api/handlers/"
+      ],
+      "pr_number": 487
+    },
+    "issue-488": {
+      "state": "done",
+      "pr_number": 489
+    },
+    "issue-497": {
+      "state": "done",
+      "title": "test(k8s): cover fleet.go ContextClients and MetricsDiscoverer",
+      "branch": "feat/issue-497",
+      "pr": "498"
+    },
+    "507": {
+      "state": "done",
+      "title": "pickPod and pickPodFromClusterList coverage 84.6%\u2192100%",
+      "pr_merged": true,
+      "done_at": "2026-04-20T12:56:49Z"
     }
   },
-  "sm_cycle_count": 2,
-  "pm_cycle_count": 1
+  "sm_cycle_count": 3,
+  "pm_cycle_count": 2
 }
