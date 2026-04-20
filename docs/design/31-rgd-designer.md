@@ -32,6 +32,7 @@ optimization advisor. It is the primary tool for developers creating new kro wor
 - 🔲 Designer: collaboration mode — share designer URL with readonly view
 - 🔲 Designer axe-core coverage: the `/author` page is not included in journey 074 axe-core scan; the authoring form has many interactive elements (dropdowns, text inputs, toggle buttons, CEL editor) that could have WCAG violations; add axe-core assertion for the Designer in the accessibility journey; referenced in 30-health-system.md §Accessibility audit expansion but needs explicit Designer ownership here
 - 🔲 Designer: `localStorage` persistence of in-progress RGD draft — currently closing or navigating away from `/author` silently discards all edits; add `localStorage` auto-save (debounced 2s) and a "Restore draft?" prompt on next visit; a kubernetes-sigs reviewer testing the Designer would lose their work on any accidental navigation and conclude the feature is not production-ready
+- 🔲 Designer tab focus restoration: navigating away from `/author` and returning resets the active tab to the first tab (Schema); React Router remounts the AuthorPage component on navigation, discarding which resource node was selected and which tab (Schema/Resources/YAML/Preview) was active; persist the active tab and selected node to `sessionStorage` so returning to `/author` within the same browser session restores the last working context; the developer anchor journey (073) exercises this path and the UX interruption would be flagged in any UX review
 
 ---
 
