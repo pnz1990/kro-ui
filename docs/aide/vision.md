@@ -51,18 +51,24 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | DAG unusable at 200+ nodes | doc 28 + doc 27 §27.13 | Large production RGDs render as a dense locked-up SVG; no collapse, minimap, or text fallback |
-| GraphRevision diff incomplete | doc 28 | PR #318 laid foundation but the full two-panel line-level diff is missing; appears as a half-built feature |
+| GraphRevision diff incomplete | doc 28 | The two-panel line-level diff with navigate-by-change arrows is missing; the Revisions tab is visible on every RGD detail page and presents as a half-built feature |
 | No partial-RBAC test | doc 27 §27.12 | User with access to some namespaces but not others gets silent omissions; no visible "N hidden" indicator |
 | Color as sole health differentiator | doc 30 | HealthChip bar segments rely on hue only; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
 | 521KB bundle / Lighthouse ~60 | doc 27 §27.14 | No code splitting; initial load on a slow connection is poor; perf.yml threshold set to 50 acknowledges this |
+| Fleet per-cluster timeout not implemented | doc 29 | `proposals/003-fleet-timeout-budget.md` specifies a 2s per-cluster deadline but `summariseContext` uses the 30s route context directly; one hung cluster blocks the entire Fleet page for up to 30s; the unit test specified in the proposal was never written |
+| No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has 7 nodes; no 50-node or 50-RGD scenario exists in CI; scale regressions are invisible |
 
 ### Minor gaps (should be addressed before donation, not blockers)
 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | axe-core covers only 4 pages | doc 30 | Designer, Fleet, SRE dashboard, Errors tab not scanned; could have WCAG violations |
-| No "cluster unreachable" global banner | doc 30 | First-time users see many individual error fragments instead of one actionable message |
-| E2E has no scale test | doc 27 §27.13 | No journey exercises 50+ RGDs or 200-node DAG; regressions at scale are invisible |
+| No skip-to-main-content link | doc 30 | Keyboard users tab through the full nav on every page load; WCAG 2.1 SC 2.4.1 |
+| No `aria-live` on health state transitions | doc 30 | Screen readers not informed when instance health changes during 5s polling cycle; WCAG 2.1 SC 4.1.3 |
+| DAG arrow-key navigation missing | doc 28 | Tab-only traversal of DAG nodes; no spatial movement between graph neighbours; WCAG 2.1 SC 2.1.1 |
+| External Google Fonts dependency | doc 27 §27.16 | Breaks in air-gapped clusters; privacy concern; blocks rendering until CDN responds |
+| OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
+| Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
 
 ### Already addressed (recent PRs)
 
@@ -72,4 +78,5 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 - ✅ WCAG 2.1 AA axe-core scan on 4 Tier-1 pages (journey 074) — PR shipped
 - ✅ Lighthouse CI performance budget (perf.yml) — PR shipped
 - ✅ kro upstream release tracking automation — PR shipped
+- ✅ Cluster unreachable global banner in Layout — PR #582 shipped
 
