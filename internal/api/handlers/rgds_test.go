@@ -23,6 +23,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -155,6 +156,25 @@ func TestGetRGD(t *testing.T) {
 				assert.Contains(t, body, `"error"`)
 				assert.Contains(t, body, "does-not-exist")
 				assert.Contains(t, body, "not found")
+			},
+		},
+		{
+			name:    "returns 503 on non-NotFound cluster error",
+			rgdName: "web-service-graph",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getErr: fmt.Errorf("connection refused"),
+				}
+				return newRGDTestHandler(dyn, newStubDiscovery())
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusServiceUnavailable, rr.Code)
+				body := rr.Body.String()
+				assert.Contains(t, body, `"error"`)
+				assert.Contains(t, body, "cluster unreachable")
 			},
 		},
 	}
@@ -397,6 +417,94 @@ func TestListInstances(t *testing.T) {
 				t.Helper()
 				require.Equal(t, http.StatusNotFound, rr.Code)
 				assert.Contains(t, rr.Body.String(), `"error"`)
+			},
+		},
+		{
+			name:    "returns 503 when RGD Get returns non-NotFound error",
+			rgdName: "failing-rgd",
+			query:   "",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getErr: fmt.Errorf("connection refused"),
+				}
+				return newRGDTestHandler(dyn, newStubDiscovery())
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusServiceUnavailable, rr.Code)
+				body := rr.Body.String()
+				assert.Contains(t, body, `"error"`)
+				assert.Contains(t, body, "cluster unreachable")
+			},
+		},
+		{
+			name:    "returns empty list when CRD not found (inactive RGD)",
+			rgdName: "inactive-rgd",
+			query:   "",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				rgdObj := makeRGDObject("inactive-rgd", "InactiveApp", "", "")
+				inactiveGVR := schema.GroupVersionResource{
+					Group:    k8sclient.KroGroup,
+					Version:  "v1alpha1",
+					Resource: "inactiveapps",
+				}
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"inactive-rgd": rgdObj},
+				}
+				// Instance list returns NotFound — CRD not registered (RGD is Inactive)
+				dyn.resources[inactiveGVR] = &stubNamespaceableResource{
+					listErr: k8serrors.NewNotFound(schema.GroupResource{Resource: "inactiveapps"}, ""),
+				}
+				disc := newStubDiscovery()
+				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+					GroupVersion: "kro.run/v1alpha1",
+					APIResources: []metav1.APIResource{
+						{Name: "inactiveapps", Kind: "InactiveApp", Verbs: metav1.Verbs{"get", "list"}},
+					},
+				}
+				return newRGDTestHandler(dyn, disc)
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusOK, rr.Code)
+				body := rr.Body.String()
+				assert.Contains(t, body, `"items"`)
+				assert.NotContains(t, body, `"error"`)
+			},
+		},
+		{
+			name:    "returns 500 on unexpected instance list error",
+			rgdName: "test-app",
+			query:   "",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				rgdObj := makeRGDObject("test-app", "TestApp", "", "")
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"test-app": rgdObj},
+				}
+				// Instance list returns a generic (non-NotFound) error
+				dyn.resources[testAppGVR] = &stubNamespaceableResource{
+					listErr: fmt.Errorf("etcd unavailable"),
+				}
+				disc := newStubDiscovery()
+				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+					GroupVersion: "kro.run/v1alpha1",
+					APIResources: []metav1.APIResource{
+						{Name: "testapps", Kind: "TestApp", Verbs: metav1.Verbs{"get", "list"}},
+					},
+				}
+				return newRGDTestHandler(dyn, disc)
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusInternalServerError, rr.Code)
+				body := rr.Body.String()
+				assert.Contains(t, body, `"error"`)
 			},
 		},
 		{
