@@ -149,7 +149,45 @@ jobs:
           gh auth setup-git
           gh auth status
 
-      # ── Step 7: Run otherness ────────────────────────────────────────────
+      # ── Step 7: Vision scan (Step A) ────────────────────────────────────
+      # Autonomous vision scan: promotes shipped items, flags stale, infers gaps.
+      # Design doc: docs/design/28-dual-step-scheduled-workflow.md
+      # Failure here is non-blocking — Step B always runs regardless.
+      - name: Otherness — Vision scan (Step A)
+        continue-on-error: true
+        uses: anomalyco/opencode/github@23fb5e0516c99ac04a1aa46c193efda2e1b9bb24  # v1.14.18
+        env:
+          AWS_REGION:          us-east-1
+          GH_TOKEN:            ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN:        ${{ secrets.GH_TOKEN }}
+          OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'
+        with:
+          model: amazon-bedrock/global.anthropic.claude-sonnet-4-6
+          use_github_token: "true"
+          prompt: |
+            # ── Security: agents_path allowlist (doc 27 §M6) ──────────────
+            AGENTS_PATH=$(python3 -c "
+            import re, os
+            section = None
+            for line in open('otherness-config.yaml'):
+                s = re.match(r'^(\w[\w_]*):', line)
+                if s: section = s.group(1)
+                if section == 'maqa':
+                    m = re.match(r'^\s+agents_path:\s*[\"\'']?([^\"\'#\n]+)[\"\'']?', line)
+                    if m: print(os.path.expanduser(m.group(1).strip())); break
+            " 2>/dev/null || echo "$HOME/.otherness/agents")
+            ALLOWED_PREFIX="$HOME/.otherness"
+            if [[ "$AGENTS_PATH" != "$ALLOWED_PREFIX"* ]]; then
+              echo "::error::SECURITY: agents_path '${AGENTS_PATH}' outside allowed prefix. Refusing."
+              exit 0
+            fi
+            # ─────────────────────────────────────────────────────────────
+
+            Read and follow $AGENTS_PATH/vibe-vision-auto.md.
+
+      # ── Step 8: Run otherness (Step B) ──────────────────────────────────
+      # SHA-pinned (security: doc 27 §M1 — critical supply chain mitigation).
+      # ── Step 8: Run otherness (Step B) ────────────────────────────────────────────
       # SHA-pinned (security: doc 27 §M1 — critical supply chain mitigation).
       # agents_path validated against allowlist before agent reads it (doc 27 §M6).
       - name: Run otherness
