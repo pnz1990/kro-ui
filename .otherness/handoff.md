@@ -1,26 +1,23 @@
-## Session Handoff — 2026-04-20T04:06:51Z
+## Session Handoff — 2026-04-20T06:03:26Z
 
-### Recent merges
-- PR #461 feat(e2e): Developer persona journey — RGD Designer form, YAML preview, DAG preview (2026-04-20)
-- PR #460 feat(e2e): SRE persona journey — Overview SRE dashboard, errors tab, instance events (2026-04-20)
-- PR #457 feat(e2e): operator persona journey — Overview → Catalog → RGD DAG → Instance detail (2026-04-20)
-- PR #455 security: definitive hardened workflow — hourly locked, full doc 27 compliance (2026-04-20)
-- PR #453 test(e2e): journey depth — error + empty states in Tier 1 journeys (003, 004, 005) (2026-04-20)
+### Recent merges (last 5)
+- PR #469 test(k8s): rbac.go coverage 63.9%→71.3% (2026-04-20)
+- PR #468 test(server): NewRouter coverage 31.5%→67.4% (2026-04-20)
+- PR #467 fix(instanceNodeState): replace #XXX comment with #464 (2026-04-20)
+- PR #462 3 E2E persona journeys shipped (2026-04-20)
+- PR #461 feat(e2e): Developer persona journey (2026-04-20)
 
 ### Queue
-**Queue empty — all anchor journeys (071+072+073) shipped.**
-
-### Items completed this session
-- PR #457: feat(e2e) operator persona journey (issue-450)
-- PR #460: feat(e2e) SRE persona journey (issue-458)
-- PR #461: feat(e2e) Developer persona journey (issue-459)
+**Queue empty — all items shipped. No Future items in docs/design/.**
 
 ### CI status (main)
-success
+success (E2E in progress from anchor journeys)
 
 ### Next item
 none
 
 ### Notes
-Session: sess-412931da | otherness@5c43083
-All 3 Future items in docs/design/26-anchor-kro-ui.md shipped.
+Session: sess-806ff81b | otherness@c8b24c0
+3 items shipped this session: #464 (comment fix), #465 (server coverage), #466 (rbac coverage)
+Overall test coverage improved: server 31.5%→67.4%, k8s 63.9%→71.3%, total 74.4%→76%+
+No Future items remain in docs/design/. Consider /otherness.vibe-vision for new design doc items.
