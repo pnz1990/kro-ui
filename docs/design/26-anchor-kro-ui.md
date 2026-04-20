@@ -51,7 +51,7 @@ They do not map 1:1 to a feature spec; they map to a persona and a dod-journey.
 
 ## Present
 
-✅ 26.1 — Operator persona journey (PR #456): deploys RGD, verifies instances, checks health (covers DoD journeys 1 + 2).
+✅ 26.1 — Operator persona journey (PR #457): deploys RGD, verifies instances, checks health (covers DoD journeys 1 + 2).
 
 ---
 
