@@ -148,6 +148,23 @@ metadata:
 		}
 	})
 
+	t.Run("malformed YAML body → HTTP 400", func(t *testing.T) {
+		h := newValidateHandler(nil)
+		// Syntactically invalid YAML — triggers the decoder error path.
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate",
+			strings.NewReader("{ not: valid: yaml: [\n"))
+		w := httptest.NewRecorder()
+
+		h.ValidateRGD(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d: body=%s", w.Code, w.Body.String())
+		}
+		if !strings.Contains(w.Body.String(), "invalid YAML") {
+			t.Errorf("expected 'invalid YAML' in error body, got: %s", w.Body.String())
+		}
+	})
+
 	// Note: the "cluster connectivity error → HTTP 503" test case has been removed.
 	// ValidateRGD no longer contacts the cluster (GH #303 fix — PATCH verb removed).
 	// The endpoint now always responds 200 with offline validation results.
@@ -302,6 +319,28 @@ spec:
 		}
 		// Empty body → no issues (graceful degradation)
 		_ = res
+	})
+
+	t.Run("malformed YAML body → HTTP 200 issues:[]", func(t *testing.T) {
+		h := newStaticHandler()
+		// Syntactically invalid YAML — triggers the YAML decode error path,
+		// which gracefully returns 200 with an empty issues array.
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/validate/static",
+			strings.NewReader("{ not: valid: yaml: [\n"))
+		w := httptest.NewRecorder()
+
+		h.ValidateRGDStatic(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d: body=%s", w.Code, w.Body.String())
+		}
+		var res apitypes.StaticValidationResult
+		if err := json.NewDecoder(w.Body).Decode(&res); err != nil {
+			t.Fatalf("decode error: %v", err)
+		}
+		if res.Issues == nil {
+			t.Error("expected non-nil issues array even on decode error")
+		}
 	})
 
 	t.Run("issues array is always non-nil (never JSON null)", func(t *testing.T) {
@@ -531,6 +570,92 @@ func TestExtractExpressionsFromMap(t *testing.T) {
 		got := extractExpressionsFromMap(m)
 		if len(got) != 2 {
 			t.Fatalf("expected 2 expressions from mixed slice, got %d: %v", len(got), got)
+		}
+	})
+}
+
+// TestExtractSpecFields verifies the private helper that extracts the
+// spec.schema.spec map from a decoded RGD object.
+func TestExtractSpecFields(t *testing.T) {
+	t.Run("returns spec fields when all keys present", func(t *testing.T) {
+		obj := map[string]any{
+			"spec": map[string]any{
+				"schema": map[string]any{
+					"spec": map[string]any{
+						"replicas": "integer",
+						"image":    "string",
+					},
+				},
+			},
+		}
+		got := extractSpecFields(obj)
+		if len(got) != 2 {
+			t.Fatalf("expected 2 fields, got %d: %v", len(got), got)
+		}
+		if got["replicas"] != "integer" {
+			t.Errorf("expected replicas=integer, got %q", got["replicas"])
+		}
+		if got["image"] != "string" {
+			t.Errorf("expected image=string, got %q", got["image"])
+		}
+	})
+
+	t.Run("returns empty map when spec key is absent", func(t *testing.T) {
+		obj := map[string]any{
+			"metadata": map[string]any{"name": "test"},
+		}
+		got := extractSpecFields(obj)
+		if len(got) != 0 {
+			t.Fatalf("expected empty map, got %v", got)
+		}
+	})
+
+	t.Run("returns empty map when spec.schema key is absent", func(t *testing.T) {
+		obj := map[string]any{
+			"spec": map[string]any{
+				"resources": []any{},
+			},
+		}
+		got := extractSpecFields(obj)
+		if len(got) != 0 {
+			t.Fatalf("expected empty map, got %v", got)
+		}
+	})
+
+	t.Run("returns empty map when spec.schema.spec key is absent", func(t *testing.T) {
+		obj := map[string]any{
+			"spec": map[string]any{
+				"schema": map[string]any{
+					"kind":       "MyApp",
+					"apiVersion": "v1alpha1",
+					// no "spec" key
+				},
+			},
+		}
+		got := extractSpecFields(obj)
+		if len(got) != 0 {
+			t.Fatalf("expected empty map, got %v", got)
+		}
+	})
+
+	t.Run("skips non-string field values", func(t *testing.T) {
+		obj := map[string]any{
+			"spec": map[string]any{
+				"schema": map[string]any{
+					"spec": map[string]any{
+						"replicas": "integer",
+						"config":   map[string]any{"nested": "value"}, // non-string: skipped
+						"labels":   []any{"a", "b"},                   // non-string: skipped
+					},
+				},
+			},
+		}
+		got := extractSpecFields(obj)
+		if len(got) != 1 {
+			t.Fatalf("expected 1 field (only string values), got %d: %v", len(got), got)
+		}
+		if got["replicas"] != "integer" {
+			t.Errorf("expected replicas=integer, got %q", got["replicas"])
 		}
 	})
 }
