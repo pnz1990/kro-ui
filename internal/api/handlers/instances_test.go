@@ -739,3 +739,70 @@ func TestGetInstanceChildren_ListError(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, rr.Code)
 	assert.Contains(t, rr.Body.String(), `"error"`)
 }
+
+// ── GetInstance non-NotFound error coverage ───────────────────────────────────
+
+// TestGetInstance_ClusterUnreachable covers the else branch in GetInstance when
+// the instance fetch fails with a non-NotFound error (→ 503 ServiceUnavailable).
+func TestGetInstance_ClusterUnreachable(t *testing.T) {
+	rgdObj := makeRGDObject("test-app", "TestApp", "", "")
+	clusterTestAppGVR := schema.GroupVersionResource{
+		Group: "kro.run", Version: "v1alpha1", Resource: "testapps",
+	}
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"test-app": rgdObj},
+	}
+	// clusterTestAppGVR returns a non-NotFound error on Get (simulates cluster unreachable).
+	dyn.resources[clusterTestAppGVR] = &stubNamespaceableResource{
+		nsResources: map[string]*stubResourceClient{
+			"default": {
+				getErr: fmt.Errorf("dial tcp: connection refused"),
+			},
+		},
+	}
+	disc := newStubDiscovery()
+	disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+		GroupVersion: "kro.run/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "testapps", Kind: "TestApp", Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+
+	h := newRGDTestHandler(dyn, disc)
+	r := chi.NewRouter()
+	r.Get("/api/v1/instances/{namespace}/{name}", h.GetInstance)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/default/my-inst?rgd=test-app", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusServiceUnavailable, rr.Code)
+	assert.Contains(t, rr.Body.String(), "cluster unreachable")
+}
+
+// ── GetInstanceChildren nil-children coverage ─────────────────────────────────
+
+// TestGetInstanceChildren_NilChildren verifies that when listChildResources
+// returns nil (no children found), the response coerces it to an empty array.
+func TestGetInstanceChildren_NilChildren(t *testing.T) {
+	// Discovery returns no resource types → listChildResources returns nil, nil.
+	disc := newStubDiscovery()
+	// Deliberately empty discovery — no resource types registered at all.
+
+	dyn := newStubDynamic()
+	h := newRGDTestHandler(dyn, disc)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/instances/{namespace}/{name}/children", h.GetInstanceChildren)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/default/my-inst/children", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	body := rr.Body.String()
+	// Should be {"items":[]} not {"items":null}
+	assert.Contains(t, body, `"items":[]`, "nil children must be coerced to empty array")
+}

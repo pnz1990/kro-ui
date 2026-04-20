@@ -364,3 +364,103 @@ type testErr struct{ msg string }
 func (e testErr) Error() string { return e.msg }
 
 func errTest(msg string) error { return testErr{msg} }
+
+// ── ListAllInstances edge-path coverage ──────────────────────────────────────
+
+// TestListAllInstances_RGDListError covers the error path when listing RGDs fails.
+func TestListAllInstances_RGDListError(t *testing.T) {
+	// Make the RGD list call fail by not registering the rgdGVR in the stub.
+	dyn := newStubDynamic()
+	// rgdGVR not registered → stub returns "resource not found" error on List.
+	h := newRGDTestHandler(dyn, newStubDiscovery())
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rr := httptest.NewRecorder()
+	h.ListAllInstances(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), "failed to list RGDs")
+}
+
+// TestListAllInstances_SkipNilMetadata verifies that instance objects with nil
+// metadata are silently skipped (defensive guard at line 142).
+func TestListAllInstances_SkipNilMetadata(t *testing.T) {
+	// Build an RGD + an instance with nil metadata.
+	rgd := makeRGDObject("webapp-rgd", "WebApp", "kro.run", "v1alpha1")
+	disc := stubDiscoveryForKind("WebApp", "webapps")
+
+	// Instance with nil metadata (unusual but the guard must handle it).
+	nilMetaInst := unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "kro.run/v1alpha1",
+		"kind":       "WebApp",
+		// "metadata" key absent — obj.Object["metadata"] == nil
+		"status": map[string]any{"state": "ACTIVE"},
+	}}
+
+	// A normal instance that should be included.
+	normalInst := *makeInstanceObject("my-app", "default", "WebApp", "ACTIVE", "True", "")
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{*rgd},
+	}
+	dyn.resources[webAppGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{nilMetaInst, normalInst},
+	}
+
+	h := newRGDTestHandler(dyn, disc)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rr := httptest.NewRecorder()
+	h.ListAllInstances(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	var resp struct {
+		Items []InstanceSummary `json:"items"`
+	}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+	// The nil-metadata instance should be skipped; only the normal one included.
+	require.Len(t, resp.Items, 1, "nil-metadata instance must be skipped")
+	assert.Equal(t, "my-app", resp.Items[0].Name)
+}
+
+// TestListAllInstances_SkipEmptyName verifies that instance objects with an
+// empty name are silently skipped (defensive guard at line 147).
+func TestListAllInstances_SkipEmptyName(t *testing.T) {
+	rgd := makeRGDObject("webapp-rgd", "WebApp", "kro.run", "v1alpha1")
+	disc := stubDiscoveryForKind("WebApp", "webapps")
+
+	// Instance with empty name.
+	emptyNameInst := unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "kro.run/v1alpha1",
+		"kind":       "WebApp",
+		"metadata": map[string]any{
+			"name":      "",
+			"namespace": "default",
+		},
+		"status": map[string]any{"state": "ACTIVE"},
+	}}
+
+	// A normal instance that should be included.
+	normalInst := *makeInstanceObject("good-app", "default", "WebApp", "ACTIVE", "True", "")
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{*rgd},
+	}
+	dyn.resources[webAppGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{emptyNameInst, normalInst},
+	}
+
+	h := newRGDTestHandler(dyn, disc)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rr := httptest.NewRecorder()
+	h.ListAllInstances(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	var resp struct {
+		Items []InstanceSummary `json:"items"`
+	}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+	require.Len(t, resp.Items, 1, "empty-name instance must be skipped")
+	assert.Equal(t, "good-app", resp.Items[0].Name)
+}
