@@ -66,4 +66,9 @@ anchor:
   coverage_target: 60                                          # minimum depth score % for kro-ui
   stagnation_sessions: 5                                       # sessions without anchor growth before COORD prioritizes
   journeys_dir: "test/e2e/journeys"                            # used by SM §4g-anchor-parity for feature→journey gap detection
+  # Upstream version tracking (SM §4g-anchor-upstream):
+  # When go.mod is upgraded to a new kro version, SM opens an anchor-growth issue.
+  # Proactive GitHub release detection is handled by .github/workflows/kro-upstream-check.yml.
+  upstream_version_file: "go.mod"                              # file containing the upstream version
+  upstream_version_pattern: "kubernetes-sigs/kro"              # pattern to match in upstream_version_file
 
