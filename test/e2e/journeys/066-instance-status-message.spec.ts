@@ -132,3 +132,21 @@ test.describe('Journey 066: /instances status dot tooltip with condition message
     }
   })
 })
+
+// ── Error resilience: instance detail API unavailable ────────────────────────
+
+test.describe('Journey 066 — Error resilience: instance detail API unavailable', () => {
+  test('Step E1: Instance detail renders gracefully when instances API fails', async ({ page }) => {
+    // Mock instances endpoint to return 503
+    await page.route('**/api/v1/instances**', async route => {
+      await route.fulfill({ status: 503, body: JSON.stringify({ error: 'service unavailable' }) })
+    })
+    await page.goto(`${BASE}/instances`)
+    // Page must not show raw error strings
+    await expect(page.locator('body')).not.toContainText('[object Object]', { timeout: 15000 })
+    await expect(page.locator('body')).not.toContainText('undefined')
+    // Layout chrome must render
+    const layout = page.locator('header, nav, main, [class*="layout"]').first()
+    await expect(layout).toBeVisible({ timeout: 10000 })
+  })
+})
