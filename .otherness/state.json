@@ -1759,6 +1759,108 @@
       "pr_number": null,
       "pr_merged": true,
       "title": "063-kro-v091-upgrade"
+    },
+    "issue-448": {
+      "state": "done",
+      "assigned_to": null,
+      "pr_number": 452,
+      "pr_merged": true,
+      "title": "feat(e2e): anchor score comment \u2014 post [ANCHOR | kro-ui] to issue #439 after E2E run",
+      "issue_number": 448,
+      "labels": [
+        "kind/enhancement",
+        "priority/high",
+        "size/xs",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ],
+      "done_at": "2026-04-20T02:15:11Z"
+    },
+    "issue-449": {
+      "state": "done",
+      "assigned_to": null,
+      "pr_number": 453,
+      "pr_merged": true,
+      "title": "feat(e2e): journey depth \u2014 add error + empty states to Tier 1 journeys (001-007)",
+      "issue_number": 449,
+      "labels": [
+        "kind/enhancement",
+        "priority/high",
+        "size/m",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ],
+      "done_at": "2026-04-20T02:31:04Z"
+    },
+    "issue-450": {
+      "state": "done",
+      "assigned_to": null,
+      "pr_number": null,
+      "pr_merged": true,
+      "title": "feat(e2e): first persona journey \u2014 Operator deploys RGD, verifies instances, checks health",
+      "issue_number": 450,
+      "labels": [
+        "kind/enhancement",
+        "priority/high",
+        "size/s",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ],
+      "done_at": "2026-04-20T03:30:15Z"
+    },
+    "issue-458": {
+      "state": "done",
+      "assigned_to": "sess-412931da",
+      "pr_number": 460,
+      "pr_merged": true,
+      "title": "feat(e2e): SRE persona journey \u2014 fleet anomaly investigation",
+      "issue_number": 458,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ],
+      "assigned_at": "2026-04-20T03:35:21Z",
+      "branch": "feat/issue-458",
+      "worktree": "../kro-ui.issue-458",
+      "file_spaces": [
+        "test/e2e/journeys/",
+        "test/e2e/playwright.config.ts"
+      ],
+      "done_at": "2026-04-20T03:50:41Z"
+    },
+    "issue-459": {
+      "state": "done",
+      "assigned_to": "sess-412931da",
+      "pr_number": 461,
+      "pr_merged": true,
+      "title": "feat(e2e): Developer persona journey \u2014 RGD authoring and YAML generation",
+      "issue_number": 459,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ],
+      "assigned_at": "2026-04-20T03:51:14Z",
+      "branch": "feat/issue-459",
+      "worktree": "../kro-ui.issue-459",
+      "done_at": "2026-04-20T04:05:40Z"
     }
-  }
+  },
+  "sm_cycle_count": 1,
+  "pm_cycle_count": 1
 }
