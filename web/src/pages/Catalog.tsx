@@ -3,11 +3,12 @@
 // All search/filter/sort is client-side — no API call per keystroke.
 // Issue #116: instanceCounts uses undefined="loading", null="failed", number="resolved".
 // spec 070: status filter — all / ready / errors toggle for compile-state filtering.
+// spec issue-534: selection mode for bulk YAML export.
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
-import { listRGDs, listInstances } from '@/lib/api'
+import { listRGDs, listInstances, getRGD } from '@/lib/api'
 import { extractRGDName, extractReadyStatus } from '@/lib/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import {
@@ -20,6 +21,7 @@ import {
 import type { SortOption } from '@/lib/catalog'
 import { useDebounce } from '@/hooks/useDebounce'
 import { translateApiError } from '@/lib/errors'
+import { cleanK8sObject, toYaml } from '@/lib/yaml'
 import CatalogCard from '@/components/CatalogCard'
 import SearchBar from '@/components/SearchBar'
 import LabelFilter from '@/components/LabelFilter'
@@ -55,6 +57,24 @@ export default function Catalog() {
   const [sortOption, setSortOption] = useState<SortOption>('name')
   // spec 070: compile-status filter — 'all' | 'ready' | 'errors'
   const [statusFilter, setStatusFilter] = useState<'all' | 'ready' | 'errors'>('all')
+
+  // spec issue-534: selection mode state (O1, O7)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
+  const [isExporting, setIsExporting] = useState(false)
+
+  // Escape key handler to exit selection mode (spec O6)
+  const catalogRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && selectionMode) {
+        setSelectionMode(false)
+        setSelectedNames(new Set())
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [selectionMode])
 
   // Fetch all RGDs once on mount
   const fetchRGDs = useCallback(() => {
@@ -145,8 +165,78 @@ export default function Catalog() {
 
   const hasFilters = searchQuery !== '' || activeLabels.length > 0 || statusFilter !== 'all'
 
+  // ── Selection mode handlers (spec O1–O3) ─────────────────────────────────
+
+  function handleEnterSelectionMode() {
+    setSelectionMode(true)
+    setSelectedNames(new Set())
+  }
+
+  function handleExitSelectionMode() {
+    setSelectionMode(false)
+    setSelectedNames(new Set())
+  }
+
+  function handleCardToggle(name: string, nowSelected: boolean) {
+    setSelectedNames((prev) => {
+      const next = new Set(prev)
+      if (nowSelected) next.add(name); else next.delete(name)
+      return next
+    })
+  }
+
+  // "Select all" toggles all currently-visible (post-filter) RGDs (spec O2)
+  const visibleNames = useMemo(() => sorted.map(({ rgd }) => extractRGDName(rgd)), [sorted])
+  const allVisible = visibleNames.length > 0 && visibleNames.every((n) => selectedNames.has(n))
+
+  function handleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedNames(new Set(visibleNames))
+    } else {
+      setSelectedNames((prev) => {
+        const next = new Set(prev)
+        for (const n of visibleNames) next.delete(n)
+        return next
+      })
+    }
+  }
+
+  // Export selected RGDs as multi-document YAML (spec O3–O5)
+  async function handleExportYAML() {
+    const names = Array.from(selectedNames)
+    if (names.length === 0) return
+    setIsExporting(true)
+    try {
+      const docs: string[] = []
+      for (const name of names) {
+        try {
+          const rgd = await getRGD(name)
+          const cleaned = cleanK8sObject(rgd)
+          docs.push(toYaml(cleaned))
+        } catch {
+          // Skip failed fetches gracefully — include as comment
+          docs.push(`# Failed to fetch ${name}`)
+        }
+      }
+      const yaml = docs.join('\n---\n')
+      const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (spec O5)
+      const filename = `kro-rgds-${today}.yaml`
+      const blob = new Blob([yaml], { type: 'text/yaml' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="catalog">
+    <div className="catalog" ref={catalogRef}>
       <div className="catalog__header">
         <div className="catalog__title-row">
           <h1 className="catalog__heading">RGD Catalog</h1>
@@ -200,7 +290,54 @@ export default function Catalog() {
               </select>
             </div>
           </div>
+
+          {/* spec issue-534: selection mode toggle (O1) */}
+          {!isLoading && !error && !selectionMode && (
+            <button
+              type="button"
+              className="catalog__select-btn"
+              onClick={handleEnterSelectionMode}
+              data-testid="catalog-select-mode"
+            >
+              Select
+            </button>
+          )}
         </div>
+
+        {/* spec issue-534: selection toolbar — shown when selectionMode=true (O1–O3) */}
+        {selectionMode && (
+          <div className="catalog__selection-toolbar" data-testid="catalog-selection-toolbar">
+            <label className="catalog__select-all" data-testid="catalog-select-all">
+              <input
+                type="checkbox"
+                checked={allVisible}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                aria-label="Select all visible RGDs"
+              />
+              Select all ({visibleNames.length})
+            </label>
+            {selectedNames.size > 0 && (
+              <button
+                type="button"
+                className="catalog__export-btn"
+                onClick={handleExportYAML}
+                disabled={isExporting}
+                aria-label={`Export ${selectedNames.size} selected RGDs`}
+                data-testid="catalog-export-yaml"
+              >
+                {isExporting ? 'Exporting…' : `Export YAML (${selectedNames.size})`}
+              </button>
+            )}
+            <button
+              type="button"
+              className="catalog__cancel-select-btn"
+              onClick={handleExitSelectionMode}
+              data-testid="catalog-cancel-select"
+            >
+              Done
+            </button>
+          </div>
+        )}
       </div>
 
       {isLoading && (
@@ -237,6 +374,9 @@ export default function Catalog() {
                     prev.includes(label) ? prev : [...prev, label],
                   )
                 }
+                selectable={selectionMode}
+                selected={selectedNames.has(name)}
+                onToggle={handleCardToggle}
               />
             )
           }}

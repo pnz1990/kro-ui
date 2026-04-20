@@ -200,3 +200,44 @@
   background-color: var(--color-primary-muted);
   color: var(--color-primary-hover);
 }
+
+/* ── Selection mode ───────────────────────────────────────────────── */
+
+/* Selected state: highlighted border */
+.catalog-card--selected {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-subtle);
+}
+
+/* Checkbox positioned top-left, overlaid on the card (spec O1). */
+.catalog-card__checkbox {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+  z-index: 1;
+}
+
+/* Article must be position:relative so the checkbox overlay works. */
+.catalog-card:has(.catalog-card__checkbox) {
+  position: relative;
+}
+
+/* Selectable body — same layout as the link variant but rendered as div. */
+.catalog-card__body-link--selectable {
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding-left: 28px; /* indent content past the checkbox */
+  outline: none;
+}
+
+.catalog-card__body-link--selectable:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

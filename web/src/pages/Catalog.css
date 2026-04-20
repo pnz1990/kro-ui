@@ -267,3 +267,98 @@
   background: var(--color-error);
   color: var(--color-on-primary);
 }
+
+/* ── spec issue-534: selection mode ─────────────────────────────── */
+
+/* "Select" button in the toolbar */
+.catalog__select-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.catalog__select-btn:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-border-focus);
+  color: var(--color-text);
+}
+
+/* Selection toolbar — shown below the main toolbar when selectionMode=true */
+.catalog__selection-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--color-primary-subtle);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+}
+
+/* "Select all" checkbox + label */
+.catalog__select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  user-select: none;
+}
+
+.catalog__select-all input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* "Export YAML (N)" button */
+.catalog__export-btn {
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius);
+  color: var(--color-on-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.catalog__export-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.catalog__export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* "Done" / cancel selection button */
+.catalog__cancel-select-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.catalog__cancel-select-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}

@@ -134,4 +134,93 @@ describe('CatalogCard', () => {
     const btn = screen.getByTestId('btn-instances')
     expect(btn.textContent).toBe('Instances')
   })
+
+  // ── spec issue-534: selection mode ────────────────────────────────────────
+
+  it('renders checkbox when selectable=true', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CatalogCard
+          rgd={makeRGD()}
+          instanceCount={3}
+          usedBy={[]}
+          onLabelClick={vi.fn()}
+          selectable={true}
+          selected={false}
+          onToggle={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    const checkbox = container.querySelector('.catalog-card__checkbox')
+    expect(checkbox).not.toBeNull()
+  })
+
+  it('does not render checkbox when selectable=false (default)', () => {
+    const { container } = renderCard()
+    const checkbox = container.querySelector('.catalog-card__checkbox')
+    expect(checkbox).toBeNull()
+  })
+
+  it('calls onToggle with name and new state when checkbox changed', () => {
+    const onToggle = vi.fn()
+    render(
+      <MemoryRouter>
+        <CatalogCard
+          rgd={makeRGD()}
+          instanceCount={3}
+          usedBy={[]}
+          onLabelClick={vi.fn()}
+          selectable={true}
+          selected={false}
+          onToggle={onToggle}
+        />
+      </MemoryRouter>,
+    )
+    // Click the selectable body div to trigger toggle (spec O8)
+    const bodyBtn = screen.getByTestId('btn-graph')
+    fireEvent.click(bodyBtn)
+    expect(onToggle).toHaveBeenCalledWith('test-app', true)
+  })
+
+  it('shows selected state class when selected=true', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <CatalogCard
+          rgd={makeRGD()}
+          instanceCount={3}
+          usedBy={[]}
+          onLabelClick={vi.fn()}
+          selectable={true}
+          selected={true}
+          onToggle={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    const article = container.querySelector('article')
+    expect(article?.classList.contains('catalog-card--selected')).toBe(true)
+  })
+
+  it('body link navigates when selectable=false', () => {
+    renderCard()
+    const link = screen.getByTestId('btn-graph')
+    expect(link.tagName.toLowerCase()).toBe('a')
+  })
+
+  it('body becomes a button when selectable=true', () => {
+    render(
+      <MemoryRouter>
+        <CatalogCard
+          rgd={makeRGD()}
+          instanceCount={3}
+          usedBy={[]}
+          onLabelClick={vi.fn()}
+          selectable={true}
+          selected={false}
+          onToggle={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    const body = screen.getByTestId('btn-graph')
+    expect(body.getAttribute('role')).toBe('button')
+  })
 })
