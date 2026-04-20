@@ -651,3 +651,197 @@ func TestErrorTypes(t *testing.T) {
 		assert.Equal(t, 404, target.StatusCode)
 	})
 }
+
+// ── TestNewMetricsDiscoverer (T016) ────────────────────────────────────────────
+
+// TestNewMetricsDiscoverer verifies that NewMetricsDiscoverer constructs a
+// MetricsDiscoverer with the correct kubeconfigPath and that the context-switch
+// hook is wired (cache is invalidated when SwitchContext is called).
+func TestNewMetricsDiscoverer(t *testing.T) {
+	t.Run("creates discoverer with correct kubeconfigPath from factory", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "")
+		require.NoError(t, err)
+
+		md := NewMetricsDiscoverer(f)
+		assert.NotNil(t, md)
+		assert.Equal(t, path, md.kubeconfigPath)
+		assert.NotNil(t, md.cache)
+		assert.NotNil(t, md.factory)
+	})
+
+	t.Run("context-switch hook invalidates cache", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+
+		md := NewMetricsDiscoverer(f)
+
+		// Prime the cache with a fake pod ref.
+		md.cache.set("dev", PodRef{Namespace: "kro-system", PodName: "kro-0"})
+		_, ok := md.cache.get("dev")
+		require.True(t, ok, "cache should contain pod ref before context switch")
+
+		// Switch context — should trigger invalidateAll via hook.
+		require.NoError(t, f.SwitchContext("prod"))
+
+		_, ok = md.cache.get("dev")
+		assert.False(t, ok, "cache must be cleared after context switch")
+	})
+}
+
+// ── TestScrapeMetrics (T017) ───────────────────────────────────────────────────
+
+// TestScrapeMetrics tests the ScrapeMetrics entry point, focusing on the
+// empty-contextName path (uses factory) and the bad-kubeconfig error path
+// (non-empty contextName with broken kubeconfig).
+func TestScrapeMetrics(t *testing.T) {
+	t.Run("empty contextName — no kro pod found — returns empty metrics (200 OK)", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+
+		md := NewMetricsDiscoverer(f)
+		// factory.Dynamic() is a real client pointed at a fake server that
+		// returns no pods. discoverKroPod will find nothing → empty result.
+		result, err := md.ScrapeMetrics(context.Background(), "")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		// All metric fields nil when no pod is found.
+		assert.Nil(t, result.WatchCount)
+		assert.Nil(t, result.GVRCount)
+		assert.False(t, result.ScrapedAt.IsZero(), "ScrapedAt must be set")
+	})
+
+	t.Run("non-empty contextName with broken kubeconfig — returns error", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+
+		// Point kubeconfigPath at a missing file so BuildContextClient fails.
+		md := NewMetricsDiscoverer(f)
+		md.kubeconfigPath = "/nonexistent/kubeconfig"
+
+		_, err = md.ScrapeMetrics(context.Background(), "some-context")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "build client")
+	})
+}
+
+// ── TestScrapeWithCache (T018) ─────────────────────────────────────────────────
+
+// TestScrapeWithCache tests scrapeWithCache directly, covering:
+//   - cache miss → pod not found → empty metrics
+//   - cache hit → successful scrape (via httptest server)
+//   - 404 response → cache invalidate → re-discover → pod not found → empty metrics
+func TestScrapeWithCache(t *testing.T) {
+	t.Run("cache miss — pod not found — returns empty metrics", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+		md := NewMetricsDiscoverer(f)
+
+		// Use an empty stub dynamic client (no pods).
+		dyn := newStubDynamicMetrics()
+		dyn.resources[podGVR] = &stubNSResourceForMetrics{}
+
+		result, err := md.scrapeWithCache(context.Background(), dyn, &rest.Config{Host: "http://127.0.0.1:1"}, "test-key")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Nil(t, result.WatchCount, "no pod means nil watch count")
+		assert.False(t, result.ScrapedAt.IsZero())
+	})
+
+	t.Run("cache hit — successful scrape", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+		md := NewMetricsDiscoverer(f)
+
+		// Serve a metrics response from an httptest server.
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(metricsProxyBody))
+		}))
+		t.Cleanup(srv.Close)
+
+		// Prime cache with the pod ref.
+		ref := PodRef{Namespace: "kro-system", PodName: "kro-0"}
+		md.cache.set("test-key", ref)
+
+		restCfg := &rest.Config{Host: srv.URL}
+		result, err := md.scrapeWithCache(context.Background(), newStubDynamicMetrics(), restCfg, "test-key")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.NotNil(t, result.WatchCount)
+		assert.Equal(t, int64(7), *result.WatchCount)
+	})
+
+	t.Run("404 response — re-discover fails — returns empty metrics", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+		md := NewMetricsDiscoverer(f)
+
+		// httptest server returns 404 (simulates pod restarted and proxy returns not found).
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}))
+		t.Cleanup(srv.Close)
+
+		// Prime cache so first lookup uses cached ref → gets 404.
+		ref := PodRef{Namespace: "kro-system", PodName: "kro-gone"}
+		md.cache.set("test-key", ref)
+
+		// No pods in the dynamic stub → re-discover finds nothing.
+		dyn := newStubDynamicMetrics()
+		dyn.resources[podGVR] = &stubNSResourceForMetrics{}
+
+		restCfg := &rest.Config{Host: srv.URL}
+		result, err := md.scrapeWithCache(context.Background(), dyn, restCfg, "test-key")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Nil(t, result.WatchCount, "re-discover found nothing — nil metrics")
+	})
+
+	t.Run("404 response — re-discover succeeds — single retry scrape", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+		md := NewMetricsDiscoverer(f)
+
+		// First request returns 404; second returns valid metrics.
+		callCount := 0
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
+			if callCount == 1 {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(metricsProxyBody))
+		}))
+		t.Cleanup(srv.Close)
+
+		// Prime cache with stale pod ref → causes first 404.
+		ref := PodRef{Namespace: "kro-system", PodName: "kro-stale"}
+		md.cache.set("test-key", ref)
+
+		// Re-discover will find a new pod.
+		newPod := makePod("kro-new", "kro-system", "Running")
+		dyn := newStubDynamicMetrics()
+		dyn.resources[podGVR] = &stubNSResourceForMetrics{
+			nsItems: map[string][]unstructured.Unstructured{
+				"kro-system": {newPod},
+			},
+		}
+
+		restCfg := &rest.Config{Host: srv.URL}
+		result, err := md.scrapeWithCache(context.Background(), dyn, restCfg, "test-key")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.NotNil(t, result.WatchCount)
+		assert.Equal(t, int64(7), *result.WatchCount)
+		assert.Equal(t, 2, callCount, "must have called scrape twice (initial + retry)")
+	})
+}
