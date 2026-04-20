@@ -42,15 +42,15 @@ release has landed since our last check:
  ✅ 27.7 — Donation readiness: `OWNERS` file (kubernetes-sigs format, approvers/reviewers: pnz1990); `.github/workflows/dco.yml` enforces DCO sign-off on all PRs; `CONTRIBUTING.md` updated with DCO section explaining `git commit -s` requirement. (issue #532)
  ✅ 27.15 — release.yml stale helm/ reference removed: the `Update and push Helm chart` step that references `helm/kro-ui` (removed in v0.9.4) has been deleted from `.github/workflows/release.yml`; v0.10.0 tag push will now succeed. (PR #588, issue #587)
  ✅ 27.5 — kro-ui v0.10.0 release: GitHub release with changelog from merged PRs since v0.9.4; goreleaser produces binary archives (Linux/Darwin/Windows amd64/arm64) and Docker image pushed to GHCR; release notes auto-generated from PR titles. (PR #589, issue #525)
+ ✅ 27.8 — GOVERNANCE.md: lightweight governance model (kubernetes-sigs format — maintainers list, decision process, release managers, path to reviewer/approver); GOVERNANCE.md added at repo root. (issue #570)
+ ✅ 27.9 — CODE_OF_CONDUCT.md at repo root: pointer file to Kubernetes Community CoC with reporting path and enforcement summary; satisfies kubernetes-sigs org requirement. (issue #571)
+ ✅ 27.11 — OWNERS breadth: OWNERS now documents the path for community members to become reviewers; GOVERNANCE.md §Becoming a Reviewer/Approver added; comment in OWNERS noting the >= 2 approver requirement. (issue #573)
 
 ---
 
 ## Future
 
-- 🔲 27.8 — GOVERNANCE.md: add lightweight governance model (kubernetes-sigs format — maintainers list, decision process, release managers); required before donation can proceed; reference https://github.com/kubernetes-sigs/kro/blob/main/GOVERNANCE.md as the template
-- 🔲 27.9 — CODE_OF_CONDUCT.md at repo root: kubernetes-sigs requires this file at the repo root; CONTRIBUTING.md links to k8s CoC but the file itself must exist in the repo (mirror of https://github.com/kubernetes/community/blob/master/code-of-conduct.md or a pointer file)
 - 🔲 27.10 — Supply chain security for releases: add cosign keyless signing of container images, SBOM generation (syft/cyclonedx), and SLSA provenance attestation to `.github/workflows/release.yml`; kubernetes-sigs projects are expected to produce signed artifacts; note goreleaser v2 supports `signs:` and `sboms:` natively
-- 🔲 27.11 — OWNERS breadth: add at least one more approver/reviewer to `OWNERS` (kubernetes-sigs org requires >= 2 approvers for a donated project to avoid bus-factor rejection); document the path for community members to become reviewers in GOVERNANCE.md
 - 🔲 27.12 — Partial-RBAC / restricted-namespace testing: add a Go unit test and an E2E journey that verifies kro-ui returns partial results (not 500) when the operator only has RBAC access to a subset of namespaces; both `ListAllInstances` and `ListInstances` must degrade gracefully with a visible "N namespaces hidden — insufficient permissions" indicator in the UI
 - 🔲 27.13 — DAG scale: RGDs with 200+ nodes currently render as a single dense SVG with no escape hatch; add a node-count guard (> 100 nodes) that offers: (a) collapsed-by-depth view, (b) text-mode list fallback, (c) minimap for navigation; without this, large production RGDs are unusable in the browser
 - 🔲 27.14 — Frontend code splitting: the current 521KB bundle scores ~60 on Lighthouse CI; implement route-based code splitting (React.lazy + Suspense per route) to reduce initial bundle below 200KB; raise perf.yml threshold to 70 after splitting; this is a prerequisite for a production-grade donation
