@@ -2049,8 +2049,281 @@
       "pr_number": 566,
       "pr_merged": true,
       "done_at": "2026-04-20T18:46:56Z"
+    },
+    "issue-534": {
+      "state": "todo",
+      "title": "feat: RGD list: bulk operations (delete multiple, export selected)",
+      "issue_number": 534,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-535": {
+      "state": "todo",
+      "title": "feat: Catalog: saved searches and filter presets",
+      "issue_number": 535,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-536": {
+      "state": "todo",
+      "title": "feat: Instance bulk operations: select multiple instances, bulk delete with confirmation",
+      "issue_number": 536,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-537": {
+      "state": "todo",
+      "title": "feat: Instance diff: full side-by-side comparison between two instance snapshots",
+      "issue_number": 537,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-538": {
+      "state": "todo",
+      "title": "feat: Instance resource graph: show all k8s resources owned by this instance",
+      "issue_number": 538,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-539": {
+      "state": "todo",
+      "title": "feat: Health trend chart: sparkline showing health state changes over last 24h per RGD",
+      "issue_number": 539,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-540": {
+      "state": "todo",
+      "title": "feat: Health alert subscriptions: notify when RGD/instance enters error state",
+      "issue_number": 540,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-542": {
+      "state": "todo",
+      "title": "feat: Designer: import existing RGD from cluster (load from live cluster \u2192 editable form)",
+      "issue_number": 542,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-543": {
+      "state": "todo",
+      "title": "feat: Designer: node library",
+      "issue_number": 543,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-544": {
+      "state": "todo",
+      "title": "feat: Designer: collaboration mode \u2014 share designer URL with readonly view",
+      "issue_number": 544,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-570": {
+      "state": "todo",
+      "title": "feat: 27.8",
+      "issue_number": 570,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-571": {
+      "state": "todo",
+      "title": "feat: 27.9",
+      "issue_number": 571,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-572": {
+      "state": "todo",
+      "title": "feat: 27.10",
+      "issue_number": 572,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-573": {
+      "state": "todo",
+      "title": "feat: 27.11",
+      "issue_number": 573,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-574": {
+      "state": "todo",
+      "title": "feat: 27.12",
+      "issue_number": 574,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-575": {
+      "state": "todo",
+      "title": "feat: 27.13",
+      "issue_number": 575,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-576": {
+      "state": "todo",
+      "title": "feat: 27.14",
+      "issue_number": 576,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-577": {
+      "state": "todo",
+      "title": "feat: DAG scale guard: RGDs with >100 nodes render a dense unreadable SVG today; add a collapsed",
+      "issue_number": 577,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-578": {
+      "state": "todo",
+      "title": "feat: DAG minimap: for large graphs (>50 nodes) add a fixed-position mini-map (SVG overlay, no e",
+      "issue_number": 578,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-579": {
+      "state": "todo",
+      "title": "feat: GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 ",
+      "issue_number": 579,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-580": {
+      "state": "todo",
+      "title": "feat: Color-blind accessible health indicators",
+      "issue_number": 580,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-581": {
+      "state": "todo",
+      "title": "feat: Accessibility audit expansion",
+      "issue_number": 581,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-584": {
+      "state": "todo",
+      "title": "test(layout): unit test for cluster-unreachable banner",
+      "issue_number": 584,
+      "labels": [
+        "kro-ui"
+      ],
+      "priority": "medium"
     }
   },
-  "sm_cycle_count": 5,
-  "pm_cycle_count": 4
+  "sm_cycle_count": 6,
+  "pm_cycle_count": 5
 }
