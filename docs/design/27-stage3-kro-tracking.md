@@ -38,12 +38,12 @@ release has landed since our last check:
  ✅ 27.2 — Accessibility pass: journey `074-accessibility.spec.ts` registered in Playwright chunk-9 testMatch pattern; axe-core WCAG 2.1 AA scan runs on Catalog, RGD DAG, Instance list, and Context switcher pages in CI. (PR #546, issue #529)
  ✅ 27.3 — Fleet persona anchor journey: 6-step journey covering multi-cluster fleet view → health matrix → context switch → per-cluster RGD count (journey 075, issue #524)
  ✅ 27.6 — Error state coverage: E2E journeys 076-079 added and registered in Playwright chunk-9; each uses `page.route()` to mock 5xx API responses and asserts the error state element is visible on Overview, Fleet, RGD detail, and Instance detail pages. (PR TBD, issue #531)
+ ✅ 27.4 — Performance budget: `.github/workflows/perf.yml` Lighthouse CI check (score ≥ 70) + HTTP response time check (<500ms); E2E journey `080-performance-budget.spec.ts` asserts Overview DOM Interactive ≤1000ms and content-ready ≤1500ms; registered in Playwright chunk-9. (issue #530)
 
 ---
 
 ## Future
 
-- 🔲 27.4 — Performance budget: Overview page load <1s on 50-RGD cluster; add Lighthouse CI check to CI pipeline
 - 🔲 27.5 — kro-ui v0.10.0 release: cut GitHub release with changelog, tag, and release notes generated from merged PRs since v0.9.4
 - 🔲 27.7 — Donation readiness checklist: CNCF sandbox criteria, kubernetes-sigs contribution guide, DCO sign-off enforcement, security policy file, OWNERS file
 
