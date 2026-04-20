@@ -84,8 +84,12 @@ test.describe('Journey 007 — Context Switcher', () => {
       .locator('[role="option"]', { hasText: ALT_CONTEXT })
       .click()
 
-    // Dropdown should close
-    await expect(page.getByTestId('context-dropdown')).not.toBeVisible()
+    // Dropdown should close — use waitForFunction (constitution §XIV: not .not.toBeVisible)
+    // The dropdown may take a render cycle to close on throttled clusters.
+    await page.waitForFunction(() => {
+      const dropdown = document.querySelector('[data-testid="context-dropdown"]')
+      return dropdown === null || (dropdown as HTMLElement).offsetParent === null
+    }, { timeout: 10000 })
 
     // Top bar should update to the new context name
     await expect(page.getByTestId('context-name')).toContainText(ALT_CONTEXT)
