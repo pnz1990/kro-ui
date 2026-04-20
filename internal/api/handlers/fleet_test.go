@@ -15,6 +15,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -353,4 +354,52 @@ func TestIsInstanceReconciling(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// ── FleetSummary branch coverage ──────────────────────────────────────────────
+
+// TestFleetSummary_ListContextsError verifies that a ListContexts error
+// returns 500.
+func TestFleetSummary_ListContextsError(t *testing.T) {
+	ctxStub := &stubClientFactory{listErr: fmt.Errorf("kubeconfig unreachable")}
+	builder := &stubFleetClientBuilder{}
+	h := newFleetTestHandler(ctxStub, builder)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet", nil)
+	rr := httptest.NewRecorder()
+	h.FleetSummary(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"error"`)
+}
+
+// TestFleetSummary_AuthErrorShownAsAuthFailed verifies that an auth error
+// (RBAC forbidden) on RGD List is shown as ClusterAuthFailed health state.
+func TestFleetSummary_AuthErrorShownAsAuthFailed(t *testing.T) {
+	ctxStub := &stubClientFactory{
+		contexts: []k8sclient.Context{
+			{Name: "restricted", Cluster: "restricted-cluster", User: "restricted-user"},
+		},
+	}
+
+	authDyn := newStubDynamic()
+	authDyn.resources[rgdGVR] = &stubNamespaceableResource{
+		listErr: fmt.Errorf("Forbidden: User cannot list resource \"resourcegraphdefinitions\""),
+	}
+
+	builder := &stubFleetClientBuilder{
+		clients: map[string]*stubK8sClients{
+			"restricted": {dyn: authDyn, disc: newStubDiscovery()},
+		},
+	}
+	h := newFleetTestHandler(ctxStub, builder)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet", nil)
+	rr := httptest.NewRecorder()
+	h.FleetSummary(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	body := rr.Body.String()
+	assert.Contains(t, body, `"restricted"`)
+	assert.Contains(t, body, string(types.ClusterAuthFailed))
 }
