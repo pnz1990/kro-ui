@@ -35,9 +35,10 @@ const BASE_URL = `http://localhost:${PORT}`
 //   chunk-7:  041,045-047  UX audit, designer, kro v0.9.0, ux-improvements, state-map
 //   chunk-8:  051-059   instance diff, response cache, multi-version kro, ux-gaps-round3,
 //                       health-summary, status-tooltip, cache-flush, global-instances, warnings
-//   chunk-9:  060-073   health-filter, fleet-reconciling, instances-filter, health-sort,
+//   chunk-9:  060-075   health-filter, fleet-reconciling, instances-filter, health-sort,
 //                       status-message, error-banner, catalog-status-filter, kro-v091,
-//                       operator-persona-journey, sre-persona-journey, developer-persona-journey
+//                       operator-persona-journey, sre-persona-journey, developer-persona-journey,
+//                       fleet-persona-journey
 //   serial:   007       context-switcher — runs after all chunks complete
 //
 // Each chunk runs with workers: 4 (parallel files); the serial project uses workers: 1.
@@ -144,12 +145,13 @@ export default defineConfig({
       fullyParallel: true,
     },
     {
-      // chunk-9 covers journeys added in specs 060–073
+      // chunk-9 covers journeys added in specs 060–075
        // (health-filter, fleet-reconciling, instances-filter, health-sort,
        //  status-message, error-banner, catalog-status-filter, kro-v091,
-       //  operator-persona-journey, sre-persona-journey, developer-persona-journey)
+       //  operator-persona-journey, sre-persona-journey, developer-persona-journey,
+       //  fleet-persona-journey)
       name: 'chunk-9',
-      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073)-.*\.spec\.ts/,
+      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|075)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
