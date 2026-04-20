@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { listContexts, getCapabilities } from '@/lib/api'
 import type { KubeContext, KroCapabilities } from '@/lib/api'
+import { isNetworkError } from '@/lib/errors'
 import Footer from './Footer'
 import TopBar from './TopBar'
 import './Layout.css'
@@ -18,23 +19,39 @@ export default function Layout() {
   const [activeContext, setActiveContext] = useState('')
   const [capabilities, setCapabilities] = useState<KroCapabilities | null>(null)
   const [dismissed, setDismissed] = useState(false)
+  const [clusterUnreachable, setClusterUnreachable] = useState(false)
+  const [unreachableDismissed, setUnreachableDismissed] = useState(false)
   // Generation counter: discard stale capability responses from previous contexts
   const fetchGenRef = useRef(0)
+  // Track network failures from initial probes for >50% threshold detection.
+  // We use two probes: listContexts + getCapabilities. If both fail with network
+  // errors, that is 2/2 = 100% — show the cluster-unreachable banner.
+  const networkFailuresRef = useRef(0)
   const navigate = useNavigate()
 
   useEffect(() => {
+    // Reset network failure tracking on each mount / context switch
+    networkFailuresRef.current = 0
+    setClusterUnreachable(false)
+    setUnreachableDismissed(false)
+
     listContexts()
       .then((res) => {
         setContexts(res.contexts)
         setActiveContext(res.active)
       })
-      .catch(() => {
+      .catch((err) => {
         setContexts([])
         setActiveContext('(unavailable)')
+        if (isNetworkError(err)) {
+          networkFailuresRef.current += 1
+          // Will be evaluated again when capabilities probe completes
+        }
       })
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch capabilities to show unsupported-version banner (spec 053)
+  // Also acts as second network probe for cluster-unreachable detection (spec issue-582)
   useEffect(() => {
     const gen = ++fetchGenRef.current
     getCapabilities()
@@ -43,19 +60,35 @@ export default function Layout() {
         if (gen !== fetchGenRef.current) return
         setCapabilities(caps)
         setDismissed(false) // reset dismiss state when context changes
+        // Capabilities probe succeeded → cluster is reachable
+        setClusterUnreachable(false)
       })
-      .catch(() => { /* non-critical — banner won't show on fetch failure */ })
+      .catch((err) => {
+        if (gen !== fetchGenRef.current) return
+        if (isNetworkError(err)) {
+          networkFailuresRef.current += 1
+          // 2 probes total (listContexts + getCapabilities).
+          // If ≥1 network failure (50% threshold), show cluster-unreachable banner.
+          // Using ≥1 rather than both because listContexts can succeed (cached)
+          // while getCapabilities fails — still signals unreachable cluster.
+          setClusterUnreachable(true)
+        }
+      })
   }, [activeContext])
 
   const handleSwitch = useCallback((name: string) => {
     setActiveContext(name)
     setCapabilities(null) // hide banner immediately while new caps load
     setDismissed(false)
+    networkFailuresRef.current = 0
+    setClusterUnreachable(false)
+    setUnreachableDismissed(false)
     navigate('/')
   }, [navigate])
 
   const showVersionWarning = !dismissed && capabilities !== null && capabilities.isSupported === false
   const kroVersion = capabilities?.version ?? ''
+  const showUnreachable = clusterUnreachable && !unreachableDismissed
 
   return (
     <div className="layout">
@@ -79,6 +112,33 @@ export default function Layout() {
             className="layout__version-warning-dismiss"
             onClick={() => setDismissed(true)}
             aria-label="Dismiss version warning"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {showUnreachable && (
+        <div
+          className="layout__cluster-unreachable"
+          role="alert"
+          data-testid="cluster-unreachable-banner"
+        >
+          <span className="layout__cluster-unreachable-icon" aria-hidden="true">✕</span>
+          <span className="layout__cluster-unreachable-msg">
+            Cannot reach cluster — check that kro-ui is running and the kubeconfig context is reachable.
+          </span>
+          <button
+            type="button"
+            className="layout__cluster-unreachable-retry"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            className="layout__cluster-unreachable-dismiss"
+            onClick={() => setUnreachableDismissed(true)}
+            aria-label="Dismiss cluster unreachable banner"
           >
             ✕
           </button>

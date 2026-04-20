@@ -144,6 +144,8 @@
   --color-warning: #f59e0b;
   /* Warning banner background — low-opacity amber tint for unsupported-version banner */
   --color-warning-bg: rgba(245, 158, 11, 0.12);
+  /* Error banner background — low-opacity red tint for cluster-unreachable banner */
+  --color-error-bg: rgba(244, 63, 94, 0.12);
 
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);
@@ -275,6 +277,8 @@
   --color-warning: #d97706;
   /* Warning banner background — low-opacity amber tint, light mode */
   --color-warning-bg: rgba(217, 119, 6, 0.10);
+  /* Error banner background — low-opacity red tint, light mode */
+  --color-error-bg: rgba(225, 29, 72, 0.10);
 
   /* DAG forEach annotation */
   --dag-foreach-color: var(--color-text-faint);

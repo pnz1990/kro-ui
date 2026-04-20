@@ -29,6 +29,7 @@ and the SRE dashboard. It provides the primary signal for operators monitoring a
 ## Present (✅) — continued
 
 - ✅ Condition detail drill-down: per-condition expand/collapse — unhealthy conditions auto-expand; healthy conditions collapsed by default; keyboard accessible (PR #565, 2026-04)
+- ✅ Error state for unreachable cluster on initial load: global "cluster unreachable" banner in Layout — fires when capabilities or context probe fails with a network error; includes retry button and dismiss; resets on context switch (PR #582, 2026-04)
 
 ## Future (🔲)
 
@@ -36,7 +37,6 @@ and the SRE dashboard. It provides the primary signal for operators monitoring a
 - 🔲 Health alert subscriptions: notify when RGD/instance enters error state
 - 🔲 Color-blind accessible health indicators: the current health system uses color as the sole differentiator for several states (e.g. the `--color-status-ready` green vs `--color-status-error` red in HealthChip bar segments); add pattern fills or icons as secondary signals so users with red-green color blindness can distinguish ready/error/degraded without relying solely on hue; WCAG 2.1 SC 1.4.1 (Use of Color) and CNCF accessibility expectations require this; the axe-core journey (074) does not catch this class of violation
 - 🔲 Accessibility audit expansion: journey 074 covers only 4 Tier-1 pages (Catalog, RGD DAG, Instance list, Context switcher); add axe-core coverage for the RGD Designer (/author), Fleet view, SRE dashboard, and the Errors tab — these pages have interactive elements (buttons, dropdowns, modals) that could have WCAG violations not caught by current scope
-- 🔲 Error state for unreachable cluster on initial load: when the cluster API server is unreachable at page load time, all widget data fetches fail simultaneously; current behavior shows individual "failed to fetch" states per widget; add a global "cluster unreachable" banner that fires when >50% of initial fetches fail within 5s, so first-time users get a clear actionable message rather than a page full of error fragments
 
 ---
 

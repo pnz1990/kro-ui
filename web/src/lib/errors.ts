@@ -109,3 +109,45 @@ export function translateApiError(message: string, context?: TranslateContext): 
   // No known pattern — return original so advanced operators see the raw message
   return message
 }
+
+/**
+ * Returns true when an error value represents a network-level failure
+ * (server unreachable, DNS resolution failed, TCP connection refused) as
+ * opposed to an HTTP error response where the server _was_ reachable.
+ *
+ * Recognises:
+ *   - `TypeError: Failed to fetch`   (browser network error, server not responding)
+ *   - `TypeError: Load failed`        (Safari equivalent of "Failed to fetch")
+ *   - `TypeError: NetworkError`       (Firefox)
+ *   - "connection refused"            (Go backend surfacing k8s API error)
+ *   - "dial tcp"                      (Go backend TCP dial failure)
+ *
+ * Returns false for HTTP error responses (4xx/5xx) — those indicate the
+ * server was reachable but returned an error, which is NOT the same as
+ * the cluster being completely unreachable.
+ *
+ * Spec: .specify/specs/issue-582/spec.md O5
+ */
+export function isNetworkError(err: unknown): boolean {
+  if (err == null) return false
+
+  // Check the error message string
+  const msg = err instanceof Error ? err.message : String(err)
+  const lower = msg.toLowerCase()
+
+  // Browser fetch API network errors
+  if (lower.includes('failed to fetch')) return true
+  if (lower.includes('load failed')) return true
+  if (lower.includes('networkerror')) return true
+  if (lower.includes('network request failed')) return true
+
+  // Go backend surfacing k8s API connection errors
+  if (lower.includes('connection refused')) return true
+  if (lower.includes('dial tcp')) return true
+
+  // Explicit TypeError with no status code means network-level failure
+  // (HTTP errors produce Response objects, not TypeErrors)
+  if (err instanceof TypeError) return true
+
+  return false
+}
