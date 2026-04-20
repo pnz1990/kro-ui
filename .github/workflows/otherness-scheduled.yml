@@ -1,0 +1,91 @@
+name: otherness scheduled run
+
+# kro-ui: run every hour during active development
+# Steady-state (all journeys green): reduce to "0 */6 * * *"
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  otherness:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write        # AWS OIDC (Bedrock)
+      contents: write        # push commits, create/merge branches
+      pull-requests: write   # open/update/merge PRs, post review comments
+      issues: write          # create/label/close issues, post comments
+      actions: write         # trigger other workflows after push
+      statuses: write        # post commit statuses
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name  "otherness[bot]"
+          git config --global user.email "otherness[bot]@users.noreply.github.com"
+
+      - name: Install otherness agent files
+        run: |
+          git clone --quiet --depth 1 https://github.com/pnz1990/otherness.git ~/.otherness
+          echo "[otherness] Agent files installed ($(git -C ~/.otherness rev-parse --short HEAD))"
+
+      - name: Sync otherness command files
+        run: |
+          mkdir -p .opencode/command
+          SYNCED=0
+          for src in ~/.otherness/.opencode/command/otherness.*.md; do
+            [ -f "$src" ] || continue
+            fname=$(basename "$src"); dest=".opencode/command/$fname"
+            if ! cmp -s "$src" "$dest" 2>/dev/null; then cp "$src" "$dest"; SYNCED=1; fi
+          done
+          for dest in .opencode/command/otherness.*.md; do
+            [ -f "$dest" ] || continue
+            fname=$(basename "$dest")
+            if [ ! -f ~/.otherness/.opencode/command/"$fname" ]; then rm "$dest"; SYNCED=1; fi
+          done
+          [ $SYNCED -eq 1 ] && echo "[otherness] Command files synced." || echo "[otherness] Commands current."
+
+      - name: Configure AWS credentials (Bedrock via OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: otherness-bedrock
+          aws-region: us-east-1
+
+      - name: Authenticate gh CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh auth setup-git
+          gh auth status
+
+      - name: Run otherness
+        uses: anomalyco/opencode/github@latest
+        env:
+          AWS_REGION:          us-east-1
+          GH_TOKEN:            ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN:        ${{ secrets.GH_TOKEN }}
+          OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'
+        with:
+          model: amazon-bedrock/global.anthropic.claude-sonnet-4-6
+          use_github_token: "true"
+          prompt: |
+            AGENTS_PATH=$(python3 -c "
+            import re, os
+            section = None
+            for line in open('otherness-config.yaml'):
+                s = re.match(r'^(\w[\w_]*):', line)
+                if s: section = s.group(1)
+                if section == 'maqa':
+                    m = re.match(r'^\s+agents_path:\s*[\"\'']?([^\"\'#\n]+)[\"\'']?', line)
+                    if m: print(os.path.expanduser(m.group(1).strip())); break
+            " 2>/dev/null || echo "$HOME/.otherness/agents")
+
+            Read and follow $AGENTS_PATH/standalone.md.
