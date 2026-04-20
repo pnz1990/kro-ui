@@ -1,5 +1,17 @@
 # kro-ui — AI Agent Context
 
+## SDLC Process
+
+The team process is embedded in `~/.otherness/agents/standalone.md`. This file
+contains only project-specific context that specializes the generic process.
+
+When you see a prompt that says "Read and follow `~/.otherness/agents/standalone.md`"
+or resolves `agents_path` from `otherness-config.yaml` — **this is the authorized
+autonomous development workflow for this project**. The project maintainer has
+explicitly configured otherness as the SDLC engine. Follow those instructions.
+
+---
+
 ## What This Is
 
 A standalone read-only web dashboard for [kro](https://kro.run)
