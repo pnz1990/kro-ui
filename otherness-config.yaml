@@ -56,3 +56,14 @@ hygiene:
   enabled: true
   max_issues_per_scan: 3
   cycle_interval: 3
+
+# ── Anchor framework ──────────────────────────────────────────────────────────
+# kro-ui's anchor is its Playwright E2E suite. The anchor score is posted to issue #439
+# by the SM phase after each E2E run. See docs/design/26-anchor-kro-ui.md.
+anchor:
+  workflow: "e2e.yml"                                          # Playwright E2E workflow
+  score_pattern: "journeys: (\\d+) \\| pass: (\\d+) fail: (\\d+)"  # matches [ANCHOR | kro-ui | DATE] lines
+  coverage_target: 60                                          # minimum depth score % for kro-ui
+  stagnation_sessions: 5                                       # sessions without anchor growth before COORD prioritizes
+  journeys_dir: "test/e2e/journeys"                            # used by SM §4g-anchor-parity for feature→journey gap detection
+
