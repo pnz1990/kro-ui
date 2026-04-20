@@ -275,4 +275,21 @@ test.describe('005: Live Instance Detail', () => {
     // YAML section must render
     await expect(page.getByTestId('node-yaml-section')).toBeVisible()
   })
+
+  // ── Step 12: error state — non-existent instance API ─────────────────────
+
+  test('Step 12: API returns 404 with structured error for non-existent instance', async ({ request }) => {
+    // The instance detail API must return a structured JSON error (not HTML or 500)
+    // when the instance or namespace does not exist.
+    const res = await request.get(
+      `${BASE}/api/v1/instances/does-not-exist-ns/does-not-exist-instance?rgd=test-app`
+    )
+
+    // Must be a client error (404) with a JSON body containing an error key.
+    // Never 500 (server error) or 200 (silently wrong).
+    expect([404, 400]).toContain(res.status())
+    const body = await res.json() as { error: string }
+    expect(typeof body.error).toBe('string')
+    expect(body.error.trim().length).toBeGreaterThan(0)
+  })
 })
