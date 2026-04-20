@@ -2025,6 +2025,12 @@
       "title": "test(k8s): cover fleet.go ContextClients and MetricsDiscoverer",
       "branch": "feat/issue-497",
       "pr": "498"
+    },
+    "507": {
+      "state": "done",
+      "title": "pickPod and pickPodFromClusterList coverage 84.6%\u2192100%",
+      "pr_merged": true,
+      "done_at": "2026-04-20T12:56:49Z"
     }
   },
   "sm_cycle_count": 3,
