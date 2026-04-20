@@ -566,3 +566,292 @@ func TestResolveKroServiceAccount(t *testing.T) {
 		})
 	}
 }
+
+// ── Tests for previously uncovered functions ─────────────────────────────────
+// These cover functions that had 0% statement coverage in internal/k8s/rbac.go.
+
+// TestResolveKroClusterRole verifies that the first ClusterRole bound to a given
+// service account via ClusterRoleBinding is returned, or "" if none is found.
+func TestResolveKroClusterRole(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+
+	tests := []struct {
+		name  string
+		build func(t *testing.T) (K8sClients, string, string)
+		check func(t *testing.T, clusterRole string)
+	}{
+		{
+			name: "CRB matches SA returns ClusterRole name",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				crb := unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "kro-binding"},
+					"subjects": []any{
+						map[string]any{
+							"kind":      "ServiceAccount",
+							"name":      "kro",
+							"namespace": "kro-system",
+						},
+					},
+					"roleRef": map[string]any{
+						"kind": "ClusterRole",
+						"name": "kro-manager",
+					},
+				}}
+				dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{crb}}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "kro"
+			},
+			check: func(t *testing.T, clusterRole string) {
+				t.Helper()
+				assert.Equal(t, "kro-manager", clusterRole)
+			},
+		},
+		{
+			name: "no CRB returns empty string",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "kro"
+			},
+			check: func(t *testing.T, clusterRole string) {
+				t.Helper()
+				assert.Equal(t, "", clusterRole)
+			},
+		},
+		{
+			name: "CRB with non-ClusterRole roleRef is skipped",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				crb := unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "kro-binding"},
+					"subjects": []any{
+						map[string]any{
+							"kind":      "ServiceAccount",
+							"name":      "kro",
+							"namespace": "kro-system",
+						},
+					},
+					"roleRef": map[string]any{
+						"kind": "Role",
+						"name": "kro-role",
+					},
+				}}
+				dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{crb}}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "kro"
+			},
+			check: func(t *testing.T, clusterRole string) {
+				t.Helper()
+				assert.Equal(t, "", clusterRole, "Role (not ClusterRole) roleRef must be skipped")
+			},
+		},
+		{
+			name: "SA namespace mismatch returns empty string",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				crb := unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "kro-binding"},
+					"subjects": []any{
+						map[string]any{
+							"kind":      "ServiceAccount",
+							"name":      "kro",
+							"namespace": "other-namespace",
+						},
+					},
+					"roleRef": map[string]any{
+						"kind": "ClusterRole",
+						"name": "kro-manager",
+					},
+				}}
+				dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{crb}}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "kro"
+			},
+			check: func(t *testing.T, clusterRole string) {
+				t.Helper()
+				assert.Equal(t, "", clusterRole, "SA with different namespace must not match")
+			},
+		},
+		{
+			name: "list error returns empty string gracefully",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "kro"
+			},
+			check: func(t *testing.T, clusterRole string) {
+				t.Helper()
+				assert.Equal(t, "", clusterRole, "list error must return empty string not panic")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, saNS, saName := tt.build(t)
+			role := ResolveKroClusterRole(ctx, clients, saNS, saName)
+			tt.check(t, role)
+		})
+	}
+}
+
+// TestSplitAPIVersion verifies that splitAPIVersion correctly splits group/version
+// strings and handles core resources (version without group prefix).
+func TestSplitAPIVersion(t *testing.T) {
+	tests := []struct {
+		name       string
+		apiVersion string
+		wantGroup  string
+		wantVer    string
+	}{
+		{name: "group/version splits correctly", apiVersion: "apps/v1", wantGroup: "apps", wantVer: "v1"},
+		{name: "core resource has empty group", apiVersion: "v1", wantGroup: "", wantVer: "v1"},
+		{name: "custom group/version", apiVersion: "networking.k8s.io/v1", wantGroup: "networking.k8s.io", wantVer: "v1"},
+		{name: "empty string", apiVersion: "", wantGroup: "", wantVer: ""},
+		{name: "kro API group", apiVersion: "kro.run/v1alpha1", wantGroup: "kro.run", wantVer: "v1alpha1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			group, version := splitAPIVersion(tt.apiVersion)
+			assert.Equal(t, tt.wantGroup, group, "group mismatch for %q", tt.apiVersion)
+			assert.Equal(t, tt.wantVer, version, "version mismatch for %q", tt.apiVersion)
+		})
+	}
+}
+
+// TestComputeAccessResult_EmptySA verifies that ComputeAccessResult short-circuits
+// when saNS is empty, returning an empty result without making cluster calls.
+func TestComputeAccessResult_EmptySA(t *testing.T) {
+	ctx := context.Background()
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{},
+		},
+	}
+
+	result, err := ComputeAccessResult(ctx, clients, rgdObj, "", "kro", false)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "", result.ServiceAccount)
+	assert.False(t, result.ServiceAccountFound)
+	assert.False(t, result.HasGaps)
+	assert.Empty(t, result.Permissions)
+}
+
+// TestComputeAccessResult_WithPermissions verifies the full permission matrix
+// is computed when SA is resolved and the RGD has known resources.
+func TestComputeAccessResult_WithPermissions(t *testing.T) {
+	ctx := context.Background()
+
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	dyn.resources[crGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+	disc := newStubDiscovery()
+	disc.resources["apps/v1"] = &metav1.APIResourceList{
+		GroupVersion: "apps/v1",
+		APIResources: []metav1.APIResource{
+			{Name: "deployments", Kind: "Deployment", Namespaced: true},
+		},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: disc}
+
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"id": "my-deployment",
+					"template": map[string]any{
+						"apiVersion": "apps/v1",
+						"kind":       "Deployment",
+					},
+				},
+			},
+		},
+	}
+
+	result, err := ComputeAccessResult(ctx, clients, rgdObj, "kro-system", "kro", true)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "kro-system/kro", result.ServiceAccount)
+	assert.True(t, result.ServiceAccountFound)
+	assert.True(t, result.HasGaps, "no RBAC rules means permission gaps exist")
+	assert.Len(t, result.Permissions, 1)
+	assert.Equal(t, "deployments", result.Permissions[0].Resource)
+}
+
+// TestFetchRoleRules verifies that namespace-scoped Role rules are fetched correctly.
+func TestFetchRoleRules(t *testing.T) {
+	ctx := context.Background()
+	roleGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "roles"}
+
+	tests := []struct {
+		name  string
+		build func(t *testing.T) (K8sClients, string, string)
+		check func(t *testing.T, rules []policyRule, err error)
+	}{
+		{
+			name: "Role in namespace returns its rules",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				role := unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "kro-role", "namespace": "kro-system"},
+					"rules": []any{
+						map[string]any{
+							"apiGroups": []any{""},
+							"resources": []any{"configmaps"},
+							"verbs":     []any{"get", "list"},
+						},
+					},
+				}}
+				dyn.resources[roleGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"kro-system": {getItems: map[string]*unstructured.Unstructured{"kro-role": &role}},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "kro-role"
+			},
+			check: func(t *testing.T, rules []policyRule, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				require.Len(t, rules, 1)
+				assert.Equal(t, []string{""}, rules[0].APIGroups)
+				assert.Equal(t, []string{"configmaps"}, rules[0].Resources)
+				assert.Equal(t, []string{"get", "list"}, rules[0].Verbs)
+			},
+		},
+		{
+			name: "Role not found returns error",
+			build: func(t *testing.T) (K8sClients, string, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "kro-system", "nonexistent"
+			},
+			check: func(t *testing.T, rules []policyRule, err error) {
+				t.Helper()
+				require.Error(t, err, "missing Role must return error")
+				assert.Nil(t, rules)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, ns, name := tt.build(t)
+			rules, err := fetchRoleRules(ctx, clients, ns, name)
+			tt.check(t, rules, err)
+		})
+	}
+}
