@@ -33,6 +33,9 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 - 🔲 RGD detail: full side-by-side YAML diff for graph revisions (spec 009 — foundation in PR #318)
 - 🔲 RGD list: bulk operations (delete multiple, export selected)
 - 🔲 Catalog: saved searches and filter presets
+- 🔲 DAG scale guard: RGDs with >100 nodes render a dense unreadable SVG today; add a collapsed-by-depth mode and a text-mode list fallback triggered when node count exceeds a threshold (suggested: 100); without this, a kubernetes-sigs maintainer testing with a production-scale RGD will see a locked-up browser
+- 🔲 DAG minimap: for large graphs (>50 nodes) add a fixed-position mini-map (SVG overlay, no extra dependencies) so operators can orient themselves without scrolling; required for usability at real scale
+- 🔲 GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 laid the foundation — added node diff annotations); the full diff experience (two-panel layout, line-level diff, navigate-by-change arrows) is still missing; a kubernetes-sigs reviewer would flag this as an incomplete feature
 
 ---
 
