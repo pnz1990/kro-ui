@@ -13,6 +13,11 @@
       "last_seen": "2026-04-20T08:56:14Z",
       "item": "coord",
       "cycle": 1
+    },
+    "sess-475a6159": {
+      "last_seen": "2026-04-20T10:42:22Z",
+      "item": "coord",
+      "cycle": 1
     }
   },
   "features": {
@@ -1942,7 +1947,7 @@
       "done_at": "2026-04-20T07:29:40Z"
     },
     "issue-477": {
-      "state": "in_review",
+      "state": "done",
       "title": "test(k8s): cover capabilities \u2014 detectSchemaCapabilities, getResourceItemProperties, String()",
       "issue_number": 477,
       "areas": [
@@ -1958,7 +1963,7 @@
       "pr_number": 481
     },
     "issue-478": {
-      "state": "in_review",
+      "state": "done",
       "title": "test(k8s): cover rbac.go \u2014 FetchEffectiveRules, extractRGDGVRs, matchesResource",
       "issue_number": 478,
       "areas": [
@@ -1970,7 +1975,7 @@
       "pr_number": 482
     },
     "issue-479": {
-      "state": "in_review",
+      "state": "done",
       "title": "test(k8s): cover rgd.go ResolveInstanceGVR and DiscoverPlural edge cases",
       "issue_number": 479,
       "areas": [
@@ -1982,13 +1987,13 @@
       "pr_number": 483
     },
     "fix-security-workflow-yaml": {
-      "state": "in_review",
+      "state": "done",
       "pr_number": 480,
       "pr_merged": true,
       "title": "fix-security-workflow-yaml"
     },
     "issue-484": {
-      "state": "in_review",
+      "state": "done",
       "title": "test(handlers): cover GetRGD and ListInstances error paths",
       "issue_number": 484,
       "areas": [
@@ -2000,7 +2005,7 @@
       "pr_number": 486
     },
     "issue-485": {
-      "state": "in_review",
+      "state": "done",
       "title": "test(handlers): cover FleetSummary, ListEvents, buildRelevantUIDs error paths",
       "issue_number": 485,
       "areas": [
@@ -2012,10 +2017,16 @@
       "pr_number": 487
     },
     "issue-488": {
-      "state": "in_review",
+      "state": "done",
       "pr_number": 489
+    },
+    "issue-497": {
+      "state": "done",
+      "title": "test(k8s): cover fleet.go ContextClients and MetricsDiscoverer",
+      "branch": "feat/issue-497",
+      "pr": "498"
     }
   },
-  "sm_cycle_count": 2,
-  "pm_cycle_count": 1
+  "sm_cycle_count": 3,
+  "pm_cycle_count": 2
 }
