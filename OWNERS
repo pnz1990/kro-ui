@@ -1,4 +1,7 @@
 # See the OWNERS docs at https://go.k8s.io/owners
+#
+# kubernetes-sigs org requires >= 2 approvers before a project can be donated.
+# See GOVERNANCE.md for the path to become a reviewer or approver.
 
 approvers:
   - pnz1990
