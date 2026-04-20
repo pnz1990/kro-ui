@@ -112,3 +112,21 @@ test.describe('Journey 064: Fleet cluster card reconciling count badge', () => {
     }
   })
 })
+
+// ── Error resilience: fleet summary API unavailable ──────────────────────────
+
+test.describe('Journey 064 — Error resilience: fleet summary API unavailable', () => {
+  test('Step E1: Fleet page renders gracefully when /api/v1/fleet/summary fails', async ({ page }) => {
+    // Mock fleet summary endpoint to return 503
+    await page.route('**/api/v1/fleet/summary', async route => {
+      await route.fulfill({ status: 503, body: JSON.stringify({ error: 'service unavailable' }) })
+    })
+    await page.goto(`${BASE}/fleet`)
+    // Page must not show raw error strings
+    await expect(page.locator('body')).not.toContainText('[object Object]', { timeout: 15000 })
+    await expect(page.locator('body')).not.toContainText('undefined')
+    // Layout chrome must render
+    const layout = page.locator('header, nav, main, [class*="layout"]').first()
+    await expect(layout).toBeVisible({ timeout: 10000 })
+  })
+})

@@ -237,3 +237,21 @@ test.describe('Journey 063 — US3: CEL hash functions in Designer help text', (
 
 // ── Brace balance check ───────────────────────────────────────────────────────
 // This file uses only test.describe + test (no extra closing braces needed)
+
+// ── Error resilience: capabilities API unavailable ───────────────────────────
+
+test.describe('Journey 063 — Error resilience: capabilities API unavailable', () => {
+  test('Step E1: page renders layout without crash when capabilities API fails', async ({ page }) => {
+    // Mock capabilities endpoint to return 503
+    await page.route('**/api/v1/kro/capabilities', async route => {
+      await route.fulfill({ status: 503, body: JSON.stringify({ error: 'service unavailable' }) })
+    })
+    await page.goto(`${BASE}/rgds`)
+    // Page must not show raw error strings
+    await expect(page.locator('body')).not.toContainText('[object Object]', { timeout: 15000 })
+    await expect(page.locator('body')).not.toContainText('undefined')
+    // Layout chrome must render
+    const layout = page.locator('header, nav, main, [class*="layout"]').first()
+    await expect(layout).toBeVisible({ timeout: 10000 })
+  })
+})
