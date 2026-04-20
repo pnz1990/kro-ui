@@ -245,6 +245,28 @@ func TestGetInstanceEvents(t *testing.T) {
 				assert.NotContains(t, body, `"error"`)
 			},
 		},
+		{
+			name:  "returns 500 when event list fails",
+			ns:    "kro-ui-e2e",
+			iname: "test-instance",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[eventsGVR] = &stubNamespaceableResource{
+					nsResources: map[string]*stubResourceClient{
+						"kro-ui-e2e": {
+							listErr: fmt.Errorf("cluster unavailable"),
+						},
+					},
+				}
+				return newRGDTestHandler(dyn, newStubDiscovery())
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusInternalServerError, rr.Code)
+				assert.Contains(t, rr.Body.String(), `"error"`)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -612,4 +634,108 @@ func TestGetResource(t *testing.T) {
 			tt.check(t, rr)
 		})
 	}
+}
+
+// ── GetResource branch coverage ───────────────────────────────────────────────
+
+// TestGetResource_ClusterScoped verifies that namespace="_" is treated as
+// cluster-scoped (empty namespace), and the resource is fetched via the
+// non-namespaced path.
+func TestGetResource_ClusterScoped(t *testing.T) {
+	nsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}
+	nsObj := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "v1",
+		"kind":       "Namespace",
+		"metadata":   map[string]any{"name": "kro-system"},
+	}}
+
+	dyn := newStubDynamic()
+	// Cluster-scoped resources are fetched without a namespace
+	dyn.resources[nsGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"kro-system": nsObj},
+	}
+
+	disc := newStubDiscovery()
+	disc.resources["v1"] = &metav1.APIResourceList{
+		GroupVersion: "v1",
+		APIResources: []metav1.APIResource{
+			{Name: "namespaces", Kind: "Namespace", Namespaced: false, Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+	h := newRGDTestHandler(dyn, disc)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/resources/{namespace}/{group}/{version}/{kind}/{name}", h.GetResource)
+
+	// namespace "_" means cluster-scoped
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/resources/_/_/v1/Namespace/kro-system", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"kro-system"`)
+}
+
+// TestGetResource_DiscoverPluralFallback verifies that when DiscoverPlural fails,
+// the naive lowercase+s plural is used as fallback.
+func TestGetResource_DiscoverPluralFallback(t *testing.T) {
+	// Widget → widgets (naive plural fallback)
+	widgetGVR := schema.GroupVersionResource{Group: "widgets.example.com", Version: "v1", Resource: "widgets"}
+	widgetObj := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "widgets.example.com/v1",
+		"kind":       "Widget",
+		"metadata":   map[string]any{"name": "my-widget", "namespace": "default"},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[widgetGVR] = &stubNamespaceableResource{
+		nsResources: map[string]*stubResourceClient{
+			"default": {getItems: map[string]*unstructured.Unstructured{"my-widget": widgetObj}},
+		},
+	}
+
+	// No discovery resources registered — DiscoverPlural will fail, naive plural used
+	h := newRGDTestHandler(dyn, newStubDiscovery())
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/resources/{namespace}/{group}/{version}/{kind}/{name}", h.GetResource)
+
+	req := httptest.NewRequest(http.MethodGet,
+		"/api/v1/resources/default/widgets.example.com/v1/Widget/my-widget", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"my-widget"`)
+}
+
+// ── GetInstanceChildren error coverage ────────────────────────────────────────
+
+// TestGetInstanceChildren_ListError verifies that when listChildResources
+// fails, GetInstanceChildren returns 500.
+func TestGetInstanceChildren_ListError(t *testing.T) {
+	// Register discovery resources so GetInstanceChildren can enumerate types
+	disc := newStubDiscovery()
+	disc.resources["v1"] = &metav1.APIResourceList{
+		GroupVersion: "v1",
+		APIResources: []metav1.APIResource{
+			{Name: "configmaps", Kind: "ConfigMap", Namespaced: true, Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+	// Mock CachedServerGroupsAndResources to return an error
+	// (discovery error causes listChildResources to fail)
+	disc.err = fmt.Errorf("discovery error")
+
+	dyn := newStubDynamic()
+	h := newRGDTestHandler(dyn, disc)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/instances/{namespace}/{name}/children", h.GetInstanceChildren)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/default/my-inst/children", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"error"`)
 }
