@@ -23,7 +23,7 @@ on:
 # which would cause distributed lock conflicts and wasted Bedrock tokens.
 concurrency:
   group: otherness-scheduled
-  cancel-in-progress: true
+  cancel-in-progress: false  # sessions must complete; 120min timeout is the ceiling
 
 jobs:
   otherness:
