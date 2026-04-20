@@ -9,8 +9,18 @@ on:
     types: [opened, synchronize, reopened]
   issues:
     types: [labeled]
+  push:
+    branches: [main]
 
 jobs:
+  # ── no-op: handle push events gracefully (all real jobs require PR/issue context)
+  push-noop:
+    name: push — no security checks required
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Security checks are PR/issue-scoped. Push to main is not checked here."
+
   # ── M8: AGENTS.md change detection ────────────────────────────────────────
   agents-md-guard:
     name: M8 — AGENTS.md security check
