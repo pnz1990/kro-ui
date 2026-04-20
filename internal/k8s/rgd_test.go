@@ -1059,3 +1059,288 @@ func TestListChildResourcesForRGD(t *testing.T) {
 		})
 	}
 }
+
+// ── ResolveInstanceGVR tests ──────────────────────────────────────────────────
+
+func TestResolveInstanceGVR(t *testing.T) {
+	ctx := context.Background()
+
+	rgdGVR := schema.GroupVersionResource{Group: KroGroup, Version: "v1alpha1", Resource: RGDResource}
+
+	tests := []struct {
+		name  string
+		build func(t *testing.T) (K8sClients, string)
+		check func(t *testing.T, gvr schema.GroupVersionResource, err error)
+	}{
+		{
+			name: "empty rgdName returns error",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				return &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}, ""
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "rgd query param required")
+			},
+		},
+		{
+			name: "RGD not found returns error",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getErr: fmt.Errorf("not found"),
+				}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "my-rgd"
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "my-rgd")
+			},
+		},
+		{
+			name: "RGD with no schema.kind returns error",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				rgd := &unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "my-rgd"},
+					"spec": map[string]any{
+						"schema": map[string]any{
+							// no "kind" field
+							"apiVersion": "v1alpha1",
+						},
+					},
+				}}
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"my-rgd": rgd},
+				}
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "my-rgd"
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "schema kind")
+			},
+		},
+		{
+			name: "RGD with kind discovered via CachedServerGroupsAndResources",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				rgd := &unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "webapp-rgd"},
+					"spec": map[string]any{
+						"schema": map[string]any{
+							"kind":       "WebApp",
+							"group":      "kro.run",
+							"apiVersion": "v1alpha1",
+						},
+					},
+				}}
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"webapp-rgd": rgd},
+				}
+				disc := newStubDiscovery()
+				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+					GroupVersion: "kro.run/v1alpha1",
+					APIResources: []metav1.APIResource{
+						{Name: "webapps", Kind: "WebApp"},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: disc}, "webapp-rgd"
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				assert.Equal(t, "kro.run", gvr.Group)
+				assert.Equal(t, "v1alpha1", gvr.Version)
+				assert.Equal(t, "webapps", gvr.Resource)
+			},
+		},
+		{
+			name: "RGD with default group (KroGroup) when group is empty",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				rgd := &unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "my-rgd"},
+					"spec": map[string]any{
+						"schema": map[string]any{
+							"kind": "MyKind",
+							// group is empty — defaults to KroGroup
+						},
+					},
+				}}
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"my-rgd": rgd},
+				}
+				disc := newStubDiscovery()
+				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+					GroupVersion: "kro.run/v1alpha1",
+					APIResources: []metav1.APIResource{
+						{Name: "mykinds", Kind: "MyKind"},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-rgd"
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				assert.Equal(t, KroGroup, gvr.Group, "empty group should default to KroGroup")
+				assert.Equal(t, "mykinds", gvr.Resource)
+			},
+		},
+		{
+			name: "RGD with default version (v1alpha1) when apiVersion is empty",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				rgd := &unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "my-rgd"},
+					"spec": map[string]any{
+						"schema": map[string]any{
+							"kind":  "MyKind",
+							"group": "kro.run",
+							// apiVersion is empty — defaults to v1alpha1
+						},
+					},
+				}}
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"my-rgd": rgd},
+				}
+				disc := newStubDiscovery()
+				disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+					GroupVersion: "kro.run/v1alpha1",
+					APIResources: []metav1.APIResource{
+						{Name: "mykinds", Kind: "MyKind"},
+					},
+				}
+				return &stubK8sClients{dyn: dyn, disc: disc}, "my-rgd"
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.NoError(t, err)
+				assert.Equal(t, "v1alpha1", gvr.Version, "empty apiVersion should default to v1alpha1")
+			},
+		},
+		{
+			name: "DiscoverPlural failure falls back to naive plural",
+			build: func(t *testing.T) (K8sClients, string) {
+				t.Helper()
+				dyn := newStubDynamic()
+				rgd := &unstructured.Unstructured{Object: map[string]any{
+					"metadata": map[string]any{"name": "widget-rgd"},
+					"spec": map[string]any{
+						"schema": map[string]any{
+							"kind":  "Widget",
+							"group": "widgets.example.com",
+						},
+					},
+				}}
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					getItems: map[string]*unstructured.Unstructured{"widget-rgd": rgd},
+				}
+				// No discovery resources registered — DiscoverPlural will fail
+				return &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}, "widget-rgd"
+			},
+			check: func(t *testing.T, gvr schema.GroupVersionResource, err error) {
+				t.Helper()
+				require.NoError(t, err, "DiscoverPlural failure must not propagate — naive plural used")
+				assert.Equal(t, "widgets", gvr.Resource, "naive plural fallback: Widget → widgets")
+				assert.Equal(t, "widgets.example.com", gvr.Group)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clients, rgdName := tt.build(t)
+			gvr, err := ResolveInstanceGVR(ctx, clients, rgdName)
+			tt.check(t, gvr, err)
+		})
+	}
+}
+
+// ── DiscoverPlural edge cases ─────────────────────────────────────────────────
+
+// TestDiscoverPlural_CacheHit verifies that DiscoverPlural uses cached results
+// when the GroupVersion is present in the cache.
+func TestDiscoverPlural_CacheHit(t *testing.T) {
+	disc := newStubDiscovery()
+	disc.resources["apps/v1"] = &metav1.APIResourceList{
+		GroupVersion: "apps/v1",
+		APIResources: []metav1.APIResource{
+			{Name: "deployments", Kind: "Deployment"},
+		},
+	}
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+	plural, err := DiscoverPlural(clients, "apps", "v1", "Deployment")
+	require.NoError(t, err)
+	assert.Equal(t, "deployments", plural)
+}
+
+// TestDiscoverPlural_CacheMissFallsBackToDirectLookup verifies that when the
+// GroupVersion is absent from the cache, a targeted ServerResourcesForGroupVersion
+// call is made and succeeds.
+func TestDiscoverPlural_CacheMissFallsBackToDirectLookup(t *testing.T) {
+	disc := newStubDiscovery()
+	// Cache has no "widgets.example.com/v1" entry, but direct lookup will succeed.
+	disc.resources["widgets.example.com/v1"] = &metav1.APIResourceList{
+		GroupVersion: "widgets.example.com/v1",
+		APIResources: []metav1.APIResource{
+			{Name: "widgets", Kind: "Widget"},
+		},
+	}
+	// CachedServerGroupsAndResources returns empty (cache miss simulation)
+	// by having no matching GV in the cache but the direct call succeeds.
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+	plural, err := DiscoverPlural(clients, "widgets.example.com", "v1", "Widget")
+	require.NoError(t, err)
+	assert.Equal(t, "widgets", plural)
+}
+
+// TestDiscoverPlural_DirectLookupFails verifies that when both cache and direct
+// lookup fail, an error is returned.
+func TestDiscoverPlural_DirectLookupFails(t *testing.T) {
+	disc := newStubDiscovery()
+	// No resources registered — both cache and direct lookup fail.
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+	_, err := DiscoverPlural(clients, "unknown.group", "v1", "Unknown")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "discovery for")
+}
+
+// TestDiscoverPlural_KindNotFoundInGroupVersion verifies that when the GV is
+// discoverable but the kind is absent, an error is returned.
+func TestDiscoverPlural_KindNotFoundInGroupVersion(t *testing.T) {
+	disc := newStubDiscovery()
+	disc.resources["apps/v1"] = &metav1.APIResourceList{
+		GroupVersion: "apps/v1",
+		APIResources: []metav1.APIResource{
+			{Name: "deployments", Kind: "Deployment"},
+		},
+	}
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+	_, err := DiscoverPlural(clients, "apps", "v1", "StatefulSet")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// TestDiscoverPlural_CoreGroup verifies that core group (empty group string)
+// is handled correctly — the gv string should be just the version ("v1").
+func TestDiscoverPlural_CoreGroup(t *testing.T) {
+	disc := newStubDiscovery()
+	disc.resources["v1"] = &metav1.APIResourceList{
+		GroupVersion: "v1",
+		APIResources: []metav1.APIResource{
+			{Name: "configmaps", Kind: "ConfigMap"},
+		},
+	}
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+	plural, err := DiscoverPlural(clients, "", "v1", "ConfigMap")
+	require.NoError(t, err)
+	assert.Equal(t, "configmaps", plural)
+}
