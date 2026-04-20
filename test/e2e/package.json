@@ -1,18 +1,19 @@
 {
-  "name": "kro-ui-e2e",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "playwright test",
-    "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed",
-    "report": "playwright show-report"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "@playwright/test": "^1.50.0",
-    "@types/node": "^25.5.0",
-    "typescript": "~6.0.2"
-  }
+    "name": "kro-ui-e2e",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "playwright test",
+        "test:ui": "playwright test --ui",
+        "test:headed": "playwright test --headed",
+        "report": "playwright show-report"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "@axe-core/playwright": "^4.10.0",
+        "@playwright/test": "^1.50.0",
+        "@types/node": "^25.5.0",
+        "typescript": "~6.0.2"
+    }
 }
