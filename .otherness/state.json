@@ -2031,8 +2031,13 @@
       "title": "pickPod and pickPodFromClusterList coverage 84.6%\u2192100%",
       "pr_merged": true,
       "done_at": "2026-04-20T12:56:49Z"
+    },
+    "513": {
+      "state": "done",
+      "pr_merged": true,
+      "done_at": "2026-04-20T13:59:45Z"
     }
   },
-  "sm_cycle_count": 3,
-  "pm_cycle_count": 2
+  "sm_cycle_count": 4,
+  "pm_cycle_count": 3
 }
