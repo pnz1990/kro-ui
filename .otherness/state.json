@@ -2053,6 +2053,168 @@
       "title": "issue-520: test coverage improvements",
       "pr_merged": true,
       "done_at": "2026-04-20T15:26:12Z"
+    },
+    "issue-529": {
+      "state": "todo",
+      "title": "27.2 \u2014 Accessibility pass: all Tier 1 pages pass axe-core",
+      "issue_number": 529,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-530": {
+      "state": "todo",
+      "title": "27.4 \u2014 Performance budget: Overview page load <1s on 50-RGD cluster",
+      "issue_number": 530,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-531": {
+      "state": "todo",
+      "title": "27.6 \u2014 Error state coverage: every page that fetches data must show error state",
+      "issue_number": 531,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-532": {
+      "state": "todo",
+      "title": "27.7 \u2014 Donation readiness checklist: CNCF sandbox criteria",
+      "issue_number": 532,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-523": {
+      "state": "todo",
+      "title": "27.1 \u2014 kro release tracking automation",
+      "issue_number": 523,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-525": {
+      "state": "todo",
+      "title": "27.5 \u2014 kro-ui v0.10.0 release",
+      "issue_number": 525,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-533": {
+      "state": "todo",
+      "title": "RGD detail: full side-by-side YAML diff for graph revisions",
+      "issue_number": 533,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-534": {
+      "state": "todo",
+      "title": "RGD list: bulk operations (delete multiple, export selected)",
+      "issue_number": 534,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-535": {
+      "state": "todo",
+      "title": "Catalog: saved searches and filter presets",
+      "issue_number": 535,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-536": {
+      "state": "todo",
+      "title": "Instance bulk operations: select multiple instances, bulk delete",
+      "issue_number": 536,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-537": {
+      "state": "todo",
+      "title": "Instance diff: full side-by-side comparison between two instance snapshots",
+      "issue_number": 537,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-538": {
+      "state": "todo",
+      "title": "Instance resource graph: show all k8s resources owned by this instance",
+      "issue_number": 538,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-539": {
+      "state": "todo",
+      "title": "Health trend chart: sparkline showing health state changes over last 24h",
+      "issue_number": 539,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-540": {
+      "state": "todo",
+      "title": "Health alert subscriptions: notify when RGD/instance enters error state",
+      "issue_number": 540,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-541": {
+      "state": "todo",
+      "title": "Condition detail drill-down: expand each condition with message, transition time",
+      "issue_number": 541,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-542": {
+      "state": "todo",
+      "title": "Designer: import existing RGD from cluster",
+      "issue_number": 542,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-543": {
+      "state": "todo",
+      "title": "Designer: node library \u2014 drag-and-drop from common resource templates",
+      "issue_number": 543,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
+    },
+    "issue-544": {
+      "state": "todo",
+      "title": "Designer: collaboration mode \u2014 share designer URL with readonly view",
+      "issue_number": 544,
+      "priority": "medium",
+      "labels": [
+        "kind/enhancement"
+      ]
     }
   },
   "sm_cycle_count": 5,
