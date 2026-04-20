@@ -2055,13 +2055,16 @@
       "done_at": "2026-04-20T15:26:12Z"
     },
     "issue-529": {
-      "state": "todo",
-      "title": "27.2 \u2014 Accessibility pass: all Tier 1 pages pass axe-core",
+      "state": "done",
+      "title": "test(e2e): register journey 074 (accessibility) in Playwright chunk-9",
       "issue_number": 529,
       "priority": "medium",
       "labels": [
         "kind/enhancement"
-      ]
+      ],
+      "pr_merged": true,
+      "pr_number": 546,
+      "done_at": "2026-04-20T17:07:29Z"
     },
     "issue-530": {
       "state": "todo",
