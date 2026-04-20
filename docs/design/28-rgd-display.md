@@ -36,6 +36,7 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 - 🔲 DAG scale guard: RGDs with >100 nodes render a dense unreadable SVG today; add a collapsed-by-depth mode and a text-mode list fallback triggered when node count exceeds a threshold (suggested: 100); without this, a kubernetes-sigs maintainer testing with a production-scale RGD will see a locked-up browser
 - 🔲 DAG minimap: for large graphs (>50 nodes) add a fixed-position mini-map (SVG overlay, no extra dependencies) so operators can orient themselves without scrolling; required for usability at real scale
 - 🔲 GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 laid the foundation — added node diff annotations); the full diff experience (two-panel layout, line-level diff, navigate-by-change arrows) is still missing; a kubernetes-sigs reviewer would flag this as an incomplete feature
+- 🔲 DAG keyboard navigation: DAG nodes are individual `role="button"` elements but there is no arrow-key navigation between them; a screen reader or keyboard-only user can Tab to each node sequentially but cannot use Arrow keys to move through the graph topology; add `onKeyDown` handlers for ArrowUp/ArrowDown/ArrowLeft/ArrowRight that move focus to the nearest adjacent node in the Dagre layout; WCAG 2.1 SC 2.1.1 requires all functionality to be accessible via keyboard without requiring specific timing
 
 ---
 
