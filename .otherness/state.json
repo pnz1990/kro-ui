@@ -2041,6 +2041,18 @@
       "state": "done",
       "pr_merged": true,
       "done_at": "2026-04-20T14:19:43Z"
+    },
+    "issue-519": {
+      "state": "done",
+      "title": "issue-519: test coverage improvements",
+      "pr_merged": true,
+      "done_at": "2026-04-20T15:26:12Z"
+    },
+    "issue-520": {
+      "state": "done",
+      "title": "issue-520: test coverage improvements",
+      "pr_merged": true,
+      "done_at": "2026-04-20T15:26:12Z"
     }
   },
   "sm_cycle_count": 5,
