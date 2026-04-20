@@ -34,6 +34,7 @@ release has landed since our last check:
 ## Present
 
 ✅ 27.0 — kro v0.9.1 support: GraphRevision CRD, hash column, CEL hash functions (PR #428)
+✅ 27.3 — Fleet persona anchor journey: 6-step journey covering multi-cluster fleet view → health matrix → context switch → per-cluster RGD count (journey 075, issue #524)
 
 ---
 
@@ -41,7 +42,6 @@ release has landed since our last check:
 
 - 🔲 27.1 — kro release tracking automation: SM §4a checks `kubernetes-sigs/kro` latest tag each batch; if newer than current supported version, opens a `feat(upstream): kro vX.Y support` issue automatically
 - 🔲 27.2 — Accessibility pass: all Tier 1 pages (Overview, RGD list, RGD detail, Instance detail) pass axe-core with 0 violations; add to E2E journey 074
-- 🔲 27.3 — Fleet persona anchor journey: 6-step journey covering multi-cluster fleet view → health matrix → context switch → per-cluster RGD count (journey 075)
 - 🔲 27.4 — Performance budget: Overview page load <1s on 50-RGD cluster; add Lighthouse CI check to CI pipeline
 - 🔲 27.5 — kro-ui v0.10.0 release: cut GitHub release with changelog, tag, and release notes generated from merged PRs since v0.9.4
 - 🔲 27.6 — Error state coverage: every page that fetches data must show a non-empty error state when the API returns 5xx; add E2E journeys 076-079 covering error states for Overview, Fleet, RGD detail, Instance detail
