@@ -10,6 +10,8 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      issues: write
 
     steps:
       - uses: actions/checkout@v6
@@ -118,7 +120,8 @@ jobs:
           fi
           DATE=$(date -u +%Y-%m-%d)
           gh issue comment 439 --repo pnz1990/kro-ui \
-            --body "[ANCHOR | kro-ui | ${DATE}] journeys: ${JOURNEYS} | pass: ${PASS} fail: ${FAIL}"
+            --body "[ANCHOR | kro-ui | ${DATE}] journeys: ${JOURNEYS} | pass: ${PASS} fail: ${FAIL}" \
+            || true  # non-fatal: anchor comment failure must not block CI
 
       # ── Artifacts ─────────────────────────────────────────────────────────
       - name: Upload Playwright report
