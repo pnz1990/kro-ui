@@ -121,6 +121,23 @@ func TestListGraphRevisions(t *testing.T) {
 				assert.Greater(t, idx1, idx3, "revision 3 must come before revision 1 (descending sort)")
 			},
 		},
+		{
+			name: "returns 500 on unexpected List error (not CRD-absent)",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[k8sclient.GraphRevisionGVR] = &stubNamespaceableResource{
+					listErr: fmt.Errorf("connection refused: etcd unavailable"),
+				}
+				return newGRTestHandler(dyn)
+			},
+			url: "/api/v1/kro/graph-revisions?rgd=my-app",
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusInternalServerError, rr.Code)
+				assert.Contains(t, rr.Body.String(), "failed to list graph revisions")
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -177,6 +194,23 @@ func TestGetGraphRevision(t *testing.T) {
 				t.Helper()
 				require.Equal(t, http.StatusNotFound, rr.Code)
 				assert.Contains(t, rr.Body.String(), "graph revision not found")
+			},
+		},
+		{
+			name:   "returns 500 on unexpected API error (not CRD-absent, not 404)",
+			grName: "my-app-1",
+			build: func(t *testing.T) *Handler {
+				t.Helper()
+				dyn := newStubDynamic()
+				dyn.resources[k8sclient.GraphRevisionGVR] = &stubNamespaceableResource{
+					getErr: fmt.Errorf("connection refused: etcd is down"),
+				}
+				return newGRTestHandler(dyn)
+			},
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				require.Equal(t, http.StatusInternalServerError, rr.Code)
+				assert.Contains(t, rr.Body.String(), "failed to get graph revision")
 			},
 		},
 		{
@@ -271,5 +305,40 @@ func TestRevisionNum(t *testing.T) {
 		if got := revisionNum(obj); got != 0 {
 			t.Errorf("expected 0, got %d", got)
 		}
+	})
+}
+
+// TestIsCRDNotFound tests the isCRDNotFound helper for known and unknown error strings.
+func TestIsCRDNotFound(t *testing.T) {
+	t.Run("nil error returns false", func(t *testing.T) {
+		assert.False(t, isCRDNotFound(nil))
+	})
+	t.Run("no matches for kind returns true", func(t *testing.T) {
+		assert.True(t, isCRDNotFound(fmt.Errorf("no matches for kind \"GraphRevision\" in group")))
+	})
+	t.Run("no kind returns true", func(t *testing.T) {
+		assert.True(t, isCRDNotFound(fmt.Errorf("no kind GraphRevision is registered")))
+	})
+	t.Run("server could not find resource returns true", func(t *testing.T) {
+		assert.True(t, isCRDNotFound(fmt.Errorf("the server could not find the requested resource")))
+	})
+	t.Run("not found in group returns true", func(t *testing.T) {
+		assert.True(t, isCRDNotFound(fmt.Errorf("GraphRevision not found in group internal.kro.run")))
+	})
+	t.Run("generic error returns false", func(t *testing.T) {
+		assert.False(t, isCRDNotFound(fmt.Errorf("connection refused")))
+	})
+}
+
+// TestIsNotFound tests the isNotFound helper.
+func TestIsNotFound(t *testing.T) {
+	t.Run("nil error returns false", func(t *testing.T) {
+		assert.False(t, isNotFound(nil))
+	})
+	t.Run("not found string returns true", func(t *testing.T) {
+		assert.True(t, isNotFound(fmt.Errorf("my-revision not found")))
+	})
+	t.Run("generic error returns false", func(t *testing.T) {
+		assert.False(t, isNotFound(fmt.Errorf("connection refused")))
 	})
 }

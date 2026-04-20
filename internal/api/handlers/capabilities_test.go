@@ -176,6 +176,21 @@ func TestCapabilitiesCacheInvalidate(t *testing.T) {
 	require.Nil(t, capCache.get(), "cache should be nil after explicit invalidate")
 }
 
+// TestInvalidateCapabilitiesCache verifies the package-level InvalidateCapabilitiesCache
+// helper clears the shared capCache so the next GetCapabilities call re-detects.
+func TestInvalidateCapabilitiesCache(t *testing.T) {
+	// Pre-populate the cache with a known value.
+	baseline := k8sclient.Baseline()
+	capCache.set(baseline)
+	require.NotNil(t, capCache.get(), "pre-condition: cache should be populated")
+
+	// Call the exported helper.
+	InvalidateCapabilitiesCache()
+
+	// Cache should now be nil.
+	require.Nil(t, capCache.get(), "cache should be nil after InvalidateCapabilitiesCache()")
+}
+
 // TestKroVersionFallbackFromInstances tests the version recovery fallback path in
 // GetCapabilities. When DetectCapabilities returns "unknown" (e.g. throttled cluster,
 // RBAC gap), kroVersionFromInstances scans RGD instances for the kro.run/kro-version
