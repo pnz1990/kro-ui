@@ -15,13 +15,12 @@ jobs:
       id-token: write        # AWS OIDC (Bedrock)
       contents: write        # push commits, create/merge branches
       pull-requests: write   # open/update/merge PRs, post review comments
-      issues: write          # create/label/close issues, post comments
-      actions: write         # trigger other workflows after push
+      issues: write          # create/label/close issues, post comments         # trigger other workflows after push
       statuses: write        # post commit statuses
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
@@ -53,7 +52,7 @@ jobs:
           [ $SYNCED -eq 1 ] && echo "[otherness] Command files synced." || echo "[otherness] Commands current."
 
       - name: Configure AWS credentials (Bedrock via OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c  # v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: otherness-bedrock
@@ -67,7 +66,7 @@ jobs:
           gh auth status
 
       - name: Run otherness
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@23fb5e0516c99ac04a1aa46c193efda2e1b9bb24  # v1.14.18
         env:
           AWS_REGION:          us-east-1
           GH_TOKEN:            ${{ secrets.GH_TOKEN }}
@@ -87,5 +86,12 @@ jobs:
                     m = re.match(r'^\s+agents_path:\s*[\"\'']?([^\"\'#\n]+)[\"\'']?', line)
                     if m: print(os.path.expanduser(m.group(1).strip())); break
             " 2>/dev/null || echo "$HOME/.otherness/agents")
+
+            # Security: validate agents_path is within ~/.otherness (doc 27 §M6)
+            ALLOWED_PREFIX="$HOME/.otherness"
+            if [[ "$AGENTS_PATH" != "$ALLOWED_PREFIX"* ]]; then
+              echo "Security: agents_path '$AGENTS_PATH' outside allowed prefix. Refusing."
+              exit 1
+            fi
 
             Read and follow $AGENTS_PATH/standalone.md.
