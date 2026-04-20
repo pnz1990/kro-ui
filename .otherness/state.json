@@ -1759,6 +1759,57 @@
       "pr_number": null,
       "pr_merged": true,
       "title": "063-kro-v091-upgrade"
+    },
+    "issue-448": {
+      "state": "todo",
+      "assigned_to": null,
+      "pr_number": null,
+      "pr_merged": false,
+      "title": "feat(e2e): anchor score comment \u2014 post [ANCHOR | kro-ui] to issue #439 after E2E run",
+      "issue_number": 448,
+      "labels": [
+        "kind/enhancement",
+        "priority/high",
+        "size/xs",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ]
+    },
+    "issue-449": {
+      "state": "todo",
+      "assigned_to": null,
+      "pr_number": null,
+      "pr_merged": false,
+      "title": "feat(e2e): journey depth \u2014 add error + empty states to Tier 1 journeys (001-007)",
+      "issue_number": 449,
+      "labels": [
+        "kind/enhancement",
+        "priority/high",
+        "size/m",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ]
+    },
+    "issue-450": {
+      "state": "todo",
+      "assigned_to": null,
+      "pr_number": null,
+      "pr_merged": false,
+      "title": "feat(e2e): first persona journey \u2014 Operator deploys RGD, verifies instances, checks health",
+      "issue_number": 450,
+      "labels": [
+        "kind/enhancement",
+        "priority/high",
+        "size/s",
+        "kro-ui"
+      ],
+      "areas": [
+        "area/e2e"
+      ]
     }
   }
 }
