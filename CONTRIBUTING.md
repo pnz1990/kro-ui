@@ -66,6 +66,34 @@ make test-e2e
 > commands that download modules must use `GOPROXY=direct GONOSUMDB="*"`.
 > The Makefile targets already set this — prefer `make go` and `make tidy`.
 
+## Developer Certificate of Origin (DCO)
+
+All commits must include a `Signed-off-by` trailer in the commit message. This
+certifies that you have the right to submit the work under the Apache 2.0
+license, per the [Developer Certificate of Origin](https://developercertificate.org/).
+
+Add the sign-off automatically:
+
+```bash
+git commit -s -m "feat(scope): description"
+# or
+git commit --signoff -m "feat(scope): description"
+```
+
+The resulting commit message will include:
+
+```
+feat(scope): description
+
+Signed-off-by: Your Name <your@email.com>
+```
+
+If you forgot to sign off: `git rebase --signoff HEAD~N` (where N is the number
+of commits to sign), then force-push your branch.
+
+DCO is enforced by CI on all PRs (`.github/workflows/dco.yml`). PRs with
+unsigned commits will not be merged.
+
 ## Commit Messages
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
