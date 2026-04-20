@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -402,4 +403,29 @@ func TestFleetSummary_AuthErrorShownAsAuthFailed(t *testing.T) {
 	body := rr.Body.String()
 	assert.Contains(t, body, `"restricted"`)
 	assert.Contains(t, body, string(types.ClusterAuthFailed))
+}
+
+// ── TestRealFleetClientBuilder_BuildClient (T031) ──────────────────────────────
+
+// TestRealFleetClientBuilder_BuildClient covers realFleetClientBuilder.BuildClient,
+// which is a thin adapter over k8sclient.BuildContextClient. Tests error and success paths.
+func TestRealFleetClientBuilder_BuildClient(t *testing.T) {
+	t.Run("returns error on missing kubeconfig", func(t *testing.T) {
+		b := &realFleetClientBuilder{kubeconfigPath: "/nonexistent/kubeconfig"}
+		_, err := b.BuildClient("/nonexistent/kubeconfig", "any-context")
+		require.Error(t, err, "must propagate BuildContextClient error")
+		assert.Contains(t, err.Error(), "build rest config")
+	})
+
+	t.Run("succeeds with a valid kubeconfig", func(t *testing.T) {
+		dir := t.TempDir()
+		path := dir + "/kubeconfig"
+		require.NoError(t, os.WriteFile(path, []byte(testKubeconfigForHandlerNew), 0600))
+
+		b := &realFleetClientBuilder{kubeconfigPath: path}
+		clients, err := b.BuildClient(path, "test")
+		require.NoError(t, err)
+		assert.NotNil(t, clients.Dynamic())
+		assert.NotNil(t, clients.Discovery())
+	})
 }
