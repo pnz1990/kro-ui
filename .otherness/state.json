@@ -1761,10 +1761,10 @@
       "title": "063-kro-v091-upgrade"
     },
     "issue-448": {
-      "state": "todo",
+      "state": "done",
       "assigned_to": null,
-      "pr_number": null,
-      "pr_merged": false,
+      "pr_number": 452,
+      "pr_merged": true,
       "title": "feat(e2e): anchor score comment \u2014 post [ANCHOR | kro-ui] to issue #439 after E2E run",
       "issue_number": 448,
       "labels": [
@@ -1775,7 +1775,8 @@
       ],
       "areas": [
         "area/e2e"
-      ]
+      ],
+      "done_at": "2026-04-20T02:15:11Z"
     },
     "issue-449": {
       "state": "todo",
