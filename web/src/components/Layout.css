@@ -39,6 +39,59 @@
   color: var(--color-text);
 }
 
+/* Cluster-unreachable banner (spec issue-582) */
+.layout__cluster-unreachable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: var(--color-error-bg);
+  border-bottom: 1px solid var(--color-status-error);
+  font-size: 13px;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.layout__cluster-unreachable-icon {
+  font-size: 13px;
+  color: var(--color-status-error);
+  flex-shrink: 0;
+}
+
+.layout__cluster-unreachable-msg {
+  flex: 1;
+}
+
+.layout__cluster-unreachable-retry {
+  background: none;
+  border: 1px solid var(--color-status-error);
+  color: var(--color-status-error);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.layout__cluster-unreachable-retry:hover {
+  background: var(--color-error-bg);
+}
+
+.layout__cluster-unreachable-dismiss {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.layout__cluster-unreachable-dismiss:hover {
+  color: var(--color-text);
+}
+
 .layout__content {
   flex: 1;
   padding: 24px 32px;

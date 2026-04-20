@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { describe, it, expect } from 'vitest'
-import { translateApiError } from './errors'
+import { translateApiError, isNetworkError } from './errors'
 
 describe('translateApiError', () => {
   // ── Pattern 1: resource not found ───────────────────────────────────────
@@ -222,6 +222,92 @@ describe('translateApiError', () => {
 
     it('matches "503" at end of string', () => {
       expect(translateApiError('upstream returned 503')).toContain('Cannot reach')
+    })
+  })
+})
+
+// ── isNetworkError ────────────────────────────────────────────────────────────
+describe('isNetworkError', () => {
+  // ── True positives — network-level failures ───────────────────────────────
+  describe('returns true for network-level errors', () => {
+    it('TypeError: Failed to fetch (browser network error)', () => {
+      expect(isNetworkError(new TypeError('Failed to fetch'))).toBe(true)
+    })
+
+    it('TypeError: Load failed (Safari equivalent)', () => {
+      expect(isNetworkError(new TypeError('Load failed'))).toBe(true)
+    })
+
+    it('TypeError: NetworkError (Firefox)', () => {
+      expect(isNetworkError(new TypeError('NetworkError when attempting to fetch resource.'))).toBe(true)
+    })
+
+    it('TypeError: Network request failed', () => {
+      expect(isNetworkError(new TypeError('Network request failed'))).toBe(true)
+    })
+
+    it('TypeError without recognisable message — any TypeError is network-level', () => {
+      // A TypeError from fetch always means a network failure (HTTP errors produce
+      // resolved Responses, not rejected TypeErrors)
+      expect(isNetworkError(new TypeError('some unexpected TypeError'))).toBe(true)
+    })
+
+    it('Error with "connection refused" in message (Go backend relay)', () => {
+      expect(isNetworkError(new Error('dial tcp 127.0.0.1:6443: connect: connection refused'))).toBe(true)
+    })
+
+    it('Error with "dial tcp" in message', () => {
+      expect(isNetworkError(new Error('dial tcp: lookup kubernetes.default: no such host'))).toBe(true)
+    })
+
+    it('plain string "Failed to fetch"', () => {
+      expect(isNetworkError('Failed to fetch')).toBe(true)
+    })
+
+    it('plain string "connection refused"', () => {
+      expect(isNetworkError('connection refused')).toBe(true)
+    })
+  })
+
+  // ── False positives guard — HTTP errors are NOT network failures ──────────
+  describe('returns false for HTTP error responses (server was reachable)', () => {
+    it('HTTP 404 error string', () => {
+      expect(isNetworkError(new Error('HTTP 404 Not Found'))).toBe(false)
+    })
+
+    it('HTTP 403 forbidden', () => {
+      expect(isNetworkError(new Error('403 forbidden'))).toBe(false)
+    })
+
+    it('HTTP 500 internal server error', () => {
+      expect(isNetworkError(new Error('500 internal server error'))).toBe(false)
+    })
+
+    it('generic runtime Error (not a network error)', () => {
+      expect(isNetworkError(new Error('JSON parse error'))).toBe(false)
+    })
+
+    it('RangeError is not a network error', () => {
+      expect(isNetworkError(new RangeError('Invalid value'))).toBe(false)
+    })
+  })
+
+  // ── Edge cases ─────────────────────────────────────────────────────────────
+  describe('edge cases', () => {
+    it('null returns false', () => {
+      expect(isNetworkError(null)).toBe(false)
+    })
+
+    it('undefined returns false', () => {
+      expect(isNetworkError(undefined)).toBe(false)
+    })
+
+    it('empty string returns false', () => {
+      expect(isNetworkError('')).toBe(false)
+    })
+
+    it('number returns false', () => {
+      expect(isNetworkError(503)).toBe(false)
     })
   })
 })
