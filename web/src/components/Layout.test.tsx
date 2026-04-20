@@ -32,9 +32,10 @@ vi.mock('./ContextSwitcher', () => ({
   ),
 }))
 
-import { listContexts } from '@/lib/api'
+import { listContexts, getCapabilities } from '@/lib/api'
 
 const mockedListContexts = vi.mocked(listContexts)
+const mockedGetCapabilities = vi.mocked(getCapabilities)
 
 function TestChild() {
   return <div data-testid="child-content">Child route content</div>
@@ -118,6 +119,146 @@ describe('Layout', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('context-name')).toHaveTextContent('other-ctx')
+    })
+  })
+})
+
+describe('Layout — cluster-unreachable banner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedListContexts.mockResolvedValue({ contexts: [], active: 'test-ctx' })
+  })
+
+  it('shows cluster-unreachable banner when getCapabilities fails with a network error', async () => {
+    mockedGetCapabilities.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('cluster-unreachable-banner')).toHaveAttribute('role', 'alert')
+    expect(screen.getByTestId('cluster-unreachable-banner')).toHaveTextContent(
+      'Cannot reach cluster',
+    )
+  })
+
+  it('does not show banner when getCapabilities succeeds', async () => {
+    mockedGetCapabilities.mockResolvedValue({
+      version: 'v0.9.1', apiVersion: 'kro.run/v1alpha1',
+      featureGates: {}, knownResources: [],
+      schema: { hasForEach: true, hasExternalRef: true, hasExternalRefSelector: true, hasScope: true, hasTypes: true, hasGraphRevisions: true },
+      isSupported: true,
+    })
+
+    renderLayout()
+
+    // Wait for the component to settle after successful fetch (capabilities loaded = no banner)
+    await waitFor(() => {
+      expect(screen.queryByTestId('cluster-unreachable-banner')).not.toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('child-content')).toBeInTheDocument()
+  })
+
+  it('does not show banner when getCapabilities fails with a non-network HTTP error', async () => {
+    // HTTP 403 is an HTTP error, not a network failure — cluster IS reachable
+    mockedGetCapabilities.mockRejectedValue(new Error('403 Forbidden'))
+
+    renderLayout()
+
+    // Use waitFor to confirm banner never appears (give it time to settle)
+    await waitFor(() => {
+      expect(screen.queryByTestId('cluster-unreachable-banner')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows banner when listContexts fails with a network error and getCapabilities also fails', async () => {
+    mockedListContexts.mockRejectedValue(new TypeError('Failed to fetch'))
+    mockedGetCapabilities.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
+    })
+  })
+
+  it('dismisses cluster-unreachable banner when dismiss button is clicked', async () => {
+    const user = userEvent.setup()
+    mockedGetCapabilities.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
+    })
+
+    const dismissBtn = screen.getByRole('button', { name: /dismiss cluster unreachable/i })
+    await user.click(dismissBtn)
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('cluster-unreachable-banner')).not.toBeInTheDocument()
+    })
+  })
+
+  it('banner includes a Retry button', async () => {
+    mockedGetCapabilities.mockRejectedValue(new TypeError('Failed to fetch'))
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+  })
+
+  it('clears cluster-unreachable banner after context switch when getCapabilities succeeds', async () => {
+    const user = userEvent.setup()
+    // Initial load: capabilities fail (network error)
+    mockedGetCapabilities.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    // After context switch: capabilities succeed
+    mockedGetCapabilities.mockResolvedValue({
+      version: 'v0.9.1', apiVersion: 'kro.run/v1alpha1',
+      featureGates: {}, knownResources: [],
+      schema: { hasForEach: true, hasExternalRef: true, hasExternalRefSelector: true, hasScope: true, hasTypes: true, hasGraphRevisions: true },
+      isSupported: true,
+    })
+
+    renderLayout()
+
+    // Banner appears on initial load
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
+    })
+
+    // Switch context — capabilities probe succeeds on new context
+    await user.click(screen.getByTestId('context-switcher-btn'))
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('cluster-unreachable-banner')).not.toBeInTheDocument()
+    })
+  })
+
+  it('shows banner for "connection refused" error message (Go backend surfacing k8s error)', async () => {
+    mockedGetCapabilities.mockRejectedValue(new Error('connection refused'))
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
+    })
+  })
+
+  it('shows banner for "dial tcp" error message (Go backend TCP dial failure)', async () => {
+    mockedGetCapabilities.mockRejectedValue(new Error('dial tcp: connect: connection refused'))
+
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('cluster-unreachable-banner')).toBeInTheDocument()
     })
   })
 })
