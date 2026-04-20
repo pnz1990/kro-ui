@@ -99,8 +99,10 @@ export default function Catalog() {
   const [showPresets, setShowPresets] = useState(false)
   const [saveFormOpen, setSaveFormOpen] = useState(false)
   const [presetNameInput, setPresetNameInput] = useState('')
+  const [focusedPresetIdx, setFocusedPresetIdx] = useState<number>(-1)
   const presetsDropdownRef = useRef<HTMLDivElement>(null)
   const saveInputRef = useRef<HTMLInputElement>(null)
+  const presetsBtnRef = useRef<HTMLButtonElement>(null)
 
   // Escape key: exit selection mode OR close presets dropdown
   useEffect(() => {
@@ -111,6 +113,8 @@ export default function Catalog() {
           setSelectedNames(new Set())
         } else if (showPresets) {
           setShowPresets(false)
+          setFocusedPresetIdx(-1)
+          presetsBtnRef.current?.focus()
         } else if (saveFormOpen) {
           setSaveFormOpen(false)
           setPresetNameInput('')
@@ -139,6 +143,15 @@ export default function Catalog() {
       setTimeout(() => saveInputRef.current?.focus(), 0)
     }
   }, [saveFormOpen])
+
+  // Focus the correct preset apply button when focusedPresetIdx changes
+  useEffect(() => {
+    if (!showPresets || focusedPresetIdx < 0 || !presetsDropdownRef.current) return
+    const buttons = presetsDropdownRef.current.querySelectorAll<HTMLButtonElement>(
+      '.catalog__preset-apply',
+    )
+    buttons[focusedPresetIdx]?.focus()
+  }, [showPresets, focusedPresetIdx])
 
   // Fetch all RGDs once on mount
   const fetchRGDs = useCallback(() => {
@@ -379,12 +392,26 @@ export default function Catalog() {
             </div>
           </div>
 
-          {/* spec issue-535: Presets dropdown (O3) */}
+          {/* spec issue-535: Presets dropdown (O3, O6) */}
           <div className="catalog__presets-wrap" ref={presetsDropdownRef}>
             <button
+              ref={presetsBtnRef}
               type="button"
               className={`catalog__presets-btn${showPresets ? ' catalog__presets-btn--open' : ''}`}
-              onClick={() => setShowPresets((v) => !v)}
+              onClick={() => { setShowPresets((v) => !v); setFocusedPresetIdx(-1) }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown' && !showPresets) {
+                  e.preventDefault()
+                  setShowPresets(true)
+                  setFocusedPresetIdx(0)
+                } else if (e.key === 'ArrowDown' && showPresets) {
+                  e.preventDefault()
+                  setFocusedPresetIdx((i) => Math.min(i + 1, presets.length - 1))
+                } else if (e.key === 'ArrowUp' && showPresets) {
+                  e.preventDefault()
+                  setFocusedPresetIdx((i) => Math.max(i - 1, 0))
+                }
+              }}
               aria-expanded={showPresets}
               aria-haspopup="listbox"
               data-testid="catalog-presets-toggle"
@@ -397,6 +424,18 @@ export default function Catalog() {
                 role="listbox"
                 aria-label="Saved filter presets"
                 data-testid="catalog-presets-dropdown"
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setFocusedPresetIdx((i) => Math.min(i + 1, presets.length - 1))
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setFocusedPresetIdx((i) => {
+                      if (i <= 0) { setShowPresets(false); presetsBtnRef.current?.focus(); return -1 }
+                      return i - 1
+                    })
+                  }
+                }}
               >
                 {presets.length === 0 ? (
                   <p className="catalog__presets-empty">No saved presets</p>
