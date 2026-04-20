@@ -24,7 +24,7 @@ jobs:
         language: [go, javascript-typescript]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.2
 
       - uses: actions/setup-go@v6
         if: matrix.language == 'go'
