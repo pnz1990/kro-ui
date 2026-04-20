@@ -20,8 +20,8 @@
       "cycle": 1
     },
     "sess-24f3554a": {
-      "last_seen": "2026-04-20T21:30:10Z",
-      "item": "issue-584",
+      "last_seen": "2026-04-20T21:56:16Z",
+      "item": "issue-570",
       "cycle": 1
     }
   },
@@ -2176,8 +2176,8 @@
       "priority": "medium"
     },
     "issue-570": {
-      "state": "todo",
-      "title": "feat: 27.8",
+      "state": "done",
+      "title": "docs: GOVERNANCE.md, CODE_OF_CONDUCT.md, OWNERS breadth \u2014 donation readiness",
       "issue_number": 570,
       "labels": [
         "kind/enhancement",
@@ -2185,10 +2185,22 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "assigned_to": "sess-24f3554a",
+      "assigned_at": "2026-04-20T21:56:16Z",
+      "branch": "feat/issue-570",
+      "worktree": "../kro-ui.issue-570",
+      "file_spaces": [
+        "docs/",
+        "GOVERNANCE.md",
+        "CODE_OF_CONDUCT.md"
+      ],
+      "pr_number": 592,
+      "pr_merged": true,
+      "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-571": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.9",
       "issue_number": 571,
       "labels": [
@@ -2197,7 +2209,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_number": 592,
+      "pr_merged": true,
+      "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-572": {
       "state": "todo",
@@ -2212,7 +2227,7 @@
       "priority": "medium"
     },
     "issue-573": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.11",
       "issue_number": 573,
       "labels": [
@@ -2221,7 +2236,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_number": 592,
+      "pr_merged": true,
+      "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-574": {
       "state": "todo",
