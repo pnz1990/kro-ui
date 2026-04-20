@@ -27,10 +27,10 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 - ✅ Home/Catalog IA rename: Home→Overview, subtitles (PR #179, 2026-04)
 - ✅ Graph Revisions tab: revision history, compiled status, age, expand YAML (PR #314, 2026-04)
 - ✅ Overview SRE dashboard: 7-widget single-cluster health view (PR #405, 2026-04)
+- ✅ RGD Catalog bulk export: multi-select + export selected RGDs as clean multi-document YAML (🔲→✅ 2026-04)
 
 ## Future (🔲)
 
-- 🔲 RGD list: bulk operations (delete multiple, export selected)
 - 🔲 Catalog: saved searches and filter presets
 - 🔲 DAG scale guard: RGDs with >100 nodes render a dense unreadable SVG today; add a collapsed-by-depth mode and a text-mode list fallback triggered when node count exceeds a threshold (suggested: 100); without this, a kubernetes-sigs maintainer testing with a production-scale RGD will see a locked-up browser
 - 🔲 DAG minimap: for large graphs (>50 nodes) add a fixed-position mini-map (SVG overlay, no extra dependencies) so operators can orient themselves without scrolling; required for usability at real scale

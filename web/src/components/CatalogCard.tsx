@@ -1,3 +1,4 @@
+// CatalogCard — spec issue-534: selectable prop for bulk export mode.
 import { Link } from 'react-router-dom'
 import type { K8sObject } from '@/lib/api'
 import {
@@ -26,6 +27,16 @@ interface CatalogCardProps {
   usedBy: string[]
   /** Callback when a label pill is clicked — activates the label filter. */
   onLabelClick: (label: string) => void
+  /**
+   * When true, the card is in selection mode: clicking the body toggles selection
+   * instead of navigating to the RGD detail page. A checkbox overlay is shown.
+   * spec issue-534 O1, O8.
+   */
+  selectable?: boolean
+  /** Whether this card is currently selected (only relevant when selectable=true). */
+  selected?: boolean
+  /** Called when the user toggles the card's selection state. */
+  onToggle?: (name: string, selected: boolean) => void
 }
 
 export default function CatalogCard({
@@ -33,6 +44,9 @@ export default function CatalogCard({
   instanceCount,
   usedBy,
   onLabelClick,
+  selectable = false,
+  selected = false,
+  onToggle,
 }: CatalogCardProps) {
   const name = extractRGDName(rgd)
   const kind = extractRGDKind(rgd)
@@ -52,41 +66,85 @@ export default function CatalogCard({
   // Use 1 for plural check when undefined or null (avoid "1 instances")
   const instanceCountForPlural = typeof instanceCount === 'number' ? instanceCount : 2
 
-  return (
-    <article className="catalog-card" data-testid={`catalog-card-${name}`}>
-      {/* Primary link — wraps header + meta (issue #65) */}
-      <Link
-        to={`/rgds/${encodedName}`}
-        className="catalog-card__body-link"
-        data-testid="btn-graph"
-        aria-label={`View ${name} graph`}
-      >
-        <div className="catalog-card__header">
-          <StatusDot state={state} reason={reason} message={message} />
-          <h2 className="catalog-card__name" data-testid="catalog-card-name">
-            {name}
-          </h2>
-        </div>
+  // Shared card body content (header + meta) — same in both modes.
+  const cardBody = (
+    <>
+      <div className="catalog-card__header">
+        <StatusDot state={state} reason={reason} message={message} />
+        <h2 className="catalog-card__name" data-testid="catalog-card-name">
+          {name}
+        </h2>
+      </div>
 
-        <div className="catalog-card__meta">
-          {kind && (
-            <span className="catalog-card__kind" data-testid="catalog-card-kind">
-              {kind}
-            </span>
+      <div className="catalog-card__meta">
+        {kind && (
+          <span className="catalog-card__kind" data-testid="catalog-card-kind">
+            {kind}
+          </span>
+        )}
+        <span className="catalog-card__stat" data-testid="catalog-card-resources">
+          {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
+        </span>
+        <span className="catalog-card__stat" data-testid="catalog-card-instances">
+          {instanceCount === undefined ? (
+            <span className="catalog-card__count-skeleton" aria-label="Loading instance count" />
+          ) : (
+            <>{instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}</>
           )}
-          <span className="catalog-card__stat" data-testid="catalog-card-resources">
-            {resourceCount} resource{resourceCount !== 1 ? 's' : ''}
-          </span>
-          <span className="catalog-card__stat" data-testid="catalog-card-instances">
-            {instanceCount === undefined ? (
-              <span className="catalog-card__count-skeleton" aria-label="Loading instance count" />
-            ) : (
-              <>{instanceDisplay} instance{instanceCountForPlural !== 1 ? 's' : ''}</>
-            )}
-          </span>
-          <span className="catalog-card__age">{formatAge(createdAt)}</span>
+        </span>
+        <span className="catalog-card__age">{formatAge(createdAt)}</span>
+      </div>
+    </>
+  )
+
+  return (
+    <article
+      className={`catalog-card${selected ? ' catalog-card--selected' : ''}`}
+      data-testid={`catalog-card-${name}`}
+    >
+      {/* Checkbox overlay — shown in selection mode (spec O1).
+          stopPropagation prevents the article click from double-firing. */}
+      {selectable && (
+        <input
+          type="checkbox"
+          className="catalog-card__checkbox"
+          checked={selected}
+          onChange={() => onToggle?.(name, !selected)}
+          aria-label={`Select ${name}`}
+          data-testid={`catalog-card-checkbox-${name}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )}
+
+      {/* Primary body — navigation vs selection depending on mode (spec O8). */}
+      {selectable ? (
+        <div
+          role="button"
+          tabIndex={0}
+          className="catalog-card__body-link catalog-card__body-link--selectable"
+          aria-pressed={selected}
+          aria-label={`${selected ? 'Deselect' : 'Select'} ${name}`}
+          onClick={() => onToggle?.(name, !selected)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onToggle?.(name, !selected)
+            }
+          }}
+          data-testid="btn-graph"
+        >
+          {cardBody}
         </div>
-      </Link>
+      ) : (
+        <Link
+          to={`/rgds/${encodedName}`}
+          className="catalog-card__body-link"
+          data-testid="btn-graph"
+          aria-label={`View ${name} graph`}
+        >
+          {cardBody}
+        </Link>
+      )}
 
       {Object.keys(labels).length > 0 && (
         <div className="catalog-card__labels" data-testid="catalog-card-labels">
