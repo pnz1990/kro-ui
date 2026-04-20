@@ -1,5 +1,5 @@
 ---
-description: "One-shot onboarding for existing projects — reads the codebase, generates docs/aide/ drafts and seeds state.json, opens a PR for review. Run once before /otherness.run."
+description: "Learn from open-source projects and internalize patterns into otherness skills. Pass repo URLs as arguments, or run without arguments to discover targets autonomously. Safe to run periodically."
 ---
 
 ```bash
@@ -15,4 +15,6 @@ for line in open('otherness-config.yaml'):
 " 2>/dev/null || echo "$HOME/.otherness/agents")
 ```
 
-Read and follow `$AGENTS_PATH/onboard.md`.
+Read and follow `$AGENTS_PATH/otherness.learn.md`.
+
+Pass any repo arguments from the user directly to the agent as `$ARGUMENTS`.

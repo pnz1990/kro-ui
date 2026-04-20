@@ -21,34 +21,55 @@ Read and follow `$AGENTS_PATH/bounded-standalone.md`.
 
 Start with `/otherness.run.bounded` and paste a boundary block in your prompt.
 
-## Pre-defined boundaries (copy and paste)
+A boundary block defines the agent's scope. The agent reads these fields and
+stays within them for the entire session. Multiple boundary blocks can run
+concurrently — each session owns different packages and issues.
 
-**UI Agent** — React frontend features and E2E journeys:
-```
-AGENT_NAME=UI Agent
-AGENT_ID=STANDALONE-UI
-SCOPE=React frontend — new components, pages, hooks, and E2E journey coverage
-ALLOWED_AREAS=area/ui,area/test
-ALLOWED_PACKAGES=web/src,test/e2e
-DENY_PACKAGES=internal,cmd
-```
+## Boundary block format
 
-**Backend Agent** — Go API handlers and k8s client:
 ```
-AGENT_NAME=Backend Agent
-AGENT_ID=STANDALONE-BACKEND
-SCOPE=Go backend — API handlers, k8s dynamic client, cache, server
-ALLOWED_AREAS=area/api,area/k8s
-ALLOWED_PACKAGES=internal,cmd
-DENY_PACKAGES=web/src,test/e2e
+AGENT_NAME=<Human-readable name, e.g. "API Agent">
+AGENT_ID=STANDALONE-<SHORT-ID>
+SCOPE=<One sentence describing what this agent may work on>
+ALLOWED_AREAS=<comma-separated area/* labels this agent may claim>
+ALLOWED_MILESTONES=<comma-separated milestone titles, or empty for all>
+ALLOWED_PACKAGES=<comma-separated package/directory paths this agent may modify>
+DENY_PACKAGES=<comma-separated paths this agent must never touch>
 ```
 
-**Bug Agent** — fix open issues:
+## Example boundaries (adapt to your project's structure)
+
+**Feature agent** — works on a specific feature area:
 ```
-AGENT_NAME=Bug Agent
-AGENT_ID=STANDALONE-BUGS
-SCOPE=Bug fixes — resolve open kind/bug issues
-ALLOWED_AREAS=area/ui,area/api,area/k8s
-ALLOWED_PACKAGES=web/src,internal,cmd,test/e2e
-DENY_PACKAGES=
+AGENT_NAME=Feature Agent
+AGENT_ID=STANDALONE-FEATURE
+SCOPE=<area of the codebase this agent owns>
+ALLOWED_AREAS=area/feature-name
+ALLOWED_MILESTONES=v1.0
+ALLOWED_PACKAGES=pkg/feature,cmd/feature
+DENY_PACKAGES=pkg/core,api/v1,web/src
 ```
+
+**API agent** — new endpoints and types only:
+```
+AGENT_NAME=API Agent
+AGENT_ID=STANDALONE-API
+SCOPE=API layer — new endpoints, request/response types, validation
+ALLOWED_AREAS=area/api
+ALLOWED_MILESTONES=
+ALLOWED_PACKAGES=api/,pkg/handlers
+DENY_PACKAGES=pkg/storage,web/src,cmd/
+```
+
+**Refactor agent** — clean up existing code without adding features:
+```
+AGENT_NAME=Refactor Agent
+AGENT_ID=STANDALONE-REFACTOR
+SCOPE=Refactoring only — no new features, no schema changes
+ALLOWED_AREAS=area/refactor,area/chore
+ALLOWED_MILESTONES=
+ALLOWED_PACKAGES=pkg/
+DENY_PACKAGES=api/,web/src,cmd/
+```
+
+See `boundaries/example.boundary` and `boundaries/README.md` for more detail.
