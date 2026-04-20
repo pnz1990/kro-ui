@@ -253,4 +253,22 @@ test.describe('003: RGD Detail — DAG Visualization', () => {
     const typeBadge = page.locator('[class*="node-type-badge--collection"]')
     await expect(typeBadge).toBeVisible()
   })
+
+  // ── Step 16: error state — non-existent RGD ───────────────────────────────
+
+  test('Step 16: navigating to a non-existent RGD shows the error state (not a blank page)', async ({ page }) => {
+    // The API returns 404 for an unknown RGD name; the page must render an
+    // informative error element, never a blank/crash screen.
+    // Use `page.request.get()` to verify the API first (SPA always returns 200
+    // on page navigation — cannot rely on HTTP status from page.goto).
+    const apiRes = await page.request.get(`${BASE}/api/v1/rgds/does-not-exist-rgd-xyz`)
+    expect(apiRes.status()).toBe(404)
+
+    await page.goto(`${BASE}/rgds/does-not-exist-rgd-xyz`)
+    await expect(page.getByTestId('rgd-detail-error')).toBeVisible({ timeout: 15000 })
+
+    // Error element must contain text — not be blank
+    const errorText = await page.getByTestId('rgd-detail-error').textContent()
+    expect(errorText?.trim().length).toBeGreaterThan(0)
+  })
 })
