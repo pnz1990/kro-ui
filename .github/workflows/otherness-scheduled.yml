@@ -185,6 +185,43 @@ jobs:
 
             Read and follow $AGENTS_PATH/vibe-vision-auto.md.
 
+            Context for this vision scan:
+
+            kro-ui is not good enough yet. Apply this lens to every gap you find:
+
+            - Is it production-ready enough? The goal is donation to kubernetes-sigs.
+              Any kubernetes-sigs maintainer reviewing this today would find gaps: missing
+              OWNERS file, incomplete DCO enforcement, no governance model, no release
+              process that produces signed artifacts. What is still blocking acceptance?
+
+            - Is the UI simple and intuitive enough? A platform engineer who has never
+              seen kro-ui should be able to understand what they are looking at within
+              10 seconds of opening it. Are the RGD health states immediately obvious?
+              Is the fleet view scannable? Are error states clear and actionable, or do
+              they show raw Kubernetes error strings that only experts understand?
+
+            - Is it complete enough? kro v0.9.1 is supported. What kro capabilities
+              does a user rely on that kro-ui cannot show at all — schema fields, CEL
+              expressions, GraphRevision diff details, includeWhen conditions? Every
+              gap between what kro can do and what kro-ui can show is a user left behind.
+
+            - Is it tested enough? The E2E journeys cover the happy path. What happens
+              when the cluster is unreachable? When an RGD has 200 nodes? When the user
+              has read access to some namespaces but not others? Edge cases that would
+              embarrass a kubernetes-sigs maintainer in a code review.
+
+            - Is it fast enough? A kro cluster with 50 RGDs should load the overview
+              in under 1 second. A fleet with 10 clusters should be usable. Is there
+              a performance regression path that would make it unusable at real scale?
+
+            - Is it accessible enough? The CNCF ecosystem expects WCAG 2.1 AA compliance.
+              Is every interactive element keyboard-navigable? Does every graph have a
+              text alternative for screen readers?
+
+            For each gap you identify: if there is no 🔲 Future item in any design doc
+            covering it, add one. The bar is donation to kubernetes-sigs — not "works
+            for the author's cluster."
+
       # ── Step 8: Run otherness (Step B) ──────────────────────────────────
       # SHA-pinned (security: doc 27 §M1 — critical supply chain mitigation).
       # ── Step 8: Run otherness (Step B) ────────────────────────────────────────────
