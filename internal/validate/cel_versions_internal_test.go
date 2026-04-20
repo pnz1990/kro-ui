@@ -20,6 +20,7 @@ package validate
 
 import (
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -256,5 +257,73 @@ func TestCelVersionEntryIndependence(t *testing.T) {
 	}
 	if fn == nil {
 		t.Fatal("good entry B returned nil fn")
+	}
+}
+
+// ── ValidateCELExpressions: envForVersion error path ─────────────────────
+
+// TestValidateCELExpressionsEnvError verifies that when envForVersion returns
+// an error (poisoned registry entry), ValidateCELExpressions returns a single
+// StaticIssue with Field="internal" containing "CEL environment unavailable".
+func TestValidateCELExpressionsEnvError(t *testing.T) {
+	poisoned := &celVersionEntry{
+		minVersion: "96.0.0",
+		build: func() (func(string, []string) error, error) {
+			return nil, errors.New("injected CEL env build failure")
+		},
+	}
+
+	orig := celVersionRegistry
+	celVersionRegistry = append([]*celVersionEntry{poisoned}, celVersionRegistry...)
+	defer func() { celVersionRegistry = orig }()
+
+	resources := []ResourceExpressions{
+		{ID: "res", Expressions: []string{"${schema.spec.replicas}"}},
+	}
+	issues := ValidateCELExpressions("96.0.0", resources)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue from envForVersion error, got %d: %v", len(issues), issues)
+	}
+	if issues[0].Field != "internal" {
+		t.Errorf("issue.Field = %q, want %q", issues[0].Field, "internal")
+	}
+	if !strings.Contains(issues[0].Message, "CEL environment unavailable") {
+		t.Errorf("issue.Message = %q, want contains 'CEL environment unavailable'", issues[0].Message)
+	}
+}
+
+// TestValidateCELExpressionsPanicRecovery verifies that a panic inside
+// ValidateCELExpressions is recovered and returned as a StaticIssue with
+// Field="internal" and a message containing "validation panic".
+//
+// We inject a poisoned registry entry whose fn panics when called.
+func TestValidateCELExpressionsPanicRecovery(t *testing.T) {
+	panicFn := func(expr string, vars []string) error {
+		panic("injected panic in checkFunc")
+	}
+	panicEntry := &celVersionEntry{
+		minVersion: "95.0.0",
+		build: func() (func(string, []string) error, error) {
+			return panicFn, nil
+		},
+	}
+
+	orig := celVersionRegistry
+	celVersionRegistry = append([]*celVersionEntry{panicEntry}, celVersionRegistry...)
+	defer func() { celVersionRegistry = orig }()
+
+	resources := []ResourceExpressions{
+		{ID: "res", Expressions: []string{"${schema.spec.replicas}"}},
+	}
+	// Must not panic — defer recover() should catch it.
+	issues := ValidateCELExpressions("95.0.0", resources)
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 issue from panic recovery, got %d: %v", len(issues), issues)
+	}
+	if issues[0].Field != "internal" {
+		t.Errorf("issue.Field = %q, want %q", issues[0].Field, "internal")
+	}
+	if !strings.Contains(issues[0].Message, "validation panic") {
+		t.Errorf("issue.Message = %q, want contains 'validation panic'", issues[0].Message)
 	}
 }

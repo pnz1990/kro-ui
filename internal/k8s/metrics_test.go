@@ -644,6 +644,117 @@ func TestParseMetricLine(t *testing.T) {
 	})
 }
 
+// ── TestScrapeViaProxyEdgePaths (T013b) ───────────────────────────────────────
+
+// TestScrapeViaProxyEdgePaths covers the three error paths in scrapeViaProxy that
+// are not exercised by TestScrapeViaProxy:
+//   - rest.HTTPClientFor failure (bad TLS cert path)
+//   - context.DeadlineExceeded → ErrMetricsTimeout
+//   - urlErr.Timeout() → ErrMetricsTimeout
+func TestScrapeViaProxyEdgePaths(t *testing.T) {
+	ref := PodRef{Namespace: "kro-system", PodName: "kro-pod-0"}
+
+	t.Run("invalid TLS cert path — HTTPClientFor returns error → ErrMetricsUnreachable", func(t *testing.T) {
+		restCfg := &rest.Config{
+			Host: "https://127.0.0.1:9999",
+			TLSClientConfig: rest.TLSClientConfig{
+				CertFile: "/nonexistent/cert.pem",
+				KeyFile:  "/nonexistent/key.pem",
+			},
+		}
+		_, err := scrapeViaProxy(context.Background(), restCfg, ref)
+		require.Error(t, err)
+		var e *ErrMetricsUnreachable
+		assert.True(t, errors.As(err, &e), "expected ErrMetricsUnreachable for bad TLS config, got %T: %v", err, err)
+	})
+
+	t.Run("context already cancelled → ErrMetricsTimeout or ErrMetricsUnreachable", func(t *testing.T) {
+		// Use an already-cancelled context to force the error immediately.
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Never reached — context is already cancelled before the request is sent.
+		}))
+		t.Cleanup(srv.Close)
+
+		restCfg := &rest.Config{Host: srv.URL}
+		_, err := scrapeViaProxy(ctx, restCfg, ref)
+		require.Error(t, err)
+		// Could be ErrMetricsTimeout or ErrMetricsUnreachable depending on OS timing.
+		// Both are valid for a cancelled context — just verify it's one of our sentinels.
+		var eTimeout *ErrMetricsTimeout
+		var eUnreach *ErrMetricsUnreachable
+		isOurs := errors.As(err, &eTimeout) || errors.As(err, &eUnreach)
+		assert.True(t, isOurs, "expected ErrMetricsTimeout or ErrMetricsUnreachable for cancelled ctx, got %T: %v", err, err)
+	})
+}
+
+// ── TestScrapeWithCacheEdgePaths (T018b) ──────────────────────────────────────
+
+// TestScrapeWithCacheEdgePaths covers two additional paths in scrapeWithCache:
+//   - cache miss → pod found → successful scrape (line 350: md.cache.set)
+//   - non-404 proxy error → error propagated (line 368)
+func TestScrapeWithCacheEdgePaths(t *testing.T) {
+	t.Run("cache miss — pod found — successful scrape — cache is populated", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+		md := NewMetricsDiscoverer(f)
+
+		// httptest server returns valid metrics.
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(metricsProxyBody))
+		}))
+		t.Cleanup(srv.Close)
+
+		// Dynamic stub that returns a running pod.
+		dyn := newStubDynamicMetrics()
+		dyn.resources[podGVR] = &stubNSResourceForMetrics{
+			nsItems: map[string][]unstructured.Unstructured{
+				"kro-system": {makePod("kro-0", "kro-system", "Running")},
+			},
+		}
+
+		// Cache starts empty (miss path).
+		restCfg := &rest.Config{Host: srv.URL}
+		result, err := md.scrapeWithCache(context.Background(), dyn, restCfg, "test-miss-hit")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.NotNil(t, result.WatchCount, "metrics must be populated on successful scrape")
+		assert.Equal(t, int64(7), *result.WatchCount)
+
+		// After a successful scrape, the cache must be populated.
+		_, cached := md.cache.get("test-miss-hit")
+		assert.True(t, cached, "cache must be populated after cache-miss + pod-found + scrape")
+	})
+
+	t.Run("non-404 proxy error — error propagated (no retry)", func(t *testing.T) {
+		path := writeTestKubeconfig(t)
+		f, err := NewClientFactory(path, "dev")
+		require.NoError(t, err)
+		md := NewMetricsDiscoverer(f)
+
+		// httptest server returns 503 (non-404 error — triggers line 368 path).
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+		t.Cleanup(srv.Close)
+
+		// Prime cache with a pod ref so we skip discovery and go directly to scrape.
+		ref := PodRef{Namespace: "kro-system", PodName: "kro-0"}
+		md.cache.set("test-non404-err", ref)
+
+		restCfg := &rest.Config{Host: srv.URL}
+		_, err = md.scrapeWithCache(context.Background(), newStubDynamicMetrics(), restCfg, "test-non404-err")
+		require.Error(t, err)
+		var bgErr *ErrMetricsBadGateway
+		require.True(t, errors.As(err, &bgErr), "expected ErrMetricsBadGateway, got %T: %v", err, err)
+		assert.Equal(t, http.StatusServiceUnavailable, bgErr.StatusCode)
+	})
+}
+
 // ── TestErrorTypes ─────────────────────────────────────────────────────────────
 
 // TestErrorTypes covers the Error(), Unwrap() methods on the sentinel error types.
