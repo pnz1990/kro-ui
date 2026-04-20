@@ -35,18 +35,16 @@ release has landed since our last check:
 
 ✅ 27.0 — kro v0.9.1 support: GraphRevision CRD, hash column, CEL hash functions (PR #428)
 ✅ 27.1 — kro release tracking automation: `.github/workflows/kro-upstream-check.yml` weekly checks `kubernetes-sigs/kro` releases/latest; if newer than go.mod version, opens `feat(kro-vX.Y.Z)` issue automatically. `otherness-config.yaml` configured with `anchor.upstream_version_file`+`pattern` for local go.mod bump detection via SM §4g-anchor-upstream. (PR #545, issue #523)
-✅ 27.2 — Accessibility pass: journey `074-accessibility.spec.ts` registered in Playwright chunk-9 testMatch pattern; axe-core WCAG 2.1 AA scan runs on Catalog, RGD DAG, Instance list, and Context switcher pages in CI. (PR TBD, issue #529)
-✅ 27.3 — Fleet persona anchor journey: 6-step journey covering multi-cluster fleet view → health matrix → context switch → per-cluster RGD count (journey 075, issue #524)
+ ✅ 27.2 — Accessibility pass: journey `074-accessibility.spec.ts` registered in Playwright chunk-9 testMatch pattern; axe-core WCAG 2.1 AA scan runs on Catalog, RGD DAG, Instance list, and Context switcher pages in CI. (PR #546, issue #529)
+ ✅ 27.3 — Fleet persona anchor journey: 6-step journey covering multi-cluster fleet view → health matrix → context switch → per-cluster RGD count (journey 075, issue #524)
+ ✅ 27.6 — Error state coverage: E2E journeys 076-079 added and registered in Playwright chunk-9; each uses `page.route()` to mock 5xx API responses and asserts the error state element is visible on Overview, Fleet, RGD detail, and Instance detail pages. (PR TBD, issue #531)
 
 ---
 
 ## Future
 
-
-- 🔲 27.2 — Accessibility pass: all Tier 1 pages (Overview, RGD list, RGD detail, Instance detail) pass axe-core with 0 violations; add to E2E journey 074
 - 🔲 27.4 — Performance budget: Overview page load <1s on 50-RGD cluster; add Lighthouse CI check to CI pipeline
 - 🔲 27.5 — kro-ui v0.10.0 release: cut GitHub release with changelog, tag, and release notes generated from merged PRs since v0.9.4
-- 🔲 27.6 — Error state coverage: every page that fetches data must show a non-empty error state when the API returns 5xx; add E2E journeys 076-079 covering error states for Overview, Fleet, RGD detail, Instance detail
 - 🔲 27.7 — Donation readiness checklist: CNCF sandbox criteria, kubernetes-sigs contribution guide, DCO sign-off enforcement, security policy file, OWNERS file
 
 ---
