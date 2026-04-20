@@ -1840,10 +1840,10 @@
       "done_at": "2026-04-20T03:50:41Z"
     },
     "issue-459": {
-      "state": "todo",
-      "assigned_to": null,
-      "pr_number": null,
-      "pr_merged": false,
+      "state": "done",
+      "assigned_to": "sess-412931da",
+      "pr_number": 461,
+      "pr_merged": true,
       "title": "feat(e2e): Developer persona journey \u2014 RGD authoring and YAML generation",
       "issue_number": 459,
       "labels": [
@@ -1854,7 +1854,11 @@
       ],
       "areas": [
         "area/e2e"
-      ]
+      ],
+      "assigned_at": "2026-04-20T03:51:14Z",
+      "branch": "feat/issue-459",
+      "worktree": "../kro-ui.issue-459",
+      "done_at": "2026-04-20T04:05:40Z"
     }
   }
 }
