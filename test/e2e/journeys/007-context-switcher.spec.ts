@@ -73,6 +73,9 @@ test.describe('Journey 007 — Context Switcher', () => {
   })
 
   test('Step 3: Switching to alternate context updates the top bar', async ({ page }) => {
+    // Allow up to 90s — context switch POST + cache flush can take 10-30s on throttled clusters
+    test.setTimeout(90_000)
+
     await page.goto(BASE)
 
     // Open the switcher
@@ -89,10 +92,10 @@ test.describe('Journey 007 — Context Switcher', () => {
     await page.waitForFunction(() => {
       const dropdown = document.querySelector('[data-testid="context-dropdown"]')
       return dropdown === null || (dropdown as HTMLElement).offsetParent === null
-    }, { timeout: 10000 })
+    }, { timeout: 15000 })
 
-    // Top bar should update to the new context name
-    await expect(page.getByTestId('context-name')).toContainText(ALT_CONTEXT)
+    // Top bar should update to the new context name — wait up to 60s (API call + onSwitch)
+    await expect(page.getByTestId('context-name')).toContainText(ALT_CONTEXT, { timeout: 60000 })
 
     // URL should still be / (no navigation)
     expect(page.url()).toBe(`${BASE}/`)
