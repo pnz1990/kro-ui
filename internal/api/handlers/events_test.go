@@ -319,3 +319,119 @@ func TestListEvents(t *testing.T) {
 
 // errCluster is a sentinel error returned by stubs to simulate cluster failures.
 var errCluster = fmt.Errorf("cluster unreachable")
+
+// ── ListEvents branch coverage ────────────────────────────────────────────────
+
+// TestListEvents_RGDListError verifies that when the RGD list fails inside
+// buildRelevantUIDs, ListEvents returns 500.
+func TestListEvents_RGDListError(t *testing.T) {
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		listErr: fmt.Errorf("forbidden"),
+	}
+	h := newRGDTestHandler(dyn, newStubDiscovery())
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/events?namespace=default", nil)
+	rr := httptest.NewRecorder()
+	h.ListEvents(rr, req)
+
+	require.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"error"`)
+}
+
+// TestListEvents_ClusterWideNoNamespace verifies that ListEvents with no
+// namespace query param fetches events cluster-wide (namespace == "").
+func TestListEvents_ClusterWideNoNamespace(t *testing.T) {
+	testEventsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
+	testAppGVR := schema.GroupVersionResource{
+		Group:    "kro.run",
+		Version:  "v1alpha1",
+		Resource: "testapps",
+	}
+	rgdUID := types.UID("rgd-uid-123")
+
+	rgdObj := makeRGDObject("test-app", "TestApp", "", "")
+	rgdObj.SetUID(rgdUID)
+
+	instance := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "inst-1", "uid": "inst-uid-1"},
+	}}
+	event := makeEventObj("ev-1", "", "inst-uid-1", "Reconciling", "Normal")
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		items:    []unstructured.Unstructured{*rgdObj},
+		getItems: map[string]*unstructured.Unstructured{"test-app": rgdObj},
+	}
+	dyn.resources[testAppGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{instance},
+	}
+	// Events GVR — cluster-wide List (no namespace)
+	dyn.resources[testEventsGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{event},
+	}
+
+	disc := newStubDiscovery()
+	disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+		GroupVersion: "kro.run/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "testapps", Kind: "TestApp", Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+	h := newRGDTestHandler(dyn, disc)
+
+	// No namespace= param → cluster-wide
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/events", nil)
+	rr := httptest.NewRecorder()
+	h.ListEvents(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	body := rr.Body.String()
+	assert.Contains(t, body, `"items"`)
+}
+
+// TestListEvents_InstanceListErrorInGoroutine verifies that a per-RGD instance
+// list error in the goroutine is silently skipped (no 500, events still returned).
+func TestListEvents_InstanceListErrorInGoroutine(t *testing.T) {
+	testEventsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
+	testAppGVR := schema.GroupVersionResource{
+		Group:    "kro.run",
+		Version:  "v1alpha1",
+		Resource: "testapps",
+	}
+
+	rgdObj := makeRGDObject("test-app", "TestApp", "", "")
+	rgdObj.SetUID("rgd-uid-999")
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		items:    []unstructured.Unstructured{*rgdObj},
+		getItems: map[string]*unstructured.Unstructured{"test-app": rgdObj},
+	}
+	// Instance list error — goroutine should skip this RGD
+	dyn.resources[testAppGVR] = &stubNamespaceableResource{
+		listErr: fmt.Errorf("etcd unavailable"),
+	}
+	// Events GVR — returns empty list
+	dyn.resources[testEventsGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{},
+	}
+
+	disc := newStubDiscovery()
+	disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+		GroupVersion: "kro.run/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "testapps", Kind: "TestApp", Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+	h := newRGDTestHandler(dyn, disc)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/events", nil)
+	rr := httptest.NewRecorder()
+	h.ListEvents(rr, req)
+
+	// Should succeed — instance list error in goroutine is swallowed
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Contains(t, rr.Body.String(), `"items"`)
+	assert.NotContains(t, rr.Body.String(), `"error"`)
+}
