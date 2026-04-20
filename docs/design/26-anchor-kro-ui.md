@@ -58,7 +58,7 @@ They do not map 1:1 to a feature spec; they map to a persona and a dod-journey.
 
 ## Present (continued)
 
-✅ 26.3 — Developer persona journey (PR #TBD): RGD Designer workflow — /author nav → authoring form → YAML preview → DAG preview → scope configuration.
+✅ 26.3 — Developer persona journey (PR #461): RGD Designer workflow — /author nav → authoring form → YAML preview → DAG preview → scope configuration.
 
 ---
 
