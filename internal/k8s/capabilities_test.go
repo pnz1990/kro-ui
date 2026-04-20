@@ -992,3 +992,130 @@ func TestGetResourceItemPropertiesNoItems(t *testing.T) {
 	result := getResourceItemProperties(context.Background(), specProps)
 	assert.Nil(t, result, "should return nil when resources.items is absent")
 }
+
+// ── parseFeatureGatesFromArgs branch coverage ────────────────────────────────
+
+// TestParseFeatureGatesFromArgs exercises all branches in parseFeatureGatesFromArgs.
+func TestParseFeatureGatesFromArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		container map[string]any
+		wantNil   bool
+		wantGates map[string]bool
+	}{
+		{
+			name:    "args key absent → nil",
+			container: map[string]any{
+				"image": "ghcr.io/kro-run/kro:v0.9.1",
+			},
+			wantNil: true,
+		},
+		{
+			name:    "args not a []any (e.g. string) → nil",
+			container: map[string]any{
+				"args": "not-a-slice",
+			},
+			wantNil: true,
+		},
+		{
+			name:    "args present but no --feature-gates flag → nil",
+			container: map[string]any{
+				"args": []any{"--log-level=debug", "--port=8080"},
+			},
+			wantNil: true,
+		},
+		{
+			name:    "feature-gates flag present → parsed map",
+			container: map[string]any{
+				"args": []any{
+					"--log-level=debug",
+					"--feature-gates=CELOmitFunction=true,ExternalRefSelector=false",
+				},
+			},
+			wantGates: map[string]bool{
+				"CELOmitFunction":    true,
+				"ExternalRefSelector": false,
+			},
+		},
+		{
+			name:    "non-string element in args slice → skipped, no panic",
+			container: map[string]any{
+				"args": []any{
+					42, // non-string: skipped
+					"--feature-gates=CELOmitFunction=true",
+				},
+			},
+			wantGates: map[string]bool{"CELOmitFunction": true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseFeatureGatesFromArgs(tt.container)
+			if tt.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			for k, v := range tt.wantGates {
+				assert.Equal(t, v, got[k], "gate %q", k)
+			}
+		})
+	}
+}
+
+// ── hasExternalRefSelector branch coverage ────────────────────────────────────
+
+// TestHasExternalRefSelector exercises all branches in hasExternalRefSelector.
+func TestHasExternalRefSelector(t *testing.T) {
+	t.Run("nil map → false", func(t *testing.T) {
+		assert.False(t, hasExternalRefSelector(nil))
+	})
+
+	t.Run("empty map → false", func(t *testing.T) {
+		assert.False(t, hasExternalRefSelector(map[string]any{}))
+	})
+
+	t.Run("externalRef present but no selector → false", func(t *testing.T) {
+		props := map[string]any{
+			"externalRef": map[string]any{
+				"properties": map[string]any{
+					"metadata": map[string]any{
+						"properties": map[string]any{
+							"name": map[string]any{},
+							// no "selector" key
+						},
+					},
+				},
+			},
+		}
+		assert.False(t, hasExternalRefSelector(props))
+	})
+
+	t.Run("externalRef with selector present → true", func(t *testing.T) {
+		props := map[string]any{
+			"externalRef": map[string]any{
+				"properties": map[string]any{
+					"metadata": map[string]any{
+						"properties": map[string]any{
+							"selector": map[string]any{
+								"type": "object",
+							},
+						},
+					},
+				},
+			},
+		}
+		assert.True(t, hasExternalRefSelector(props))
+	})
+}
+
+// ── CompareKroVersions patch less-than branch coverage ───────────────────────
+
+// TestCompareKroVersions_PatchLessThan exercises the one branch in CompareKroVersions
+// that was not covered: aPatch < bPatch returns -1.
+func TestCompareKroVersions_PatchLessThan(t *testing.T) {
+	// aMaj=bMaj, aMin=bMin, aPatch(4) < bPatch(5) → must return -1
+	got := CompareKroVersions("v0.8.4", "v0.8.5")
+	assert.Equal(t, -1, got, "v0.8.4 < v0.8.5 must return -1")
+}
