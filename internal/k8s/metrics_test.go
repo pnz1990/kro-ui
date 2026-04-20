@@ -500,6 +500,22 @@ func TestPickPodFromClusterList(t *testing.T) {
 		assert.Equal(t, "fleet-ns", ref.Namespace)
 	})
 
+	// Cover the ns=="" branch in the Running pod path: pod with no namespace field
+	// in the Object map (GetNamespace() returns "", NestedString returns "").
+	t.Run("Running pod — GetNamespace returns empty and no metadata.namespace", func(t *testing.T) {
+		pod := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{
+				"name": "kro-no-ns",
+				// deliberately no "namespace" key
+			},
+			"status": map[string]any{"phase": "Running"},
+		}}
+		ref, ok := pickPodFromClusterList([]unstructured.Unstructured{pod})
+		require.True(t, ok)
+		assert.Equal(t, "kro-no-ns", ref.PodName)
+		assert.Equal(t, "", ref.Namespace) // both GetNamespace and NestedString return ""
+	})
+
 	t.Run("no Running pod — falls back to first pod", func(t *testing.T) {
 		items := []unstructured.Unstructured{
 			makePod("kro-a", "kro-system", "Pending"),
@@ -523,6 +539,55 @@ func TestPickPodFromClusterList(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, "kro-fallback", ref.PodName)
 		assert.Equal(t, "other-ns", ref.Namespace)
+	})
+
+	// Cover the ns=="" branch in the fallback path: pod with no namespace field.
+	t.Run("fallback pod — GetNamespace returns empty and no metadata.namespace", func(t *testing.T) {
+		pod := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{
+				"name": "kro-fallback-no-ns",
+				// deliberately no "namespace" key
+			},
+			"status": map[string]any{"phase": "Pending"},
+		}}
+		ref, ok := pickPodFromClusterList([]unstructured.Unstructured{pod})
+		require.True(t, ok)
+		assert.Equal(t, "kro-fallback-no-ns", ref.PodName)
+		assert.Equal(t, "", ref.Namespace)
+	})
+}
+
+// TestPickPod covers the pickPod helper directly, including the empty-list guard
+// that is not reachable from discoverKroPod (which only calls pickPod with
+// non-empty slices).
+func TestPickPod(t *testing.T) {
+	t.Run("empty list returns false", func(t *testing.T) {
+		_, ok := pickPod("kro-system", nil)
+		assert.False(t, ok)
+
+		_, ok = pickPod("kro-system", []unstructured.Unstructured{})
+		assert.False(t, ok)
+	})
+
+	t.Run("Running pod returned first", func(t *testing.T) {
+		items := []unstructured.Unstructured{
+			makePod("kro-pending", "kro-system", "Pending"),
+			makePod("kro-running", "kro-system", "Running"),
+		}
+		ref, ok := pickPod("kro-system", items)
+		require.True(t, ok)
+		assert.Equal(t, "kro-running", ref.PodName)
+		assert.Equal(t, "kro-system", ref.Namespace)
+	})
+
+	t.Run("no Running pod falls back to first", func(t *testing.T) {
+		items := []unstructured.Unstructured{
+			makePod("kro-a", "kro-system", "Pending"),
+		}
+		ref, ok := pickPod("kro-system", items)
+		require.True(t, ok)
+		assert.Equal(t, "kro-a", ref.PodName)
+		assert.Equal(t, "kro-system", ref.Namespace)
 	})
 }
 
