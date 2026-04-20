@@ -453,6 +453,41 @@ func TestPodRefCache(t *testing.T) {
 	})
 }
 
+// ── TestPickPod ───────────────────────────────────────────────────────────────
+
+// TestPickPod verifies that pickPod handles an empty slice and the Running-phase
+// preference directly, without going through discoverKroPod.
+func TestPickPod(t *testing.T) {
+	t.Run("empty slice — returns false", func(t *testing.T) {
+		_, ok := pickPod("kro-system", nil)
+		assert.False(t, ok)
+
+		_, ok = pickPod("kro-system", []unstructured.Unstructured{})
+		assert.False(t, ok)
+	})
+
+	t.Run("Running pod returned when present", func(t *testing.T) {
+		items := []unstructured.Unstructured{
+			makePod("kro-pending", "kro-system", "Pending"),
+			makePod("kro-running", "kro-system", "Running"),
+		}
+		ref, ok := pickPod("kro-system", items)
+		require.True(t, ok)
+		assert.Equal(t, "kro-running", ref.PodName)
+		assert.Equal(t, "kro-system", ref.Namespace)
+	})
+
+	t.Run("no Running pod — falls back to first", func(t *testing.T) {
+		items := []unstructured.Unstructured{
+			makePod("kro-pending", "kro-system", "Pending"),
+		}
+		ref, ok := pickPod("kro-system", items)
+		require.True(t, ok)
+		assert.Equal(t, "kro-pending", ref.PodName)
+		assert.Equal(t, "kro-system", ref.Namespace)
+	})
+}
+
 // ── TestPickPodFromClusterList ─────────────────────────────────────────────────
 
 // TestPickPodFromClusterList tests the cluster-scoped pod selection, including the

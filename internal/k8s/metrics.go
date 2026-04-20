@@ -195,19 +195,11 @@ func pickPodFromClusterList(items []unstructured.Unstructured) (PodRef, bool) {
 	for i := range items {
 		phase, _, _ := unstructured.NestedString(items[i].Object, "status", "phase")
 		if phase == "Running" {
-			ns := items[i].GetNamespace()
-			if ns == "" {
-				ns, _, _ = unstructured.NestedString(items[i].Object, "metadata", "namespace")
-			}
-			return PodRef{Namespace: ns, PodName: items[i].GetName()}, true
+			return PodRef{Namespace: items[i].GetNamespace(), PodName: items[i].GetName()}, true
 		}
 	}
 	// Any phase fallback.
-	ns := items[0].GetNamespace()
-	if ns == "" {
-		ns, _, _ = unstructured.NestedString(items[0].Object, "metadata", "namespace")
-	}
-	return PodRef{Namespace: ns, PodName: items[0].GetName()}, true
+	return PodRef{Namespace: items[0].GetNamespace(), PodName: items[0].GetName()}, true
 }
 
 // ── Pod-proxy scrape ──────────────────────────────────────────────────────────
