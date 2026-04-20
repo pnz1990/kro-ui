@@ -40,13 +40,13 @@ release has landed since our last check:
  ✅ 27.6 — Error state coverage: E2E journeys 076-079 added and registered in Playwright chunk-9; each uses `page.route()` to mock 5xx API responses and asserts the error state element is visible on Overview, Fleet, RGD detail, and Instance detail pages. (PR TBD, issue #531)
  ✅ 27.4 — Performance budget: `.github/workflows/perf.yml` Lighthouse CI check (score ≥ 50, calibrated for 521KB bundle on GA runners) + HTTP response time check (<500ms); E2E journey `080-performance-budget.spec.ts` asserts Overview DOM Interactive ≤1000ms and content-ready ≤1500ms; registered in Playwright chunk-9. (PR #549, issue #530)
  ✅ 27.7 — Donation readiness: `OWNERS` file (kubernetes-sigs format, approvers/reviewers: pnz1990); `.github/workflows/dco.yml` enforces DCO sign-off on all PRs; `CONTRIBUTING.md` updated with DCO section explaining `git commit -s` requirement. (issue #532)
- ✅ 27.15 — release.yml stale helm/ reference removed: the `Update and push Helm chart` step that references `helm/kro-ui` (removed in v0.9.4) has been deleted from `.github/workflows/release.yml`; v0.10.0 tag push will now succeed. (PR #587, issue #587)
+ ✅ 27.15 — release.yml stale helm/ reference removed: the `Update and push Helm chart` step that references `helm/kro-ui` (removed in v0.9.4) has been deleted from `.github/workflows/release.yml`; v0.10.0 tag push will now succeed. (PR #588, issue #587)
+ ✅ 27.5 — kro-ui v0.10.0 release: GitHub release with changelog from merged PRs since v0.9.4; goreleaser produces binary archives (Linux/Darwin/Windows amd64/arm64) and Docker image pushed to GHCR; release notes auto-generated from PR titles. (PR #589, issue #525)
 
 ---
 
 ## Future
 
-- 🔲 27.5 — kro-ui v0.10.0 release: cut GitHub release with changelog, tag, and release notes generated from merged PRs since v0.9.4
 - 🔲 27.8 — GOVERNANCE.md: add lightweight governance model (kubernetes-sigs format — maintainers list, decision process, release managers); required before donation can proceed; reference https://github.com/kubernetes-sigs/kro/blob/main/GOVERNANCE.md as the template
 - 🔲 27.9 — CODE_OF_CONDUCT.md at repo root: kubernetes-sigs requires this file at the repo root; CONTRIBUTING.md links to k8s CoC but the file itself must exist in the repo (mirror of https://github.com/kubernetes/community/blob/master/code-of-conduct.md or a pointer file)
 - 🔲 27.10 — Supply chain security for releases: add cosign keyless signing of container images, SBOM generation (syft/cyclonedx), and SLSA provenance attestation to `.github/workflows/release.yml`; kubernetes-sigs projects are expected to produce signed artifacts; note goreleaser v2 supports `signs:` and `sboms:` natively
