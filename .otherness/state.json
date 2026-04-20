@@ -2049,6 +2049,13 @@
       "pr_number": 566,
       "pr_merged": true,
       "done_at": "2026-04-20T18:46:56Z"
+    },
+    "issue-582": {
+      "state": "done",
+      "pr_number": 583,
+      "pr_merged": true,
+      "title": "feat(ux): global cluster-unreachable banner on initial load",
+      "done_at": "2026-04-20T20:18:33Z"
     }
   },
   "sm_cycle_count": 5,
