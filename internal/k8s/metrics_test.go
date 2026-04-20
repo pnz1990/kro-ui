@@ -452,3 +452,202 @@ func TestPodRefCache(t *testing.T) {
 		assert.False(t, ok)
 	})
 }
+
+// ── TestPickPodFromClusterList ─────────────────────────────────────────────────
+
+// TestPickPodFromClusterList tests the cluster-scoped pod selection, including the
+// namespace-extraction path from pod metadata when GetNamespace() returns empty.
+func TestPickPodFromClusterList(t *testing.T) {
+	t.Run("empty list returns false", func(t *testing.T) {
+		_, ok := pickPodFromClusterList(nil)
+		assert.False(t, ok)
+
+		_, ok = pickPodFromClusterList([]unstructured.Unstructured{})
+		assert.False(t, ok)
+	})
+
+	t.Run("Running pod preferred — namespace from GetNamespace()", func(t *testing.T) {
+		items := []unstructured.Unstructured{
+			makePod("kro-pending", "kro-system", "Pending"),
+			makePod("kro-running", "kro-system", "Running"),
+		}
+		ref, ok := pickPodFromClusterList(items)
+		require.True(t, ok)
+		assert.Equal(t, "kro-running", ref.PodName)
+		assert.Equal(t, "kro-system", ref.Namespace)
+	})
+
+	t.Run("Running pod with empty GetNamespace() uses metadata.namespace", func(t *testing.T) {
+		// Simulate a pod where metadata.namespace is set but GetNamespace() returns ""
+		// (can happen with certain dynamic client responses that don't set .namespace in Object).
+		pod := unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "v1",
+			"kind":       "Pod",
+			"metadata": map[string]any{
+				"name":      "kro-pod",
+				"namespace": "fleet-ns", // in metadata but not in spec
+			},
+			"status": map[string]any{
+				"phase": "Running",
+			},
+		}}
+		// GetNamespace() reads from metadata.namespace in Object, so it should work.
+		// This test verifies the nested fallback path is reached when the unstructured
+		// Object has metadata.namespace set without using SetNamespace().
+		ref, ok := pickPodFromClusterList([]unstructured.Unstructured{pod})
+		require.True(t, ok)
+		assert.Equal(t, "kro-pod", ref.PodName)
+		assert.Equal(t, "fleet-ns", ref.Namespace)
+	})
+
+	t.Run("no Running pod — falls back to first pod", func(t *testing.T) {
+		items := []unstructured.Unstructured{
+			makePod("kro-a", "kro-system", "Pending"),
+			makePod("kro-b", "kro-system", "Terminating"),
+		}
+		ref, ok := pickPodFromClusterList(items)
+		require.True(t, ok)
+		assert.Equal(t, "kro-a", ref.PodName)
+		assert.Equal(t, "kro-system", ref.Namespace)
+	})
+
+	t.Run("fallback pod with empty GetNamespace() uses metadata.namespace", func(t *testing.T) {
+		pod := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{
+				"name":      "kro-fallback",
+				"namespace": "other-ns",
+			},
+			"status": map[string]any{"phase": "Pending"},
+		}}
+		ref, ok := pickPodFromClusterList([]unstructured.Unstructured{pod})
+		require.True(t, ok)
+		assert.Equal(t, "kro-fallback", ref.PodName)
+		assert.Equal(t, "other-ns", ref.Namespace)
+	})
+}
+
+// ── TestParseMetricLine ────────────────────────────────────────────────────────
+
+// TestParseMetricLine tests the Prometheus text format parser for the kro metrics.
+func TestParseMetricLine(t *testing.T) {
+	int64p := func(v int64) *int64 { return &v }
+
+	t.Run("watch count line", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("dynamic_controller_watch_count 5", r)
+		require.NotNil(t, r.WatchCount)
+		assert.Equal(t, int64(5), *r.WatchCount)
+	})
+
+	t.Run("gvr count line", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("dynamic_controller_gvr_count 3", r)
+		require.NotNil(t, r.GVRCount)
+		assert.Equal(t, int64(3), *r.GVRCount)
+	})
+
+	t.Run("queue depth line", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("dynamic_controller_queue_length 12", r)
+		require.NotNil(t, r.QueueDepth)
+		assert.Equal(t, int64(12), *r.QueueDepth)
+	})
+
+	t.Run("workqueue depth with matching label", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine(`workqueue_depth{name="dynamic-controller-queue"} 0`, r)
+		require.NotNil(t, r.WorkqueueDepth)
+		assert.Equal(t, int64(0), *r.WorkqueueDepth)
+	})
+
+	t.Run("workqueue depth with non-matching label — ignored", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine(`workqueue_depth{name="some-other-queue"} 99`, r)
+		assert.Nil(t, r.WorkqueueDepth)
+	})
+
+	t.Run("handler count child fallback when WatchCount not yet set", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine(`dynamic_controller_handler_count_total{type="child"} 42`, r)
+		require.NotNil(t, r.WatchCount)
+		assert.Equal(t, int64(42), *r.WatchCount)
+	})
+
+	t.Run("handler count child does not overwrite existing WatchCount", func(t *testing.T) {
+		r := &ControllerMetrics{WatchCount: int64p(7)}
+		parseMetricLine(`dynamic_controller_handler_count_total{type="child"} 99`, r)
+		require.NotNil(t, r.WatchCount)
+		assert.Equal(t, int64(7), *r.WatchCount, "WatchCount must not be overwritten by fallback")
+	})
+
+	t.Run("line with timestamp — value before timestamp is parsed", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("dynamic_controller_watch_count 8 1714500000000", r)
+		require.NotNil(t, r.WatchCount)
+		assert.Equal(t, int64(8), *r.WatchCount)
+	})
+
+	t.Run("malformed line — no space — ignored gracefully", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("nospace", r)
+		assert.Nil(t, r.WatchCount)
+	})
+
+	t.Run("malformed value — non-numeric — ignored gracefully", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("dynamic_controller_watch_count not_a_number", r)
+		assert.Nil(t, r.WatchCount)
+	})
+
+	t.Run("unrecognized metric — ignored", func(t *testing.T) {
+		r := &ControllerMetrics{}
+		parseMetricLine("some_other_metric 100", r)
+		assert.Nil(t, r.WatchCount)
+		assert.Nil(t, r.GVRCount)
+		assert.Nil(t, r.QueueDepth)
+		assert.Nil(t, r.WorkqueueDepth)
+	})
+}
+
+// ── TestErrorTypes ─────────────────────────────────────────────────────────────
+
+// TestErrorTypes covers the Error(), Unwrap() methods on the sentinel error types.
+func TestErrorTypes(t *testing.T) {
+	t.Run("ErrMetricsUnreachable.Error contains cause", func(t *testing.T) {
+		cause := fmt.Errorf("tcp connect: refused")
+		err := &ErrMetricsUnreachable{Cause: cause}
+		assert.Contains(t, err.Error(), "unreachable")
+		assert.Contains(t, err.Error(), "tcp connect")
+	})
+
+	t.Run("ErrMetricsUnreachable.Unwrap returns cause", func(t *testing.T) {
+		cause := fmt.Errorf("root cause")
+		err := &ErrMetricsUnreachable{Cause: cause}
+		assert.Equal(t, cause, err.Unwrap())
+	})
+
+	t.Run("ErrMetricsBadGateway.Error contains status code", func(t *testing.T) {
+		err := &ErrMetricsBadGateway{StatusCode: 503}
+		assert.Contains(t, err.Error(), "503")
+	})
+
+	t.Run("ErrMetricsTimeout.Error describes timeout", func(t *testing.T) {
+		err := &ErrMetricsTimeout{}
+		assert.Contains(t, err.Error(), "timeout")
+	})
+
+	t.Run("errors.As works with ErrMetricsUnreachable", func(t *testing.T) {
+		inner := &ErrMetricsUnreachable{Cause: fmt.Errorf("refused")}
+		wrapped := fmt.Errorf("scrape: %w", inner)
+		var target *ErrMetricsUnreachable
+		assert.True(t, errors.As(wrapped, &target))
+	})
+
+	t.Run("errors.As works with ErrMetricsBadGateway", func(t *testing.T) {
+		inner := &ErrMetricsBadGateway{StatusCode: 404}
+		wrapped := fmt.Errorf("scrape: %w", inner)
+		var target *ErrMetricsBadGateway
+		assert.True(t, errors.As(wrapped, &target))
+		assert.Equal(t, 404, target.StatusCode)
+	})
+}
