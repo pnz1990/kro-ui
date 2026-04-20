@@ -855,3 +855,417 @@ func TestFetchRoleRules(t *testing.T) {
 		})
 	}
 }
+
+// ── FetchEffectiveRules branch coverage ──────────────────────────────────────
+
+// TestFetchEffectiveRules_CRBListError verifies that an error from listing
+// ClusterRoleBindings is propagated as an error return.
+func TestFetchEffectiveRules_CRBListError(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+
+	// Register CRB GVR with a list error
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{listErr: fmt.Errorf("forbidden")}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	_, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.Error(t, err, "CRB list error must be returned")
+	assert.Contains(t, err.Error(), "ClusterRoleBindings")
+}
+
+// TestFetchEffectiveRules_CRBRoleRefEmpty verifies that CRBs with an empty roleRef
+// name are silently skipped (no panic, no error).
+func TestFetchEffectiveRules_CRBRoleRefEmpty(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	crb := unstructured.Unstructured{Object: map[string]any{
+		"subjects": []any{
+			map[string]any{"kind": "ServiceAccount", "name": "kro", "namespace": "kro-system"},
+		},
+		"roleRef": map[string]any{
+			"kind": "ClusterRole",
+			"name": "", // empty roleRef name
+		},
+	}}
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{crb}}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err)
+	assert.Empty(t, rules, "empty roleRef must be silently skipped")
+}
+
+// TestFetchEffectiveRules_CRBClusterRoleError verifies that a ClusterRole fetch
+// error in a CRB is logged and skipped (the rule is omitted, no overall error).
+func TestFetchEffectiveRules_CRBClusterRoleError(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	crb := unstructured.Unstructured{Object: map[string]any{
+		"subjects": []any{
+			map[string]any{"kind": "ServiceAccount", "name": "kro", "namespace": "kro-system"},
+		},
+		"roleRef": map[string]any{"kind": "ClusterRole", "name": "nonexistent"},
+	}}
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{crb}}
+	// ClusterRole not found — stub returns get error for unregistered GVRs
+	_ = crGVR
+	dyn.resources[rbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err, "ClusterRole fetch failure should not propagate as error")
+	assert.Empty(t, rules, "skipped ClusterRole yields no rules")
+}
+
+// TestFetchEffectiveRules_CRBRoleKind verifies that a CRB with roleRef.kind=Role
+// (unusual but valid RBAC) is silently skipped with no error.
+func TestFetchEffectiveRules_CRBRoleKind(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	crb := unstructured.Unstructured{Object: map[string]any{
+		"subjects": []any{
+			map[string]any{"kind": "ServiceAccount", "name": "kro", "namespace": "kro-system"},
+		},
+		"roleRef": map[string]any{
+			"kind": "Role",        // CRB referencing a Role — valid but uncommon
+			"name": "some-role",
+		},
+	}}
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{crb}}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err, "CRB referencing a Role must be silently skipped")
+	assert.Empty(t, rules)
+}
+
+// TestFetchEffectiveRules_RBListError verifies that a RoleBinding list error is
+// logged and skipped (execution continues, rules from CRBs still returned).
+func TestFetchEffectiveRules_RBListError(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	// RoleBindings with list error — should be logged and skipped, not fail
+	dyn.resources[rbGVR] = &stubNamespaceableResource{listErr: fmt.Errorf("forbidden")}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err, "RoleBinding list error must NOT propagate as error")
+	assert.Empty(t, rules, "no rules from skipped RoleBindings")
+}
+
+// TestFetchEffectiveRules_RBWithClusterRoleRef verifies that a RoleBinding referencing
+// a ClusterRole correctly fetches the ClusterRole rules.
+func TestFetchEffectiveRules_RBWithClusterRoleRef(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	crGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterroles"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	rb := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-rb", "namespace": "kro-system"},
+		"subjects": []any{
+			map[string]any{"kind": "ServiceAccount", "name": "kro", "namespace": "kro-system"},
+		},
+		"roleRef": map[string]any{"kind": "ClusterRole", "name": "kro-cluster-role"},
+	}}
+
+	cr := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-cluster-role"},
+		"rules": []any{
+			map[string]any{
+				"apiGroups": []any{""},
+				"resources": []any{"secrets"},
+				"verbs":     []any{"get", "list"},
+			},
+		},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	dyn.resources[crGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"kro-cluster-role": &cr},
+	}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{
+		nsResources: map[string]*stubResourceClient{
+			"kro-system": {items: []unstructured.Unstructured{rb}},
+		},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err)
+	require.NotEmpty(t, rules)
+	assert.Equal(t, []string{"secrets"}, rules[0].Resources)
+}
+
+// TestFetchEffectiveRules_RBWithRoleRef verifies that a RoleBinding referencing
+// a namespace-scoped Role correctly fetches the Role rules.
+func TestFetchEffectiveRules_RBWithRoleRef(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	roleGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "roles"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	rb := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-role-rb", "namespace": "kro-system"},
+		"subjects": []any{
+			map[string]any{"kind": "ServiceAccount", "name": "kro", "namespace": "kro-system"},
+		},
+		"roleRef": map[string]any{"kind": "Role", "name": "kro-ns-role"},
+	}}
+
+	role := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-ns-role", "namespace": "kro-system"},
+		"rules": []any{
+			map[string]any{
+				"apiGroups": []any{""},
+				"resources": []any{"configmaps"},
+				"verbs":     []any{"get"},
+			},
+		},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	dyn.resources[roleGVR] = &stubNamespaceableResource{
+		nsResources: map[string]*stubResourceClient{
+			"kro-system": {getItems: map[string]*unstructured.Unstructured{"kro-ns-role": &role}},
+		},
+	}
+	dyn.resources[rbGVR] = &stubNamespaceableResource{
+		nsResources: map[string]*stubResourceClient{
+			"kro-system": {items: []unstructured.Unstructured{rb}},
+		},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err)
+	require.NotEmpty(t, rules)
+	assert.Equal(t, []string{"configmaps"}, rules[0].Resources)
+}
+
+// TestFetchEffectiveRules_RBRoleError verifies that a Role fetch error in a
+// RoleBinding is logged and skipped (no overall error returned).
+func TestFetchEffectiveRules_RBRoleError(t *testing.T) {
+	ctx := context.Background()
+	crbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "clusterrolebindings"}
+	rbGVR := schema.GroupVersionResource{Group: rbacGroup, Version: "v1", Resource: "rolebindings"}
+
+	rb := unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "kro-rb", "namespace": "kro-system"},
+		"subjects": []any{
+			map[string]any{"kind": "ServiceAccount", "name": "kro", "namespace": "kro-system"},
+		},
+		"roleRef": map[string]any{"kind": "Role", "name": "nonexistent-role"},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[crbGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{}}
+	// Role not registered — stub returns get error
+	dyn.resources[rbGVR] = &stubNamespaceableResource{
+		nsResources: map[string]*stubResourceClient{
+			"kro-system": {items: []unstructured.Unstructured{rb}},
+		},
+	}
+
+	clients := &stubK8sClients{dyn: dyn, disc: newStubDiscovery()}
+	rules, err := FetchEffectiveRules(ctx, clients, "kro-system", "kro")
+	require.NoError(t, err, "Role fetch failure must not propagate as error")
+	assert.Empty(t, rules)
+}
+
+// ── extractRGDGVRs branch coverage ────────────────────────────────────────────
+
+// TestExtractRGDGVRs_NoSpec verifies that an RGD object without a spec returns an error.
+func TestExtractRGDGVRs_NoSpec(t *testing.T) {
+	ctx := context.Background()
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+	rgdObj := map[string]any{} // no spec
+
+	_, err := extractRGDGVRs(ctx, clients, rgdObj)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no spec")
+}
+
+// TestExtractRGDGVRs_ExternalRef verifies that externalRef resources are included
+// with readOnly=true.
+func TestExtractRGDGVRs_ExternalRef(t *testing.T) {
+	ctx := context.Background()
+
+	disc := newStubDiscovery()
+	disc.resources["v1"] = &metav1.APIResourceList{
+		GroupVersion: "v1",
+		APIResources: []metav1.APIResource{{Name: "configmaps", Kind: "ConfigMap", Namespaced: true}},
+	}
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"id": "ext-cm",
+					"externalRef": map[string]any{
+						"apiVersion": "v1",
+						"kind":       "ConfigMap",
+					},
+				},
+			},
+		},
+	}
+
+	gvrs, err := extractRGDGVRs(ctx, clients, rgdObj)
+	require.NoError(t, err)
+	require.Len(t, gvrs, 1)
+	assert.Equal(t, "configmaps", gvrs[0].Resource)
+	assert.True(t, gvrs[0].ReadOnly, "externalRef resources must be read-only")
+}
+
+// TestExtractRGDGVRs_NeitherTemplateNorExternalRef verifies that resources with
+// neither "template" nor "externalRef" keys are silently skipped.
+func TestExtractRGDGVRs_NeitherTemplateNorExternalRef(t *testing.T) {
+	ctx := context.Background()
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"id":    "state-store",
+					"state": map[string]any{"key": "value"},
+					// no template, no externalRef
+				},
+			},
+		},
+	}
+
+	gvrs, err := extractRGDGVRs(ctx, clients, rgdObj)
+	require.NoError(t, err)
+	assert.Empty(t, gvrs, "resources with neither template nor externalRef must be skipped")
+}
+
+// TestExtractRGDGVRs_MissingKind verifies that resources with an empty kind are
+// silently skipped.
+func TestExtractRGDGVRs_MissingKind(t *testing.T) {
+	ctx := context.Background()
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"id": "bad-resource",
+					"template": map[string]any{
+						"apiVersion": "apps/v1",
+						"kind":       "", // empty kind
+					},
+				},
+			},
+		},
+	}
+
+	gvrs, err := extractRGDGVRs(ctx, clients, rgdObj)
+	require.NoError(t, err)
+	assert.Empty(t, gvrs, "resources with empty kind must be skipped")
+}
+
+// TestExtractRGDGVRs_DiscoveryFallback verifies that when DiscoverPlural fails,
+// a naive lowercase+s plural is used as fallback.
+func TestExtractRGDGVRs_DiscoveryFallback(t *testing.T) {
+	ctx := context.Background()
+	// No resources registered in discovery — DiscoverPlural will fail
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: newStubDiscovery()}
+
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				map[string]any{
+					"id": "my-widget",
+					"template": map[string]any{
+						"apiVersion": "widgets.example.com/v1",
+						"kind":       "Widget",
+					},
+				},
+			},
+		},
+	}
+
+	gvrs, err := extractRGDGVRs(ctx, clients, rgdObj)
+	require.NoError(t, err)
+	require.Len(t, gvrs, 1)
+	// Fallback plural: "widget" + "s" = "widgets"
+	assert.Equal(t, "widgets", gvrs[0].Resource, "discovery fallback should use lowercase+s")
+}
+
+// TestExtractRGDGVRs_Deduplication verifies that duplicate group/resource
+// combinations are deduplicated in the output.
+func TestExtractRGDGVRs_Deduplication(t *testing.T) {
+	ctx := context.Background()
+	disc := newStubDiscovery()
+	disc.resources["apps/v1"] = &metav1.APIResourceList{
+		GroupVersion: "apps/v1",
+		APIResources: []metav1.APIResource{
+			{Name: "deployments", Kind: "Deployment", Namespaced: true},
+		},
+	}
+	clients := &stubK8sClients{dyn: newStubDynamic(), disc: disc}
+
+	rgdObj := map[string]any{
+		"spec": map[string]any{
+			"resources": []any{
+				// Two Deployments — should deduplicate to one GVR entry
+				map[string]any{
+					"id": "web",
+					"template": map[string]any{"apiVersion": "apps/v1", "kind": "Deployment"},
+				},
+				map[string]any{
+					"id": "api",
+					"template": map[string]any{"apiVersion": "apps/v1", "kind": "Deployment"},
+				},
+			},
+		},
+	}
+
+	gvrs, err := extractRGDGVRs(ctx, clients, rgdObj)
+	require.NoError(t, err)
+	assert.Len(t, gvrs, 1, "duplicate group/resource must be deduplicated")
+}
+
+// ── matchesResource branch coverage ──────────────────────────────────────────
+
+// TestMatchesResource_Exact covers the exact match branch (r == resource).
+func TestMatchesResource_Exact(t *testing.T) {
+	assert.True(t, matchesResource([]string{"deployments"}, "deployments"))
+}
+
+// TestMatchesResource_Wildcard covers the wildcard branch (r == "*").
+func TestMatchesResource_Wildcard(t *testing.T) {
+	assert.True(t, matchesResource([]string{"*"}, "anything"))
+}
+
+// TestMatchesResource_NoMatch covers the no-match path (returns false).
+func TestMatchesResource_NoMatch(t *testing.T) {
+	assert.False(t, matchesResource([]string{"configmaps", "secrets"}, "deployments"))
+}
+
+// TestMatchesResource_EmptyList covers the empty resource list (returns false).
+func TestMatchesResource_EmptyList(t *testing.T) {
+	assert.False(t, matchesResource([]string{}, "deployments"))
+}
