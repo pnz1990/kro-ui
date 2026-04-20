@@ -6,3 +6,4 @@
 | 2026-04-20 | 2 | 3 | 0 | 0 | - | 3 | session sess-412931da; merged PRs #460,#461 (SRE+Dev journeys) |
 | 2026-04-20 | 3 | 31 | 0 | 0 | 12 | 1 | session sess-475a6159; merged PR #498 (fleet/metrics coverage 85.4%→92.0%); stale state cleanup |
 | 2026-04-20 | 4 | 44 | 0 | 0 | 12 | 1 | session sess-7780ed82; merged PR #503 (usePageTitle test + cache WriteHeader 94.3%→98.6%) |
+| 2026-04-20 | 5 | 45 | 0 | 0 | 12 | 1 | session sess-7780ed82; merged PR #506 (GetMetrics ListContexts error path 86.7%→96.7%) |
