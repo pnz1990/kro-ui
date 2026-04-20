@@ -19,8 +19,8 @@
 #    add Lighthouse CI check to CI pipeline"
 #
 # What this does:
-# 1. Builds the kro-ui binary with an embedded frontend
-# 2. Starts kro-ui in "offline" mode (no kubeconfig → healthz-only server)
+# 1. Builds the kro-ui binary
+# 2. Starts kro-ui with a stub kubeconfig (localhost:1 — unreachable cluster)
 # 3. Runs a Lighthouse CLI audit against the Overview (/) page
 # 4. Asserts: performance score ≥ 70
 #
@@ -30,10 +30,11 @@
 # A 70 threshold catches genuine regressions (synchronous discovery, large
 # bundle, render-blocking scripts) without failing on runner variance.
 #
-# Offline mode: kro-ui starts without a kubeconfig. The healthz endpoint
-# responds 200 and the SPA is served. The Overview page renders the
-# "no cluster" onboarding state — this is sufficient to audit page load
-# performance independent of cluster latency.
+# Stub kubeconfig: kro-ui requires a valid kubeconfig to start (NewClientFactory
+# fails otherwise). We use a minimal kubeconfig pointing at localhost:1 (refused).
+# The server starts, serves the embedded SPA and /api/v1/healthz correctly.
+# All k8s API calls return connection refused — this is expected and OK for a
+# page-load performance audit (the UI renders the "no cluster" onboarding state).
 
 name: Performance Budget (Lighthouse)
 
@@ -75,15 +76,40 @@ jobs:
       - name: Build kro-ui binary
         run: make go
 
-      # ── Start kro-ui in offline mode ──────────────────────────────────────
-      # No kubeconfig → kro-ui serves the SPA and /api/v1/healthz only.
-      # All other API endpoints return 503 (no cluster) — acceptable for
-      # a page-load performance test.
-      - name: Start kro-ui (offline mode)
+      # ── Start kro-ui with a stub kubeconfig ──────────────────────────────
+      # kro-ui requires a kubeconfig to start (NewClientFactory fails otherwise).
+      # We create a minimal stub kubeconfig pointing at a non-existent server
+      # (localhost:1). The server starts, serves the SPA and healthz correctly,
+      # while all k8s API calls return connection-refused (irrelevant for perf audit).
+      - name: Start kro-ui (stub kubeconfig)
         run: |
-          # Unset KUBECONFIG so kro-ui starts without a cluster
-          unset KUBECONFIG
-          ./bin/kro-ui serve --port 40107 &
+          # Write a minimal stub kubeconfig — single context, unreachable server.
+          # kro-ui starts, serves the SPA, and healthz returns 200.
+          # k8s API calls return connection refused, which is expected and OK for
+          # a page-load performance audit.
+          mkdir -p /tmp/kro-ui-perf
+          cat > /tmp/kro-ui-perf/kubeconfig.yaml << 'KUBEEOF'
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - name: perf-stub
+            cluster:
+              server: https://127.0.0.1:1
+              insecure-skip-tls-verify: true
+          contexts:
+          - name: perf-stub
+            context:
+              cluster: perf-stub
+              user: perf-stub
+          current-context: perf-stub
+          users:
+          - name: perf-stub
+            user:
+              token: stub-token-for-perf-testing
+          KUBEEOF
+
+          # Start kro-ui with the stub kubeconfig
+          KUBECONFIG=/tmp/kro-ui-perf/kubeconfig.yaml ./bin/kro-ui serve --port 40107 &
           echo "KRO_UI_PID=$!" >> $GITHUB_ENV
 
           # Poll healthz until the server is ready (max 15s)
