@@ -32,7 +32,7 @@ as they land (new CRDs, GraphRevision hash, CEL extensions).
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-20 — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-20 (revision 2) — autonomous vision scan (vibe-vision-auto), donation lens pass
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -41,22 +41,24 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 
 | Gap | Design doc item | Why it blocks |
 |-----|----------------|---------------|
-| No `GOVERNANCE.md` | doc 27 §27.8 | kubernetes-sigs requires a governance model with maintainer list and decision process |
-| No `CODE_OF_CONDUCT.md` at repo root | doc 27 §27.9 | kubernetes-sigs org requires this file to exist (not just a link in CONTRIBUTING.md) |
-| No signed artifacts or SBOM in release | doc 27 §27.10 | kubernetes-sigs projects are expected to produce cosign-signed images and SBOM; goreleaser v2 supports this natively |
-| Single approver in `OWNERS` | doc 27 §27.11 | kubernetes-sigs rejects donations with a single-person bus factor; >= 2 approvers required |
+| ~~No `GOVERNANCE.md`~~ | ~~doc 27 §27.8~~ | ✅ **Shipped** — GOVERNANCE.md at repo root |
+| ~~No `CODE_OF_CONDUCT.md` at repo root~~ | ~~doc 27 §27.9~~ | ✅ **Shipped** — CODE_OF_CONDUCT.md at repo root |
+| No signed artifacts or SBOM in release | doc 27 §27.10 | kubernetes-sigs expects cosign-signed images and SBOM; release.yml also missing `id-token: write` permission prerequisite (doc 27 §27.22) |
+| Single approver in `OWNERS` | doc 27 §27.24 | kubernetes-sigs rejects donations with single-person bus factor; >= 2 approvers required; no outreach plan exists to recruit a second approver from kro community |
+| `SECURITY.md` will be stale post-donation | doc 27 §27.23 | Points to `pnz1990/kro-ui` security advisories; must be updated to reference `security@kubernetes.io` before donation PR; easy to miss without a tracked item |
 
 ### Significant gaps (would produce review comments)
 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | DAG unusable at 200+ nodes | doc 28 + doc 27 §27.13 | Large production RGDs render as a dense locked-up SVG; no collapse, minimap, or text fallback |
-| GraphRevision diff incomplete | doc 28 | The two-panel line-level diff with navigate-by-change arrows is missing; the Revisions tab is visible on every RGD detail page and presents as a half-built feature |
+| GraphRevision diff — line-level YAML panel is raw blocks | doc 28 (new item) | YAML diff panel shows two unrelated KroCodeBlock side-by-side; no line highlighting; user cannot find what changed without reading both blocks; the DAG diff (RGDDiffView) exists but the raw YAML panel is not a real diff view |
 | No partial-RBAC test | doc 27 §27.12 | User with access to some namespaces but not others gets silent omissions; no visible "N hidden" indicator |
-| Color as sole health differentiator | doc 30 | HealthChip bar segments rely on hue only; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
-| 521KB bundle / Lighthouse ~60 | doc 27 §27.14 | No code splitting; initial load on a slow connection is poor; perf.yml threshold set to 50 acknowledges this |
-| Fleet per-cluster timeout not implemented | doc 29 | `proposals/003-fleet-timeout-budget.md` specifies a 2s per-cluster deadline but `summariseContext` uses the 30s route context directly; one hung cluster blocks the entire Fleet page for up to 30s; the unit test specified in the proposal was never written |
-| No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has 7 nodes; no 50-node or 50-RGD scenario exists in CI; scale regressions are invisible |
+| Color as sole health differentiator | doc 30 | HealthChip bar segments and OverviewHealthBar chips use border/bg color as the primary differentiator; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
+| 521KB bundle / Lighthouse ~60 | doc 27 §27.14 | No code splitting; initial load on a slow connection is poor; perf.yml threshold set to 50 acknowledges the gap |
+| Fleet per-cluster timeout not implemented | doc 27 §27.21 + doc 29 | `summariseContext` uses the 30s route context; one hung cluster blocks the Fleet page for up to 30s; the `TestFleetSummaryHandler_ContextTimeout` test documented in proposals/003 was never written |
+| No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has ~15 nodes; no 50-node or 50-RGD scenario in CI; scale regressions are invisible until a user reports in production |
+| Frontend API calls have no internal timeout | doc 27 §27.20 | `api.ts` passes caller `AbortSignal` but adds no internal timeout; callers that omit a signal hang indefinitely on a stuck server; `AbortSignal.timeout(30_000)` needed in `get()` and `post()` |
 
 ### Minor gaps (should be addressed before donation, not blockers)
 
@@ -69,14 +71,21 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | External Google Fonts dependency | doc 27 §27.16 | Breaks in air-gapped clusters; privacy concern; blocks rendering until CDN responds |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
+| Designer tab focus not persisted | doc 31 (new item) | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
+| Designer draft not persisted | doc 31 | Closing `/author` silently discards all edits; `localStorage` auto-save needed |
 
 ### Already addressed (recent PRs)
 
 - ✅ OWNERS file (kubernetes-sigs format) — PR shipped
 - ✅ DCO sign-off enforcement (`dco.yml`) — PR shipped
 - ✅ CONTRIBUTING.md with DCO section — PR shipped
+- ✅ GOVERNANCE.md — PR #592 shipped
+- ✅ CODE_OF_CONDUCT.md at repo root — PR #592 shipped
+- ✅ OWNERS breadth + reviewer path documented — PR #592 shipped
 - ✅ WCAG 2.1 AA axe-core scan on 4 Tier-1 pages (journey 074) — PR shipped
 - ✅ Lighthouse CI performance budget (perf.yml) — PR shipped
 - ✅ kro upstream release tracking automation — PR shipped
-- ✅ Cluster unreachable global banner in Layout — PR #582 shipped
+- ✅ Cluster unreachable global banner in Layout — PR #583 shipped
+- ✅ Condition detail drill-down (per-condition expand/collapse) — PR #566 shipped
+- ✅ v0.10.0 release (goreleaser binary + Docker image) — PR #589 shipped
 
