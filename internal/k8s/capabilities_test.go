@@ -701,3 +701,294 @@ func TestMinSupportedVersion(t *testing.T) {
 	// Validate the constant itself is a valid version string
 	assert.True(t, IsKroVersionSupported(MinSupportedKroVersion), "MinSupportedKroVersion must be >= itself")
 }
+
+// ── KroCapabilities.String() ──────────────────────────────────────────────────
+
+func TestKroCapabilitiesString(t *testing.T) {
+	caps := &KroCapabilities{
+		Version:        "v0.9.1",
+		APIVersion:     "kro.run/v1alpha1",
+		KnownResources: []string{"resourcegraphdefinitions"},
+		FeatureGates:   map[string]bool{"CELOmitFunction": true},
+		IsSupported:    true,
+	}
+	s := caps.String()
+	assert.Contains(t, s, "v0.9.1")
+	assert.Contains(t, s, "kro.run/v1alpha1")
+	assert.Contains(t, s, "resourcegraphdefinitions")
+	assert.Contains(t, s, "supported=true")
+}
+
+func TestKroCapabilitiesStringUnsupported(t *testing.T) {
+	caps := &KroCapabilities{
+		Version:        "v0.7.0",
+		APIVersion:     "kro.run/v1alpha1",
+		KnownResources: []string{},
+		FeatureGates:   map[string]bool{},
+		IsSupported:    false,
+	}
+	s := caps.String()
+	assert.Contains(t, s, "v0.7.0")
+	assert.Contains(t, s, "supported=false")
+}
+
+// ── nestedSlice edge cases ────────────────────────────────────────────────────
+
+func TestNestedSliceEmptyKeys(t *testing.T) {
+	obj := map[string]any{"foo": []any{"bar"}}
+	result, ok := nestedSlice(obj)
+	assert.False(t, ok, "nestedSlice with no keys should return false")
+	assert.Nil(t, result)
+}
+
+func TestNestedSliceMissingIntermediateKey(t *testing.T) {
+	obj := map[string]any{"spec": map[string]any{}}
+	result, ok := nestedSlice(obj, "spec", "versions")
+	assert.False(t, ok)
+	assert.Nil(t, result)
+}
+
+func TestNestedSliceIntermediateNotMap(t *testing.T) {
+	obj := map[string]any{"spec": "not-a-map"}
+	result, ok := nestedSlice(obj, "spec", "versions")
+	assert.False(t, ok)
+	assert.Nil(t, result)
+}
+
+func TestNestedSliceFinalKeyNotSlice(t *testing.T) {
+	obj := map[string]any{"spec": map[string]any{"versions": "not-a-slice"}}
+	result, ok := nestedSlice(obj, "spec", "versions")
+	assert.False(t, ok)
+	assert.Nil(t, result)
+}
+
+// ── hasKey edge cases ─────────────────────────────────────────────────────────
+
+func TestHasKeyNilMap(t *testing.T) {
+	assert.False(t, hasKey(nil, "anything"), "hasKey on nil map should return false")
+}
+
+func TestHasKeyPresentAndAbsent(t *testing.T) {
+	m := map[string]any{"foo": 1}
+	assert.True(t, hasKey(m, "foo"))
+	assert.False(t, hasKey(m, "bar"))
+}
+
+// ── detectSchemaCapabilities branch coverage ──────────────────────────────────
+
+// makeCRDObjectWithCustomVersions builds a CRD where spec.versions contains
+// a non-map item (e.g. a string), triggering the versions[0] type assertion failure.
+func makeCRDWithNonMapVersion() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apiextensions.k8s.io/v1",
+		"kind":       "CustomResourceDefinition",
+		"metadata":   map[string]any{"name": rgdCRDName},
+		"spec": map[string]any{
+			"versions": []any{"not-a-map"},
+		},
+	}}
+}
+
+// makeCRDWithEmptyVersions builds a CRD with an empty spec.versions array.
+func makeCRDWithEmptyVersions() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apiextensions.k8s.io/v1",
+		"kind":       "CustomResourceDefinition",
+		"metadata":   map[string]any{"name": rgdCRDName},
+		"spec": map[string]any{
+			"versions": []any{},
+		},
+	}}
+}
+
+// makeCRDWithNoOpenAPISchema builds a CRD version with no openAPIV3Schema.
+func makeCRDWithNoOpenAPISchema() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apiextensions.k8s.io/v1",
+		"kind":       "CustomResourceDefinition",
+		"metadata":   map[string]any{"name": rgdCRDName},
+		"spec": map[string]any{
+			"versions": []any{
+				map[string]any{
+					"name":   "v1alpha1",
+					"schema": map[string]any{
+						// no openAPIV3Schema key
+					},
+				},
+			},
+		},
+	}}
+}
+
+// makeCRDWithNoSpecProperties builds a CRD with openAPIV3Schema but no spec.properties.
+func makeCRDWithNoSpecProperties() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apiextensions.k8s.io/v1",
+		"kind":       "CustomResourceDefinition",
+		"metadata":   map[string]any{"name": rgdCRDName},
+		"spec": map[string]any{
+			"versions": []any{
+				map[string]any{
+					"name": "v1alpha1",
+					"schema": map[string]any{
+						"openAPIV3Schema": map[string]any{
+							"properties": map[string]any{
+								// no "spec" key
+							},
+						},
+					},
+				},
+			},
+		},
+	}}
+}
+
+// makeCRDWithNoResourcesKey builds a CRD where spec.properties has no "resources" key.
+func makeCRDWithNoResourcesKey() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apiextensions.k8s.io/v1",
+		"kind":       "CustomResourceDefinition",
+		"metadata":   map[string]any{"name": rgdCRDName},
+		"spec": map[string]any{
+			"versions": []any{
+				map[string]any{
+					"name": "v1alpha1",
+					"schema": map[string]any{
+						"openAPIV3Schema": map[string]any{
+							"properties": map[string]any{
+								"spec": map[string]any{
+									"properties": map[string]any{
+										// no "resources" key — only "schema"
+										"schema": map[string]any{"properties": map[string]any{}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}}
+}
+
+// makeCRDWithResourcesNoItems builds a CRD where resources exists but has no "items".
+func makeCRDWithResourcesNoItems() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "apiextensions.k8s.io/v1",
+		"kind":       "CustomResourceDefinition",
+		"metadata":   map[string]any{"name": rgdCRDName},
+		"spec": map[string]any{
+			"versions": []any{
+				map[string]any{
+					"name": "v1alpha1",
+					"schema": map[string]any{
+						"openAPIV3Schema": map[string]any{
+							"properties": map[string]any{
+								"spec": map[string]any{
+									"properties": map[string]any{
+										"resources": map[string]any{
+											// no "items" key
+											"type": "array",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}}
+}
+
+func TestDetectSchemaCapabilitiesEdgeCases(t *testing.T) {
+	tests := []struct {
+		name  string
+		crd   *unstructured.Unstructured
+		check func(t *testing.T, sc SchemaCapabilities)
+	}{
+		{
+			name: "empty versions falls back to baseline",
+			crd:  makeCRDWithEmptyVersions(),
+			check: func(t *testing.T, sc SchemaCapabilities) {
+				baseline := Baseline().Schema
+				assert.Equal(t, baseline.HasForEach, sc.HasForEach)
+				assert.Equal(t, baseline.HasExternalRef, sc.HasExternalRef)
+			},
+		},
+		{
+			name: "versions[0] not a map falls back to baseline",
+			crd:  makeCRDWithNonMapVersion(),
+			check: func(t *testing.T, sc SchemaCapabilities) {
+				baseline := Baseline().Schema
+				assert.Equal(t, baseline.HasForEach, sc.HasForEach)
+			},
+		},
+		{
+			name: "no openAPIV3Schema falls back to baseline",
+			crd:  makeCRDWithNoOpenAPISchema(),
+			check: func(t *testing.T, sc SchemaCapabilities) {
+				baseline := Baseline().Schema
+				assert.Equal(t, baseline.HasForEach, sc.HasForEach)
+			},
+		},
+		{
+			name: "no spec.properties falls back to baseline",
+			crd:  makeCRDWithNoSpecProperties(),
+			check: func(t *testing.T, sc SchemaCapabilities) {
+				baseline := Baseline().Schema
+				assert.Equal(t, baseline.HasForEach, sc.HasForEach)
+			},
+		},
+		{
+			name: "no resources key falls back to baseline",
+			crd:  makeCRDWithNoResourcesKey(),
+			check: func(t *testing.T, sc SchemaCapabilities) {
+				baseline := Baseline().Schema
+				// resourceItemProps is nil → returns baseline not all-false
+				assert.Equal(t, baseline.HasForEach, sc.HasForEach)
+			},
+		},
+		{
+			name: "resources with no items falls back to baseline",
+			crd:  makeCRDWithResourcesNoItems(),
+			check: func(t *testing.T, sc SchemaCapabilities) {
+				baseline := Baseline().Schema
+				assert.Equal(t, baseline.HasForEach, sc.HasForEach)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dyn := newCapStubDynamic()
+			dyn.resources[crdGVR] = &capStubNamespaceableResource{
+				getItems: map[string]*unstructured.Unstructured{rgdCRDName: tt.crd},
+			}
+			sc := detectSchemaCapabilities(context.Background(), dyn)
+			tt.check(t, sc)
+		})
+	}
+}
+
+// ── getResourceItemProperties branch coverage ─────────────────────────────────
+
+func TestGetResourceItemPropertiesNoResourcesKey(t *testing.T) {
+	specProps := map[string]any{
+		"schema": map[string]any{"properties": map[string]any{}},
+		// no "resources" key
+	}
+	result := getResourceItemProperties(context.Background(), specProps)
+	assert.Nil(t, result, "should return nil when 'resources' key is absent")
+}
+
+func TestGetResourceItemPropertiesNoItems(t *testing.T) {
+	specProps := map[string]any{
+		"resources": map[string]any{
+			"type": "array",
+			// no "items" key
+		},
+	}
+	result := getResourceItemProperties(context.Background(), specProps)
+	assert.Nil(t, result, "should return nil when resources.items is absent")
+}
