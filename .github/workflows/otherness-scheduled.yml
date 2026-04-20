@@ -9,6 +9,8 @@ name: otherness scheduled run
 #
 # Security controls applied:
 #   M1: All action dependencies pinned to SHAs (no @latest, no @vN tags)
+#   M3: GitHub App token used when APP_ID + APP_PRIVATE_KEY are configured
+#       (per-repo scoped, non-exportable, short-lived); falls back to GH_TOKEN PAT
 #   M4: actions:write OMITTED — agent triggers CI via push, not Actions API
 #   M6: agents_path validated against allowlist before agent executes
 #   M7: _state branch protection enforced via CODEOWNERS
@@ -23,7 +25,7 @@ on:
 # which would cause distributed lock conflicts and wasted Bedrock tokens.
 concurrency:
   group: otherness-scheduled
-  cancel-in-progress: false  # sessions must complete; 120min timeout is the ceiling
+  cancel-in-progress: true
 
 jobs:
   otherness:
@@ -49,14 +51,36 @@ jobs:
       statuses: write
 
     steps:
+      # ── Step 0: Generate GitHub App token (M3) ───────────────────────────
+      # When APP_ID + APP_PRIVATE_KEY are configured, generate a short-lived
+      # installation token scoped to this repo only. This is more secure than
+      # a PAT (per-repo, non-exportable, auto-rotates every hour).
+      #
+      # Fallback: if APP_ID is not set, use GH_TOKEN PAT (backward compatible).
+      # Projects without the App configured continue to work as before.
+      #
+      # To enable: create a GitHub App with contents/pull-requests/issues write
+      # permissions, install it on this repo, and add APP_ID + APP_PRIVATE_KEY
+      # as repository secrets. See onboarding-new-project.md §GitHub App setup.
+      #
+      # SHA-pinned (security: doc 27 §M1 + §M3).
+      - name: Generate GitHub App token (M3 — if APP_ID configured)
+        id: app-token
+        if: ${{ vars.OTHERNESS_USE_APP_TOKEN == 'true' }}
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3  # v3.1.1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       # ── Step 1: Checkout ──────────────────────────────────────────────────
       # SHA-pinned (security: doc 27 §M1 — no @latest or floating tags)
-      # GH_TOKEN used so commits from this job trigger downstream CI workflows.
+      # Uses App token when available (M3), falls back to GH_TOKEN PAT.
+      # The token used here must have push access so downstream CI triggers.
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
 
       - name: Configure git identity
         run: |
@@ -64,39 +88,51 @@ jobs:
           git config --global user.email "otherness[bot]@users.noreply.github.com"
 
       # ── Step 2: Token preflight ──────────────────────────────────────────
-      # Validates GH_TOKEN before spending Bedrock tokens on a run that will fail.
-      # Posts a [NEEDS HUMAN] issue if the token is missing or expired.
-      - name: Validate GH_TOKEN
+      # Validates the active token (App or PAT) before spending Bedrock tokens
+      # on a run that will fail. Posts a [NEEDS HUMAN] issue if auth is broken.
+      - name: Validate auth token
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # In App mode: use the App token. In PAT mode: use GH_TOKEN.
+          # EFFECTIVE_TOKEN resolves to whichever is available.
+          EFFECTIVE_TOKEN: ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
+          AUTH_MODE: ${{ steps.app-token.outputs.token != '' && 'app' || 'pat' }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_TOKEN secret is not set."
-            GH_TOKEN="" gh issue create --repo "$REPO" \
-              --title "[NEEDS HUMAN] GH_TOKEN missing — otherness cannot run" \
-              --body "GH_TOKEN is not configured. Add a PAT with repo+workflow scopes as GH_TOKEN secret." \
+          if [ -z "$EFFECTIVE_TOKEN" ]; then
+            echo "::error::No auth token available. Configure either APP_ID+APP_PRIVATE_KEY (M3/GitHub App) or GH_TOKEN (PAT)."
+            GITHUB_TOKEN="$GITHUB_TOKEN" gh issue create --repo "$REPO" \
+              --title "[NEEDS HUMAN] No auth token — otherness cannot run" \
+              --body "Neither APP_ID/APP_PRIVATE_KEY (GitHub App) nor GH_TOKEN (PAT) is configured. See onboarding-new-project.md §GitHub App setup or §Token setup." \
               --label "needs-human" 2>/dev/null || true
             exit 1
           fi
-          if ! GH_TOKEN="$GH_TOKEN" gh api "repos/$REPO" --jq '.full_name' >/dev/null 2>&1; then
-            echo "::error::GH_TOKEN is invalid or expired."
-            GH_TOKEN="" gh issue create --repo "$REPO" \
-              --title "[NEEDS HUMAN] GH_TOKEN expired — otherness cannot run" \
-              --body "GH_TOKEN is set but authentication failed. Rotate the PAT and update the secret." \
+          # App tokens cannot call /user — use /repos/:repo instead (works for both App and PAT)
+          if ! GH_TOKEN="$EFFECTIVE_TOKEN" gh api "repos/$REPO" --jq '.full_name' >/dev/null 2>&1; then
+            echo "::error::Auth token is invalid or expired (mode: $AUTH_MODE)."
+            GITHUB_TOKEN="$GITHUB_TOKEN" gh issue create --repo "$REPO" \
+              --title "[NEEDS HUMAN] Auth token invalid — otherness cannot run" \
+              --body "Active auth token (mode: $AUTH_MODE) failed validation. If using App: check APP_ID and APP_PRIVATE_KEY secrets. If using PAT: rotate GH_TOKEN." \
               --label "needs-human" 2>/dev/null || true
             exit 1
           fi
-          echo "[preflight] GH_TOKEN valid for: $(GH_TOKEN="$GH_TOKEN" gh api "repos/$REPO" --jq '.full_name')"
+          echo "[preflight] Auth OK (mode: $AUTH_MODE) repo: $(GH_TOKEN="$EFFECTIVE_TOKEN" gh api "repos/$REPO" --jq '.full_name')"
 
       # ── Step 3: Install agent files ──────────────────────────────────────
       # Clones pnz1990/otherness to ~/.otherness on the runner.
-      # The agent_version field in otherness-config.yaml pins to a specific SHA.
+      # Resolves the version to run:
+      #   1. If upgrade_policy allows a newer release → upgrade to it (same session)
+      #   2. Else if agent_version is set → checkout that version
+      #   3. Else → use HEAD (latest main)
+      # Upgrades rewrite agent_version in otherness-config.yaml so the session
+      # commits the new pin at batch end via the session branch PR (SM §4g).
+      # Design ref: docs/design/03-versioned-release.md
       - name: Install otherness agent files
         run: |
           git clone --quiet --depth 1 https://github.com/pnz1990/otherness.git ~/.otherness
-          # If agent_version is set in config, checkout that specific version
+          export GIT_TERMINAL_PROMPT=0
+
+          # ── Read config values ──────────────────────────────────────────
           AGENT_VERSION=$(python3 -c "
           import re
           for line in open('otherness-config.yaml'):
@@ -104,15 +140,60 @@ jobs:
               if m and m.group(1) not in ('','\"\"',\"''\"):
                   print(m.group(1)); break
           " 2>/dev/null || echo "")
-          if [ -n "$AGENT_VERSION" ]; then
-            export GIT_TERMINAL_PROMPT=0
+
+          UPGRADE_POLICY=$(python3 -c "
+          import re
+          for line in open('otherness-config.yaml'):
+              m = re.match(r'^\s+upgrade_policy:\s*[\"\'']?([^\"\'#\n\s]+)[\"\'']?', line)
+              if m and m.group(1) not in ('','\"\"',\"''\"):
+                  print(m.group(1)); break
+          " 2>/dev/null || echo "")
+
+          echo "[otherness] agent_version=${AGENT_VERSION:-unset} upgrade_policy=${UPGRADE_POLICY:-none}"
+
+          # ── Auto-upgrade if policy allows ──────────────────────────────
+          RESOLVED_VERSION="$AGENT_VERSION"
+
+          if [ -n "$UPGRADE_POLICY" ] && [ -n "$AGENT_VERSION" ]; then
+            git -C ~/.otherness fetch --tags --quiet 2>/dev/null || true
+
+            # Decode and run semver policy-matching script (base64 avoids YAML indent issues)
+            _POLICY_SCRIPT="aW1wb3J0IHN5cywgcmUKY3VycmVudD1zeXMuYXJndlsxXS5sc3RyaXAoInYiKTsgcG9saWN5PXN5cy5hcmd2WzJdCm1haj1pbnQoY3VycmVudC5zcGxpdCgiLiIpWzBdKQpkZWYgb2sodCxwLG0pOgogICAgdj10LmxzdHJpcCgidiIpOyBwYXJ0cz12LnNwbGl0KCIuIikKICAgIGlmIGxlbihwYXJ0cykhPTMgb3IgaW50KHBhcnRzWzBdKSE9bTogcmV0dXJuIEZhbHNlCiAgICByZXR1cm4gYm9vbChyZS5tYXRjaCgiXiIrcmUuZXNjYXBlKHApLnJlcGxhY2UoIngiLCJbMC05XSsiKSsiJCIsdikpCmRlZiBndChhLGIpOiByZXR1cm4gW2ludCh4KSBmb3IgeCBpbiBhLmxzdHJpcCgidiIpLnNwbGl0KCIuIildPltpbnQoeCkgZm9yIHggaW4gYi5sc3RyaXAoInYiKS5zcGxpdCgiLiIpXQpmb3IgbGluZSBpbiBzeXMuc3RkaW46CiAgICB0PWxpbmUuc3RyaXAoKQogICAgaWYgb2sodCxwb2xpY3ksbWFqKSBhbmQgZ3QodCxjdXJyZW50KTogcHJpbnQodCk7IGJyZWFrCg=="
+            echo "$_POLICY_SCRIPT" | base64 -d > /tmp/op.py
+
+            NEWEST=$(git -C ~/.otherness tag --sort=-version:refname | \
+              grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" | \
+              python3 /tmp/op.py "$AGENT_VERSION" "$UPGRADE_POLICY" 2>/dev/null || echo "")
+
+            if [ -n "$NEWEST" ]; then
+              echo "[otherness] Auto-upgrading $AGENT_VERSION -> $NEWEST (policy: $UPGRADE_POLICY)"
+              if git -C ~/.otherness checkout "$NEWEST" --quiet 2>/dev/null; then
+                RESOLVED_VERSION="$NEWEST"
+                # Rewrite agent_version so session branch PR commits the upgrade
+                python3 -c "import re,sys; c=open('otherness-config.yaml').read(); c=re.sub(r'(\s+agent_version:\s*)[\"\'\'']?v[0-9]+\.[0-9]+\.[0-9]+[\"\'\'']?',lambda m:m.group(1)+sys.argv[1],c,count=1); open('otherness-config.yaml','w').write(c); print('[otherness] agent_version -> '+sys.argv[1])" "$NEWEST" 2>/dev/null || echo "::warning::Could not rewrite agent_version"
+              else
+                echo "::warning::Could not checkout $NEWEST -- staying on $AGENT_VERSION"
+              fi
+            else
+              echo "[otherness] Already at newest allowed version ($AGENT_VERSION)"
+            fi
+          fi
+            else
+              echo "[otherness] Already at newest allowed version ($AGENT_VERSION)"
+            fi
+          fi
+
+          # ── Checkout pinned version (no upgrade case) ──────────────────
+          if [ "$RESOLVED_VERSION" = "$AGENT_VERSION" ] && [ -n "$AGENT_VERSION" ]; then
             git -C ~/.otherness fetch --tags --quiet 2>/dev/null || true
             git -C ~/.otherness checkout "$AGENT_VERSION" --quiet 2>/dev/null \
               && echo "[otherness] Pinned to $AGENT_VERSION" \
               || echo "::warning::Could not checkout $AGENT_VERSION — using HEAD"
-          else
+          elif [ -z "$AGENT_VERSION" ]; then
             echo "[otherness] Using HEAD: $(git -C ~/.otherness rev-parse --short HEAD)"
           fi
+
+          echo "[otherness] Active version: $(git -C ~/.otherness describe --tags --exact-match 2>/dev/null || git -C ~/.otherness rev-parse --short HEAD)"
 
       # ── Step 4: Sync command files ───────────────────────────────────────
       - name: Sync otherness command files
@@ -135,7 +216,7 @@ jobs:
       # SHA-pinned (security: doc 27 §M1).
       # OIDC issues a 1-hour session token — no long-lived keys stored.
       - name: Configure AWS credentials (Bedrock via OIDC)
-        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a  # v4
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c  # v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: otherness-bedrock
@@ -144,7 +225,7 @@ jobs:
       # ── Step 6: gh CLI auth ──────────────────────────────────────────────
       - name: Authenticate gh CLI
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
         run: |
           gh auth setup-git
           gh auth status
@@ -155,11 +236,11 @@ jobs:
       # Failure here is non-blocking — Step B always runs regardless.
       - name: Otherness — Vision scan (Step A)
         continue-on-error: true
-        uses: anomalyco/opencode/github@27db54c859be74aa4caed3e58ae14ecc8bc34b30  # v1.14.19
+        uses: anomalyco/opencode/github@23fb5e0516c99ac04a1aa46c193efda2e1b9bb24  # v1.14.18
         env:
           AWS_REGION:          us-east-1
-          GH_TOKEN:            ${{ secrets.GH_TOKEN }}
-          GITHUB_TOKEN:        ${{ secrets.GH_TOKEN }}
+          GH_TOKEN:            ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
+          GITHUB_TOKEN:        ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'
         with:
           model: amazon-bedrock/global.anthropic.claude-sonnet-4-6
@@ -187,52 +268,44 @@ jobs:
 
             Context for this vision scan:
 
-            kro-ui is not good enough yet. Apply this lens to every gap you find:
+            The system is not good enough yet. Apply this lens to every gap you find:
 
-            - Is it production-ready enough? The goal is donation to kubernetes-sigs.
-              Any kubernetes-sigs maintainer reviewing this today would find gaps: missing
-              OWNERS file, incomplete DCO enforcement, no governance model, no release
-              process that produces signed artifacts. What is still blocking acceptance?
+            - Is otherness reliable enough? Sessions still fail silently, produce housekeeping
+              PRs with no real feature content, or stall when queues empty. A truly reliable
+              system ships at least one meaningful PR every single run without exception.
 
-            - Is the UI simple and intuitive enough? A platform engineer who has never
-              seen kro-ui should be able to understand what they are looking at within
-              10 seconds of opening it. Are the RGD health states immediately obvious?
-              Is the fleet view scannable? Are error states clear and actionable, or do
-              they show raw Kubernetes error strings that only experts understand?
+            - Is the loop honest enough? The SM health signal says GREEN but the products it
+              manages are not advancing fast enough. The simulation exists but its predictions
+              are not visibly changing agent behavior. Metrics are being collected but not acted on.
 
-            - Is it complete enough? kro v0.9.1 is supported. What kro capabilities
-              does a user rely on that kro-ui cannot show at all — schema fields, CEL
-              expressions, GraphRevision diff details, includeWhen conditions? Every
-              gap between what kro can do and what kro-ui can show is a user left behind.
+            - Is the self-improvement real? The skills library grows slowly. /otherness.learn
+              runs rarely. The agents are not meaningfully smarter than they were two weeks ago.
+              The "monoculture" problem — all agents share the same reasoning framework — has not
+              been addressed. What would genuinely break the frame-lock?
 
-            - Is it tested enough? The E2E journeys cover the happy path. What happens
-              when the cluster is unreachable? When an RGD has 200 nodes? When the user
-              has read access to some namespaces but not others? Edge cases that would
-              embarrass a kubernetes-sigs maintainer in a code review.
+            - Is the onboarding good enough? A new project added today would still require
+              significant human intervention to get running. The setup guide is incomplete.
+              /otherness.onboard produces docs that need manual editing.
 
-            - Is it fast enough? A kro cluster with 50 RGDs should load the overview
-              in under 1 second. A fleet with 10 clusters should be usable. Is there
-              a performance regression path that would make it unusable at real scale?
+            - Is the visibility good enough? A human looking at GitHub right now cannot quickly
+              tell if the system is healthy, what it shipped today, and whether it is moving toward
+              the vision or spinning in circles. The report issue comments are too verbose and
+              technical. There is no clean single-page health dashboard.
 
-            - Is it accessible enough? The CNCF ecosystem expects WCAG 2.1 AA compliance.
-              Is every interactive element keyboard-navigable? Does every graph have a
-              text alternative for screen readers?
-
-            For each gap you identify: if there is no 🔲 Future item in any design doc
-            covering it, add one. The bar is donation to kubernetes-sigs — not "works
-            for the author's cluster."
+            For each gap you identify: if there is no 🔲 Future item in any design doc covering it,
+            add one. The human should never need to manually add direction that the system
+            could have identified itself.
 
       # ── Step 8: Run otherness (Step B) ──────────────────────────────────
       # SHA-pinned (security: doc 27 §M1 — critical supply chain mitigation).
-      # ── Step 8: Run otherness (Step B) ────────────────────────────────────────────
-      # SHA-pinned (security: doc 27 §M1 — critical supply chain mitigation).
       # agents_path validated against allowlist before agent reads it (doc 27 §M6).
+      # Uses App token when available (M3), falls back to GH_TOKEN PAT.
       - name: Run otherness
-        uses: anomalyco/opencode/github@27db54c859be74aa4caed3e58ae14ecc8bc34b30  # v1.14.19
+        uses: anomalyco/opencode/github@23fb5e0516c99ac04a1aa46c193efda2e1b9bb24  # v1.14.18
         env:
           AWS_REGION:          us-east-1
-          GH_TOKEN:            ${{ secrets.GH_TOKEN }}
-          GITHUB_TOKEN:        ${{ secrets.GH_TOKEN }}
+          GH_TOKEN:            ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
+          GITHUB_TOKEN:        ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           # Pre-approve all tool permissions — no interactive TTY on runners.
           # ctx.ask() blocks indefinitely without this (doc 19 — confirmed fix).
           OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'

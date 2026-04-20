@@ -2,6 +2,7 @@ project:
   name: kro-ui
   repo: pnz1990/kro-ui
   agent_version: v0.2.0  # pinned to stable release
+  upgrade_policy: "0.x.x"  # auto-upgrade any 0.* release
   report_issue: 439
   board_url: "https://github.com/users/pnz1990/projects/2/views/1"
   pr_label: "kro-ui"
