@@ -80,7 +80,7 @@ jobs:
               --label "needs-human" 2>/dev/null || true
             exit 1
           fi
-          if ! GH_TOKEN="$GH_TOKEN" gh api user --jq '.login' >/dev/null 2>&1; then
+          if ! GH_TOKEN="$GH_TOKEN" gh api "repos/$REPO" --jq '.full_name' >/dev/null 2>&1; then
             echo "::error::GH_TOKEN is invalid or expired."
             GH_TOKEN="" gh issue create --repo "$REPO" \
               --title "[NEEDS HUMAN] GH_TOKEN expired — otherness cannot run" \
@@ -88,7 +88,7 @@ jobs:
               --label "needs-human" 2>/dev/null || true
             exit 1
           fi
-          echo "[preflight] GH_TOKEN valid for: $(GH_TOKEN="$GH_TOKEN" gh api user --jq '.login')"
+          echo "[preflight] GH_TOKEN valid for: $(GH_TOKEN="$GH_TOKEN" gh api "repos/$REPO" --jq '.full_name')"
 
       # ── Step 3: Install agent files ──────────────────────────────────────
       # Clones pnz1990/otherness to ~/.otherness on the runner.
