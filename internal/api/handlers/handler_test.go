@@ -17,7 +17,11 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -351,3 +355,48 @@ func makeRGDObject(name, kind, group, apiVersion string) *unstructured.Unstructu
 	}
 	return obj
 }
+
+// ── TestHandlerNew (T030) ──────────────────────────────────────────────────────
+
+// TestHandlerNew verifies that handlers.New constructs a Handler with the correct
+// dependencies wired (factory, ctxMgr, fleetBuilder, metrics discoverer).
+// Uses a real ClientFactory backed by a test kubeconfig (no cluster call).
+func TestHandlerNew(t *testing.T) {
+	t.Run("New wires factory and returns non-nil Handler", func(t *testing.T) {
+		// Write a minimal kubeconfig to a temp dir.
+		dir := t.TempDir()
+		kubeconfig := dir + "/kubeconfig"
+		err := os.WriteFile(kubeconfig, []byte(testKubeconfigForHandlerNew), 0600)
+		require.NoError(t, err)
+
+		f, err := k8sclient.NewClientFactory(kubeconfig, "")
+		require.NoError(t, err, "factory must be created from test kubeconfig")
+
+		h := New(f)
+		require.NotNil(t, h)
+		assert.NotNil(t, h.factory, "factory must be wired")
+		assert.NotNil(t, h.ctxMgr, "ctxMgr must be wired")
+		assert.NotNil(t, h.fleetBuilder, "fleetBuilder must be wired")
+		assert.NotNil(t, h.metrics, "metrics discoverer must be wired")
+	})
+}
+
+// testKubeconfigForHandlerNew is a minimal kubeconfig that can be loaded without
+// a running cluster (only used to build clients, not to make API calls).
+const testKubeconfigForHandlerNew = `apiVersion: v1
+kind: Config
+current-context: test
+clusters:
+- cluster:
+    server: https://localhost:6443
+  name: test-cluster
+contexts:
+- context:
+    cluster: test-cluster
+    user: test-user
+  name: test
+users:
+- name: test-user
+  user:
+    token: test-token
+`

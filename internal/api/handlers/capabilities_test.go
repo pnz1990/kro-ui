@@ -339,3 +339,122 @@ func TestKroVersionFallbackFromInstances(t *testing.T) {
 		assert.Equal(t, "unknown", caps.Version)
 	})
 }
+
+// ── TestGetCapabilities_CacheHitServes (T032) ──────────────────────────────────
+
+// TestGetCapabilities_CacheHitServes explicitly tests the cache-hit branch
+// (lines 87-90 of capabilities.go). Populate the cache, then call GetCapabilities
+// and verify the pre-populated value is returned without calling discovery.
+func TestGetCapabilities_CacheHitServes(t *testing.T) {
+	capCache.invalidate()
+
+	// Pre-populate cache with a known version.
+	preset := k8sclient.Baseline()
+	preset.Version = "v0.9.1-cached"
+	capCache.set(preset)
+
+	// Any handler will do — discovery should NOT be called.
+	h := newRGDTestHandler(newStubDynamic(), newStubDiscovery())
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+	w := httptest.NewRecorder()
+	h.GetCapabilities(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	var caps k8sclient.KroCapabilities
+	require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+	assert.Equal(t, "v0.9.1-cached", caps.Version,
+		"cache hit must return the pre-populated version without re-detecting")
+}
+
+// ── TestKroVersionFromInstances_EdgeCases (T033) ───────────────────────────────
+
+// TestKroVersionFromInstances_EdgeCases covers branches in kroVersionFromInstances
+// that are not exercised by TestKroVersionFallbackFromInstances:
+// - RGD item with spec that is not a map (lines 135-136)
+// - RGD item with schema that is not a map (lines 139-140)
+// - Instance list error (lines 164-165)
+func TestKroVersionFromInstances_EdgeCases(t *testing.T) {
+	t.Run("RGD with non-map spec is skipped gracefully", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		disc.err = fmt.Errorf("connection refused") // caps.Version = "unknown"
+
+		dyn := newStubDynamic()
+		// RGD with spec as a string (not a map) — type assertion fails
+		badRGD := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "bad-rgd"},
+			"spec":     "not-a-map", // ← forces spec type assertion failure
+		}}
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{badRGD}}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		assert.Equal(t, "unknown", caps.Version, "non-map spec must be skipped, version stays unknown")
+	})
+
+	t.Run("RGD with non-map schema is skipped gracefully", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		disc.err = fmt.Errorf("connection refused")
+
+		dyn := newStubDynamic()
+		// RGD with valid spec map but schema as a string (not a map)
+		badRGD := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "bad-schema-rgd"},
+			"spec":     map[string]any{"schema": "not-a-map"}, // ← schema type assertion failure
+		}}
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{badRGD}}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		assert.Equal(t, "unknown", caps.Version, "non-map schema must be skipped, version stays unknown")
+	})
+
+	t.Run("instance list error causes RGD to be skipped, returns unknown", func(t *testing.T) {
+		capCache.invalidate()
+
+		disc := newStubDiscovery()
+		disc.err = fmt.Errorf("connection refused")
+
+		dyn := newStubDynamic()
+		// Valid RGD pointing to a kind whose instance list will error.
+		rgd := unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "test-rgd"},
+			"spec": map[string]any{
+				"schema": map[string]any{
+					"kind":       "Broken",
+					"group":      "test.example.com",
+					"apiVersion": "v1",
+				},
+			},
+		}}
+		dyn.resources[rgdGVR] = &stubNamespaceableResource{items: []unstructured.Unstructured{rgd}}
+		// Instance resource for "brokens" returns list error.
+		instGVR := schema.GroupVersionResource{Group: "test.example.com", Version: "v1", Resource: "brokens"}
+		dyn.resources[instGVR] = &stubNamespaceableResource{listErr: fmt.Errorf("instance list failed")}
+
+		h := newRGDTestHandler(dyn, disc)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/kro/capabilities", nil)
+		w := httptest.NewRecorder()
+		h.GetCapabilities(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var caps k8sclient.KroCapabilities
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&caps))
+		assert.Equal(t, "unknown", caps.Version, "instance list error must be skipped, version stays unknown")
+	})
+}
