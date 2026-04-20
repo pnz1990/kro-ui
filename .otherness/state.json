@@ -2076,13 +2076,16 @@
       ]
     },
     "issue-531": {
-      "state": "todo",
-      "title": "27.6 \u2014 Error state coverage: every page that fetches data must show error state",
+      "state": "done",
+      "title": "test(e2e): add journeys 076-079 for error state coverage",
       "issue_number": 531,
       "priority": "medium",
       "labels": [
         "kind/enhancement"
-      ]
+      ],
+      "pr_merged": true,
+      "pr_number": 547,
+      "done_at": "2026-04-20T17:14:59Z"
     },
     "issue-532": {
       "state": "todo",
