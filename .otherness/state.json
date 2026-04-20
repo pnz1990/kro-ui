@@ -1859,6 +1859,45 @@
       "branch": "feat/issue-459",
       "worktree": "../kro-ui.issue-459",
       "done_at": "2026-04-20T04:05:40Z"
+    },
+    "464": {
+      "state": "done",
+      "title": "fix(instanceNodeState): replace #XXX comment placeholder",
+      "issue": 464,
+      "areas": [
+        "area/ui"
+      ],
+      "file_spaces": [
+        "web/src/lib/"
+      ],
+      "pr_merged": true,
+      "done_at": "2026-04-20T06:03:04Z"
+    },
+    "465": {
+      "state": "done",
+      "title": "test(server): increase NewRouter test coverage from 31%",
+      "issue": 465,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/server/"
+      ],
+      "pr_merged": true,
+      "done_at": "2026-04-20T06:03:04Z"
+    },
+    "466": {
+      "state": "done",
+      "title": "test(k8s): unit tests for rbac.go uncovered functions",
+      "issue": 466,
+      "areas": [
+        "area/controller"
+      ],
+      "file_spaces": [
+        "internal/k8s/"
+      ],
+      "pr_merged": true,
+      "done_at": "2026-04-20T06:03:04Z"
     }
   },
   "sm_cycle_count": 1,
