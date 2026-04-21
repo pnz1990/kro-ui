@@ -23,26 +23,6 @@
       "last_seen": "2026-04-20T21:56:16Z",
       "item": "issue-570",
       "cycle": 1
-    },
-    "sess-32f514fe": {
-      "last_seen": "2026-04-21T00:07:59Z",
-      "item": "issue-535",
-      "cycle": 2
-    },
-    "sess-19a75780": {
-      "last_seen": "2026-04-21T07:56:20Z",
-      "item": "issue-538",
-      "cycle": 1
-    },
-    "sess-53e2b8e3": {
-      "last_seen": "2026-04-21T11:43:32Z",
-      "item": "issue-540",
-      "cycle": 1
-    },
-    "sess-4e4d2f36": {
-      "last_seen": "2026-04-21T17:37:09Z",
-      "item": "issue-619",
-      "cycle": 1
     }
   },
   "features": {
@@ -2076,8 +2056,8 @@
       "done_at": "2026-04-20T18:46:56Z"
     },
     "issue-534": {
-      "state": "done",
-      "title": "feat(catalog): bulk YAML export \u2014 multi-select RGDs and download as clean YAML",
+      "state": "todo",
+      "title": "feat: RGD list: bulk operations (delete multiple, export selected)",
       "issue_number": 534,
       "labels": [
         "kind/enhancement",
@@ -2085,14 +2065,11 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "pr_merged": true,
-      "pr_number": 596,
-      "done_at": "2026-04-20T23:06:23Z"
+      "priority": "medium"
     },
     "issue-535": {
-      "state": "done",
-      "title": "feat(catalog): saved filter presets \u2014 save, restore, delete filter combinations",
+      "state": "todo",
+      "title": "feat: Catalog: saved searches and filter presets",
       "issue_number": 535,
       "labels": [
         "kind/enhancement",
@@ -2100,18 +2077,11 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "assigned_to": "sess-32f514fe",
-      "branch": "feat/issue-535",
-      "worktree": "../kro-ui.issue-535",
-      "pr_number": 599,
-      "pr_merged": true
+      "priority": "medium"
     },
     "issue-536": {
       "state": "todo",
-      "assigned_to": null,
-      "pr_number": 602,
-      "title": "feat(instances): bulk multi-select and YAML export (spec issue-536)",
+      "title": "feat: Instance bulk operations: select multiple instances, bulk delete with confirmation",
       "issue_number": 536,
       "labels": [
         "kind/enhancement",
@@ -2119,15 +2089,11 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "branch": null,
-      "assigned_at": null,
-      "worktree": null,
-      "file_spaces": []
+      "priority": "medium"
     },
     "issue-537": {
-      "state": "done",
-      "title": "feat(web): instance full YAML diff \u2014 side-by-side line diff (PR #605)",
+      "state": "todo",
+      "title": "feat: Instance diff: full side-by-side comparison between two instance snapshots",
       "issue_number": 537,
       "labels": [
         "kind/enhancement",
@@ -2138,12 +2104,20 @@
       "priority": "medium"
     },
     "issue-538": {
-      "state": "done",
-      "pr": 607
+      "state": "todo",
+      "title": "feat: Instance resource graph: show all k8s resources owned by this instance",
+      "issue_number": 538,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
     },
     "issue-539": {
-      "state": "done",
-      "title": "feat(web): health trend sparkline on RGD detail Instances tab (GH #539)",
+      "state": "todo",
+      "title": "feat: Health trend chart: sparkline showing health state changes over last 24h per RGD",
       "issue_number": 539,
       "labels": [
         "kind/enhancement",
@@ -2151,21 +2125,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "assigned_to": "sess-36ae55f4",
-      "assigned_at": "2026-04-21T10:02:23Z",
-      "branch": "feat/issue-539",
-      "worktree": "../kro-ui.issue-539",
-      "pr_number": 610,
-      "pr_merged": true,
-      "done_at": "2026-04-21T14:54:00Z"
+      "priority": "medium"
     },
     "issue-540": {
-      "state": "done",
-      "assigned_to": "sess-53e2b8e3",
-      "assigned_at": "2026-04-21T11:43:32Z",
-      "branch": "feat/issue-540",
-      "worktree": "../kro-ui.issue-540",
+      "state": "todo",
       "title": "feat: Health alert subscriptions: notify when RGD/instance enters error state",
       "issue_number": 540,
       "labels": [
@@ -2174,16 +2137,10 @@
         "size/s",
         "kro-ui"
       ],
-      "file_spaces": [
-        "web/src/components/",
-        "web/src/hooks/",
-        "web/src/pages/"
-      ],
-      "pr_merged": true,
-      "done_at": "2026-04-21T14:54:00Z"
+      "priority": "medium"
     },
     "issue-542": {
-      "state": "done",
+      "state": "todo",
       "title": "feat: Designer: import existing RGD from cluster (load from live cluster \u2192 editable form)",
       "issue_number": 542,
       "labels": [
@@ -2192,14 +2149,7 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "assigned_to": "sess-c9383f86",
-      "assigned_at": "2026-04-21T12:45:45Z",
-      "branch": "feat/issue-542",
-      "worktree": "../kro-ui.issue-542",
-      "pr_number": 618,
-      "pr_merged": true,
-      "done_at": "2026-04-21T13:14:20Z"
+      "priority": "medium"
     },
     "issue-543": {
       "state": "todo",
@@ -2265,8 +2215,8 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-572": {
-      "state": "done",
-      "title": "feat(release): supply chain security \u2014 cosign signing, SBOM, SLSA provenance",
+      "state": "todo",
+      "title": "feat: 27.10",
       "issue_number": 572,
       "labels": [
         "kind/enhancement",
@@ -2274,11 +2224,7 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "pr_number": 626,
-      "pr_merged": true,
-      "done_at": "2026-04-21T16:02:51Z",
-      "assigned_to": null
+      "priority": "medium"
     },
     "issue-573": {
       "state": "done",
@@ -2296,14 +2242,16 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-574": {
-      "state": "done",
-      "assigned_to": "sess-d3073745",
-      "pr_number": 622,
-      "title": "feat(api,web): partial-RBAC graceful degradation \u2014 rbacHidden indicator",
+      "state": "todo",
+      "title": "feat: 27.12",
       "issue_number": 574,
-      "branch": "feat/issue-574",
-      "pr_merged": true,
-      "done_at": "2026-04-21T14:52:14Z"
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
     },
     "issue-575": {
       "state": "todo",
@@ -2354,7 +2302,7 @@
       "priority": "medium"
     },
     "issue-579": {
-      "state": "done",
+      "state": "todo",
       "title": "feat: GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 ",
       "issue_number": 579,
       "labels": [
@@ -2363,9 +2311,7 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium",
-      "pr_merged": true,
-      "done_at": "2026-04-21T15:28:07Z"
+      "priority": "medium"
     },
     "issue-580": {
       "state": "todo",
@@ -2409,30 +2355,10 @@
       "pr_number": 591,
       "pr_merged": true,
       "done_at": "2026-04-20T21:55:13Z"
-    },
-    "issue-619": {
-      "state": "done",
-      "title": "feat: E2E journey for Designer cluster import panel",
-      "labels": [
-        "kind/enhancement",
-        "priority/low",
-        "size/s",
-        "kro-ui"
-      ],
-      "issue": 619,
-      "priority": "medium",
-      "assigned_to": "sess-4e4d2f36",
-      "assigned_at": "2026-04-21T17:37:09Z",
-      "branch": "feat/issue-619",
-      "worktree": "../kro-ui.issue-619",
-      "file_spaces": [
-        "test/e2e/journeys/"
-      ],
-      "pr_number": 631,
-      "pr_merged": true,
-      "done_at": "2026-04-21T17:56:53Z"
     }
   },
-  "sm_cycle_count": 7,
-  "pm_cycle_count": 6
+  "sm_cycle_count": 6,
+  "pm_cycle_count": 5,
+  "last_session": "sess-bb73ee46",
+  "last_batch_at": "2026-04-21T19:05:35Z"
 }
