@@ -2125,21 +2125,8 @@
       "priority": "medium"
     },
     "issue-538": {
-      "state": "in_review",
-      "assigned_to": "sess-19a75780",
-      "assigned_at": "2026-04-21T07:56:20Z",
-      "title": "feat: Instance resource graph: show all k8s resources owned by this instance",
-      "issue_number": 538,
-      "labels": [
-        "kind/enhancement",
-        "priority/medium",
-        "size/s",
-        "kro-ui"
-      ],
-      "priority": "medium",
-      "branch": "feat/issue-538",
-      "worktree": "/home/runner/work/kro-ui/kro-ui.issue-538",
-      "pr_number": 607
+      "state": "done",
+      "pr": 607
     },
     "issue-539": {
       "state": "todo",
