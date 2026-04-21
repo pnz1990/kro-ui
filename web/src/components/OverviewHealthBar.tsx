@@ -7,10 +7,15 @@
 // Overview card grid to show only RGDs with instances in that health state.
 // Clicking the active chip clears the filter.
 //
+// Color-blind accessibility: each chip includes an icon prefix (HEALTH_STATE_ICON)
+// as a secondary signal alongside hue. Satisfies WCAG 2.1 SC 1.4.1 (Use of Color).
+//
 // Spec: .specify/specs/055-overview-health-summary/spec.md
 // Filter interaction: spec .specify/specs/060-health-filter/spec.md
+// A11y: spec issue-580 / docs/design/30-health-system.md
 
-import type { HealthSummary } from '@/lib/format'
+import type { HealthSummary, InstanceHealthState } from '@/lib/format'
+import { HEALTH_STATE_ICON } from '@/lib/format'
 import './OverviewHealthBar.css'
 
 /** Health state keys that can be used as filter values. */
@@ -57,6 +62,9 @@ export function aggregateSummaries(summaries: Map<string, HealthSummary>): {
   return { ready, reconciling, degraded, error, pending, noInstances }
 }
 
+/** Icon for the "no instances" chip — neutral, no health meaning. */
+const NO_INSTANCES_ICON = '○'
+
 export default function OverviewHealthBar({ summaries, totalRGDs, activeFilter, onFilter }: OverviewHealthBarProps) {
   // Don't render until we have at least some summaries
   if (summaries.size === 0) return null
@@ -76,6 +84,18 @@ export default function OverviewHealthBar({ summaries, totalRGDs, activeFilter, 
       onFilter ? 'overview-health-bar__chip--clickable' : '',
     ].filter(Boolean).join(' ')
 
+    // Resolve the icon for this state (noInstances uses a neutral icon)
+    const icon = state === 'noInstances'
+      ? NO_INSTANCES_ICON
+      : (HEALTH_STATE_ICON[state as InstanceHealthState] ?? '')
+
+    const chipContent = (
+      <>
+        <span aria-hidden="true" className="overview-health-bar__chip-icon">{icon}</span>
+        {count} {label}
+      </>
+    )
+
     if (onFilter) {
       return (
         <button
@@ -86,13 +106,13 @@ export default function OverviewHealthBar({ summaries, totalRGDs, activeFilter, 
           title={isActive ? `Clear filter: ${label}` : `Filter to RGDs with ${label}${label.includes('instances') ? '' : ' instances'}`}
           data-testid={`health-filter-${state}`}
         >
-          {count} {label}
+          {chipContent}
         </button>
       )
     }
     return (
       <span className={className}>
-        {count} {label}
+        {chipContent}
       </span>
     )
   }

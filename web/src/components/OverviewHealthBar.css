@@ -1,6 +1,7 @@
 /* OverviewHealthBar — aggregate instance health summary for Overview page.
  * Spec: .specify/specs/055-overview-health-summary/spec.md
  * Filter interaction: spec .specify/specs/060-health-filter/spec.md
+ * A11y: spec issue-580 / docs/design/30-health-system.md (color-blind icon)
  */
 
 .overview-health-bar {
@@ -14,6 +15,9 @@
 /* ── Chips ─────────────────────────────────────────────────────────────────── */
 
 .overview-health-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 500;
   padding: 2px 8px;
@@ -24,6 +28,13 @@
   background: none;
   font-family: inherit;
   line-height: inherit;
+}
+
+/* Icon is aria-hidden; inherits color from chip */
+.overview-health-bar__chip-icon {
+  font-style: normal;
+  font-size: inherit;
+  line-height: 1;
 }
 
 /* Clickable chips show pointer cursor and hover affordance */

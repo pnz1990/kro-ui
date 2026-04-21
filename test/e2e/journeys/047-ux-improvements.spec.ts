@@ -123,8 +123,9 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
 
     const pill = page.locator('[data-testid="health-pill"]')
     // 6 valid states: Ready, Degraded, Reconciling, Error, Pending, Unknown
+    // Icons (spec issue-580): pill now renders "[icon] [label]" e.g. "✓Ready"
     await expect(pill).toHaveText(
-      /^(Ready|Degraded|Reconciling|Error|Pending|Unknown)$/,
+      /(Ready|Degraded|Reconciling|Error|Pending|Unknown)/,
       { timeout: 10000 },
     )
 
@@ -253,9 +254,11 @@ test.describe('Journey 047: UX Improvements (health states, copy YAML, refresh)'
     await expect(page.getByTestId('instance-detail-page')).toBeVisible({ timeout: 10000 })
 
     const pill = page.locator('[data-testid="health-pill"]')
-    await expect(pill).toHaveText(/^(Degraded|Ready|Reconciling|Error|Pending|Unknown)$/, { timeout: 10000 })
+    await expect(pill).toHaveText(/(Degraded|Ready|Reconciling|Error|Pending|Unknown)/, { timeout: 10000 })
     const text = await pill.textContent()
-    expect(['Degraded', 'Reconciling', 'Error', 'Ready', 'Pending', 'Unknown']).toContain(text?.trim())
+    // Check that the text contains one of the valid state labels (with optional icon prefix)
+    const validStates = ['Degraded', 'Reconciling', 'Error', 'Ready', 'Pending', 'Unknown']
+    expect(validStates.some(state => text?.includes(state))).toBe(true)
   })
 
   test('Step 10: Reconciling HealthPill shows on IN_PROGRESS instance (never-ready)', async ({ page }) => {

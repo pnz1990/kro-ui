@@ -99,8 +99,9 @@ test.describe('Journey 028: Instance Health Rollup', () => {
     expect(count).toBeGreaterThan(0)
 
     // Badge text must be one of the 6 known states (PR #277 added Degraded)
+    // Icons (spec issue-580): badge now renders "[icon] [label]" e.g. "✓Ready"
     const firstBadgeText = await badges.first().textContent()
-    expect(firstBadgeText?.trim()).toMatch(/^(Ready|Degraded|Not Ready|Reconciling|Pending|Unknown)$/)
+    expect(firstBadgeText).toMatch(/(Ready|Degraded|Not Ready|Reconciling|Pending|Unknown)/)
   })
 
   test('Step 4: Instance detail header shows HealthPill', async ({ page }) => {
@@ -111,8 +112,9 @@ test.describe('Journey 028: Instance Health Rollup', () => {
 
     // Wait for the pill to resolve from skeleton to an actual state label.
     // 6 states: Ready, Degraded, Reconciling, Error, Pending, Unknown (PR #277 added Degraded)
+    // Icons (spec issue-580): pill now renders "[icon] [label]" e.g. "✓ Ready"
     const pill = page.locator('[data-testid="health-pill"]')
-    await expect(pill).toHaveText(/^(Ready|Degraded|Reconciling|Error|Pending|Unknown)$/, { timeout: 10000 })
+    await expect(pill).toHaveText(/(Ready|Degraded|Reconciling|Error|Pending|Unknown)/, { timeout: 10000 })
   })
 
   test('Step 5: ConditionsPanel empty state shows "Not reported" when no conditions', async ({ page }) => {
@@ -197,7 +199,7 @@ test.describe('Journey 028: Instance Health Rollup', () => {
 
     const pill = page.locator('[data-testid="health-pill"]')
     await expect(pill).toHaveText(
-      /^(Degraded|Reconciling|Error|Pending|Unknown|Ready)$/,
+      /(Degraded|Reconciling|Error|Pending|Unknown|Ready)/,
       { timeout: 10000 },
     )
     await expect(pill).toHaveClass(/health-pill--/)

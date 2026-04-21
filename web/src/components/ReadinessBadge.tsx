@@ -1,4 +1,5 @@
 import type { ReadyStatus, InstanceHealth } from '@/lib/format'
+import { HEALTH_STATE_ICON } from '@/lib/format'
 import './ReadinessBadge.css'
 
 interface ReadinessBadgeProps {
@@ -21,12 +22,15 @@ function stateLabel(state: string): string {
  * ReadinessBadge — colored pill badge derived from the Ready condition.
  *
  * States (6):
- *   ready       → green "Ready"
- *   degraded    → orange "Degraded" + tooltip (CR ready but child errors)
- *   error       → rose "Not Ready" + tooltip showing reason/message
- *   reconciling → amber "Reconciling" + tooltip showing reason
- *   pending     → violet "Pending"
- *   unknown     → gray "Unknown"
+ *   ready       → green "✓ Ready"
+ *   degraded    → orange "⚠ Degraded" + tooltip (CR ready but child errors)
+ *   error       → rose "✗ Not Ready" + tooltip showing reason/message
+ *   reconciling → amber "↻ Reconciling" + tooltip showing reason
+ *   pending     → violet "… Pending"
+ *   unknown     → gray "? Unknown"
+ *
+ * Icon prefix (aria-hidden) satisfies WCAG 2.1 SC 1.4.1 (Use of Color) —
+ * spec issue-580 / docs/design/30-health-system.md.
  *
  * Accepts both ReadyStatus (3-state) and InstanceHealth (6-state) since
  * they share the same { state, reason, message } shape.
@@ -35,6 +39,7 @@ function stateLabel(state: string): string {
  */
 export default function ReadinessBadge({ status }: ReadinessBadgeProps) {
   const label = stateLabel(status.state)
+  const icon = HEALTH_STATE_ICON[status.state as keyof typeof HEALTH_STATE_ICON] ?? '?'
 
   const showTooltip = (status.state === 'error' || status.state === 'reconciling' || status.state === 'degraded') && status.reason
   const tooltip = showTooltip
@@ -49,7 +54,9 @@ export default function ReadinessBadge({ status }: ReadinessBadgeProps) {
       aria-label={`Readiness: ${label}`}
       title={tooltip}
     >
+      <span aria-hidden="true" className="readiness-badge__icon">{icon}</span>
       {label}
     </span>
   )
 }
+

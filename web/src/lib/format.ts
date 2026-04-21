@@ -64,6 +64,27 @@ export type InstanceHealthState =
   | 'pending'
   | 'unknown'
 
+/**
+ * HEALTH_STATE_ICON — secondary visual signal for color-blind accessible health display.
+ *
+ * Icon characters are used alongside color (not instead of it) to satisfy
+ * WCAG 2.1 SC 1.4.1 (Use of Color). Icons match the HealthChip segment icons
+ * for consistency across all health displays in the UI.
+ *
+ * Single source of truth — import this map in all components that display
+ * health state. Never define a local icon map in a component file.
+ *
+ * Spec: issue-580 / docs/design/30-health-system.md
+ */
+export const HEALTH_STATE_ICON: Record<InstanceHealthState, string> = {
+  ready:       '✓',
+  error:       '✗',
+  degraded:    '⚠',
+  reconciling: '↻',
+  pending:     '…',
+  unknown:     '?',
+}
+
 /** Full extraction result for 5-state instance health. */
 export interface InstanceHealth {
   state: InstanceHealthState
