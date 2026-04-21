@@ -2103,8 +2103,8 @@
       "pr_merged": true
     },
     "issue-536": {
-      "state": "in_review",
-      "assigned_to": "sess-19a75780",
+      "state": "todo",
+      "assigned_to": null,
       "pr_number": 602,
       "title": "feat(instances): bulk multi-select and YAML export (spec issue-536)",
       "issue_number": 536,
@@ -2115,7 +2115,10 @@
         "kro-ui"
       ],
       "priority": "medium",
-      "branch": "feat/issue-536"
+      "branch": null,
+      "assigned_at": null,
+      "worktree": null,
+      "file_spaces": []
     },
     "issue-537": {
       "state": "done",
@@ -2134,7 +2137,7 @@
       "pr": 607
     },
     "issue-539": {
-      "state": "in_review",
+      "state": "done",
       "title": "feat(web): health trend sparkline on RGD detail Instances tab (GH #539)",
       "issue_number": 539,
       "labels": [
@@ -2148,10 +2151,12 @@
       "assigned_at": "2026-04-21T10:02:23Z",
       "branch": "feat/issue-539",
       "worktree": "../kro-ui.issue-539",
-      "pr_number": 610
+      "pr_number": 610,
+      "pr_merged": true,
+      "done_at": "2026-04-21T14:54:00Z"
     },
     "issue-540": {
-      "state": "assigned",
+      "state": "done",
       "assigned_to": "sess-53e2b8e3",
       "assigned_at": "2026-04-21T11:43:32Z",
       "branch": "feat/issue-540",
@@ -2168,7 +2173,9 @@
         "web/src/components/",
         "web/src/hooks/",
         "web/src/pages/"
-      ]
+      ],
+      "pr_merged": true,
+      "done_at": "2026-04-21T14:54:00Z"
     },
     "issue-542": {
       "state": "done",
