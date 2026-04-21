@@ -8,6 +8,7 @@
 // Spec: .specify/specs/issue-542/ (cluster import panel)
 // Spec: issue-543 (node library)
 // Spec: issue-544 (collaboration mode — share URL)
+// Spec: issue-647 (localStorage draft persistence)
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
@@ -31,6 +32,23 @@ import './AuthorPage.css'
 
 /** Sentinel empty graph returned when buildDAGGraph throws (issue #247). */
 const EMPTY_GRAPH: DAGGraph = { nodes: [], edges: [], width: 0, height: 0 }
+
+/** localStorage key for the in-progress RGD draft. Spec: issue-647 O1. */
+const DRAFT_KEY = 'kro-ui-designer-draft'
+
+/**
+ * Read a saved draft from localStorage. Returns null if absent or corrupt.
+ * Spec: issue-647 O2, O4
+ */
+function readDraft(): RGDAuthoringState | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as RGDAuthoringState
+  } catch {
+    return null
+  }
+}
 
 /**
  * Determine the initial state: prefer URL share param, fall back to STARTER_RGD_STATE.
@@ -64,6 +82,39 @@ export default function AuthorPage() {
   const [rgdState, setRgdState] = useState<RGDAuthoringState>(initial.state)
   const [readonly, setReadonly] = useState<boolean>(initial.readonly)
   const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
+
+  // ── localStorage draft persistence (issue-647) ──────────────────────────
+  // On mount: if not in readonly (shared URL) mode and a draft exists, offer restore.
+  const [pendingDraft, setPendingDraft] = useState<RGDAuthoringState | null>(() =>
+    initial.readonly ? null : readDraft()
+  )
+
+  // Auto-save: debounced 2s after each change in non-readonly mode (spec O1, O8).
+  const debouncedForSave = useDebounce(rgdState, 2000)
+  useEffect(() => {
+    if (readonly) return
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(debouncedForSave))
+    } catch {
+      // Quota exceeded or private browsing — ignore silently
+    }
+  }, [debouncedForSave, readonly])
+
+  // Restore: load the saved draft and clear the prompt (spec O3, O4).
+  const handleRestoreDraft = useCallback(() => {
+    if (pendingDraft) {
+      setRgdState(pendingDraft)
+    }
+    setPendingDraft(null)
+  }, [pendingDraft])
+
+  // Discard: clear localStorage and dismiss the prompt (spec O3, O5).
+  const handleDiscardDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(DRAFT_KEY)
+    } catch { /* ignore */ }
+    setPendingDraft(null)
+  }, [])
 
   // ── Node library — append resource from template ─────────────────────────
   const handleAddResource = useCallback((resource: AuthoringResource) => {
@@ -130,6 +181,33 @@ export default function AuthorPage() {
       <div className="author-page__body">
         <div className="author-page__form-pane">
           <NodeLibrary onAddResource={handleAddResource} />
+          {pendingDraft !== null && (
+            <div
+              className="author-page__draft-banner"
+              role="status"
+              data-testid="draft-restore-banner"
+            >
+              <span className="author-page__draft-banner-text">
+                You have an unsaved draft from a previous session.
+              </span>
+              <div className="author-page__draft-banner-actions">
+                <button
+                  className="author-page__draft-btn author-page__draft-btn--restore"
+                  onClick={handleRestoreDraft}
+                  data-testid="draft-restore-btn"
+                >
+                  Restore draft
+                </button>
+                <button
+                  className="author-page__draft-btn author-page__draft-btn--discard"
+                  onClick={handleDiscardDraft}
+                  data-testid="draft-discard-btn"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
           {readonly && (
             <DesignerReadonlyBanner onEdit={() => setReadonly(false)} />
           )}
