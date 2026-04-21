@@ -79,9 +79,12 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 		Cluster: ctx.Cluster,
 	}
 
-	// parent is already bounded by the route-level 30s timeout (server.go).
-	// No additional per-cluster deadline is added here — the per-RGD goroutines
-	// each apply their own 5s deadline via rctx (Constitution §XI; was 2s, increased in PR #354).
+	// Issue #646 (27.21): per-cluster inner deadline of 5s so a single hung cluster
+	// cannot hold up the entire Fleet response. The route-level 30s timeout (server.go)
+	// is the outer bound; this inner deadline fires first for any slow cluster.
+	// 5s matches the per-RGD goroutine timeout already used below (Constitution §XI).
+	innerCtx, innerCancel := context.WithTimeout(parent, 5*time.Second)
+	defer innerCancel()
 
 	// Build ephemeral clients — does NOT affect the shared ClientFactory.
 	var kubeconfigPath string
@@ -97,7 +100,7 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	}
 
 	// List RGDs to determine kro presence and count.
-	list, err := clients.Dynamic().Resource(rgdGVR).List(parent, metav1.ListOptions{})
+	list, err := clients.Dynamic().Resource(rgdGVR).List(innerCtx, metav1.ListOptions{})
 	if err != nil {
 		// Distinguish kro-not-installed from generic unreachability.
 		errStr := err.Error()
@@ -156,7 +159,8 @@ func (h *Handler) summariseContext(parent context.Context, ctx k8sclient.Context
 	var mu sync.Mutex
 	// Use the derived context from errgroup so any early cancellation propagates
 	// to all goroutines (Constitution §XI; fixes issue #226).
-	g, gctx := errgroup.WithContext(parent)
+	// innerCtx carries the 5s per-cluster deadline (issue #646).
+	g, gctx := errgroup.WithContext(innerCtx)
 	for i, entry := range entries {
 		i, entry := i, entry // capture
 		g.Go(func() error {
