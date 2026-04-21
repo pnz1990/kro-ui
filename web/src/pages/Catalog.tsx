@@ -4,6 +4,7 @@
 // Issue #116: instanceCounts uses undefined="loading", null="failed", number="resolved".
 // spec 070: status filter — all / ready / errors toggle for compile-state filtering.
 // spec issue-534: selection mode for bulk YAML export.
+// spec issue-535: saved searches / filter presets via localStorage.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -39,6 +40,40 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'newest', label: 'Newest first' },
 ]
 
+// ── Filter preset types (spec issue-535) ─────────────────────────────────────
+
+const PRESETS_KEY = 'catalog-filter-presets'
+const MAX_PRESETS = 20
+
+interface FilterPreset {
+  id: string         // unique ID for stable React keys
+  name: string       // user-supplied label
+  searchQuery: string
+  activeLabels: string[]
+  sortOption: SortOption
+  statusFilter: 'all' | 'ready' | 'errors'
+}
+
+function loadPresets(): FilterPreset[] {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed as FilterPreset[]
+  } catch {
+    return []
+  }
+}
+
+function savePresets(presets: FilterPreset[]): void {
+  try {
+    localStorage.setItem(PRESETS_KEY, JSON.stringify(presets))
+  } catch { /* silent — localStorage may be unavailable */ }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function Catalog() {
   usePageTitle('Catalog')
   const [items, setItems] = useState<K8sObject[]>([])
@@ -46,35 +81,77 @@ export default function Catalog() {
   const [error, setError] = useState<string | null>(null)
 
   // instanceCounts maps rgdName → undefined (loading) | null (failed) | number (resolved).
-  // undefined means "fetch in-flight" — card shows a loading indicator.
-  // null means "fetch failed" — card shows em-dash.
-  // Issue #116: was always null before fetch resolved, so count never appeared to load.
   const [instanceCounts, setInstanceCounts] = useState<Map<string, number | null | undefined>>(new Map())
 
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 300)
   const [activeLabels, setActiveLabels] = useState<string[]>([])
   const [sortOption, setSortOption] = useState<SortOption>('name')
-  // spec 070: compile-status filter — 'all' | 'ready' | 'errors'
   const [statusFilter, setStatusFilter] = useState<'all' | 'ready' | 'errors'>('all')
 
-  // spec issue-534: selection mode state (O1, O7)
+  // spec issue-534: selection mode state
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedNames, setSelectedNames] = useState<Set<string>>(new Set())
   const [isExporting, setIsExporting] = useState(false)
 
-  // Escape key handler to exit selection mode (spec O6)
-  const catalogRef = useRef<HTMLDivElement>(null)
+  // spec issue-535: preset state
+  const [presets, setPresets] = useState<FilterPreset[]>(loadPresets)
+  const [showPresets, setShowPresets] = useState(false)
+  const [saveFormOpen, setSaveFormOpen] = useState(false)
+  const [presetNameInput, setPresetNameInput] = useState('')
+  const [focusedPresetIdx, setFocusedPresetIdx] = useState<number>(-1)
+  const presetsDropdownRef = useRef<HTMLDivElement>(null)
+  const saveInputRef = useRef<HTMLInputElement>(null)
+  const presetsBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Escape key: exit selection mode OR close presets dropdown
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && selectionMode) {
-        setSelectionMode(false)
-        setSelectedNames(new Set())
+      if (e.key === 'Escape') {
+        if (selectionMode) {
+          setSelectionMode(false)
+          setSelectedNames(new Set())
+        } else if (showPresets) {
+          setShowPresets(false)
+          setFocusedPresetIdx(-1)
+          presetsBtnRef.current?.focus()
+        } else if (saveFormOpen) {
+          setSaveFormOpen(false)
+          setPresetNameInput('')
+        }
       }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [selectionMode])
+  }, [selectionMode, showPresets, saveFormOpen])
+
+  // Close presets dropdown on outside click
+  useEffect(() => {
+    if (!showPresets) return
+    function onMouseDown(e: MouseEvent) {
+      if (presetsDropdownRef.current && !presetsDropdownRef.current.contains(e.target as Node)) {
+        setShowPresets(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [showPresets])
+
+  // Focus save name input when form opens
+  useEffect(() => {
+    if (saveFormOpen) {
+      setTimeout(() => saveInputRef.current?.focus(), 0)
+    }
+  }, [saveFormOpen])
+
+  // Focus the correct preset apply button when focusedPresetIdx changes
+  useEffect(() => {
+    if (!showPresets || focusedPresetIdx < 0 || !presetsDropdownRef.current) return
+    const buttons = presetsDropdownRef.current.querySelectorAll<HTMLButtonElement>(
+      '.catalog__preset-apply',
+    )
+    buttons[focusedPresetIdx]?.focus()
+  }, [showPresets, focusedPresetIdx])
 
   // Fetch all RGDs once on mount
   const fetchRGDs = useCallback(() => {
@@ -84,14 +161,12 @@ export default function Catalog() {
     listRGDs()
       .then((res) => {
         setItems(res.items ?? [])
-        // Mark all RGDs as loading (undefined) before firing requests
         const loadingMap = new Map<string, number | null | undefined>()
         for (const rgd of res.items ?? []) {
           const name = extractRGDName(rgd)
           if (name) loadingMap.set(name, undefined)
         }
         setInstanceCounts(loadingMap)
-        // Fire parallel instance-count requests — failures are per-RGD
         for (const rgd of res.items ?? []) {
           const name = extractRGDName(rgd)
           if (!name) continue
@@ -100,7 +175,6 @@ export default function Catalog() {
               setInstanceCounts((prev) => new Map(prev).set(name, (list.items ?? []).length))
             })
             .catch(() => {
-              // Mark as null (failed), never block the page
               setInstanceCounts((prev) => new Map(prev).set(name, null))
             })
         }
@@ -117,14 +191,9 @@ export default function Catalog() {
     fetchRGDs()
   }, [fetchRGDs])
 
-  // Chaining map: built once when items change
   const chainingMap = useMemo(() => buildChainingMap(items), [items])
-
-  // All available labels across all RGDs
   const allLabels = useMemo(() => collectAllLabels(items), [items])
 
-  // Build entries with instance counts
-  // undefined = still loading, null = failed, number = resolved
   const entries = useMemo(
     () =>
       items.map((rgd) => {
@@ -135,15 +204,11 @@ export default function Catalog() {
     [items, instanceCounts],
   )
 
-  // Apply search + label filter + status filter.
-  // searchQuery is debounced: the filter only runs after the user pauses typing.
-  // activeLabels are NOT debounced — label toggles are discrete clicks, not streams.
   const filtered = useMemo(
     () =>
       entries.filter(({ rgd }) => {
         if (!matchesSearch(rgd, debouncedQuery)) return false
         if (!matchesLabelFilter(rgd, activeLabels)) return false
-        // spec 070: status filter
         if (statusFilter !== 'all') {
           const state = extractReadyStatus(rgd).state
           if (statusFilter === 'ready' && state !== 'ready') return false
@@ -154,7 +219,6 @@ export default function Catalog() {
     [entries, debouncedQuery, activeLabels, statusFilter],
   )
 
-  // Apply sort
   const sorted = useMemo(() => sortCatalog(filtered, sortOption), [filtered, sortOption])
 
   function clearFilters() {
@@ -163,9 +227,14 @@ export default function Catalog() {
     setStatusFilter('all')
   }
 
-  const hasFilters = searchQuery !== '' || activeLabels.length > 0 || statusFilter !== 'all'
+  // A filter is "active" if any field differs from defaults (spec issue-535 O1)
+  const hasFilters =
+    searchQuery !== '' ||
+    activeLabels.length > 0 ||
+    statusFilter !== 'all' ||
+    sortOption !== 'name'
 
-  // ── Selection mode handlers (spec O1–O3) ─────────────────────────────────
+  // ── Selection mode handlers (spec issue-534) ──────────────────────────────
 
   function handleEnterSelectionMode() {
     setSelectionMode(true)
@@ -185,7 +254,6 @@ export default function Catalog() {
     })
   }
 
-  // "Select all" toggles all currently-visible (post-filter) RGDs (spec O2)
   const visibleNames = useMemo(() => sorted.map(({ rgd }) => extractRGDName(rgd)), [sorted])
   const allVisible = visibleNames.length > 0 && visibleNames.every((n) => selectedNames.has(n))
 
@@ -201,7 +269,6 @@ export default function Catalog() {
     }
   }
 
-  // Export selected RGDs as multi-document YAML (spec O3–O5)
   async function handleExportYAML() {
     const names = Array.from(selectedNames)
     if (names.length === 0) return
@@ -214,12 +281,11 @@ export default function Catalog() {
           const cleaned = cleanK8sObject(rgd)
           docs.push(toYaml(cleaned))
         } catch {
-          // Skip failed fetches gracefully — include as comment
           docs.push(`# Failed to fetch ${name}`)
         }
       }
       const yaml = docs.join('\n---\n')
-      const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (spec O5)
+      const today = new Date().toISOString().slice(0, 10)
       const filename = `kro-rgds-${today}.yaml`
       const blob = new Blob([yaml], { type: 'text/yaml' })
       const url = URL.createObjectURL(blob)
@@ -233,10 +299,45 @@ export default function Catalog() {
     }
   }
 
+  // ── Preset handlers (spec issue-535) ─────────────────────────────────────
+
+  function handleSavePreset() {
+    const name = presetNameInput.trim()
+    if (!name) return
+    const preset: FilterPreset = {
+      id: `preset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      searchQuery,
+      activeLabels: [...activeLabels],
+      sortOption,
+      statusFilter,
+    }
+    // Most-recently-saved first (spec Z2 Judgment)
+    const next = [preset, ...presets].slice(0, MAX_PRESETS)
+    setPresets(next)
+    savePresets(next)
+    setSaveFormOpen(false)
+    setPresetNameInput('')
+  }
+
+  function handleApplyPreset(preset: FilterPreset) {
+    setSearchQuery(preset.searchQuery)
+    setActiveLabels(preset.activeLabels)
+    setSortOption(preset.sortOption)
+    setStatusFilter(preset.statusFilter)
+    setShowPresets(false)
+  }
+
+  function handleDeletePreset(id: string) {
+    const next = presets.filter((p) => p.id !== id)
+    setPresets(next)
+    savePresets(next)
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="catalog" ref={catalogRef}>
+    <div className="catalog">
       <div className="catalog__header">
         <div className="catalog__title-row">
           <h1 className="catalog__heading">RGD Catalog</h1>
@@ -255,7 +356,7 @@ export default function Catalog() {
             activeLabels={activeLabels}
             onFilter={setActiveLabels}
           />
-          {/* spec 070: compile-status filter — all / ready / errors */}
+          {/* spec 070: compile-status filter */}
           <div className="catalog__status-filter" role="group" aria-label="Filter by compile status">
             {(['all', 'ready', 'errors'] as const).map((v) => (
               <button
@@ -291,7 +392,104 @@ export default function Catalog() {
             </div>
           </div>
 
-          {/* spec issue-534: selection mode toggle (O1) */}
+          {/* spec issue-535: Presets dropdown (O3, O6) */}
+          <div className="catalog__presets-wrap" ref={presetsDropdownRef}>
+            <button
+              ref={presetsBtnRef}
+              type="button"
+              className={`catalog__presets-btn${showPresets ? ' catalog__presets-btn--open' : ''}`}
+              onClick={() => { setShowPresets((v) => !v); setFocusedPresetIdx(-1) }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown' && !showPresets) {
+                  e.preventDefault()
+                  setShowPresets(true)
+                  setFocusedPresetIdx(0)
+                } else if (e.key === 'ArrowDown' && showPresets) {
+                  e.preventDefault()
+                  setFocusedPresetIdx((i) => Math.min(i + 1, presets.length - 1))
+                } else if (e.key === 'ArrowUp' && showPresets) {
+                  e.preventDefault()
+                  setFocusedPresetIdx((i) => Math.max(i - 1, 0))
+                }
+              }}
+              aria-expanded={showPresets}
+              aria-haspopup="listbox"
+              data-testid="catalog-presets-toggle"
+            >
+              Presets{presets.length > 0 ? ` (${presets.length})` : ''}
+            </button>
+            {showPresets && (
+              <div
+                className="catalog__presets-dropdown"
+                role="listbox"
+                aria-label="Saved filter presets"
+                data-testid="catalog-presets-dropdown"
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setFocusedPresetIdx((i) => Math.min(i + 1, presets.length - 1))
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setFocusedPresetIdx((i) => {
+                      if (i <= 0) { setShowPresets(false); presetsBtnRef.current?.focus(); return -1 }
+                      return i - 1
+                    })
+                  }
+                }}
+              >
+                {presets.length === 0 ? (
+                  <p className="catalog__presets-empty">No saved presets</p>
+                ) : (
+                  presets.map((preset) => (
+                    <div
+                      key={preset.id}
+                      className="catalog__preset-item"
+                      role="option"
+                      aria-selected="false"
+                    >
+                      <button
+                        type="button"
+                        className="catalog__preset-apply"
+                        onClick={() => handleApplyPreset(preset)}
+                        data-testid={`catalog-preset-apply-${preset.id}`}
+                      >
+                        {preset.name}
+                      </button>
+                      <button
+                        type="button"
+                        className="catalog__preset-delete"
+                        onClick={() => handleDeletePreset(preset.id)}
+                        aria-label={`Delete preset ${preset.name}`}
+                        data-testid={`catalog-preset-delete-${preset.id}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* spec issue-535: Save filter button — visible when filter active (O1, O8) */}
+          {hasFilters && !saveFormOpen && (
+            <button
+              type="button"
+              className="catalog__save-filter-btn"
+              onClick={() => setSaveFormOpen(true)}
+              disabled={presets.length >= MAX_PRESETS}
+              title={
+                presets.length >= MAX_PRESETS
+                  ? 'Maximum 20 presets reached — delete one first'
+                  : 'Save current filters as a preset'
+              }
+              data-testid="catalog-save-filter"
+            >
+              Save filter
+            </button>
+          )}
+
+          {/* spec issue-534: selection mode toggle */}
           {!isLoading && !error && !selectionMode && (
             <button
               type="button"
@@ -304,7 +502,48 @@ export default function Catalog() {
           )}
         </div>
 
-        {/* spec issue-534: selection toolbar — shown when selectionMode=true (O1–O3) */}
+        {/* spec issue-535: inline save-preset form (O2) */}
+        {saveFormOpen && (
+          <div className="catalog__save-form" data-testid="catalog-save-form">
+            <label className="catalog__save-form-label" htmlFor="catalog-preset-name">
+              Preset name:
+            </label>
+            <input
+              id="catalog-preset-name"
+              ref={saveInputRef}
+              type="text"
+              className="catalog__save-form-input"
+              value={presetNameInput}
+              onChange={(e) => setPresetNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSavePreset()
+                if (e.key === 'Escape') { setSaveFormOpen(false); setPresetNameInput('') }
+              }}
+              placeholder="e.g. errors only"
+              maxLength={60}
+              data-testid="catalog-preset-name-input"
+            />
+            <button
+              type="button"
+              className="catalog__save-form-confirm"
+              onClick={handleSavePreset}
+              disabled={!presetNameInput.trim()}
+              data-testid="catalog-preset-save-confirm"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              className="catalog__save-form-cancel"
+              onClick={() => { setSaveFormOpen(false); setPresetNameInput('') }}
+              data-testid="catalog-preset-save-cancel"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {/* spec issue-534: selection toolbar */}
         {selectionMode && (
           <div className="catalog__selection-toolbar" data-testid="catalog-selection-toolbar">
             <label className="catalog__select-all" data-testid="catalog-select-all">

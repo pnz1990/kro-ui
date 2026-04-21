@@ -6,6 +6,7 @@ import Catalog from './Catalog'
 vi.mock('@/lib/api', () => ({
   listRGDs: vi.fn(),
   listInstances: vi.fn(),
+  getRGD: vi.fn(),
 }))
 
 import { listRGDs, listInstances } from '@/lib/api'
@@ -461,5 +462,122 @@ describe('Catalog', () => {
       expect(screen.getByTestId('catalog-card-broken')).toBeInTheDocument()
     })
     expect(screen.getByTestId('catalog-status-all')).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+// ── spec issue-535: filter presets ────────────────────────────────────────────
+
+describe('Catalog filter presets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+    mockedListInstances.mockResolvedValue({ items: [], metadata: {} })
+    mockedListRGDs.mockResolvedValue({
+      items: [makeRGD('alpha', 'Alpha'), makeRGD('beta', 'Beta')],
+      metadata: {},
+    })
+  })
+
+  it('shows "Save filter" button only when a filter is active', async () => {
+    const user = userEvent.setup()
+    renderCatalog()
+    await waitFor(() => expect(screen.getByTestId('catalog-card-alpha')).toBeInTheDocument())
+
+    // No filter active — button should be absent
+    expect(screen.queryByTestId('catalog-save-filter')).toBeNull()
+
+    // Activate a filter
+    const statusErrors = screen.getByTestId('catalog-status-errors')
+    await user.click(statusErrors)
+
+    // Now button should appear
+    expect(screen.getByTestId('catalog-save-filter')).toBeInTheDocument()
+  })
+
+  it('shows inline save form when "Save filter" is clicked', async () => {
+    const user = userEvent.setup()
+    renderCatalog()
+    await waitFor(() => expect(screen.getByTestId('catalog-card-alpha')).toBeInTheDocument())
+
+    await user.click(screen.getByTestId('catalog-status-errors'))
+    await user.click(screen.getByTestId('catalog-save-filter'))
+
+    expect(screen.getByTestId('catalog-save-form')).toBeInTheDocument()
+    expect(screen.getByTestId('catalog-preset-name-input')).toBeInTheDocument()
+  })
+
+  it('saves a preset and shows it in the presets dropdown', async () => {
+    const user = userEvent.setup()
+    renderCatalog()
+    await waitFor(() => expect(screen.getByTestId('catalog-card-alpha')).toBeInTheDocument())
+
+    await user.click(screen.getByTestId('catalog-status-errors'))
+    await user.click(screen.getByTestId('catalog-save-filter'))
+
+    const input = screen.getByTestId('catalog-preset-name-input')
+    await user.type(input, 'errors only')
+    await user.click(screen.getByTestId('catalog-preset-save-confirm'))
+
+    // Form should be dismissed
+    expect(screen.queryByTestId('catalog-save-form')).toBeNull()
+
+    // Open presets dropdown
+    await user.click(screen.getByTestId('catalog-presets-toggle'))
+    expect(screen.getByTestId('catalog-presets-dropdown')).toBeInTheDocument()
+    expect(screen.getByText('errors only')).toBeInTheDocument()
+  })
+
+  it('applies a saved preset (restores all filter fields)', async () => {
+    // Pre-seed localStorage with a preset
+    const preset = {
+      id: 'p1',
+      name: 'ready only',
+      searchQuery: '',
+      activeLabels: [],
+      sortOption: 'newest',
+      statusFilter: 'ready',
+    }
+    localStorage.setItem('catalog-filter-presets', JSON.stringify([preset]))
+
+    const user = userEvent.setup()
+    renderCatalog()
+    await waitFor(() => expect(screen.getByTestId('catalog-card-alpha')).toBeInTheDocument())
+
+    // Open presets
+    await user.click(screen.getByTestId('catalog-presets-toggle'))
+    // Click apply
+    const applyBtn = screen.getByTestId(`catalog-preset-apply-p1`)
+    await user.click(applyBtn)
+
+    // Dropdown should close
+    expect(screen.queryByTestId('catalog-presets-dropdown')).toBeNull()
+
+    // Status filter should be 'ready'
+    expect(screen.getByTestId('catalog-status-ready')).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('deletes a preset', async () => {
+    const preset = {
+      id: 'p2',
+      name: 'to delete',
+      searchQuery: 'foo',
+      activeLabels: [],
+      sortOption: 'name',
+      statusFilter: 'all',
+    }
+    localStorage.setItem('catalog-filter-presets', JSON.stringify([preset]))
+
+    const user = userEvent.setup()
+    renderCatalog()
+    await waitFor(() => expect(screen.getByTestId('catalog-card-alpha')).toBeInTheDocument())
+
+    await user.click(screen.getByTestId('catalog-presets-toggle'))
+    expect(screen.getByText('to delete')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('catalog-preset-delete-p2'))
+
+    // Preset should no longer be visible
+    expect(screen.queryByText('to delete')).toBeNull()
+    expect(JSON.parse(localStorage.getItem('catalog-filter-presets') || '[]')).toHaveLength(0)
   })
 })
