@@ -1,0 +1,208 @@
+/* InstanceYamlDiff — full side-by-side YAML diff panel. Spec: issue-537. */
+
+.instance-yaml-diff {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+
+.instance-yaml-diff__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.instance-yaml-diff__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.instance-yaml-diff__count--diff {
+  color: var(--color-diff-removed);
+}
+
+.instance-yaml-diff__count--same {
+  color: var(--color-diff-added);
+}
+
+.instance-yaml-diff__close {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.instance-yaml-diff__close:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.instance-yaml-diff__close:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────────── */
+
+.instance-yaml-diff__legend {
+  display: flex;
+  gap: 16px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-wrap: wrap;
+}
+
+.instance-yaml-diff__legend-item {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.instance-yaml-diff__legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.instance-yaml-diff__legend-item--removed::before {
+  background: var(--color-diff-removed-bg);
+  border: 1px solid var(--color-diff-removed-border);
+}
+
+.instance-yaml-diff__legend-item--added::before {
+  background: var(--color-diff-added-bg);
+  border: 1px solid var(--color-diff-added-border);
+}
+
+.instance-yaml-diff__legend-item--same::before {
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+}
+
+/* ── Columns ─────────────────────────────────────────────────────────── */
+
+.instance-yaml-diff__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: none;
+  overflow-x: hidden;
+}
+
+.instance-yaml-diff__col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.instance-yaml-diff__col + .instance-yaml-diff__col {
+  border-left: 1px solid var(--color-border);
+}
+
+.instance-yaml-diff__col-header {
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instance-yaml-diff__col-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 480px;
+  background: var(--color-surface-3);
+}
+
+/* ── Diff table ──────────────────────────────────────────────────────── */
+
+.yaml-diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  table-layout: fixed;
+}
+
+.yaml-diff-table__row {
+  line-height: 1.5;
+}
+
+.yaml-diff-table__row--same {
+  background: transparent;
+}
+
+.yaml-diff-table__row--removed {
+  background: var(--color-diff-removed-bg);
+}
+
+.yaml-diff-table__row--added {
+  background: var(--color-diff-added-bg);
+}
+
+/* empty rows (placeholder for alignment on the opposite side) */
+.yaml-diff-table__row--empty {
+  background: var(--color-surface-2);
+  opacity: 0.4;
+}
+
+.yaml-diff-table__gutter {
+  width: 36px;
+  min-width: 36px;
+  padding: 0 6px;
+  text-align: right;
+  color: var(--color-text-faint);
+  font-size: 0.6875rem;
+  user-select: none;
+  vertical-align: top;
+  border-right: 1px solid var(--color-border-subtle);
+}
+
+.yaml-diff-table__code {
+  padding: 0 8px;
+  white-space: pre;
+  overflow: hidden;
+  vertical-align: top;
+}
+
+.yaml-diff-table__code code {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text);
+  background: none;
+  word-break: keep-all;
+}
+
+.yaml-diff-table__row--removed .yaml-diff-table__code code {
+  color: var(--color-diff-removed);
+}
+
+.yaml-diff-table__row--added .yaml-diff-table__code code {
+  color: var(--color-diff-added);
+}
+
+.yaml-diff-table__absent {
+  display: block;
+  min-height: 1.5em;
+}
