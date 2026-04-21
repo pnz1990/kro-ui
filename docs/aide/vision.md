@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 5)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 6)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -104,6 +104,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Pressure block lives in workflow YAML — high edit friction | doc 27 §27.43 | Updating pressure requires a PR + CI run + review; extracing to `docs/aide/pressure-context.md` removes this barrier |
 | SM batch comment has no plain-English summary first line | doc 27 §27.44 | Humans reading issue #439 must parse batch IDs and technical fields to assess health; a plain-English line is required |
 | Chore-only sessions don't trigger skill creation | doc 27 §27.45 | SM only invokes `/otherness.learn` on DEFECT; two consecutive chore-only batches should also trigger a learn |
+| Scan 6 not added to vibe-vision-auto.md | doc 27 §27.46 | 27.40 specifies Scan 6 to auto-update vision.md donation rows, but the step was never added to the agent file; donation table stays stale |
+| AGENTS.md Recent Changes stale at v0.9.4 | doc 27 §27.47 | Post-v0.10.0 features (PRs #607–#631) not in Recent Changes; new sessions plan against wrong baseline |
+| Scan 5 keyword matching structurally broken | doc 27 §27.48 | Abstract pressure keywords ("otherness reliable enough") can never match PR titles; 60% threshold is unreachable; pressure block can never self-update |
+| vision.md donation table has no "in-progress" state | doc 27 §27.49 | Two-state table (gap/addressed) cannot distinguish "being worked on" from "ignored"; Fleet timeout and API timeout rows look identical to pre-GOVERNANCE.md era blockers |
 
 ### Already addressed (recent PRs)
 
@@ -124,4 +128,11 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Supply chain security: cosign signing, SBOM, SLSA provenance — PR #626 shipped (2026-04-21)
 - ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
 - ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
+- ✅ Instance resource graph: grouped k8s resources with health dots — PR #607 shipped (2026-04-21)
+- ✅ Instance full YAML diff: side-by-side LCS diff for two instance snapshots — PR #605 shipped (2026-04-21)
+- ✅ Instance bulk operations: multi-select + bulk YAML export on /instances page — PR #602 shipped (2026-04-21)
+- ✅ Health trend sparkline on RGD detail Instances tab — PR #610 shipped (2026-04-21)
+- ✅ Health alert subscriptions: browser Notification bell — PR #615 shipped (2026-04-21)
+- ✅ Designer: import existing RGD from cluster — PR #618 shipped (2026-04-21)
+- ✅ E2E journey 082 for Designer cluster import panel — PR #631 shipped (2026-04-21)
 
