@@ -2129,8 +2129,8 @@
       "pr": 607
     },
     "issue-539": {
-      "state": "assigned",
-      "title": "feat: Health trend chart: sparkline showing health state changes over last 24h per RGD",
+      "state": "in_review",
+      "title": "feat(web): health trend sparkline on RGD detail Instances tab (GH #539)",
       "issue_number": 539,
       "labels": [
         "kind/enhancement",
@@ -2142,7 +2142,8 @@
       "assigned_to": "sess-36ae55f4",
       "assigned_at": "2026-04-21T10:02:23Z",
       "branch": "feat/issue-539",
-      "worktree": "../kro-ui.issue-539"
+      "worktree": "../kro-ui.issue-539",
+      "pr_number": 610
     },
     "issue-540": {
       "state": "todo",
