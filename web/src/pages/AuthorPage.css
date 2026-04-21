@@ -24,6 +24,15 @@
   gap: 4px;
 }
 
+/* Row containing the title and the share button */
+.author-page__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .author-page__title {
   font-family: var(--font-sans);
   font-size: 1.5rem;

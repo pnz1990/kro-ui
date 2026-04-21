@@ -21,9 +21,14 @@ import './RGDAuthoringForm.css'
 
 export interface RGDAuthoringFormProps {
   state: RGDAuthoringState
-  onChange: (state: RGDAuthoringState) => void
+  onChange?: (state: RGDAuthoringState) => void
   /** Offline static validation issues from POST /api/v1/rgds/validate/static (spec 045 US10). */
   staticIssues?: StaticIssue[]
+  /**
+   * When true, all form controls are disabled and onChange is ignored.
+   * Used when the page is in shared readonly collaboration mode (spec issue-544).
+   */
+  readonly?: boolean
 }
 
 const FIELD_TYPE_OPTIONS = [
@@ -92,7 +97,7 @@ function makeNewResource(): AuthoringResource {
  *              externalRef fields, advanced options (includeWhen/readyWhen)
  *              (US1, US3, US4, US5, US6)
  */
-export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDAuthoringFormProps) {
+export default function RGDAuthoringForm({ state, onChange, staticIssues, readonly = false }: RGDAuthoringFormProps) {
   // ── Local UI state (not persisted to RGDAuthoringState) ──────────────────
   const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set())
   const [expandedAdvanced, setExpandedAdvanced] = useState<Set<string>>(new Set())
@@ -104,12 +109,13 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
   // ── Metadata handlers ────────────────────────────────────────────────────
 
   function setMeta(patch: Partial<RGDAuthoringState>) {
-    onChange({ ...state, ...patch })
+    if (!readonly) onChange?.({ ...state, ...patch })
   }
 
   // ── Field handlers ────────────────────────────────────────────────────────
 
   function addField() {
+    if (readonly) return
     const newField: AuthoringField = {
       id: newFieldId(),
       name: '',
@@ -117,18 +123,20 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
       defaultValue: '',
       required: false,
     }
-    onChange({ ...state, specFields: [...state.specFields, newField] })
+    onChange?.({ ...state, specFields: [...state.specFields, newField] })
   }
 
   function updateField(id: string, patch: Partial<AuthoringField>) {
-    onChange({
+    if (readonly) return
+    onChange?.({
       ...state,
       specFields: state.specFields.map((f) => (f.id === id ? { ...f, ...patch } : f)),
     })
   }
 
   function removeField(id: string) {
-    onChange({ ...state, specFields: state.specFields.filter((f) => f.id !== id) })
+    if (readonly) return
+    onChange?.({ ...state, specFields: state.specFields.filter((f) => f.id !== id) })
     setExpandedFields((prev) => {
       const next = new Set(prev)
       next.delete(id)
@@ -148,16 +156,18 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
   // ── Status field handlers (US2) ───────────────────────────────────────────
 
   function addStatusField() {
+    if (readonly) return
     const newSF: AuthoringStatusField = {
       id: newStatusFieldId(),
       name: '',
       expression: '',
     }
-    onChange({ ...state, statusFields: [...(state.statusFields ?? []), newSF] })
+    onChange?.({ ...state, statusFields: [...(state.statusFields ?? []), newSF] })
   }
 
   function updateStatusField(id: string, patch: Partial<AuthoringStatusField>) {
-    onChange({
+    if (readonly) return
+    onChange?.({
       ...state,
       statusFields: (state.statusFields ?? []).map((sf) =>
         sf.id === id ? { ...sf, ...patch } : sf,
@@ -166,7 +176,8 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
   }
 
   function removeStatusField(id: string) {
-    onChange({
+    if (readonly) return
+    onChange?.({
       ...state,
       statusFields: (state.statusFields ?? []).filter((sf) => sf.id !== id),
     })
@@ -175,18 +186,21 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues }: RGDA
   // ── Resource handlers ─────────────────────────────────────────────────────
 
   function addResource() {
-    onChange({ ...state, resources: [...state.resources, makeNewResource()] })
+    if (readonly) return
+    onChange?.({ ...state, resources: [...state.resources, makeNewResource()] })
   }
 
   function updateResource(_key: string, patch: Partial<AuthoringResource>) {
-    onChange({
+    if (readonly) return
+    onChange?.({
       ...state,
       resources: state.resources.map((r) => (r._key === _key ? { ...r, ...patch } : r)),
     })
   }
 
   function removeResource(_key: string) {
-    onChange({ ...state, resources: state.resources.filter((r) => r._key !== _key) })
+    if (readonly) return
+    onChange?.({ ...state, resources: state.resources.filter((r) => r._key !== _key) })
     setExpandedTemplates((prev) => {
       const next = new Set(prev)
       next.delete(_key)

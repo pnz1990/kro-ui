@@ -7,6 +7,7 @@
 // Spec: .specify/specs/042-rgd-designer-nav/ (title rename + live DAG)
 // Spec: .specify/specs/issue-542/ (cluster import panel)
 // Spec: issue-543 (node library)
+// Spec: issue-544 (collaboration mode — share URL)
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
@@ -15,18 +16,33 @@ import { buildDAGGraph } from '@/lib/dag'
 import type { DAGGraph } from '@/lib/dag'
 import type { StaticIssue } from '@/lib/api'
 import * as api from '@/lib/api'
+import { extractShareFromUrl } from '@/lib/share'
 import RGDAuthoringForm from '@/components/RGDAuthoringForm'
 import StaticChainDAG from '@/components/StaticChainDAG'
 import YAMLPreview from '@/components/YAMLPreview'
 import YAMLImportPanel from '@/components/YAMLImportPanel'
 import ClusterImportPanel from '@/components/ClusterImportPanel'
 import NodeLibrary from '@/components/NodeLibrary'
+import DesignerShareButton from '@/components/DesignerShareButton'
+import DesignerReadonlyBanner from '@/components/DesignerReadonlyBanner'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import './AuthorPage.css'
 
 /** Sentinel empty graph returned when buildDAGGraph throws (issue #247). */
 const EMPTY_GRAPH: DAGGraph = { nodes: [], edges: [], width: 0, height: 0 }
+
+/**
+ * Determine the initial state: prefer URL share param, fall back to STARTER_RGD_STATE.
+ * Called once at mount — safe to call without SSR because window.location is available.
+ */
+function resolveInitialState(): { state: RGDAuthoringState; readonly: boolean } {
+  const shared = extractShareFromUrl()
+  if (shared !== null) {
+    return { state: shared, readonly: true }
+  }
+  return { state: STARTER_RGD_STATE, readonly: false }
+}
 
 /**
  * AuthorPage — global RGD Designer entrypoint.
@@ -36,12 +52,17 @@ const EMPTY_GRAPH: DAGGraph = { nodes: [], edges: [], width: 0, height: 0 }
  *
  * Layout: form (left) | live DAG preview + YAML preview stacked (right)
  *
- * Spec: 039-rgd-authoring-entrypoint, 042-rgd-designer-nav
+ * When a ?share= param is present, the page loads in readonly mode with
+ * the encoded RGD state and shows a banner inviting the user to edit a copy.
+ *
+ * Spec: 039-rgd-authoring-entrypoint, 042-rgd-designer-nav, issue-544
  */
 export default function AuthorPage() {
   usePageTitle('RGD Designer')
 
-  const [rgdState, setRgdState] = useState<RGDAuthoringState>(STARTER_RGD_STATE)
+  const initial = useMemo(() => resolveInitialState(), [])
+  const [rgdState, setRgdState] = useState<RGDAuthoringState>(initial.state)
+  const [readonly, setReadonly] = useState<boolean>(initial.readonly)
   const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
 
   // ── Node library — append resource from template ─────────────────────────
@@ -98,7 +119,10 @@ export default function AuthorPage() {
   return (
     <div className="author-page">
       <div className="author-page__header">
-        <h1 className="author-page__title">RGD Designer</h1>
+        <div className="author-page__header-row">
+          <h1 className="author-page__title">RGD Designer</h1>
+          <DesignerShareButton state={rgdState} />
+        </div>
         <p className="author-page__subtitle">
           Scaffold a <code>ResourceGraphDefinition</code> YAML
         </p>
@@ -106,9 +130,17 @@ export default function AuthorPage() {
       <div className="author-page__body">
         <div className="author-page__form-pane">
           <NodeLibrary onAddResource={handleAddResource} />
+          {readonly && (
+            <DesignerReadonlyBanner onEdit={() => setReadonly(false)} />
+          )}
           <ClusterImportPanel onImport={setRgdState} />
           <YAMLImportPanel onImport={setRgdState} />
-          <RGDAuthoringForm state={rgdState} onChange={setRgdState} staticIssues={staticIssues} />
+          <RGDAuthoringForm
+            state={rgdState}
+            onChange={readonly ? undefined : setRgdState}
+            staticIssues={staticIssues}
+            readonly={readonly}
+          />
         </div>
         <div className="author-page__right-pane">
           <div className="author-page__dag-pane">

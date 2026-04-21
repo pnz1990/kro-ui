@@ -1,0 +1,52 @@
+/* DesignerReadonlyBanner.css — Styles for the Designer readonly mode banner.
+ *
+ * All values use tokens.css custom properties — no hardcoded hex or rgba.
+ */
+
+.designer-readonly-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  background: var(--color-primary-muted);
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.designer-readonly-banner__icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.designer-readonly-banner__text {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-primary-text);
+  flex: 1;
+  min-width: 0;
+}
+
+.designer-readonly-banner__edit-btn {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.designer-readonly-banner__edit-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+.designer-readonly-banner__edit-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}

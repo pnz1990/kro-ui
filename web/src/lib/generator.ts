@@ -254,14 +254,14 @@ export function validateRGDState(state: RGDAuthoringState): ValidationState {
   }
 
   // ── 3. Duplicate resource IDs ────────────────────────────────────────────
-  const idFreq: Record<string, number> = {}
+  const idFreq = new Map<string, number>()
   for (const res of state.resources) {
     if (res.id) {
-      idFreq[res.id] = (idFreq[res.id] ?? 0) + 1
+      idFreq.set(res.id, (idFreq.get(res.id) ?? 0) + 1)
     }
   }
   for (const res of state.resources) {
-    if (res.id && (idFreq[res.id] ?? 0) > 1) {
+    if (res.id && (idFreq.get(res.id) ?? 0) > 1) {
       resourceIssues[res._key] = { type: 'warning', message: 'Duplicate resource ID' }
     }
   }
@@ -284,14 +284,14 @@ export function validateRGDState(state: RGDAuthoringState): ValidationState {
   }
 
   // ── 5. Duplicate spec field names ────────────────────────────────────────
-  const specNameFreq: Record<string, number> = {}
+  const specNameFreq = new Map<string, number>()
   for (const field of state.specFields) {
     if (field.name) {
-      specNameFreq[field.name] = (specNameFreq[field.name] ?? 0) + 1
+      specNameFreq.set(field.name, (specNameFreq.get(field.name) ?? 0) + 1)
     }
   }
   for (const field of state.specFields) {
-    if (field.name && (specNameFreq[field.name] ?? 0) > 1) {
+    if (field.name && (specNameFreq.get(field.name) ?? 0) > 1) {
       specFieldIssues[field.id] = { type: 'warning', message: 'Duplicate spec field name' }
     }
   }
@@ -313,14 +313,14 @@ export function validateRGDState(state: RGDAuthoringState): ValidationState {
   }
 
   // ── 7. Duplicate status field names ─────────────────────────────────────
-  const statusNameFreq: Record<string, number> = {}
+  const statusNameFreq = new Map<string, number>()
   for (const sf of state.statusFields ?? []) {
     if (sf.name) {
-      statusNameFreq[sf.name] = (statusNameFreq[sf.name] ?? 0) + 1
+      statusNameFreq.set(sf.name, (statusNameFreq.get(sf.name) ?? 0) + 1)
     }
   }
   for (const sf of state.statusFields ?? []) {
-    if (sf.name && (statusNameFreq[sf.name] ?? 0) > 1) {
+    if (sf.name && (statusNameFreq.get(sf.name) ?? 0) > 1) {
       statusFieldIssues[sf.id] = { type: 'warning', message: 'Duplicate status field name' }
     }
   }
@@ -1222,9 +1222,9 @@ export const STARTER_RGD_STATE: RGDAuthoringState = {
 export function rgdAuthoringStateToSpec(
   state: RGDAuthoringState,
 ): Record<string, unknown> {
-  const schemaSpec: Record<string, string> = {}
+  const schemaSpec = new Map<string, string>()
   for (const f of state.specFields) {
-    if (f.name) schemaSpec[f.name] = f.type || 'string'
+    if (f.name) schemaSpec.set(f.name, f.type || 'string')
   }
 
   const resources = state.resources
@@ -1240,10 +1240,11 @@ export function rgdAuthoringStateToSpec(
           metadata.name = ref.name
         }
         if (useSelector) {
-          const matchLabels: Record<string, string> = {}
-          for (const lbl of ref.selectorLabels) {
-            if (lbl.labelKey) matchLabels[lbl.labelKey] = lbl.labelValue
-          }
+          const matchLabels = Object.fromEntries(
+            ref.selectorLabels
+              .filter((lbl) => lbl.labelKey)
+              .map((lbl) => [lbl.labelKey, lbl.labelValue] as [string, string]),
+          )
           metadata.selector = { matchLabels }
         }
         return {
@@ -1276,7 +1277,9 @@ export function rgdAuthoringStateToSpec(
           (it) => it.variable && it.expression,
         )
         if (validIterators.length > 0) {
-          entry.forEach = validIterators.map((it) => ({ [it.variable]: it.expression }))
+          entry.forEach = validIterators.map((it) =>
+            Object.fromEntries([[it.variable, it.expression]]),
+          )
         }
       }
 
@@ -1298,7 +1301,7 @@ export function rgdAuthoringStateToSpec(
     schema: {
       kind: state.kind || 'MyApp',
       apiVersion: state.apiVersion || 'v1alpha1',
-      ...(Object.keys(schemaSpec).length > 0 ? { spec: schemaSpec } : {}),
+      ...(schemaSpec.size > 0 ? { spec: Object.fromEntries(schemaSpec) } : {}),
     },
     resources,
   }
