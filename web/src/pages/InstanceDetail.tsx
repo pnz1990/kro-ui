@@ -45,6 +45,8 @@ import FinalizersPanel from '@/components/FinalizersPanel'
 import TelemetryPanel from '@/components/TelemetryPanel'
 import HealthPill from '@/components/HealthPill'
 import CopySpecButton from '@/components/CopySpecButton'
+import ResourceGraphPanel from '@/components/ResourceGraphPanel'
+import type { ResourceClickInfo } from '@/components/ResourceGraphPanel'
 import './InstanceDetail.css'
 
 // ── Poll result type ───────────────────────────────────────────────────────
@@ -213,12 +215,18 @@ export default function InstanceDetail() {
   // ListChildResources does full-cluster discovery and can be slow (O(N) GVRs).
   // We store the latest resolved children independently of the fast poll.
   const [children, setChildren] = useState<K8sObject[]>([])
+  const [childrenLoading, setChildrenLoading] = useState(true)
 
   const fetchChildren = useCallback(() => {
     if (!namespace || !instanceName || !rgdName) return
     getInstanceChildren(namespace, instanceName, rgdName)
-      .then((resp) => setChildren(resp.items ?? []))
-      .catch(() => { /* non-fatal: keep previous children */ })
+      .then((resp) => {
+        setChildren(resp.items ?? [])
+        setChildrenLoading(false)
+      })
+      .catch(() => {
+        setChildrenLoading(false) /* non-fatal: keep previous children */
+      })
   }, [namespace, instanceName, rgdName])
 
   // Fetch children on mount and every 5s via a separate interval
@@ -279,6 +287,11 @@ export default function InstanceDetail() {
    */
   const [panelMode, setPanelMode] = useState<'node' | 'collection'>('node')
 
+  // ── Resource graph panel selection (spec issue-538) ────────────────────────
+  // When a resource row is clicked in ResourceGraphPanel, we store its
+  // ResourceClickInfo and open LiveNodeDetailPanel with a synthetic node.
+  const [resourcePanelInfo, setResourcePanelInfo] = useState<ResourceClickInfo | null>(null)
+
   // ── DAG graph — built once from RGD spec ────────────────────────────────
   const dagGraph = useMemo(() => {
     if (!rgd?.spec) return null
@@ -309,6 +322,7 @@ export default function InstanceDetail() {
   function handleNodeClick(node: DAGNode) {
     setSelectedNodeId(node.id)
     setSelectedNode(node)
+    setResourcePanelInfo(null) // clear resource graph selection when DAG node selected
     // Spec 011: forEach collection nodes open CollectionPanel
     setPanelMode(node.nodeType === 'collection' ? 'collection' : 'node')
   }
@@ -316,7 +330,16 @@ export default function InstanceDetail() {
   function handlePanelClose() {
     setSelectedNodeId(null)
     setSelectedNode(null)
+    setResourcePanelInfo(null)
     setPanelMode('node')
+  }
+
+  // ── Resource graph click handler (spec issue-538) ──────────────────────
+  function handleResourceClick(info: ResourceClickInfo) {
+    setResourcePanelInfo(info)
+    // Clear DAG selection so the two panels don't overlap
+    setSelectedNodeId(null)
+    setSelectedNode(null)
   }
 
   // ── Resolve resource info for the open panel ────────────────────────────
@@ -386,6 +409,26 @@ export default function InstanceDetail() {
     // Fix GH #403: use node.id (= kro.run/node-id), not lowercased kind.
     return nodeStateMap[selectedNode.id]?.state ?? 'not-found'
   }, [selectedNode, fastData, nodeStateMap])
+
+  // ── Resource graph synthetic node (spec issue-538) ────────────────────────
+  // When a resource row is clicked in ResourceGraphPanel, synthesize a minimal
+  // DAGNode so we can reuse LiveNodeDetailPanel for YAML display.
+  const resourcePanelSyntheticNode: DAGNode | null = useMemo(() => {
+    if (!resourcePanelInfo) return null
+    return {
+      id: `resource-graph-${resourcePanelInfo.kind}-${resourcePanelInfo.name}`,
+      label: resourcePanelInfo.name,
+      nodeType: 'resource',
+      kind: resourcePanelInfo.kind,
+      isConditional: false,
+      hasReadyWhen: false,
+      celExpressions: [],
+      includeWhen: [],
+      readyWhen: [],
+      isChainable: false,
+      x: 0, y: 0, width: 0, height: 0,
+    }
+  }, [resourcePanelInfo])
 
   // ── Instance name for breadcrumbs ────────────────────────────────────────
   const displayName = instanceName ?? '…'
@@ -607,6 +650,12 @@ export default function InstanceDetail() {
                 defaultExpanded={isTerminating(fastData.instance)}
               />
               <EventsPanel events={fastData.events} namespace={namespace} />
+              {/* Resource graph — all k8s resources owned by this instance (spec issue-538) */}
+              <ResourceGraphPanel
+                children={children}
+                childrenLoading={childrenLoading}
+                onResourceClick={handleResourceClick}
+              />
             </div>
           </div>
         </>
@@ -625,6 +674,14 @@ export default function InstanceDetail() {
           node={selectedNode}
           liveState={selectedNodeLiveState}
           resourceInfo={resolvedResourceInfo}
+          onClose={handlePanelClose}
+        />
+      ) : resourcePanelInfo && resourcePanelSyntheticNode ? (
+        /* Resource graph panel click — show YAML for selected resource (spec issue-538) */
+        <LiveNodeDetailPanel
+          node={resourcePanelSyntheticNode}
+          liveState="alive"
+          resourceInfo={resourcePanelInfo}
           onClose={handlePanelClose}
         />
       ) : null}
