@@ -1,0 +1,186 @@
+/* ResourceGraphPanel.css — Styles for instance resource graph panel.
+ *
+ * Spec: .specify/specs/issue-538/spec.md
+ * All colors use tokens from tokens.css — no hardcoded hex/rgba.
+ */
+
+.resource-graph-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-m);
+  overflow: hidden;
+}
+
+.resource-graph-loading {
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.resource-graph-skeleton {
+  height: 16px;
+  background: var(--color-skeleton);
+  border-radius: var(--radius-s);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  width: 80%;
+}
+
+.resource-graph-skeleton--short {
+  width: 55%;
+}
+
+.resource-graph-empty {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-s);
+}
+
+.resource-graph-groups {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Group header ─────────────────────────────────────────────────────────── */
+
+.resource-group {
+  border-top: 1px solid var(--color-border);
+}
+
+.resource-group:first-child {
+  border-top: none;
+}
+
+.resource-group-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--font-size-s);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  transition: background 0.1s;
+}
+
+.resource-group-header:hover {
+  background: var(--color-surface-hover);
+}
+
+.resource-group-header:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.resource-group-chevron {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.resource-group-kind {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-s);
+}
+
+.resource-group-count {
+  background: var(--color-surface-inset);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Resource items ───────────────────────────────────────────────────────── */
+
+.resource-group-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.resource-item {
+  display: grid;
+  grid-template-columns: 10px 1fr 130px 60px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4) var(--space-2) calc(var(--space-4) + 18px);
+  border-top: 1px solid var(--color-border-light, var(--color-border));
+  font-size: var(--font-size-s);
+  color: var(--color-text-primary);
+}
+
+.resource-item--clickable {
+  cursor: pointer;
+}
+
+.resource-item--clickable:hover {
+  background: var(--color-surface-hover);
+}
+
+.resource-item--clickable:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.resource-item-name {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-s);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-item-namespace {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-item-age {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Status dots ──────────────────────────────────────────────────────────── */
+
+.resource-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.resource-status-dot--running {
+  background: var(--color-status-ready);
+}
+
+.resource-status-dot--pending {
+  background: var(--color-status-reconciling);
+}
+
+.resource-status-dot--failed {
+  background: var(--color-status-error);
+}
+
+.resource-status-dot--not-reported {
+  background: var(--color-status-unknown);
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
