@@ -2171,7 +2171,7 @@
       ]
     },
     "issue-542": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Designer: import existing RGD from cluster (load from live cluster \u2192 editable form)",
       "issue_number": 542,
       "labels": [
@@ -2180,7 +2180,14 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "assigned_to": "sess-c9383f86",
+      "assigned_at": "2026-04-21T12:45:45Z",
+      "branch": "feat/issue-542",
+      "worktree": "../kro-ui.issue-542",
+      "pr_number": 618,
+      "pr_merged": true,
+      "done_at": "2026-04-21T13:14:20Z"
     },
     "issue-543": {
       "state": "todo",
