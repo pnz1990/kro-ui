@@ -7,6 +7,8 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { listContexts, getCapabilities } from '@/lib/api'
 import type { KubeContext, KroCapabilities } from '@/lib/api'
 import { isNetworkError } from '@/lib/errors'
+import { useAlertSubscription } from '@/hooks/useAlertSubscription'
+import { AlertContext } from '@/lib/alertContext'
 import Footer from './Footer'
 import TopBar from './TopBar'
 import './Layout.css'
@@ -28,6 +30,9 @@ export default function Layout() {
   // errors, that is 2/2 = 100% — show the cluster-unreachable banner.
   const networkFailuresRef = useRef(0)
   const navigate = useNavigate()
+
+  // Health alert subscriptions (spec issue-540)
+  const { available: alertAvailable, subscriptionState, toggleSubscription, checkTransitions } = useAlertSubscription()
 
   useEffect(() => {
     // Reset network failure tracking on each mount / context switch
@@ -91,63 +96,68 @@ export default function Layout() {
   const showUnreachable = clusterUnreachable && !unreachableDismissed
 
   return (
-    <div className="layout">
-      <TopBar
-        contexts={contexts}
-        activeContext={activeContext}
-        onSwitch={handleSwitch}
-      />
-      {showVersionWarning && (
-        <div
-          className="layout__version-warning"
-          role="alert"
-          data-testid="kro-version-warning"
-        >
-          <span className="layout__version-warning-icon" aria-hidden="true">⚠</span>
-          kro {kroVersion} is below the minimum supported version ({MIN_KRO_VERSION}).
-          Some features may not work correctly.
-          {' '}Upgrade kro to v{MIN_KRO_VERSION}+ for full support.
-          <button
-            type="button"
-            className="layout__version-warning-dismiss"
-            onClick={() => setDismissed(true)}
-            aria-label="Dismiss version warning"
+    <AlertContext.Provider value={{ checkTransitions }}>
+      <div className="layout">
+        <TopBar
+          contexts={contexts}
+          activeContext={activeContext}
+          onSwitch={handleSwitch}
+          alertAvailable={alertAvailable}
+          alertSubscriptionState={subscriptionState}
+          onAlertToggle={toggleSubscription}
+        />
+        {showVersionWarning && (
+          <div
+            className="layout__version-warning"
+            role="alert"
+            data-testid="kro-version-warning"
           >
-            ✕
-          </button>
-        </div>
-      )}
-      {showUnreachable && (
-        <div
-          className="layout__cluster-unreachable"
-          role="alert"
-          data-testid="cluster-unreachable-banner"
-        >
-          <span className="layout__cluster-unreachable-icon" aria-hidden="true">✕</span>
-          <span className="layout__cluster-unreachable-msg">
-            Cannot reach cluster — check that kro-ui is running and the kubeconfig context is reachable.
-          </span>
-          <button
-            type="button"
-            className="layout__cluster-unreachable-retry"
-            onClick={() => window.location.reload()}
+            <span className="layout__version-warning-icon" aria-hidden="true">⚠</span>
+            kro {kroVersion} is below the minimum supported version ({MIN_KRO_VERSION}).
+            Some features may not work correctly.
+            {' '}Upgrade kro to v{MIN_KRO_VERSION}+ for full support.
+            <button
+              type="button"
+              className="layout__version-warning-dismiss"
+              onClick={() => setDismissed(true)}
+              aria-label="Dismiss version warning"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {showUnreachable && (
+          <div
+            className="layout__cluster-unreachable"
+            role="alert"
+            data-testid="cluster-unreachable-banner"
           >
-            Retry
-          </button>
-          <button
-            type="button"
-            className="layout__cluster-unreachable-dismiss"
-            onClick={() => setUnreachableDismissed(true)}
-            aria-label="Dismiss cluster unreachable banner"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-      <main className="layout__content">
-        <Outlet key={activeContext} />
-      </main>
-      <Footer />
-    </div>
+            <span className="layout__cluster-unreachable-icon" aria-hidden="true">✕</span>
+            <span className="layout__cluster-unreachable-msg">
+              Cannot reach cluster — check that kro-ui is running and the kubeconfig context is reachable.
+            </span>
+            <button
+              type="button"
+              className="layout__cluster-unreachable-retry"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              className="layout__cluster-unreachable-dismiss"
+              onClick={() => setUnreachableDismissed(true)}
+              aria-label="Dismiss cluster unreachable banner"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <main className="layout__content">
+          <Outlet key={activeContext} />
+        </main>
+        <Footer />
+      </div>
+    </AlertContext.Provider>
   )
 }

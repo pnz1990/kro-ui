@@ -24,6 +24,7 @@ import {
 } from '@/lib/format'
 import { buildErrorHint } from '@/components/RGDCard'
 import { usePageTitle } from '@/hooks/usePageTitle'
+import { useAlertContext } from '@/lib/alertContext'
 import OverviewWidget from '@/components/OverviewWidget'
 import InstanceHealthWidget from '@/components/InstanceHealthWidget'
 import './Home.css'
@@ -66,6 +67,9 @@ export default function Home() {
 
   const abortRef = useRef<AbortController | null>(null)
 
+  // Health alert subscriptions — check transitions on each successful instance fetch
+  const { checkTransitions } = useAlertContext()
+
   // ── Fetch orchestration ───────────────────────────────────────────────
 
   const fetchAll = useCallback(() => {
@@ -101,6 +105,8 @@ export default function Home() {
 
       if (instances.status === 'fulfilled') {
         setInstancesState({ data: instances.value, loading: false, error: null })
+        // Fire health alerts on state transitions (spec issue-540)
+        checkTransitions(instances.value.items ?? [])
       } else if (!isAbort(instances)) {
         const msg = instances.reason instanceof Error ? instances.reason.message : String(instances.reason)
         setInstancesState(s => ({ ...s, loading: false, error: msg }))

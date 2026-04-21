@@ -1,15 +1,30 @@
 import { NavLink } from 'react-router-dom'
 import ContextSwitcher from './ContextSwitcher'
+import AlertBellButton from './AlertBellButton'
 import type { KubeContext } from '@/lib/api'
+import type { AlertSubscriptionState } from '@/hooks/useAlertSubscription'
 import './TopBar.css'
 
 interface TopBarProps {
   contexts: KubeContext[]
   activeContext: string
   onSwitch: (name: string) => void
+  /** Whether the Notification API is available in this browser. */
+  alertAvailable?: boolean
+  /** Current alert subscription state — controls AlertBellButton appearance. */
+  alertSubscriptionState?: AlertSubscriptionState
+  /** Called when the bell button is clicked. */
+  onAlertToggle?: () => Promise<void>
 }
 
-export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProps) {
+export default function TopBar({
+  contexts,
+  activeContext,
+  onSwitch,
+  alertAvailable = false,
+  alertSubscriptionState = 'inactive',
+  onAlertToggle,
+}: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="top-bar__brand">
@@ -69,6 +84,13 @@ export default function TopBar({ contexts, activeContext, onSwitch }: TopBarProp
           RGD Designer
         </NavLink>
       </nav>
+      {onAlertToggle && (
+        <AlertBellButton
+          available={alertAvailable}
+          subscriptionState={alertSubscriptionState}
+          onToggle={onAlertToggle}
+        />
+      )}
       <ContextSwitcher
         contexts={contexts}
         active={activeContext}
