@@ -3,8 +3,30 @@
 
 const BASE = '/api/v1'
 
+/**
+ * Issue #645 (27.20): 30-second internal timeout fallback.
+ *
+ * Every request gets a 30s deadline matching the server-side route-level timeout.
+ * If the caller supplies their own AbortSignal, both are combined via AbortSignal.any()
+ * so whichever fires first aborts the request.
+ *
+ * Graceful degradation: AbortSignal.any() requires Chrome 116+/Firefox 115+/Safari 17.4+.
+ * In older environments (or Node test runners without it), fall back to the caller signal.
+ */
+function withTimeout(callerSignal?: AbortSignal): AbortSignal | undefined {
+  const timeout = AbortSignal.timeout(30_000)
+  if (typeof AbortSignal.any !== 'function') {
+    // Older environment — use caller signal as-is; timeout unavailable but safe
+    return callerSignal
+  }
+  if (callerSignal) {
+    return AbortSignal.any([callerSignal, timeout])
+  }
+  return timeout
+}
+
 async function get<T>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
-  const res = await fetch(BASE + path, { signal: options?.signal })
+  const res = await fetch(BASE + path, { signal: withTimeout(options?.signal) })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     // Issue #250: guard against non-string body.error (object/number/false)
@@ -20,7 +42,7 @@ async function post<T>(path: string, body: unknown, options?: { signal?: AbortSi
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: options?.signal,
+    signal: withTimeout(options?.signal),
   })
   if (!res.ok) {
     const b = await res.json().catch(() => ({}))
