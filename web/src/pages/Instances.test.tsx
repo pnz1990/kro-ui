@@ -374,3 +374,122 @@ describe('InstancesPage', () => {
     })
   })
 })
+
+// ── spec issue-536: bulk operations ────────────────────────────────────────────
+
+vi.mock('@/lib/api', () => ({
+  listAllInstances: vi.fn(),
+  getInstance: vi.fn(),
+}))
+
+describe('InstancesPage bulk operations (spec issue-536)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('shows "Select" button when instances are loaded', async () => {
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha'), makeInstance('beta')],
+      total: 2,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+  })
+
+  it('does not show "Select" button while loading', () => {
+    mockedList.mockReturnValue(new Promise(() => {}))
+    renderPage()
+    expect(screen.queryByTestId('instances-select-btn')).toBeNull()
+  })
+
+  it('entering selection mode shows toolbar and checkbox column', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha'), makeInstance('beta')],
+      total: 2,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+
+    await user.click(screen.getByTestId('instances-select-btn'))
+
+    expect(screen.getByTestId('instances-selection-toolbar')).toBeInTheDocument()
+    expect(screen.getByTestId('instances-selection-count').textContent).toBe('0 selected')
+    // Checkboxes appear
+    expect(screen.getAllByTestId(/instances-row-check-/)).toHaveLength(2)
+  })
+
+  it('selects and deselects individual rows', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha'), makeInstance('beta')],
+      total: 2,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+    await user.click(screen.getByTestId('instances-select-btn'))
+
+    await user.click(screen.getByTestId('instances-row-check-alpha'))
+    expect(screen.getByTestId('instances-selection-count').textContent).toBe('1 selected')
+
+    await user.click(screen.getByTestId('instances-row-check-alpha'))
+    expect(screen.getByTestId('instances-selection-count').textContent).toBe('0 selected')
+  })
+
+  it('"Select all" selects all visible rows', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha'), makeInstance('beta')],
+      total: 2,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+    await user.click(screen.getByTestId('instances-select-btn'))
+
+    await user.click(screen.getByTestId('instances-select-all').querySelector('input')!)
+    expect(screen.getByTestId('instances-selection-count').textContent).toBe('2 selected')
+  })
+
+  it('"Clear" exits selection mode', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha')],
+      total: 1,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+    await user.click(screen.getByTestId('instances-select-btn'))
+    expect(screen.getByTestId('instances-selection-toolbar')).toBeInTheDocument()
+
+    await user.click(screen.getByTestId('instances-selection-clear'))
+    expect(screen.queryByTestId('instances-selection-toolbar')).toBeNull()
+    expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument()
+  })
+
+  it('Export YAML button is disabled when nothing selected', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha')],
+      total: 1,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+    await user.click(screen.getByTestId('instances-select-btn'))
+
+    expect(screen.getByTestId('instances-export-yaml')).toBeDisabled()
+  })
+
+  it('Export YAML button is enabled when rows selected', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [makeInstance('alpha')],
+      total: 1,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-select-btn')).toBeInTheDocument())
+    await user.click(screen.getByTestId('instances-select-btn'))
+    await user.click(screen.getByTestId('instances-row-check-alpha'))
+
+    expect(screen.getByTestId('instances-export-yaml')).not.toBeDisabled()
+  })
+})
