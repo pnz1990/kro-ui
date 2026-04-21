@@ -22,22 +22,26 @@
 //   1. DAG Diff view — a single merged DAG with color-coded overlays for
 //      added/removed/modified/unchanged nodes and edges (FR-005, this PR).
 //      Implemented via RevisionSelector + RGDDiffView.
-//   2. YAML diff — the existing side-by-side raw YAML view (PR #318 foundation).
-//      Remains below the DAG diff as a complementary raw-data fallback.
+//   2. YAML diff — side-by-side view with LCS line-level highlighting
+//      (spec issue-579: 🔲 → ✅).  Uses computeLineDiff from @/lib/diff
+//      and the .yaml-diff-table CSS from InstanceYamlDiff.css (O6).
 //
 // Spec ref: .specify/specs/046-kro-v090-upgrade/ (Phase 4 — Graph Revisions tab)
 // GH #274: kro v0.9.0 upgrade — Graph Revisions tab
+// GH #579: GraphRevision YAML diff line-level highlighting
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { listGraphRevisions } from '@/lib/api'
 import type { K8sObject } from '@/lib/api'
 import { formatAge, extractCreationTimestamp } from '@/lib/format'
 import { toYaml, cleanK8sObject } from '@/lib/yaml'
+import { computeLineDiff, countChangedLines } from '@/lib/diff'
 import KroCodeBlock from './KroCodeBlock'
 import RevisionSelector from './RevisionSelector'
 import type { RevisionPair } from './RevisionSelector'
 import RGDDiffView from './RGDDiffView'
 import './RevisionsTab.css'
+import './InstanceYamlDiff.css'
 
 interface RevisionsTabProps {
   rgdName: string
@@ -115,6 +119,135 @@ function revisionError(rev: K8sObject): string {
     }
   }
   return ''
+}
+
+// ── RevisionYamlDiff ──────────────────────────────────────────────────────────
+//
+// Side-by-side YAML diff with LCS line-level highlighting for two revisions.
+// Spec issue-579 O1–O7. Reuses .yaml-diff-table CSS from InstanceYamlDiff.css (O6).
+
+interface RevisionYamlDiffProps {
+  a: K8sObject
+  b: K8sObject
+  onClose: () => void
+}
+
+function RevisionYamlDiff({ a, b, onClose }: RevisionYamlDiffProps) {
+  const revNumA = revisionNumber(a)
+  const revNumB = revisionNumber(b)
+  const metaA = a.metadata as Record<string, unknown> | undefined
+  const metaB = b.metadata as Record<string, unknown> | undefined
+  const labelA = `Rev #${revNumA} — ${typeof metaA?.name === 'string' ? metaA.name : '?'}`
+  const labelB = `Rev #${revNumB} — ${typeof metaB?.name === 'string' ? metaB.name : '?'}`
+
+  const yamlA = useMemo(() => toYaml(cleanK8sObject(a)), [a])
+  const yamlB = useMemo(() => toYaml(cleanK8sObject(b)), [b])
+  const rows = useMemo(() => computeLineDiff(yamlA, yamlB), [yamlA, yamlB])
+  const changedCount = useMemo(() => countChangedLines(rows), [rows])
+
+  return (
+    <div className="revisions-tab__diff-panel instance-yaml-diff" data-testid="revisions-diff-panel">
+      {/* Header — O4: N lines differ summary */}
+      <div className="instance-yaml-diff__header">
+        <span className="instance-yaml-diff__title">
+          YAML diff —{' '}
+          <span
+            className={changedCount > 0
+              ? 'instance-yaml-diff__count--diff'
+              : 'instance-yaml-diff__count--same'}
+          >
+            {changedCount === 0
+              ? 'YAML is identical'
+              : `${changedCount} line${changedCount === 1 ? '' : 's'} differ`}
+          </span>
+        </span>
+        <button
+          type="button"
+          className="instance-yaml-diff__close"
+          onClick={onClose}
+          aria-label="Close YAML diff"
+        >
+          Close
+        </button>
+      </div>
+
+      {/* Legend */}
+      <div className="instance-yaml-diff__legend" aria-label="Diff legend">
+        <span className="instance-yaml-diff__legend-item instance-yaml-diff__legend-item--removed">
+          Only in {labelA}
+        </span>
+        <span className="instance-yaml-diff__legend-item instance-yaml-diff__legend-item--added">
+          Only in {labelB}
+        </span>
+        <span className="instance-yaml-diff__legend-item instance-yaml-diff__legend-item--same">
+          Identical
+        </span>
+      </div>
+
+      {/* Side-by-side columns — O1, O2, O3, O5 */}
+      <div className="instance-yaml-diff__cols" data-testid="revisions-yaml-diff-cols">
+        {/* Column A */}
+        <div className="instance-yaml-diff__col">
+          <div className="instance-yaml-diff__col-header" title={labelA}>
+            {labelA}
+          </div>
+          <div className="instance-yaml-diff__col-body" data-testid="revisions-yaml-diff-col-a">
+            <table className="yaml-diff-table" aria-label={`YAML for ${labelA}`}>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr
+                    key={i}
+                    className={`yaml-diff-table__row yaml-diff-table__row--${row.status === 'added' ? 'empty' : row.status}`}
+                  >
+                    <td className="yaml-diff-table__gutter">
+                      {row.aIndex !== null ? row.aIndex : ''}
+                    </td>
+                    <td className="yaml-diff-table__code">
+                      {row.aLine !== null ? (
+                        <code>{row.aLine}</code>
+                      ) : (
+                        <span className="yaml-diff-table__absent" aria-hidden="true" />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Column B */}
+        <div className="instance-yaml-diff__col">
+          <div className="instance-yaml-diff__col-header" title={labelB}>
+            {labelB}
+          </div>
+          <div className="instance-yaml-diff__col-body" data-testid="revisions-yaml-diff-col-b">
+            <table className="yaml-diff-table" aria-label={`YAML for ${labelB}`}>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr
+                    key={i}
+                    className={`yaml-diff-table__row yaml-diff-table__row--${row.status === 'removed' ? 'empty' : row.status}`}
+                  >
+                    <td className="yaml-diff-table__gutter">
+                      {row.bIndex !== null ? row.bIndex : ''}
+                    </td>
+                    <td className="yaml-diff-table__code">
+                      {row.bLine !== null ? (
+                        <code>{row.bLine}</code>
+                      ) : (
+                        <span className="yaml-diff-table__absent" aria-hidden="true" />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -276,40 +409,13 @@ export default function RevisionsTab({ rgdName }: RevisionsTabProps) {
         </div>
       )}
 
-      {/* ── YAML diff panel (PR #318 foundation, retained as raw-data fallback) ── */}
+      {/* ── YAML diff panel (spec issue-579: LCS line-level highlighting) ─── */}
       {yamlDiffPair && (
-        <div className="revisions-tab__diff-panel" data-testid="revisions-diff-panel">
-          <div className="revisions-tab__diff-header">
-            <span className="revisions-tab__diff-title">Raw YAML diff</span>
-            <button
-              type="button"
-              className="revisions-tab__diff-close"
-              onClick={() => { setYamlDiffPair(null); setSelectedRevs(new Set()) }}
-            >
-              Close diff
-            </button>
-          </div>
-          <div className="revisions-tab__diff-cols">
-            <div className="revisions-tab__diff-col">
-              <div className="revisions-tab__diff-col-header">
-                {(() => {
-                  const m = yamlDiffPair[0].metadata as Record<string, unknown>
-                  return `Rev #${revisionNumber(yamlDiffPair[0])} — ${m?.name}`
-                })()}
-              </div>
-              <KroCodeBlock code={toYaml(cleanK8sObject(yamlDiffPair[0]))} title="Rev A" />
-            </div>
-            <div className="revisions-tab__diff-col">
-              <div className="revisions-tab__diff-col-header">
-                {(() => {
-                  const m = yamlDiffPair[1].metadata as Record<string, unknown>
-                  return `Rev #${revisionNumber(yamlDiffPair[1])} — ${m?.name}`
-                })()}
-              </div>
-              <KroCodeBlock code={toYaml(cleanK8sObject(yamlDiffPair[1]))} title="Rev B" />
-            </div>
-          </div>
-        </div>
+        <RevisionYamlDiff
+          a={yamlDiffPair[0]}
+          b={yamlDiffPair[1]}
+          onClose={() => { setYamlDiffPair(null); setSelectedRevs(new Set()) }}
+        />
       )}
 
       <table className="revisions-table" data-testid="revisions-table">
