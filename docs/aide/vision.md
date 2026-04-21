@@ -41,7 +41,6 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 
 | Gap | Design doc item | Why it blocks |
 |-----|----------------|---------------|
-| ~~No signed artifacts or SBOM in release~~ ✅ shipped | doc 27 §27.10 | Shipped (PR #626): cosign keyless signing + CycloneDX SBOM + SLSA provenance attestation |
 | ~~No signed artifacts or SBOM in release~~ ✅ shipped (PR #626) | doc 27 §27.10 | Shipped: cosign keyless signing, CycloneDX SBOM via anchore/sbom-action, SLSA provenance attestation |
 | ~~No `GOVERNANCE.md`~~ ✅ shipped | doc 27 §27.8 | Shipped (PR #592) |
 | ~~No `CODE_OF_CONDUCT.md` at repo root~~ ✅ shipped | doc 27 §27.9 | Shipped (PR #592) |
@@ -52,8 +51,6 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | ~~DAG unusable at 200+ nodes~~ ✅ shipped (PR #613) | doc 28 + doc 27 §27.13 | DAG scale guard shipped: text-mode fallback for >100-node graphs with opt-in toggle |
-| ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red (duplicate row removed) |
-| ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | `rbacHidden` field in ListAllInstancesResponse; "N RGD(s) hidden — insufficient permissions" advisory on /instances; Go unit tests + E2E journey 081 |
 | ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
 | ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
@@ -111,6 +108,11 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Prediction misses don't adjust spec scoping | doc 27 §27.47 | Halving `predicted_prs` is a symptom fix; COORD must constrain spec scope (max 2 files) when accuracy < 0.5 for 2 batches — the over-ambitious spec is the root cause |
 | vibe-vision-auto never detects a stale `loop-health.md` | doc 27 §27.48 | 27.26+27.32 say SM must write the file; but no scan verifies it was written; add a Scan 0 that alerts when the file is missing or >48h old |
 | `otherness-config.yaml` correctness never validated at onboard time | doc 27 §27.49 | Wrong `report_issue` or `build_command` fail silently in session 1; a `/otherness.validate-config` startup check must assert all required fields before first batch |
+| feat: issue picked without a spec causes COORD stall or hygiene fallback | doc 27 §27.50 | Issues #543/#544 are open feat: items with no spec; COORD picks them, finds no tasks.md, and falls back to hygiene — exactly the spiral 27.46 prevents; COORD must run `/speckit.spec` or skip with `needs-spec` label |
+| `difficulty-ledger.md` is write-only dead data | doc 27 §27.51 | SM writes difficulty entries; no agent reads them before starting work; pattern knowledge is never applied to prevent repeat failures |
+| `session_item_limit: 2` may silently exceed OIDC window on large items | doc 27 §27.52 | Two 40-min items = 80 min > 60-min OIDC window; second item silently fails mid-execution; needs elapsed-time check + graceful skip |
+| `vision.md` has duplicate Already Addressed rows from repeated scans | doc 27 §27.53 | Supply chain security (PR #626), partial-RBAC (PR #622) each appear twice in Already Addressed; cosmetically misleads about shipped count |
+| Pressure block unchanged across 10+ scan runs despite documented gaps growing | doc 27 §27.54 | Scan 5 finds 0% coverage due to literal keyword mismatch; block never updated; pressure points at already-documented gaps instead of raising the bar |
 
 ### Already addressed (recent PRs)
 
@@ -128,8 +130,6 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ v0.10.0 release (goreleaser binary + Docker image) — PR #589 shipped
 - ✅ DAG scale guard (>100-node text-mode fallback) — PR #613 shipped (2026-04-21)
 - ✅ Frontend code splitting (React.lazy per route, bundle ~150KB gzipped) — PR #612 shipped (2026-04-21)
-- ✅ Supply chain security: cosign signing + CycloneDX SBOM + SLSA provenance — PR #626 shipped (2026-04-21)
-- ✅ Partial-RBAC graceful degradation: `rbacHidden` indicator + "N hidden" advisory on /instances — PR #622 shipped (2026-04-21)
 - ✅ Supply chain security: cosign signing, SBOM, SLSA provenance — PR #626 shipped (2026-04-21)
 - ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
 - ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
