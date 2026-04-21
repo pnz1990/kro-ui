@@ -2260,8 +2260,8 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-572": {
-      "state": "todo",
-      "title": "feat: 27.10",
+      "state": "done",
+      "title": "feat(release): supply chain security \u2014 cosign signing, SBOM, SLSA provenance",
       "issue_number": 572,
       "labels": [
         "kind/enhancement",
@@ -2269,7 +2269,11 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_number": 626,
+      "pr_merged": true,
+      "done_at": "2026-04-21T16:02:51Z",
+      "assigned_to": null
     },
     "issue-573": {
       "state": "done",
@@ -2402,6 +2406,6 @@
       "done_at": "2026-04-20T21:55:13Z"
     }
   },
-  "sm_cycle_count": 6,
-  "pm_cycle_count": 5
+  "sm_cycle_count": 7,
+  "pm_cycle_count": 6
 }
