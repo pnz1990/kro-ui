@@ -2113,8 +2113,8 @@
       "branch": "feat/issue-536"
     },
     "issue-537": {
-      "state": "todo",
-      "title": "feat: Instance diff: full side-by-side comparison between two instance snapshots",
+      "state": "done",
+      "title": "feat(web): instance full YAML diff \u2014 side-by-side line diff (PR #605)",
       "issue_number": 537,
       "labels": [
         "kind/enhancement",
@@ -2129,7 +2129,7 @@
       "pr": 607
     },
     "issue-539": {
-      "state": "todo",
+      "state": "assigned",
       "title": "feat: Health trend chart: sparkline showing health state changes over last 24h per RGD",
       "issue_number": 539,
       "labels": [
@@ -2138,7 +2138,11 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "assigned_to": "sess-36ae55f4",
+      "assigned_at": "2026-04-21T10:02:23Z",
+      "branch": "feat/issue-539",
+      "worktree": "../kro-ui.issue-539"
     },
     "issue-540": {
       "state": "todo",
