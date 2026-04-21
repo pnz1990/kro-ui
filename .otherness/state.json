@@ -23,6 +23,11 @@
       "last_seen": "2026-04-20T21:56:16Z",
       "item": "issue-570",
       "cycle": 1
+    },
+    "sess-32f514fe": {
+      "last_seen": "2026-04-21T00:07:59Z",
+      "item": "issue-535",
+      "cycle": 2
     }
   },
   "features": {
@@ -2071,8 +2076,8 @@
       "done_at": "2026-04-20T23:06:23Z"
     },
     "issue-535": {
-      "state": "todo",
-      "title": "feat: Catalog: saved searches and filter presets",
+      "state": "done",
+      "title": "feat(catalog): saved filter presets \u2014 save, restore, delete filter combinations",
       "issue_number": 535,
       "labels": [
         "kind/enhancement",
@@ -2080,7 +2085,12 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "assigned_to": "sess-32f514fe",
+      "branch": "feat/issue-535",
+      "worktree": "../kro-ui.issue-535",
+      "pr_number": 599,
+      "pr_merged": true
     },
     "issue-536": {
       "state": "todo",
