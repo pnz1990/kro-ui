@@ -2364,6 +2364,66 @@
     },
     "issue-640": {
       "state": "done"
+    },
+    "issue-644": {
+      "state": "todo",
+      "title": "feat: 27.16 \u2014 self-host Inter and JetBrains Mono fonts (remove Google Fonts CDN dependency)",
+      "issue_number": 644,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-645": {
+      "state": "todo",
+      "title": "feat: 27.20 \u2014 frontend per-request fetch timeout (AbortSignal.timeout 30s fallback)",
+      "issue_number": 645,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-646": {
+      "state": "todo",
+      "title": "feat: 27.21 \u2014 Fleet per-cluster inner deadline (context.WithTimeout 5s in summariseContext)",
+      "issue_number": 646,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-647": {
+      "state": "todo",
+      "title": "feat: Designer localStorage draft persistence \u2014 restore in-progress RGD on navigation",
+      "issue_number": 647,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-648": {
+      "state": "todo",
+      "title": "feat: partial-RBAC instance visibility \u2014 'N RGD(s) hidden \u2014 insufficient permissions' advisory",
+      "issue_number": 648,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
     }
   },
   "sm_cycle_count": 6,
