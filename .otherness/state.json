@@ -33,6 +33,11 @@
       "last_seen": "2026-04-21T07:56:20Z",
       "item": "issue-538",
       "cycle": 1
+    },
+    "sess-53e2b8e3": {
+      "last_seen": "2026-04-21T11:43:32Z",
+      "item": "issue-540",
+      "cycle": 1
     }
   },
   "features": {
@@ -2146,7 +2151,11 @@
       "pr_number": 610
     },
     "issue-540": {
-      "state": "todo",
+      "state": "assigned",
+      "assigned_to": "sess-53e2b8e3",
+      "assigned_at": "2026-04-21T11:43:32Z",
+      "branch": "feat/issue-540",
+      "worktree": "../kro-ui.issue-540",
       "title": "feat: Health alert subscriptions: notify when RGD/instance enters error state",
       "issue_number": 540,
       "labels": [
@@ -2155,7 +2164,11 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "file_spaces": [
+        "web/src/components/",
+        "web/src/hooks/",
+        "web/src/pages/"
+      ]
     },
     "issue-542": {
       "state": "todo",
