@@ -2417,7 +2417,7 @@
       "priority": "medium"
     },
     "issue-648": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: partial-RBAC instance visibility \u2014 'N RGD(s) hidden \u2014 insufficient permissions' advisory",
       "issue_number": 648,
       "labels": [
@@ -2426,7 +2426,9 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "done_at": "2026-04-21T23:43:37Z"
     }
   },
   "sm_cycle_count": 6,
