@@ -2280,16 +2280,12 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-574": {
-      "state": "todo",
-      "title": "feat: 27.12",
+      "state": "in_review",
+      "assigned_to": "sess-d3073745",
+      "pr_number": 622,
+      "title": "feat(api,web): partial-RBAC graceful degradation \u2014 rbacHidden indicator",
       "issue_number": 574,
-      "labels": [
-        "kind/enhancement",
-        "priority/medium",
-        "size/s",
-        "kro-ui"
-      ],
-      "priority": "medium"
+      "branch": "feat/issue-574"
     },
     "issue-575": {
       "state": "todo",
