@@ -2056,7 +2056,7 @@
       "done_at": "2026-04-20T18:46:56Z"
     },
     "issue-534": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: RGD list: bulk operations (delete multiple, export selected)",
       "issue_number": 534,
       "labels": [
@@ -2068,7 +2068,7 @@
       "priority": "medium"
     },
     "issue-535": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Catalog: saved searches and filter presets",
       "issue_number": 535,
       "labels": [
@@ -2080,7 +2080,7 @@
       "priority": "medium"
     },
     "issue-536": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance bulk operations: select multiple instances, bulk delete with confirmation",
       "issue_number": 536,
       "labels": [
@@ -2092,7 +2092,7 @@
       "priority": "medium"
     },
     "issue-537": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance diff: full side-by-side comparison between two instance snapshots",
       "issue_number": 537,
       "labels": [
@@ -2104,7 +2104,7 @@
       "priority": "medium"
     },
     "issue-538": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance resource graph: show all k8s resources owned by this instance",
       "issue_number": 538,
       "labels": [
@@ -2116,7 +2116,7 @@
       "priority": "medium"
     },
     "issue-539": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Health trend chart: sparkline showing health state changes over last 24h per RGD",
       "issue_number": 539,
       "labels": [
@@ -2128,7 +2128,7 @@
       "priority": "medium"
     },
     "issue-540": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Health alert subscriptions: notify when RGD/instance enters error state",
       "issue_number": 540,
       "labels": [
@@ -2140,7 +2140,7 @@
       "priority": "medium"
     },
     "issue-542": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Designer: import existing RGD from cluster (load from live cluster \u2192 editable form)",
       "issue_number": 542,
       "labels": [
@@ -2152,8 +2152,8 @@
       "priority": "medium"
     },
     "issue-543": {
-      "state": "todo",
-      "title": "feat: Designer: node library",
+      "state": "in_review",
+      "title": "feat: Designer node library",
       "issue_number": 543,
       "labels": [
         "kind/enhancement",
@@ -2161,11 +2161,12 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "641"
     },
     "issue-544": {
-      "state": "todo",
-      "title": "feat: Designer: collaboration mode \u2014 share designer URL with readonly view",
+      "state": "in_review",
+      "title": "feat: Designer collaboration mode",
       "issue_number": 544,
       "labels": [
         "kind/enhancement",
@@ -2173,7 +2174,8 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "642"
     },
     "issue-570": {
       "state": "done",
@@ -2215,7 +2217,7 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-572": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.10",
       "issue_number": 572,
       "labels": [
@@ -2242,7 +2244,7 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-574": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.12",
       "issue_number": 574,
       "labels": [
@@ -2254,7 +2256,7 @@
       "priority": "medium"
     },
     "issue-575": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.13",
       "issue_number": 575,
       "labels": [
@@ -2266,7 +2268,7 @@
       "priority": "medium"
     },
     "issue-576": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.14",
       "issue_number": 576,
       "labels": [
@@ -2278,7 +2280,7 @@
       "priority": "medium"
     },
     "issue-577": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: DAG scale guard: RGDs with >100 nodes render a dense unreadable SVG today; add a collapsed",
       "issue_number": 577,
       "labels": [
@@ -2290,7 +2292,7 @@
       "priority": "medium"
     },
     "issue-578": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: DAG minimap: for large graphs (>50 nodes) add a fixed-position mini-map (SVG overlay, no e",
       "issue_number": 578,
       "labels": [
@@ -2302,7 +2304,7 @@
       "priority": "medium"
     },
     "issue-579": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 ",
       "issue_number": 579,
       "labels": [
@@ -2314,7 +2316,7 @@
       "priority": "medium"
     },
     "issue-580": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Color-blind accessible health indicators",
       "issue_number": 580,
       "labels": [
@@ -2326,7 +2328,7 @@
       "priority": "medium"
     },
     "issue-581": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Accessibility audit expansion",
       "issue_number": 581,
       "labels": [
@@ -2355,10 +2357,11 @@
       "pr_number": 591,
       "pr_merged": true,
       "done_at": "2026-04-20T21:55:13Z"
+    },
+    "issue-640": {
+      "state": "done"
     }
   },
   "sm_cycle_count": 6,
-  "pm_cycle_count": 5,
-  "last_session": "sess-bb73ee46",
-  "last_batch_at": "2026-04-21T19:05:35Z"
+  "pm_cycle_count": 5
 }
