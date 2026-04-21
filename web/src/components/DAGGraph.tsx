@@ -16,6 +16,7 @@ import { nodeBadge, forEachLabel, fittedWidth, fittedHeight } from '@/lib/dag'
 import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import DAGScaleGuard from './DAGScaleGuard'
+import DAGMinimap from './DAGMinimap'
 import './DAGGraph.css'
 
 interface DAGGraphProps {
@@ -235,6 +236,9 @@ export default function DAGGraph({
           ))}
         </g>
       </svg>
+
+      {/* Minimap — renders for graphs > DAG_MINIMAP_THRESHOLD nodes */}
+      <DAGMinimap graph={graph} />
 
       <DAGTooltip
         node={hoveredTooltip?.node ?? null}
