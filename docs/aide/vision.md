@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, pressure-lens pass)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -80,12 +80,18 @@ Each has a corresponding `🔲 Future` item in doc 27.
 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
-| Housekeeping-only batch spiral undetected | doc 27 §27.22 | Loop shipped 7 consecutive batches of coverage micro-PRs while reporting GREEN; no self-correction trigger exists |
-| SM health signal has no quantitative threshold | doc 27 §27.23 | GREEN means nothing without a minimum bar (≥1 design-doc-backed feature PR); honesty requires enforced thresholds |
-| `/otherness.learn` not running | doc 27 §27.24 | `skills_count` stuck at 12 across all measured batches; skills library not growing; loop not getting smarter |
-| Monoculture / frame-lock undetected | doc 27 §27.25 | All sessions use the same COORD→ENG→QA chain with no mechanism to detect systematic errors |
-| No single-page loop health view | doc 27 §27.26 | Issue #439 comment stream is dense; a human cannot verify loop health in <30s without reading every comment |
-| Onboarding quality untested | doc 27 §27.27 | `/otherness.onboard` output is never validated; a new project setup may still require manual editing |
+| Housekeeping-only batch spiral undetected | doc 27 §27.22 (loop) | Loop shipped 7 consecutive batches of coverage micro-PRs while reporting GREEN; no self-correction trigger exists |
+| SM health signal has no quantitative threshold | doc 27 §27.23 (loop) | GREEN means nothing without a minimum bar (≥1 design-doc-backed feature PR); honesty requires enforced thresholds |
+| `/otherness.learn` not running | doc 27 §27.24 (loop) | `skills_count` stuck at 12 across all measured batches; skills library not growing; loop not getting smarter |
+| Monoculture / frame-lock undetected | doc 27 §27.25 (loop) | All sessions use the same COORD→ENG→QA chain with no mechanism to detect systematic errors |
+| No single-page loop health view | doc 27 §27.26 (loop) | Issue #439 comment stream is dense; a human cannot verify loop health in <30s without reading every comment |
+| Onboarding quality untested | doc 27 §27.27 (loop) | `/otherness.onboard` output is never validated; a new project setup may still require manual editing |
+| Silent session failure indistinguishable from empty batch | doc 27 §27.28 | No heartbeat comment posted when session crashes before SM phase; failure looks identical to "ran and shipped nothing" |
+| Queue-empty stall — no autonomous backlog drain | doc 27 §27.29 | When open issue queue is empty, session stalls or ships housekeeping; SM must drain `🔲 Future` items from design docs into issues automatically |
+| Simulation predictions never compared to outcomes | doc 27 §27.30 | Predicted batch output is never validated against actual; calibration failures go undetected indefinitely |
+| Metrics table drives zero automated decisions | doc 27 §27.31 | `skills_count`, `ci_red_hours`, `needs_human` are flat lines with no threshold-crossing rules; collected data is not acted on |
+| Report issue comments too verbose for quick scan | doc 27 §27.32 | 600+ PR repo with hourly batches; comment stream is hundreds of entries of debug-level detail; no 3-line quick-glance format |
+| Design doc §27 numbering collision (product vs loop items) | doc 27 §27.33 | Items 27.22–27.24 used twice in same doc; ambiguous references in PRs and commit messages |
 
 ### Already addressed (recent PRs)
 
