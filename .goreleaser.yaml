@@ -48,6 +48,18 @@ checksum:
   name_template: "checksums.txt"
   algorithm: sha256
 
+# SBOMs for binary archives (spec issue-572 / 27.10).
+# goreleaser v2 invokes syft (if installed) to generate a CycloneDX SBOM
+# for each archive artifact. The SBOMs are attached to the GitHub Release
+# alongside the binary archives and checksums.txt.
+# syft is installed in the release.yml workflow via anchore/sbom-action;
+# goreleaser picks it up automatically from PATH.
+sboms:
+  - id: archive
+    artifacts: archive
+    documents:
+      - "{{ .ArtifactName }}.sbom.json"
+
 # web/dist is built by the workflow before goreleaser runs.
 git:
   ignore_tags: []
