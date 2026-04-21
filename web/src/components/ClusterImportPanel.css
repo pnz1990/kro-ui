@@ -1,0 +1,142 @@
+/* ClusterImportPanel.css — Collapsible "Load from Cluster" panel for the RGD Designer.
+   All colors via tokens.css — no hardcoded hex/rgba.
+   Spec: .specify/specs/issue-542/spec.md FR-009 */
+
+.cluster-import-panel {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+/* ── Header toggle ─────────────────────────────────────────────────────── */
+
+.cluster-import-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-surface-2);
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  transition: background var(--transition-fast);
+}
+
+.cluster-import-panel__header:hover {
+  background: var(--color-surface-3);
+}
+
+.cluster-import-panel__header:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.cluster-import-panel__toggle-icon {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* ── Collapsible body ──────────────────────────────────────────────────── */
+
+.cluster-import-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-surface-1);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ── Row: dropdown + load button ───────────────────────────────────────── */
+
+.cluster-import-panel__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cluster-import-panel__label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.cluster-import-panel__select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.cluster-import-panel__select:hover {
+  border-color: var(--color-primary);
+}
+
+.cluster-import-panel__select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Load button ───────────────────────────────────────────────────────── */
+
+.cluster-import-panel__load-btn {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-surface-1);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.cluster-import-panel__load-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.cluster-import-panel__load-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.cluster-import-panel__load-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Hint / empty state ────────────────────────────────────────────────── */
+
+.cluster-import-panel__hint {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ── Error message ─────────────────────────────────────────────────────── */
+
+.cluster-import-panel__error {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-error);
+  min-height: 1.25em;
+}

@@ -2,10 +2,10 @@
 //
 // Renders RGDAuthoringForm on the left, with a live DAG preview and YAML
 // preview stacked on the right. DAG updates are debounced at 300ms.
-// Purely client-side — no API calls required.
 //
 // Spec: .specify/specs/039-rgd-authoring-entrypoint/ FR-001, FR-002, FR-003
 // Spec: .specify/specs/042-rgd-designer-nav/ (title rename + live DAG)
+// Spec: .specify/specs/issue-542/ (cluster import panel)
 
 import { useState, useMemo, useEffect } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
@@ -18,6 +18,7 @@ import RGDAuthoringForm from '@/components/RGDAuthoringForm'
 import StaticChainDAG from '@/components/StaticChainDAG'
 import YAMLPreview from '@/components/YAMLPreview'
 import YAMLImportPanel from '@/components/YAMLImportPanel'
+import ClusterImportPanel from '@/components/ClusterImportPanel'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import './AuthorPage.css'
@@ -97,6 +98,7 @@ export default function AuthorPage() {
       </div>
       <div className="author-page__body">
         <div className="author-page__form-pane">
+          <ClusterImportPanel onImport={setRgdState} />
           <YAMLImportPanel onImport={setRgdState} />
           <RGDAuthoringForm state={rgdState} onChange={setRgdState} staticIssues={staticIssues} />
         </div>
