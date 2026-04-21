@@ -24,10 +24,10 @@ optimization advisor. It is the primary tool for developers creating new kro wor
 - ✅ forEach collapse suggestions in catalog (optimization advisor) (PR #78, 2026-04)
 - ✅ CEL highlighter: pure TS kro CEL/schema tokenizer (PR #34, 2026-04)
 - ✅ RGD validation linting: surface validation conditions in the UI (PR #50, 2026-04)
+- ✅ Designer: import existing RGD from cluster (load from live cluster → editable form) (issue #542, 2026-04)
 
 ## Future (🔲)
 
-- 🔲 Designer: import existing RGD from cluster (load from live cluster → editable form)
 - 🔲 Designer: node library — drag-and-drop from common resource templates
 - 🔲 Designer: collaboration mode — share designer URL with readonly view
 - 🔲 Designer axe-core coverage: the `/author` page is not included in journey 074 axe-core scan; the authoring form has many interactive elements (dropdowns, text inputs, toggle buttons, CEL editor) that could have WCAG violations; add axe-core assertion for the Designer in the accessibility journey; referenced in 30-health-system.md §Accessibility audit expansion but needs explicit Designer ownership here

@@ -24,15 +24,15 @@ chosen to be consistent with or stricter than the practices used in the kro code
 
 ## Current Status
 
-v0.10.0 — production-capable. 80+ features merged across 600+ PRs. kro v0.9.1 support.
-Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.22–27.27),
+v0.10.0 — production-capable. 90+ features merged across 615+ PRs. kro v0.9.1 support.
+Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.32–27.36),
 and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extensions).
 
 ---
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 2)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -50,11 +50,11 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
-| DAG unusable at 200+ nodes | doc 28 + doc 27 §27.13 | Large production RGDs render as a dense locked-up SVG; no collapse, minimap, or text fallback |
-| GraphRevision diff — line-level YAML panel is raw blocks | doc 28 (new item) | YAML diff panel shows two unrelated KroCodeBlock side-by-side; no line highlighting; user cannot find what changed without reading both blocks; the DAG diff (RGDDiffView) exists but the raw YAML panel is not a real diff view |
+| ~~DAG unusable at 200+ nodes~~ ✅ shipped (PR #613) | doc 28 + doc 27 §27.13 | DAG scale guard shipped: text-mode fallback for >100-node graphs with opt-in toggle |
+| GraphRevision diff — line-level YAML panel is raw blocks | doc 28 | YAML diff panel shows two unrelated KroCodeBlock side-by-side; no line highlighting; user cannot find what changed without reading both blocks |
 | No partial-RBAC test | doc 27 §27.12 | User with access to some namespaces but not others gets silent omissions; no visible "N hidden" indicator |
 | Color as sole health differentiator | doc 30 | HealthChip bar segments and OverviewHealthBar chips use border/bg color as the primary differentiator; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
-| 521KB bundle / Lighthouse ~60 | doc 27 §27.14 | No code splitting; initial load on a slow connection is poor; perf.yml threshold set to 50 acknowledges the gap |
+| ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
 | Fleet per-cluster timeout not implemented | doc 27 §27.21 + doc 29 | `summariseContext` uses the 30s route context; one hung cluster blocks the Fleet page for up to 30s; the `TestFleetSummaryHandler_ContextTimeout` test documented in proposals/003 was never written |
 | No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has ~15 nodes; no 50-node or 50-RGD scenario in CI; scale regressions are invisible until a user reports in production |
 | Frontend API calls have no internal timeout | doc 27 §27.20 | `api.ts` passes caller `AbortSignal` but adds no internal timeout; callers that omit a signal hang indefinitely on a stuck server; `AbortSignal.timeout(30_000)` needed in `get()` and `post()` |
@@ -90,6 +90,11 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Empty-queue causes stall or busywork spiral | doc 27 §27.29 | When the board queue is empty the loop falls back to micro-PRs instead of self-filling the queue from code gaps or clearly signalling that human direction is needed |
 | Simulation predictions not tracked vs. actual | doc 27 §27.30 | Metrics record actuals but not predictions; without `predicted_prs` vs `actual_prs` the simulation cannot self-correct — the same optimistic predictions recur every batch regardless of track record |
 | Learning velocity not measurable | doc 27 §27.31 | `skills_count` is a total, not a rate; 9 batches at skills_count=12 is stagnation, but the metrics table cannot distinguish stagnation from growth without a `skills_delta` column |
+| SM never writes `docs/aide/loop-health.md` | doc 27 §27.32 | 27.26 specifies this file but SM §4f has no code to write it; file doesn't exist today |
+| `cancel-in-progress: true` kills in-flight sessions | doc 27 §27.33 | Hourly cron kills a running 2-hour session at minute 60 before SM can post health signal or commit metrics |
+| `skills_count` written as stale value in metrics | doc 27 §27.34 | SM writes 12 but actual count is 15; delta calculations will be wrong without live `wc -l` computation |
+| `predicted_prs` and `skills_delta` columns decorative | doc 27 §27.35 | Header documents them, SM never writes them; every row has `-` in both columns |
+| `vision.md` donation gaps table updated manually | doc 27 §27.36 | Shipped items (DAG scale guard, code splitting) stay in the gap table until a human removes them |
 
 ### Already addressed (recent PRs)
 
@@ -105,4 +110,6 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Cluster unreachable global banner in Layout — PR #583 shipped
 - ✅ Condition detail drill-down (per-condition expand/collapse) — PR #566 shipped
 - ✅ v0.10.0 release (goreleaser binary + Docker image) — PR #589 shipped
+- ✅ DAG scale guard (>100-node text-mode fallback) — PR #613 shipped (2026-04-21)
+- ✅ Frontend code splitting (React.lazy per route, bundle ~150KB gzipped) — PR #612 shipped (2026-04-21)
 
