@@ -134,7 +134,19 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 			respond(w, http.StatusOK, map[string]interface{}{"items": []interface{}{}})
 			return
 		}
-		// For other errors (auth failure, network, etc.) still return 500.
+		// Partial-RBAC: when the operator only has access to a subset of namespaces,
+		// listing across all namespaces returns Forbidden. Return 200 + empty list
+		// with a warning field so the UI can show an indicator.
+		// Spec: .specify/specs/issue-574/spec.md  O2
+		if isForbiddenError(err) {
+			log.Warn().Err(err).Str("rgd", name).Str("kind", kind).Msg("ListInstances: forbidden — returning empty list with RBAC warning")
+			respond(w, http.StatusOK, map[string]interface{}{
+				"items":   []interface{}{},
+				"warning": "insufficient permissions",
+			})
+			return
+		}
+		// For other errors (network, etc.) still return 500.
 		log.Error().Err(err).Str("rgd", name).Str("kind", kind).Msg("failed to list instances")
 		respondError(w, http.StatusInternalServerError, err.Error())
 		return

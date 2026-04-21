@@ -27,6 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -463,4 +464,109 @@ func TestListAllInstances_SkipEmptyName(t *testing.T) {
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
 	require.Len(t, resp.Items, 1, "empty-name instance must be skipped")
 	assert.Equal(t, "good-app", resp.Items[0].Name)
+}
+
+// ── isForbiddenError unit tests ───────────────────────────────────────────────
+
+func TestIsForbiddenError(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		err     error
+		want    bool
+	}{
+		{"nil", nil, false},
+		{"unrelated error", errTest("something went wrong"), false},
+		{"string contains forbidden", errTest("forbidden: cannot list"), true},
+		{"string contains Forbidden (capital)", errTest("Forbidden: User cannot list"), true},
+		{"string contains unauthorized", errTest("unauthorized: token expired"), true},
+		{"k8s StatusForbidden", k8serrors.NewForbidden(schema.GroupResource{Resource: "webapps"}, "", nil), true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isForbiddenError(tc.err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+// ── Partial-RBAC tests (spec issue-574) ──────────────────────────────────────
+
+// TestListAllInstances_RBACForbiddenSetsRBACHidden verifies that when one RGD's
+// instance list returns a Forbidden error the response is still 200 with partial
+// results and RBACHidden=1 (spec issue-574 O1, O4).
+func TestListAllInstances_RBACForbiddenSetsRBACHidden(t *testing.T) {
+	t.Parallel()
+
+	disc := stubDiscoveryForKind("WebApp", "webapps")
+
+	// Add a second RGD kind that will return Forbidden
+	disc.resources["kro.run/v1alpha1"].APIResources = append(
+		disc.resources["kro.run/v1alpha1"].APIResources,
+		metav1.APIResource{Name: "secretapps", Kind: "SecretApp", Verbs: metav1.Verbs{"get", "list"}},
+	)
+
+	rgd1 := makeRGDObject("webapp-rgd", "WebApp", "", "")
+	rgd2 := makeRGDObject("secret-rgd", "SecretApp", "", "")
+	inst1 := makeInstanceObject("app-1", "default", "WebApp", "Active", "True", "")
+
+	secretGVR := schema.GroupVersionResource{
+		Group: k8sclient.KroGroup, Version: "v1alpha1", Resource: "secretapps",
+	}
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{*rgd1, *rgd2},
+	}
+	dyn.resources[webAppGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{*inst1},
+	}
+	// SecretApp RGD returns Forbidden — simulates restricted RBAC
+	dyn.resources[secretGVR] = &stubNamespaceableResource{
+		listErr: errTest("forbidden: User cannot list resource"),
+	}
+
+	h := newRGDTestHandler(dyn, disc)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rr := httptest.NewRecorder()
+	h.ListAllInstances(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code, "must be 200 even with RBAC forbidden (O1)")
+
+	var resp ListAllInstancesResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+
+	// webapp-rgd returned results; secret-rgd was forbidden — partial results
+	assert.Equal(t, 1, resp.Total, "only webapp-rgd instances should be in results")
+	assert.Equal(t, 1, resp.RBACHidden, "RBACHidden must be 1 for the forbidden RGD (O1)")
+	require.Len(t, resp.Items, 1)
+	assert.Equal(t, "webapp-rgd", resp.Items[0].RGDName)
+}
+
+// TestListAllInstances_NoRBACHiddenWhenAllSucceed verifies RBACHidden=0 when no
+// forbidden errors occur (spec issue-574 O1 — normal path).
+func TestListAllInstances_NoRBACHiddenWhenAllSucceed(t *testing.T) {
+	t.Parallel()
+
+	disc := stubDiscoveryForKind("WebApp", "webapps")
+	rgd := makeRGDObject("webapp-rgd", "WebApp", "", "")
+	inst := makeInstanceObject("app-1", "default", "WebApp", "Active", "True", "")
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{*rgd},
+	}
+	dyn.resources[webAppGVR] = &stubNamespaceableResource{
+		items: []unstructured.Unstructured{*inst},
+	}
+
+	h := newRGDTestHandler(dyn, disc)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances", nil)
+	rr := httptest.NewRecorder()
+	h.ListAllInstances(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	var resp ListAllInstancesResponse
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &resp))
+	assert.Equal(t, 0, resp.RBACHidden, "RBACHidden must be 0 when no forbidden errors occur")
 }

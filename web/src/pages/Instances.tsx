@@ -98,6 +98,9 @@ export default function InstancesPage() {
   const [healthFilter, setHealthFilter] = useState<HealthFilter>(healthFromUrl)
   const [sortKey, setSortKey] = useState<SortKey>('health')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  // RBAC partial-results: number of RGDs hidden due to insufficient permissions
+  // Spec: .specify/specs/issue-574/spec.md  O1, O3
+  const [rbacHidden, setRbacHidden] = useState(0)
   const [page, setPage] = useState(0)
 
   // spec issue-536: selection mode state (O1-O4)
@@ -122,6 +125,7 @@ export default function InstancesPage() {
     listAllInstances({ signal: ac.signal })
       .then((res) => {
         setItems(res.items ?? [])
+        setRbacHidden(res.rbacHidden ?? 0)
       })
       .catch((err) => {
         if (!ac.signal.aborted) {
@@ -309,6 +313,15 @@ export default function InstancesPage() {
           )}
         </div>
       </div>
+
+      {/* RBAC partial results indicator — spec issue-574 O1, O3 */}
+      {!isLoading && !error && rbacHidden > 0 && (
+        <p className="instances-rbac-warning" data-testid="instances-rbac-warning">
+          {rbacHidden === 1
+            ? '1 RGD hidden — insufficient permissions'
+            : `${rbacHidden} RGDs hidden — insufficient permissions`}
+        </p>
+      )}
 
       {/* spec issue-536: selection toolbar (O2) */}
       {selectionMode && (

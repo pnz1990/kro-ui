@@ -62,9 +62,20 @@ export type K8sList = { items: K8sObject[] | null; metadata: Record<string, unkn
 
 export const listRGDs = () => get<K8sList>('/rgds')
 export const getRGD = (name: string) => get<K8sObject>(`/rgds/${name}`)
+
+/**
+ * List CR instances for a specific RGD.
+ * When the operator only has access to a subset of namespaces and listing across
+ * all namespaces returns Forbidden, the backend responds 200 + { items: [], warning: "insufficient permissions" }.
+ * Spec: .specify/specs/issue-574/spec.md  O2
+ */
+export interface InstancesResponse extends K8sList {
+  /** Set to "insufficient permissions" when the list was blocked by RBAC. */
+  warning?: string
+}
 export const listInstances = (rgdName: string, namespace?: string, options?: { signal?: AbortSignal }) => {
   const qs = namespace ? `?namespace=${encodeURIComponent(namespace)}` : ''
-  return get<K8sList>(`/rgds/${encodeURIComponent(rgdName)}/instances${qs}`, options)
+  return get<InstancesResponse>(`/rgds/${encodeURIComponent(rgdName)}/instances${qs}`, options)
 }
 
 // ── Global instance search (spec 058) ────────────────────────────────────────
@@ -85,6 +96,12 @@ export interface InstanceSummary {
 export interface AllInstancesResponse {
   items: InstanceSummary[]
   total: number
+  /**
+   * Number of RGDs whose instance list was skipped due to Forbidden / RBAC errors.
+   * Non-zero means partial results — the UI should show an "N RGDs hidden" indicator.
+   * Spec: .specify/specs/issue-574/spec.md  O1, O3
+   */
+  rbacHidden?: number
 }
 
 /**
