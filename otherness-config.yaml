@@ -6,6 +6,8 @@ project:
   report_issue: 439
   board_url: "https://github.com/users/pnz1990/projects/2/views/1"
   pr_label: "kro-ui"
+  board_project_id: 'PVT_kwHOC22HhM4BUowm'  # kro-ui project board
+  active_milestone: 'v0.10.0'  # current active milestone
   job_family: FEE
 
 maqa:
