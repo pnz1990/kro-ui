@@ -1,0 +1,29 @@
+/* PageLoader.css — route-load suspense fallback
+ * Matches the shimmer style used in SkeletonCard for visual consistency.
+ * Renders a thin progress bar at the top of the content area. */
+
+@keyframes page-loader-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.page-loader {
+  padding: 24px 20px;
+}
+
+.page-loader__bar {
+  height: 4px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-border-subtle) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: page-loader-shimmer 1.5s ease-in-out infinite;
+}
