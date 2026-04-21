@@ -9,8 +9,10 @@
 
 .dag-graph-container {
   overflow: auto;
+  overflow-x: hidden;
   width: 100%;
   flex: 1;
+  position: relative; /* establishes containing block for DAGMinimap */
 }
 
 /* ── Node groups ────────────────────────────────────────────────────────── */
