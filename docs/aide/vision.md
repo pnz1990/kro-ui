@@ -111,6 +111,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Prediction misses don't adjust spec scoping | doc 27 §27.47 | Halving `predicted_prs` is a symptom fix; COORD must constrain spec scope (max 2 files) when accuracy < 0.5 for 2 batches — the over-ambitious spec is the root cause |
 | vibe-vision-auto never detects a stale `loop-health.md` | doc 27 §27.48 | 27.26+27.32 say SM must write the file; but no scan verifies it was written; add a Scan 0 that alerts when the file is missing or >48h old |
 | `otherness-config.yaml` correctness never validated at onboard time | doc 27 §27.49 | Wrong `report_issue` or `build_command` fail silently in session 1; a `/otherness.validate-config` startup check must assert all required fields before first batch |
+| `session_item_limit: 2` workaround masks OIDC token expiry root cause | doc 27 §27.50 | Sessions permanently throttled to 2 PRs/hour; real fix is mid-session token refresh or SM commit within 55 minutes |
+| Skill content quality never audited — unreferenced skills provide zero benefit | doc 27 §27.51 | 15 skill files exist; no scan checks if any agent phase (coord/eng/qa/sm) actually references them |
+| `otherness-config.yaml` missing `description` field, blocking 27.39 | doc 27 §27.52 | 27.39 generates initial pressure block from `description` field; field doesn't exist; onboard generates empty/generic pressure |
+| Doc 27 has duplicate item numbers 27.40–27.45 (two different descriptions per number) | doc 27 §27.53 | Two consecutive vibe scans assigned the same numbers to different gaps; implementation risk — which 27.44 gets built? |
 
 ### Already addressed (recent PRs)
 
@@ -130,8 +134,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Frontend code splitting (React.lazy per route, bundle ~150KB gzipped) — PR #612 shipped (2026-04-21)
 - ✅ Supply chain security: cosign signing + CycloneDX SBOM + SLSA provenance — PR #626 shipped (2026-04-21)
 - ✅ Partial-RBAC graceful degradation: `rbacHidden` indicator + "N hidden" advisory on /instances — PR #622 shipped (2026-04-21)
-- ✅ Supply chain security: cosign signing, SBOM, SLSA provenance — PR #626 shipped (2026-04-21)
-- ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
 - ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
 - ✅ Color-blind accessible health indicators: `HEALTH_STATE_ICON` map, icon prefixes on HealthPill/ReadinessBadge/OverviewHealthBar — spec issue-580 shipped (2026-04-21)
+- ✅ Axe-core coverage expanded to 8 pages (Designer, Fleet, SRE, Errors tab) — PR #634 shipped (2026-04-21)
+- ✅ DAG minimap for large graphs — PR #636 shipped (2026-04-21)
+- ✅ Designer node library (click-to-add common resource templates) — PR #641 shipped (2026-04-21)
+- ✅ Designer collaboration mode (share URL with readonly view) — PR #642 shipped (2026-04-21)
 

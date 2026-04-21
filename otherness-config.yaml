@@ -1,6 +1,7 @@
 project:
   name: kro-ui
   repo: pnz1990/kro-ui
+  description: "Standalone read-only web dashboard for kro (kubernetes-sigs/kro). Cluster-first, single Go binary embedding React frontend via go:embed. Donation target: kubernetes-sigs. Port 40107."
   agent_version: v0.2.0  # pinned to stable release
   upgrade_policy: "0.x.x"  # auto-upgrade any 0.* release
   report_issue: 439
