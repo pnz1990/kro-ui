@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 3)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 4)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -41,7 +41,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 
 | Gap | Design doc item | Why it blocks |
 |-----|----------------|---------------|
-| No signed artifacts or SBOM in release | doc 27 §27.10 | kubernetes-sigs projects are expected to produce cosign-signed images and SBOM; goreleaser v2 supports this natively |
+| ~~No signed artifacts or SBOM in release~~ ✅ shipped | doc 27 §27.10 | Shipped (PR #626): cosign keyless signing + CycloneDX SBOM + SLSA provenance attestation |
 | ~~No `GOVERNANCE.md`~~ ✅ shipped | doc 27 §27.8 | Shipped (PR #592) |
 | ~~No `CODE_OF_CONDUCT.md` at repo root~~ ✅ shipped | doc 27 §27.9 | Shipped (PR #592) |
 | ~~Single approver in `OWNERS`~~ ✅ shipped | doc 27 §27.11 | Shipped (PR #592) |
@@ -52,7 +52,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 |-----|----------------|--------|
 | ~~DAG unusable at 200+ nodes~~ ✅ shipped (PR #613) | doc 28 + doc 27 §27.13 | DAG scale guard shipped: text-mode fallback for >100-node graphs with opt-in toggle |
 | GraphRevision diff — line-level YAML panel is raw blocks | doc 28 | YAML diff panel shows two unrelated KroCodeBlock side-by-side; no line highlighting; user cannot find what changed without reading both blocks |
-| No partial-RBAC test | doc 27 §27.12 | User with access to some namespaces but not others gets silent omissions; no visible "N hidden" indicator |
+| ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | `rbacHidden` field in ListAllInstancesResponse; "N RGD(s) hidden — insufficient permissions" advisory on /instances; Go unit tests + E2E journey 081 |
 | Color as sole health differentiator | doc 30 | HealthChip bar segments and OverviewHealthBar chips use border/bg color as the primary differentiator; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
 | ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
 | Fleet per-cluster timeout not implemented | doc 27 §27.21 + doc 29 | `summariseContext` uses the 30s route context; one hung cluster blocks the Fleet page for up to 30s; the `TestFleetSummaryHandler_ContextTimeout` test documented in proposals/003 was never written |
@@ -115,4 +115,6 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ v0.10.0 release (goreleaser binary + Docker image) — PR #589 shipped
 - ✅ DAG scale guard (>100-node text-mode fallback) — PR #613 shipped (2026-04-21)
 - ✅ Frontend code splitting (React.lazy per route, bundle ~150KB gzipped) — PR #612 shipped (2026-04-21)
+- ✅ Supply chain security: cosign signing + CycloneDX SBOM + SLSA provenance — PR #626 shipped (2026-04-21)
+- ✅ Partial-RBAC graceful degradation: `rbacHidden` indicator + "N hidden" advisory on /instances — PR #622 shipped (2026-04-21)
 
