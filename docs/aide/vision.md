@@ -95,6 +95,11 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | `skills_count` written as stale value in metrics | doc 27 §27.34 | SM writes 12 but actual count is 15; delta calculations will be wrong without live `wc -l` computation |
 | `predicted_prs` and `skills_delta` columns decorative | doc 27 §27.35 | Header documents them, SM never writes them; every row has `-` in both columns |
 | `vision.md` donation gaps table updated manually | doc 27 §27.36 | Shipped items (DAG scale guard, code splitting) stay in the gap table until a human removes them |
+| COORD picks hygiene before feat: even when feat: items are available | doc 27 §27.37 | The first housekeeping-only batch is not prevented — only detected after 3 consecutive; a priority rule is needed |
+| Prediction accuracy triggers number adjustment, not strategy change | doc 27 §27.38 | Over-predicting without changing work selection is dishonest; low accuracy must force downscope, not just reduce the predicted count |
+| Monoculture: no per-session frame diversity mechanism | doc 27 §27.39 | 27.25 arch-audit runs monthly/reactively; every 5th session should inject a challenger assumption to break frame-lock proactively |
+| New-project scheduled workflow fails silently on auth | doc 27 §27.40 | Missing OPENCODE_API_KEY, issues:write permission, or gh CLI auth produces a silent red CI run with no actionable error for onboarding operators |
+| SM report comments require paragraph-reading to determine outcome | doc 27 §27.41 | Each comment should lead with a 1-line status summary (🟢/🟡/🔴 + last PR + next item) before technical detail |
 
 ### Already addressed (recent PRs)
 
