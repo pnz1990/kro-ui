@@ -111,6 +111,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Prediction misses don't adjust spec scoping | doc 27 §27.47 | Halving `predicted_prs` is a symptom fix; COORD must constrain spec scope (max 2 files) when accuracy < 0.5 for 2 batches — the over-ambitious spec is the root cause |
 | vibe-vision-auto never detects a stale `loop-health.md` | doc 27 §27.48 | 27.26+27.32 say SM must write the file; but no scan verifies it was written; add a Scan 0 that alerts when the file is missing or >48h old |
 | `otherness-config.yaml` correctness never validated at onboard time | doc 27 §27.49 | Wrong `report_issue` or `build_command` fail silently in session 1; a `/otherness.validate-config` startup check must assert all required fields before first batch |
+| vibe-vision-auto scan has deduplication bug — same items appear twice | doc 27 §27.50 | Scan append logic is not idempotent; 27.40–27.45 duplicated in doc 27 System Loop Health section; scan must deduplicate before commit |
+| Skills library utilization is untraceable — consulted count never recorded | doc 27 §27.51 | 15 skills exist but no session log records which were read; ENG must add `## Skills consulted` to work log; SM must track `skills_consulted` as a metrics column |
+| Scan output never validated before commit — corrupt writes silently committed | doc 27 §27.52 | Python crash mid-write produces truncated doc; post-write validation of section structure must run before `git commit`; failures must post a `[SCAN ERROR]` comment |
+| Skills library content quality is invisible to human and loop alike | doc 27 §27.53 | `skills_count=15` says nothing about coverage; `docs/aide/skills-inventory.md` must list each skill with summary, age, and citation count |
 
 ### Already addressed (recent PRs)
 
