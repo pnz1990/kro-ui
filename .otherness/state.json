@@ -38,6 +38,11 @@
       "last_seen": "2026-04-21T11:43:32Z",
       "item": "issue-540",
       "cycle": 1
+    },
+    "sess-4e4d2f36": {
+      "last_seen": "2026-04-21T17:37:09Z",
+      "item": "issue-619",
+      "cycle": 1
     }
   },
   "features": {
@@ -2404,6 +2409,28 @@
       "pr_number": 591,
       "pr_merged": true,
       "done_at": "2026-04-20T21:55:13Z"
+    },
+    "issue-619": {
+      "state": "done",
+      "title": "feat: E2E journey for Designer cluster import panel",
+      "labels": [
+        "kind/enhancement",
+        "priority/low",
+        "size/s",
+        "kro-ui"
+      ],
+      "issue": 619,
+      "priority": "medium",
+      "assigned_to": "sess-4e4d2f36",
+      "assigned_at": "2026-04-21T17:37:09Z",
+      "branch": "feat/issue-619",
+      "worktree": "../kro-ui.issue-619",
+      "file_spaces": [
+        "test/e2e/journeys/"
+      ],
+      "pr_number": 631,
+      "pr_merged": true,
+      "done_at": "2026-04-21T17:56:53Z"
     }
   },
   "sm_cycle_count": 7,
