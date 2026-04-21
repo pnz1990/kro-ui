@@ -30,8 +30,8 @@ Port 40107 (D=4, A=01, G=07 → DAG).
 PROJECT_NAME:   kro-ui
 CLI_BINARY:     kro-ui
 PR_LABEL:       kro-ui
-REPORT_ISSUE:   439
-REPORT_URL:     https://github.com/pnz1990/kro-ui/issues/439
+REPORT_ISSUE:   637
+REPORT_URL:     https://github.com/pnz1990/kro-ui/issues/637
 BOARD_URL:      ""
 BUILD_COMMAND:  make build
 TEST_COMMAND:   GOPROXY=direct GONOSUMDB="*" go test ./... -race -count=1
