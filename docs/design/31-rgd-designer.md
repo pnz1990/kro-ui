@@ -25,6 +25,7 @@ optimization advisor. It is the primary tool for developers creating new kro wor
 - ✅ CEL highlighter: pure TS kro CEL/schema tokenizer (PR #34, 2026-04)
 - ✅ RGD validation linting: surface validation conditions in the UI (PR #50, 2026-04)
 - ✅ Designer: import existing RGD from cluster (load from live cluster → editable form) (issue #542, 2026-04)
+- ✅ E2E journey for Designer cluster import panel: Playwright journey 082 covers toggle open, RGD list population, select + Load, form state replacement (issue #619, 2026-04)
 
 ## Future (🔲)
 

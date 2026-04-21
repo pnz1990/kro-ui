@@ -33,6 +33,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 ## Donation Readiness Gap Analysis
 
 > Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 4)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 5)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -42,6 +43,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Why it blocks |
 |-----|----------------|---------------|
 | ~~No signed artifacts or SBOM in release~~ ✅ shipped | doc 27 §27.10 | Shipped (PR #626): cosign keyless signing + CycloneDX SBOM + SLSA provenance attestation |
+| ~~No signed artifacts or SBOM in release~~ ✅ shipped (PR #626) | doc 27 §27.10 | Shipped: cosign keyless signing, CycloneDX SBOM via anchore/sbom-action, SLSA provenance attestation |
 | ~~No `GOVERNANCE.md`~~ ✅ shipped | doc 27 §27.8 | Shipped (PR #592) |
 | ~~No `CODE_OF_CONDUCT.md` at repo root~~ ✅ shipped | doc 27 §27.9 | Shipped (PR #592) |
 | ~~Single approver in `OWNERS`~~ ✅ shipped | doc 27 §27.11 | Shipped (PR #592) |
@@ -53,6 +55,8 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~DAG unusable at 200+ nodes~~ ✅ shipped (PR #613) | doc 28 + doc 27 §27.13 | DAG scale guard shipped: text-mode fallback for >100-node graphs with opt-in toggle |
 | GraphRevision diff — line-level YAML panel is raw blocks | doc 28 | YAML diff panel shows two unrelated KroCodeBlock side-by-side; no line highlighting; user cannot find what changed without reading both blocks |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | `rbacHidden` field in ListAllInstancesResponse; "N RGD(s) hidden — insufficient permissions" advisory on /instances; Go unit tests + E2E journey 081 |
+| ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red |
+| ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
 | Color as sole health differentiator | doc 30 | HealthChip bar segments and OverviewHealthBar chips use border/bg color as the primary differentiator; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
 | ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
 | Fleet per-cluster timeout not implemented | doc 27 §27.21 + doc 29 | `summariseContext` uses the 30s route context; one hung cluster blocks the Fleet page for up to 30s; the `TestFleetSummaryHandler_ContextTimeout` test documented in proposals/003 was never written |
@@ -98,6 +102,12 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Metrics table has 43-batch audit gap (batches 9–50 missing) | doc 27 §27.37 | Batch numbering jumps from 8 to 51 with no record; cannot verify what shipped or was skipped during that period |
 | Rework rate not tracked; low-quality first passes invisible | doc 27 §27.38 | No `rework_prs` column; a session with 3 features + 2 same-session hotfixes looks identical to a clean 3-feature session |
 | New project onboarding produces no initial pressure context | doc 27 §27.39 | `/otherness.onboard` generates a Step A prompt with no "Context for this vision scan:" block; first scan is blind |
+| `vision.md` donation gaps table never auto-updated | doc 27 §27.40 | Scan 1 only promotes items in `docs/design/`; `docs/aide/vision.md` rows stay stale until a human edits them |
+| Partial-work lost silently when session is cancelled | doc 27 §27.41 | `cancel-in-progress: true` kills sessions without recording what was abandoned; next run starts blind |
+| Metrics gaps are sentinel rows only, not reconstructed | doc 27 §27.42 | Gap rows say "N batches unrecorded" but never attempt to reconstruct counts from PR history |
+| Pressure block lives in workflow YAML — high edit friction | doc 27 §27.43 | Updating pressure requires a PR + CI run + review; extracing to `docs/aide/pressure-context.md` removes this barrier |
+| SM batch comment has no plain-English summary first line | doc 27 §27.44 | Humans reading issue #439 must parse batch IDs and technical fields to assess health; a plain-English line is required |
+| Chore-only sessions don't trigger skill creation | doc 27 §27.45 | SM only invokes `/otherness.learn` on DEFECT; two consecutive chore-only batches should also trigger a learn |
 
 ### Already addressed (recent PRs)
 
@@ -117,4 +127,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Frontend code splitting (React.lazy per route, bundle ~150KB gzipped) — PR #612 shipped (2026-04-21)
 - ✅ Supply chain security: cosign signing + CycloneDX SBOM + SLSA provenance — PR #626 shipped (2026-04-21)
 - ✅ Partial-RBAC graceful degradation: `rbacHidden` indicator + "N hidden" advisory on /instances — PR #622 shipped (2026-04-21)
+- ✅ Supply chain security: cosign signing, SBOM, SLSA provenance — PR #626 shipped (2026-04-21)
+- ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
+- ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
 
