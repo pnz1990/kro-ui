@@ -2345,7 +2345,7 @@
       "priority": "medium"
     },
     "issue-579": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 ",
       "issue_number": 579,
       "labels": [
@@ -2354,7 +2354,9 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "done_at": "2026-04-21T15:28:07Z"
     },
     "issue-580": {
       "state": "todo",
