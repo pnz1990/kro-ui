@@ -32,8 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 4)
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 5)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 6)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -53,11 +52,11 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | ~~DAG unusable at 200+ nodes~~ ✅ shipped (PR #613) | doc 28 + doc 27 §27.13 | DAG scale guard shipped: text-mode fallback for >100-node graphs with opt-in toggle |
-| GraphRevision diff — line-level YAML panel is raw blocks | doc 28 | YAML diff panel shows two unrelated KroCodeBlock side-by-side; no line highlighting; user cannot find what changed without reading both blocks |
+| ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red (duplicate row removed) |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | `rbacHidden` field in ListAllInstancesResponse; "N RGD(s) hidden — insufficient permissions" advisory on /instances; Go unit tests + E2E journey 081 |
 | ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
-| Color as sole health differentiator | doc 30 | HealthChip bar segments and OverviewHealthBar chips use border/bg color as the primary differentiator; fails WCAG 2.1 SC 1.4.1 (Use of Color) for red-green colorblind users |
+| ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
 | ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
 | Fleet per-cluster timeout not implemented | doc 27 §27.21 + doc 29 | `summariseContext` uses the 30s route context; one hung cluster blocks the Fleet page for up to 30s; the `TestFleetSummaryHandler_ContextTimeout` test documented in proposals/003 was never written |
 | No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has ~15 nodes; no 50-node or 50-RGD scenario in CI; scale regressions are invisible until a user reports in production |
@@ -108,6 +107,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Pressure block lives in workflow YAML — high edit friction | doc 27 §27.43 | Updating pressure requires a PR + CI run + review; extracing to `docs/aide/pressure-context.md` removes this barrier |
 | SM batch comment has no plain-English summary first line | doc 27 §27.44 | Humans reading issue #439 must parse batch IDs and technical fields to assess health; a plain-English line is required |
 | Chore-only sessions don't trigger skill creation | doc 27 §27.45 | SM only invokes `/otherness.learn` on DEFECT; two consecutive chore-only batches should also trigger a learn |
+| COORD picks hygiene work even when feature issues are open | doc 27 §27.46 | Busywork detection (27.22) is SM-level (retrospective); COORD must refuse chore issues at pick time when feat: issues exist — enforcement must be at decision time |
+| Prediction misses don't adjust spec scoping | doc 27 §27.47 | Halving `predicted_prs` is a symptom fix; COORD must constrain spec scope (max 2 files) when accuracy < 0.5 for 2 batches — the over-ambitious spec is the root cause |
+| vibe-vision-auto never detects a stale `loop-health.md` | doc 27 §27.48 | 27.26+27.32 say SM must write the file; but no scan verifies it was written; add a Scan 0 that alerts when the file is missing or >48h old |
+| `otherness-config.yaml` correctness never validated at onboard time | doc 27 §27.49 | Wrong `report_issue` or `build_command` fail silently in session 1; a `/otherness.validate-config` startup check must assert all required fields before first batch |
 
 ### Already addressed (recent PRs)
 
@@ -130,4 +133,5 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Supply chain security: cosign signing, SBOM, SLSA provenance — PR #626 shipped (2026-04-21)
 - ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
 - ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
+- ✅ Color-blind accessible health indicators: `HEALTH_STATE_ICON` map, icon prefixes on HealthPill/ReadinessBadge/OverviewHealthBar — spec issue-580 shipped (2026-04-21)
 
