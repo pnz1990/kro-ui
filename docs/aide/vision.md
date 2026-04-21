@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 2)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 3)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -95,6 +95,9 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | `skills_count` written as stale value in metrics | doc 27 §27.34 | SM writes 12 but actual count is 15; delta calculations will be wrong without live `wc -l` computation |
 | `predicted_prs` and `skills_delta` columns decorative | doc 27 §27.35 | Header documents them, SM never writes them; every row has `-` in both columns |
 | `vision.md` donation gaps table updated manually | doc 27 §27.36 | Shipped items (DAG scale guard, code splitting) stay in the gap table until a human removes them |
+| Metrics table has 43-batch audit gap (batches 9–50 missing) | doc 27 §27.37 | Batch numbering jumps from 8 to 51 with no record; cannot verify what shipped or was skipped during that period |
+| Rework rate not tracked; low-quality first passes invisible | doc 27 §27.38 | No `rework_prs` column; a session with 3 features + 2 same-session hotfixes looks identical to a clean 3-feature session |
+| New project onboarding produces no initial pressure context | doc 27 §27.39 | `/otherness.onboard` generates a Step A prompt with no "Context for this vision scan:" block; first scan is blind |
 
 ### Already addressed (recent PRs)
 
