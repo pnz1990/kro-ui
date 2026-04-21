@@ -6,10 +6,11 @@
 // Spec: .specify/specs/039-rgd-authoring-entrypoint/ FR-001, FR-002, FR-003
 // Spec: .specify/specs/042-rgd-designer-nav/ (title rename + live DAG)
 // Spec: .specify/specs/issue-542/ (cluster import panel)
+// Spec: issue-543 (node library)
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
-import type { RGDAuthoringState } from '@/lib/generator'
+import type { RGDAuthoringState, AuthoringResource } from '@/lib/generator'
 import { buildDAGGraph } from '@/lib/dag'
 import type { DAGGraph } from '@/lib/dag'
 import type { StaticIssue } from '@/lib/api'
@@ -19,6 +20,7 @@ import StaticChainDAG from '@/components/StaticChainDAG'
 import YAMLPreview from '@/components/YAMLPreview'
 import YAMLImportPanel from '@/components/YAMLImportPanel'
 import ClusterImportPanel from '@/components/ClusterImportPanel'
+import NodeLibrary from '@/components/NodeLibrary'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import './AuthorPage.css'
@@ -41,6 +43,11 @@ export default function AuthorPage() {
 
   const [rgdState, setRgdState] = useState<RGDAuthoringState>(STARTER_RGD_STATE)
   const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
+
+  // ── Node library — append resource from template ─────────────────────────
+  const handleAddResource = useCallback((resource: AuthoringResource) => {
+    setRgdState((prev) => ({ ...prev, resources: [...prev.resources, resource] }))
+  }, [])
 
   // ── Offline static validation (US10) — debounced 1s after YAML changes ──
   const [staticIssues, setStaticIssues] = useState<StaticIssue[]>([])
@@ -98,6 +105,7 @@ export default function AuthorPage() {
       </div>
       <div className="author-page__body">
         <div className="author-page__form-pane">
+          <NodeLibrary onAddResource={handleAddResource} />
           <ClusterImportPanel onImport={setRgdState} />
           <YAMLImportPanel onImport={setRgdState} />
           <RGDAuthoringForm state={rgdState} onChange={setRgdState} staticIssues={staticIssues} />
