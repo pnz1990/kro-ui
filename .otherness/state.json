@@ -2280,12 +2280,14 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-574": {
-      "state": "in_review",
+      "state": "done",
       "assigned_to": "sess-d3073745",
       "pr_number": 622,
       "title": "feat(api,web): partial-RBAC graceful degradation \u2014 rbacHidden indicator",
       "issue_number": 574,
-      "branch": "feat/issue-574"
+      "branch": "feat/issue-574",
+      "pr_merged": true,
+      "done_at": "2026-04-21T14:52:14Z"
     },
     "issue-575": {
       "state": "todo",
