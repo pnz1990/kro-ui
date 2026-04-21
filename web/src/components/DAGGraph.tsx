@@ -6,6 +6,8 @@
 // Fix #73: Portal tooltip on node hover shows ID, kind, type, includeWhen CEL.
 // Spec 021: hover tooltip via shared DAGTooltip (portal, viewport-clamped);
 //           readyWhen badge + section split in detail panel.
+// Spec issue-575 (27.13): DAGScaleGuard wraps the SVG — graphs >100 nodes
+//   show a text-mode fallback by default to prevent browser lock-up.
 
 import { useState, useRef } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
@@ -13,6 +15,7 @@ import type { DAGGraph, DAGNode } from '@/lib/dag'
 import { nodeBadge, forEachLabel, fittedWidth, fittedHeight } from '@/lib/dag'
 import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
+import DAGScaleGuard from './DAGScaleGuard'
 import './DAGGraph.css'
 
 interface DAGGraphProps {
@@ -172,8 +175,9 @@ export default function DAGGraph({
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
   return (
-    <div className="dag-graph-container">
-      <svg
+    <DAGScaleGuard graph={graph}>
+      <div className="dag-graph-container">
+        <svg
         ref={svgRef}
         data-testid="dag-svg"
         width={svgWidth}
@@ -240,5 +244,6 @@ export default function DAGGraph({
         nodeHeight={hoveredTooltip?.nodeHeight ?? 0}
       />
     </div>
+    </DAGScaleGuard>
   )
 }

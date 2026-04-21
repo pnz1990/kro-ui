@@ -1,0 +1,125 @@
+/* DAGScaleGuard.css — styles for the DAG scale guard fallback UI.
+ * Uses tokens from tokens.css — no hardcoded colors. */
+
+/* ── Wrapper ──────────────────────────────────────────────────────────────── */
+.dag-scale-guard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Warning banner ──────────────────────────────────────────────────────── */
+.dag-scale-guard__banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-status-warning, var(--color-border));
+  border-left: 3px solid var(--color-status-warning, var(--color-border));
+  border-radius: var(--radius);
+  font-size: var(--font-size-sm);
+  flex-wrap: wrap;
+}
+
+.dag-scale-guard__icon {
+  color: var(--color-status-warning, var(--color-text-subtle));
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.dag-scale-guard__message {
+  flex: 1;
+  color: var(--color-text);
+}
+
+.dag-scale-guard__toggle {
+  padding: 4px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-link, var(--color-text));
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.dag-scale-guard__toggle:hover {
+  background: var(--color-surface-hover, var(--color-surface));
+}
+
+/* ── Text-mode node list ────────────────────────────────────────────────── */
+.dag-scale-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+  max-height: 480px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dag-scale-list__group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dag-scale-list__group-header {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 0 4px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dag-scale-list__count {
+  font-weight: normal;
+}
+
+.dag-scale-list__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  transition: background-color 0.1s ease;
+}
+
+.dag-scale-list__row:hover {
+  background-color: var(--color-surface-hover, var(--color-surface));
+}
+
+.dag-scale-list__id {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dag-scale-list__kind {
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  flex-shrink: 0;
+}
+
+.dag-scale-list__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 10px;
+  color: var(--color-text-subtle);
+  flex-shrink: 0;
+}

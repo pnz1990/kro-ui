@@ -31,6 +31,7 @@ import type { K8sObject } from '@/lib/api'
 import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import DAGLegend from './DAGLegend'
+import DAGScaleGuard from './DAGScaleGuard'
 import './StaticChainDAG.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -301,6 +302,7 @@ export default function StaticChainDAG({
   const svgHeight = baseHeight + Math.max(0, extraHeight)
 
   return (
+    <DAGScaleGuard graph={graph}>
     <div className="dag-graph-container static-chain-dag-container">
       <svg
         ref={svgRef}
@@ -602,5 +604,6 @@ export default function StaticChainDAG({
         onTooltipMouseLeave={scheduleTooltipHide}
       />
     </div>
+    </DAGScaleGuard>
   )
 }
