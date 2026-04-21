@@ -4,6 +4,7 @@ import type { K8sObject } from '@/lib/api'
 import { extractInstanceHealth, formatAge, extractCreationTimestamp, displayNamespace } from '@/lib/format'
 import { isTerminating } from '@/lib/k8s'
 import { toYaml } from '@/lib/yaml'
+import InstanceYamlDiff from './InstanceYamlDiff'
 import ReadinessBadge from './ReadinessBadge'
 import './InstanceTable.css'
 
@@ -226,6 +227,9 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [diffPair, setDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
 
+  // issue-537: full YAML diff — shows cleaned full YAML side-by-side with line highlights
+  const [yamlDiffPair, setYamlDiffPair] = useState<[K8sObject, K8sObject] | null>(null)
+
   function itemKey(item: K8sObject): string {
     const meta = item.metadata as Record<string, unknown> | undefined
     const name = typeof meta?.name === 'string' ? meta.name : ''
@@ -239,7 +243,19 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
     const a = items.find((i) => itemKey(i) === keys[0])
     const b = items.find((i) => itemKey(i) === keys[1])
     if (a && b) {
+      setYamlDiffPair(null)
       setDiffPair([a, b])
+    }
+  }
+
+  function handleYamlDiff() {
+    const keys = Array.from(selected)
+    if (keys.length !== 2) return
+    const a = items.find((i) => itemKey(i) === keys[0])
+    const b = items.find((i) => itemKey(i) === keys[1])
+    if (a && b) {
+      setDiffPair(null)
+      setYamlDiffPair([a, b])
     }
   }
 
@@ -324,14 +340,24 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
         {showCheckboxes && selected.size > 0 && (
           <span className="instance-table-compare-bar" data-testid="compare-bar">
             {selected.size === 2 ? (
-              <button
-                type="button"
-                className="instance-table-compare-btn"
-                onClick={handleCompare}
-                data-testid="compare-btn"
-              >
-                Compare specs
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="instance-table-compare-btn"
+                  onClick={handleCompare}
+                  data-testid="compare-btn"
+                >
+                  Compare specs
+                </button>
+                <button
+                  type="button"
+                  className="instance-table-compare-btn instance-table-compare-btn--yaml"
+                  onClick={handleYamlDiff}
+                  data-testid="compare-yaml-btn"
+                >
+                  Compare full YAML
+                </button>
+              </>
             ) : (
               <span className="instance-table-compare-hint">
                 Select 1 more instance to compare
@@ -356,6 +382,15 @@ export default function InstanceTable({ items, rgdName }: InstanceTableProps) {
           a={diffPair[0]}
           b={diffPair[1]}
           onClose={() => { setDiffPair(null); setSelected(new Set()) }}
+        />
+      )}
+
+      {/* Full YAML diff panel — shown when Compare full YAML is active (issue-537) */}
+      {yamlDiffPair && (
+        <InstanceYamlDiff
+          a={yamlDiffPair[0]}
+          b={yamlDiffPair[1]}
+          onClose={() => { setYamlDiffPair(null); setSelected(new Set()) }}
         />
       )}
 
