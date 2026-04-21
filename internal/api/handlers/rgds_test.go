@@ -15,6 +15,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -556,4 +557,57 @@ func TestListInstances(t *testing.T) {
 			tt.check(t, rr)
 		})
 	}
+}
+
+// TestListInstances_ForbiddenReturns200WithWarning verifies that when the k8s API
+// returns Forbidden (RBAC restricted namespace), ListInstances returns 200 + empty
+// items + warning instead of 500 (spec issue-574 O2, O4).
+func TestListInstances_ForbiddenReturns200WithWarning(t *testing.T) {
+	t.Parallel()
+
+	testAppGVR := schema.GroupVersionResource{
+		Group:    k8sclient.KroGroup,
+		Version:  "v1alpha1",
+		Resource: "testapps",
+	}
+
+	rgdObj := makeRGDObject("test-app", "TestApp", "", "")
+	disc := newStubDiscovery()
+	disc.resources["kro.run/v1alpha1"] = &metav1.APIResourceList{
+		GroupVersion: "kro.run/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "testapps", Kind: "TestApp", Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{"test-app": rgdObj},
+	}
+	// Forbidden error from the instance list call — restricted RBAC
+	dyn.resources[testAppGVR] = &stubNamespaceableResource{
+		listErr: k8serrors.NewForbidden(
+			schema.GroupResource{Group: k8sclient.KroGroup, Resource: "testapps"},
+			"", fmt.Errorf("User cannot list testapps"),
+		),
+	}
+
+	h := newRGDTestHandler(dyn, disc)
+	r := chi.NewRouter()
+	r.Get("/api/v1/rgds/{name}/instances", h.ListInstances)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/rgds/test-app/instances", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	// Must be 200, not 500 (O2)
+	require.Equal(t, http.StatusOK, rr.Code, "ListInstances must return 200 on Forbidden (O2)")
+
+	var body struct {
+		Items   []any  `json:"items"`
+		Warning string `json:"warning"`
+	}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&body))
+	assert.Empty(t, body.Items, "items must be empty when Forbidden (O2)")
+	assert.Equal(t, "insufficient permissions", body.Warning, "warning must be set (O2)")
 }

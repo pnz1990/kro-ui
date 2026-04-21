@@ -127,6 +127,9 @@ export default function RGDDetail() {
   const [instanceList, setInstanceList] = useState<K8sList | null>(null)
   const [instancesLoading, setInstancesLoading] = useState(false)
   const [instancesError, setInstancesError] = useState<string | null>(null)
+  // RBAC partial-results warning: set when the backend returned insufficient-permissions
+  // Spec: .specify/specs/issue-574/spec.md  O2, O3
+  const [instancesRbacWarning, setInstancesRbacWarning] = useState(false)
 
   // Health trend: accumulate per-poll snapshots for the sparkline.
   // Spec: .specify/specs/issue-539/spec.md O3, O5
@@ -171,6 +174,8 @@ export default function RGDDetail() {
         if (ac.signal.aborted) return
         setInstanceList(data)
         setInstancesError(null)
+        // Track RBAC partial-results warning (spec issue-574 O2, O3)
+        setInstancesRbacWarning(data.warning === 'insufficient permissions')
         // Record health snapshot for sparkline (spec issue-539 O3)
         recordHealthSample(data.items ?? [])
       })
@@ -178,6 +183,7 @@ export default function RGDDetail() {
         if (ac.signal.aborted) return
         setInstancesError(err.message)
         setInstanceList(null)
+        setInstancesRbacWarning(false)
       })
       .finally(() => { if (!ac.signal.aborted) setInstancesLoading(false) })
 
@@ -703,6 +709,12 @@ export default function RGDDetail() {
                   className="rgd-instances-empty"
                   data-testid="instance-empty-state"
                 >
+                  {instancesRbacWarning && (
+                    <p className="instances-rbac-warning" data-testid="instances-rbac-warning">
+                      Instances hidden — insufficient permissions
+                    </p>
+                  )}
+                  {!instancesRbacWarning && <>
                   No instances found.{' '}
                   Use the{' '}
                   <button
@@ -714,9 +726,15 @@ export default function RGDDetail() {
                   </button>
                   {' '}to scaffold the YAML, then apply it with{' '}
                   <code>kubectl apply</code>.
+                  </>}
                 </div>
               ) : (
                 <>
+                  {instancesRbacWarning && (
+                    <p className="instances-rbac-warning" data-testid="instances-rbac-warning">
+                      Some instances hidden — insufficient permissions
+                    </p>
+                  )}
                   {/* Health trend sparkline — spec issue-539 O1, O2 */}
                   <HealthTrendSparkline samples={healthSamples} />
                   <InstanceTable

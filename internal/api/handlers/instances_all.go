@@ -17,20 +17,23 @@ package handlers
 // ListAllInstances returns a flat list of all live CR instances across all active RGDs.
 // Fan-out: one goroutine per RGD, each with a 5s deadline (constitution §XI; was 2s, increased in PR #352).
 // Uses errgroup so request cancellation (client disconnect) propagates to all goroutines.
-// Response: {"items": [...InstanceSummary...], "total": N}
+// Response: {"items": [...InstanceSummary...], "total": N, "rbacHidden": N}
 //
 // Used by the global instance search page (/instances) in the frontend.
 // Spec: .specify/specs/058-global-instance-search/spec.md
+// Partial-RBAC spec: .specify/specs/issue-574/spec.md
 
 import (
 	"context"
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -63,6 +66,10 @@ type InstanceSummary struct {
 type ListAllInstancesResponse struct {
 	Items []InstanceSummary `json:"items"`
 	Total int               `json:"total"`
+	// RBACHidden is the number of RGDs whose instance list was skipped due to
+	// Forbidden / RBAC errors. A non-zero value means partial results are returned.
+	// Spec: .specify/specs/issue-574/spec.md  O1
+	RBACHidden int `json:"rbacHidden"`
 }
 
 // perRGDAllInstancesTimeout is the deadline for listing instances of each RGD
@@ -87,8 +94,9 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		mu    sync.Mutex
-		items = make([]InstanceSummary, 0, len(rgdList.Items)*2)
+		mu         sync.Mutex
+		items      = make([]InstanceSummary, 0, len(rgdList.Items)*2)
+		rbacHidden int32 // accessed via atomic to avoid holding mu across log calls
 	)
 
 	// errgroup propagates request cancellation to all goroutines — if the
@@ -129,9 +137,15 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 
 			list, err := h.factory.Dynamic().Resource(gvr).List(rctx, metav1.ListOptions{})
 			if err != nil {
-				// Warn (not Debug) so RBAC misconfigurations are visible in production logs
-				// without requiring verbose debug logging. Best-effort: skip this RGD.
-				log.Warn().Err(err).Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — list failed (RBAC or unavailable)")
+				if isForbiddenError(err) {
+					// RBAC / partial results: count hidden RGDs, degrade gracefully.
+					// Spec: .specify/specs/issue-574/spec.md  O1
+					atomic.AddInt32(&rbacHidden, 1)
+					log.Warn().Err(err).Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — forbidden (RBAC)")
+				} else {
+					// Other errors (network, CRD missing, etc.) — warn but still skip.
+					log.Warn().Err(err).Str("rgd", rgdName).Msg("ListAllInstances: skip RGD — list failed (unavailable)")
+				}
 				return nil
 			}
 
@@ -208,10 +222,30 @@ func (h *Handler) ListAllInstances(w http.ResponseWriter, r *http.Request) {
 	// case we still respond with whatever was collected.
 	_ = g.Wait()
 
+	hidden := int(atomic.LoadInt32(&rbacHidden))
 	resp := ListAllInstancesResponse{
-		Items: items,
-		Total: len(items),
+		Items:      items,
+		Total:      len(items),
+		RBACHidden: hidden,
+	}
+	if hidden > 0 {
+		log.Warn().Int("rbacHidden", hidden).Msg("ListAllInstances: partial results — some RGDs hidden by RBAC")
 	}
 	log.Debug().Int("total", resp.Total).Msg("ListAllInstances: done")
 	respond(w, http.StatusOK, resp)
+}
+
+// isForbiddenError returns true when err represents an RBAC access denial.
+// Checks both the k8s API machinery status error type and the error string
+// to cover edge cases where the error is wrapped or not a StatusError.
+func isForbiddenError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if k8serrors.IsForbidden(err) {
+		return true
+	}
+	// Fallback: string check for proxied or wrapped errors
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "forbidden") || strings.Contains(msg, "unauthorized")
 }
