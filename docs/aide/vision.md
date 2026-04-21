@@ -86,6 +86,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Monoculture / frame-lock undetected | doc 27 §27.25 | All sessions use the same COORD→ENG→QA chain with no mechanism to detect systematic errors |
 | No single-page loop health view | doc 27 §27.26 | Issue #439 comment stream is dense; a human cannot verify loop health in <30s without reading every comment |
 | Onboarding quality untested | doc 27 §27.27 | `/otherness.onboard` output is never validated; a new project setup may still require manual editing |
+| Silent session failure undetected | doc 27 §27.28 | A session that runs but posts nothing is indistinguishable from a session that never ran; no circuit-breaker emits a FAILED signal when `prs_merged=0` and no comment was posted |
+| Empty-queue causes stall or busywork spiral | doc 27 §27.29 | When the board queue is empty the loop falls back to micro-PRs instead of self-filling the queue from code gaps or clearly signalling that human direction is needed |
+| Simulation predictions not tracked vs. actual | doc 27 §27.30 | Metrics record actuals but not predictions; without `predicted_prs` vs `actual_prs` the simulation cannot self-correct — the same optimistic predictions recur every batch regardless of track record |
+| Learning velocity not measurable | doc 27 §27.31 | `skills_count` is a total, not a rate; 9 batches at skills_count=12 is stagnation, but the metrics table cannot distinguish stagnation from growth without a `skills_delta` column |
 
 ### Already addressed (recent PRs)
 
