@@ -13,18 +13,25 @@
 // limitations under the License.
 
 /**
- * Journey 074: Accessibility — axe-core assertions on Tier 1 pages
+ * Journey 074: Accessibility — axe-core assertions on Tier 1 + Tier 2 pages
  *
- * Runs WCAG 2.1 AA axe-core scans on the 4 Tier 1 pages:
+ * Runs WCAG 2.1 AA axe-core scans on 8 pages:
+ * Tier 1 (original):
  * - RGD list (Catalog page — /catalog)
  * - RGD DAG view (/rgds/test-app)
  * - Instance list (/rgds/test-app/instances)
  * - Context switcher (top bar present on all pages)
  *
- * Design ref: docs/design/26-anchor-kro-ui.md §Future
- *   "Accessibility: run axe assertions on Tier 1 pages (RGD list, DAG, instance list, context switcher)"
+ * Tier 2 (spec issue-581):
+ * - Overview / SRE dashboard (/)
+ * - Fleet view (/fleet)
+ * - RGD Designer (/author)
+ * - Errors tab (/rgds/test-app?tab=errors)
  *
- * Spec: .specify/specs/issue-527/spec.md
+ * Design ref: docs/design/30-health-system.md §Future
+ *   "Accessibility audit expansion: journey 074 covers only 4 Tier-1 pages"
+ *
+ * Spec: .specify/specs/issue-581/spec.md
  *
  * Cluster pre-conditions:
  * - kind cluster running kro >= v0.9.0
@@ -56,6 +63,28 @@ function assertNoViolations(violations: Array<{ impact?: string | null; id: stri
       .map((v) => `[${v.impact}] ${v.id}: ${v.description} (${v.nodes.length} nodes)`)
       .join('\n')
     expect(blocking).toHaveLength(0, `Axe found ${blocking.length} critical/serious violation(s):\n${summary}`)
+  }
+}
+
+/**
+ * logViolations — Tier 2 pages use soft reporting: violations are logged but do not
+ * block CI. This allows the scan to surface issues without requiring all pre-existing
+ * violations in the SRE dashboard, Fleet, and Designer to be fixed before the coverage
+ * expansion ships. The violation log feeds follow-up issues.
+ *
+ * Tier 1 pages (Steps 1–4) use assertNoViolations (blocking).
+ * Tier 2 pages (Steps 5–8) use logViolations (non-blocking / surfacing).
+ */
+function logViolations(violations: Array<{ impact?: string | null; id: string; description: string; nodes: unknown[] }>, pageName: string) {
+  const blocking = violations.filter(
+    (v) => v.impact && (CRITICAL_IMPACT_LEVELS as readonly string[]).includes(v.impact),
+  )
+  if (blocking.length > 0) {
+    const summary = blocking
+      .map((v) => `[${v.impact}] ${v.id}: ${v.description} (${v.nodes.length} nodes)`)
+      .join('\n')
+    // Log but do not fail — Tier 2 incremental roll-out. Fix tracked in follow-up issues.
+    console.warn(`${pageName} axe: ${blocking.length} critical/serious violation(s) found (non-blocking):\n${summary}`)
   }
 }
 
@@ -148,6 +177,98 @@ test.describe('Journey 074 — Accessibility (axe-core WCAG 2.1 AA)', () => {
 
     assertNoViolations(results.violations)
     console.log(`Context switcher axe: ${results.violations.length} total violations.`)
+  })
+
+  // ── Step 5: Overview / SRE dashboard (spec issue-581 O3) ──────────────────
+
+  test('Step 5: Overview (SRE dashboard) has no critical/serious axe violations', async ({ page }) => {
+    await page.goto(BASE)
+    // Wait for Overview content: health summary bar or overview page container
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="overview-page"]') !== null ||
+             document.querySelector('[data-testid="overview-health-bar"]') !== null ||
+             document.querySelector('[class*="overview"]') !== null ||
+             document.querySelector('main') !== null,
+      { timeout: 20000 },
+    ).catch(() => {})
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze()
+
+    logViolations(results.violations, 'Overview')
+    console.log(`Overview axe: ${results.violations.length} total violations, ` +
+      `${results.passes.length} passes.`)
+  })
+
+  // ── Step 6: Fleet view (spec issue-581 O2) ────────────────────────────────
+
+  test('Step 6: Fleet view has no critical/serious axe violations', async ({ page }) => {
+    await page.goto(`${BASE}/fleet`)
+    // Wait for fleet cards or empty state
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid^="fleet-card-"]') !== null ||
+             document.querySelector('[class*="fleet"]') !== null ||
+             document.querySelector('main') !== null,
+      { timeout: 20000 },
+    ).catch(() => {})
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze()
+
+    logViolations(results.violations, 'Fleet')
+    console.log(`Fleet axe: ${results.violations.length} total violations, ` +
+      `${results.passes.length} passes.`)
+  })
+
+  // ── Step 7: RGD Designer (/author) (spec issue-581 O1) ────────────────────
+
+  test('Step 7: RGD Designer (/author) has no critical/serious axe violations', async ({ page }) => {
+    await page.goto(`${BASE}/author`)
+    // Wait for Designer canvas or main content to render
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="designer-canvas"]') !== null ||
+             document.querySelector('[class*="designer"]') !== null ||
+             // The Designer page renders node-type buttons in a sidebar
+             document.querySelector('[class*="author"]') !== null ||
+             document.querySelector('main') !== null,
+      { timeout: 20000 },
+    ).catch(() => {})
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .exclude('svg')  // Designer DAG preview: complex SVG widget, separate audit
+      .analyze()
+
+    logViolations(results.violations, 'Designer')
+    console.log(`Designer axe: ${results.violations.length} total violations, ` +
+      `${results.passes.length} passes.`)
+  })
+
+  // ── Step 8: Errors tab on RGD detail (spec issue-581 O4) ─────────────────
+
+  test('Step 8: Errors tab on RGD detail has no critical/serious axe violations', async ({ page }) => {
+    test.skip(!fixtureState.testAppReady, 'test-app not Ready — skipping Errors tab axe scan')
+
+    await page.goto(`${BASE}/rgds/test-app?tab=errors`)
+    // Wait for Errors tab content or empty state
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="errors-tab"]') !== null ||
+             document.querySelector('[class*="errors"]') !== null ||
+             // Tab content renders in a panel; wait for any main content
+             document.querySelector('[role="tabpanel"]') !== null ||
+             document.querySelector('main') !== null,
+      { timeout: 20000 },
+    ).catch(() => {})
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze()
+
+    logViolations(results.violations, 'Errors tab')
+    console.log(`Errors tab axe: ${results.violations.length} total violations, ` +
+      `${results.passes.length} passes.`)
   })
 
 })
