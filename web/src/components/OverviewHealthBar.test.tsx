@@ -1,7 +1,9 @@
 // Unit tests for OverviewHealthBar aggregation logic (spec 055)
 
 import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
 import { aggregateSummaries } from './OverviewHealthBar'
+import OverviewHealthBar from './OverviewHealthBar'
 import type { HealthSummary } from '@/lib/format'
 
 function makeSummary(overrides: Partial<HealthSummary> = {}): HealthSummary {
@@ -69,3 +71,43 @@ describe('aggregateSummaries', () => {
     expect(result.noInstances).toBe(2)
   })
 })
+
+describe('OverviewHealthBar — color-blind icons (WCAG 2.1 SC 1.4.1)', () => {
+  it('renders an icon prefix on each visible chip', () => {
+    const summaries = new Map([
+      ['rgd-a', makeSummary({ total: 5, ready: 3, error: 1, reconciling: 1 })],
+    ])
+    const { container } = render(
+      <OverviewHealthBar summaries={summaries} totalRGDs={1} />
+    )
+    const icons = container.querySelectorAll('.overview-health-bar__chip-icon')
+    // ready, error, reconciling → 3 chips, each with an icon
+    expect(icons.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('chip icons are aria-hidden', () => {
+    const summaries = new Map([
+      ['rgd-a', makeSummary({ total: 2, ready: 2 })],
+    ])
+    const { container } = render(
+      <OverviewHealthBar summaries={summaries} totalRGDs={1} />
+    )
+    const icons = container.querySelectorAll('.overview-health-bar__chip-icon')
+    for (const icon of Array.from(icons)) {
+      expect(icon.getAttribute('aria-hidden')).toBe('true')
+    }
+  })
+
+  it('ready chip icon is ✓', () => {
+    const summaries = new Map([
+      ['rgd-a', makeSummary({ total: 2, ready: 2 })],
+    ])
+    const { container } = render(
+      <OverviewHealthBar summaries={summaries} totalRGDs={1} />
+    )
+    const icons = container.querySelectorAll('.overview-health-bar__chip-icon')
+    const texts = Array.from(icons).map((el) => el.textContent)
+    expect(texts).toContain('✓')
+  })
+})
+

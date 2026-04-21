@@ -1,11 +1,13 @@
 /* ReadinessBadge — colored pill badge for instance readiness state.
  * Only CSS custom properties from tokens.css are used; no hardcoded hex.
  * Extended from 3 states to 5 by spec 028-instance-health-rollup.
- * Extended to 6 states (degraded) by 047-ux-improvements. */
+ * Extended to 6 states (degraded) by 047-ux-improvements.
+ * Icon prefix added by spec issue-580 (WCAG 2.1 SC 1.4.1 color-blind a11y). */
 
 .readiness-badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
@@ -15,6 +17,56 @@
   cursor: default;
   user-select: none;
 }
+
+/* Icon is aria-hidden; inherits color from parent */
+.readiness-badge__icon {
+  font-style: normal;
+  font-size: inherit;
+  line-height: 1;
+}
+
+/* Ready=True — emerald */
+.readiness-badge--ready {
+  color: var(--color-status-ready);
+  background: var(--node-alive-bg);
+  border: 1px solid var(--color-alive);
+}
+
+/* Ready=True but a child resource has errors — orange */
+.readiness-badge--degraded {
+  color: var(--color-status-degraded);
+  background: var(--node-degraded-bg);
+  border: 1px solid var(--color-status-degraded);
+}
+
+/* Ready=False — rose */
+.readiness-badge--error {
+  color: var(--color-status-error);
+  background: var(--node-error-bg);
+  border: 1px solid var(--color-error);
+}
+
+/* No conditions / Unknown — gray */
+.readiness-badge--unknown {
+  color: var(--color-status-unknown);
+  background: var(--node-notfound-bg);
+  border: 1px solid var(--color-not-found);
+}
+
+/* Progressing=True — amber */
+.readiness-badge--reconciling {
+  color: var(--color-status-reconciling);
+  background: var(--node-reconciling-bg);
+  border: 1px solid var(--color-reconciling);
+}
+
+/* All conditions Unknown — violet */
+.readiness-badge--pending {
+  color: var(--color-status-pending);
+  background: var(--node-pending-bg);
+  border: 1px solid var(--color-pending);
+}
+
 
 /* Ready=True — emerald */
 .readiness-badge--ready {

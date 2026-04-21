@@ -17,6 +17,7 @@ import {
   countMayBeStuck,
   getRecentlyCreated,
   getMayBeStuck,
+  HEALTH_STATE_ICON,
 } from './format'
 import type { InstanceSummary } from './api'
 
@@ -249,6 +250,31 @@ describe('readyStateLabel', () => {
 
   it('returns Reconciling for reconciling (issue #366)', () => {
     expect(readyStateLabel('reconciling')).toBe('Reconciling')
+  })
+})
+
+// ── HEALTH_STATE_ICON ─────────────────────────────────────────────────
+
+describe('HEALTH_STATE_ICON', () => {
+  it('defines an icon for every InstanceHealthState (spec issue-580 O1)', () => {
+    const states = ['ready', 'error', 'degraded', 'reconciling', 'pending', 'unknown'] as const
+    for (const state of states) {
+      expect(HEALTH_STATE_ICON[state], `missing icon for ${state}`).toBeTruthy()
+    }
+  })
+
+  it('matches the HealthChip segment icons for consistency', () => {
+    // HealthChip uses: error=✗, degraded=⚠, reconciling=↻, pending=…, unknown=?
+    // HEALTH_STATE_ICON must match for visual consistency across all health displays.
+    expect(HEALTH_STATE_ICON.error).toBe('✗')
+    expect(HEALTH_STATE_ICON.degraded).toBe('⚠')
+    expect(HEALTH_STATE_ICON.reconciling).toBe('↻')
+    expect(HEALTH_STATE_ICON.pending).toBe('…')
+    expect(HEALTH_STATE_ICON.unknown).toBe('?')
+  })
+
+  it('ready uses ✓ as a positive indicator', () => {
+    expect(HEALTH_STATE_ICON.ready).toBe('✓')
   })
 })
 

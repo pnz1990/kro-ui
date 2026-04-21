@@ -3,9 +3,14 @@
 // Shows a prominent colored pill beside the instance name.
 // State is derived from the already-polled instance data (no extra fetch needed).
 //
+// Color-blind accessibility: each state shows an icon prefix (HEALTH_STATE_ICON)
+// as a secondary signal alongside the hue, satisfying WCAG 2.1 SC 1.4.1.
+//
 // Spec: .specify/specs/028-instance-health-rollup/spec.md US3 FR-008
+//       .specify/specs/issue-580/spec.md O2
 
 import type { InstanceHealth } from '@/lib/format'
+import { HEALTH_STATE_ICON } from '@/lib/format'
 import './HealthPill.css'
 
 interface HealthPillProps {
@@ -55,6 +60,7 @@ export default function HealthPill({ health }: HealthPillProps) {
   }
 
   const label = pillLabel(health.state)
+  const icon = HEALTH_STATE_ICON[health.state] ?? '?'
   // Prefer the reason/message from the condition; fall back to a static explanation.
   const tooltip = health.reason
     ? `${health.reason}${health.message ? `: ${health.message}` : ''}`
@@ -68,7 +74,9 @@ export default function HealthPill({ health }: HealthPillProps) {
       aria-label={`Health: ${label}`}
       title={tooltip}
     >
+      <span aria-hidden="true" className="health-pill__icon">{icon}</span>
       {label}
     </span>
   )
 }
+

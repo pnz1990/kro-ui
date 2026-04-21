@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import ReadinessBadge from './ReadinessBadge'
+import { HEALTH_STATE_ICON } from '@/lib/format'
 import type { ReadyStatus } from '@/lib/format'
 
 function make(state: ReadyStatus['state'], reason = '', message = ''): ReadyStatus {
@@ -44,4 +45,25 @@ describe('ReadinessBadge', () => {
     // tooltip falls back to label
     expect(badge).toHaveAttribute('title', 'Unknown')
   })
+
+  it('renders state icon as secondary signal for each state (WCAG 2.1 SC 1.4.1)', () => {
+    const states: Array<ReadyStatus['state']> = ['ready', 'error', 'reconciling', 'unknown']
+    for (const state of states) {
+      const { container, unmount } = render(<ReadinessBadge status={make(state)} />)
+      const iconEl = container.querySelector('.readiness-badge__icon')
+      expect(iconEl, `icon missing for state=${state}`).not.toBeNull()
+      expect(iconEl!.textContent, `wrong icon for state=${state}`).toBe(
+        HEALTH_STATE_ICON[state as keyof typeof HEALTH_STATE_ICON] ?? '?'
+      )
+      unmount()
+    }
+  })
+
+  it('icon has aria-hidden="true" to avoid screen reader double-reading', () => {
+    const { container } = render(<ReadinessBadge status={make('error')} />)
+    const iconEl = container.querySelector('.readiness-badge__icon')
+    expect(iconEl).not.toBeNull()
+    expect(iconEl!.getAttribute('aria-hidden')).toBe('true')
+  })
 })
+
