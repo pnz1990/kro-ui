@@ -24,15 +24,15 @@ chosen to be consistent with or stricter than the practices used in the kro code
 
 ## Current Status
 
-v0.9.4 — mature, production-capable. 70+ features merged across 430+ PRs. kro v0.9.1 support.
-Pending work: remaining open GitHub issues, E2E journey improvements, and kro upstream features
-as they land (new CRDs, GraphRevision hash, CEL extensions).
+v0.10.0 — production-capable. 80+ features merged across 600+ PRs. kro v0.9.1 support.
+Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.22–27.27),
+and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extensions).
 
 ---
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-20 — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -41,10 +41,10 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 
 | Gap | Design doc item | Why it blocks |
 |-----|----------------|---------------|
-| No `GOVERNANCE.md` | doc 27 §27.8 | kubernetes-sigs requires a governance model with maintainer list and decision process |
-| No `CODE_OF_CONDUCT.md` at repo root | doc 27 §27.9 | kubernetes-sigs org requires this file to exist (not just a link in CONTRIBUTING.md) |
 | No signed artifacts or SBOM in release | doc 27 §27.10 | kubernetes-sigs projects are expected to produce cosign-signed images and SBOM; goreleaser v2 supports this natively |
-| Single approver in `OWNERS` | doc 27 §27.11 | kubernetes-sigs rejects donations with a single-person bus factor; >= 2 approvers required |
+| ~~No `GOVERNANCE.md`~~ ✅ shipped | doc 27 §27.8 | Shipped (PR #592) |
+| ~~No `CODE_OF_CONDUCT.md` at repo root~~ ✅ shipped | doc 27 §27.9 | Shipped (PR #592) |
+| ~~Single approver in `OWNERS`~~ ✅ shipped | doc 27 §27.11 | Shipped (PR #592) |
 
 ### Significant gaps (would produce review comments)
 
@@ -69,6 +69,20 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | External Google Fonts dependency | doc 27 §27.16 | Breaks in air-gapped clusters; privacy concern; blocks rendering until CDN responds |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
+
+### Development loop gaps (not donation blockers, but slow the path there)
+
+These gaps mean the autonomous loop is slower and less honest than it could be.
+Each has a corresponding `🔲 Future` item in doc 27.
+
+| Gap | Design doc item | Impact |
+|-----|----------------|--------|
+| Housekeeping-only batch spiral undetected | doc 27 §27.22 | Loop shipped 7 consecutive batches of coverage micro-PRs while reporting GREEN; no self-correction trigger exists |
+| SM health signal has no quantitative threshold | doc 27 §27.23 | GREEN means nothing without a minimum bar (≥1 design-doc-backed feature PR); honesty requires enforced thresholds |
+| `/otherness.learn` not running | doc 27 §27.24 | `skills_count` stuck at 12 across all measured batches; skills library not growing; loop not getting smarter |
+| Monoculture / frame-lock undetected | doc 27 §27.25 | All sessions use the same COORD→ENG→QA chain with no mechanism to detect systematic errors |
+| No single-page loop health view | doc 27 §27.26 | Issue #439 comment stream is dense; a human cannot verify loop health in <30s without reading every comment |
+| Onboarding quality untested | doc 27 §27.27 | `/otherness.onboard` output is never validated; a new project setup may still require manual editing |
 
 ### Already addressed (recent PRs)
 
