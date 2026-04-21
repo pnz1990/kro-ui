@@ -9,6 +9,7 @@ import { extractRGDKind, extractReadyStatus, extractLastRevision } from "@/lib/f
 import { buildNodeStateMap } from "@/lib/instanceNodeState"
 import type { NodeStateMap } from "@/lib/instanceNodeState"
 import { usePageTitle } from "@/hooks/usePageTitle"
+import { useHealthTrend } from "@/hooks/useHealthTrend"
 import StatusDot from "@/components/StatusDot"
 import KroCodeBlock from "@/components/KroCodeBlock"
 import StaticChainDAG from "@/components/StaticChainDAG"
@@ -26,6 +27,7 @@ import RevisionsTab from "@/components/RevisionsTab"
 import type { PickerItem } from "@/components/InstanceOverlayBar"
 import { useCapabilities } from "@/lib/features"
 import RGDStatStrip from "@/components/RGDStatStrip"
+import HealthTrendSparkline from "@/components/HealthTrendSparkline"
 import "./RGDDetail.css"
 
 /** Valid tab values. Anything else falls back to 'graph'. */
@@ -126,6 +128,10 @@ export default function RGDDetail() {
   const [instancesLoading, setInstancesLoading] = useState(false)
   const [instancesError, setInstancesError] = useState<string | null>(null)
 
+  // Health trend: accumulate per-poll snapshots for the sparkline.
+  // Spec: .specify/specs/issue-539/spec.md O3, O5
+  const { samples: healthSamples, record: recordHealthSample } = useHealthTrend()
+
   // Eager instance count for the stat strip — fetched once when the RGD loads,
   // not gated on the Instances tab being active. null=loading, undefined=failed.
   // AbortController ensures no setState-after-unmount if user navigates away. #411
@@ -165,6 +171,8 @@ export default function RGDDetail() {
         if (ac.signal.aborted) return
         setInstanceList(data)
         setInstancesError(null)
+        // Record health snapshot for sparkline (spec issue-539 O3)
+        recordHealthSample(data.items ?? [])
       })
       .catch((err: Error) => {
         if (ac.signal.aborted) return
@@ -708,10 +716,14 @@ export default function RGDDetail() {
                   <code>kubectl apply</code>.
                 </div>
               ) : (
-                <InstanceTable
-                  items={instanceList.items ?? []}
-                  rgdName={String(rgdName)}
-                />
+                <>
+                  {/* Health trend sparkline — spec issue-539 O1, O2 */}
+                  <HealthTrendSparkline samples={healthSamples} />
+                  <InstanceTable
+                    items={instanceList.items ?? []}
+                    rgdName={String(rgdName)}
+                  />
+                </>
               )
             )}
           </div>
