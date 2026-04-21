@@ -1,0 +1,80 @@
+/*
+ * fonts.css — Self-hosted Inter and JetBrains Mono font-face declarations.
+ *
+ * Replaces the Google Fonts CDN (fonts.googleapis.com / fonts.gstatic.com)
+ * so kro-ui works in air-gapped cluster environments and environments with
+ * strict egress policies. Font files are embedded in the binary via go:embed.
+ *
+ * Inter: SIL Open Font License 1.1 (https://rsms.me/inter/)
+ * JetBrains Mono: Apache License 2.0 (https://www.jetbrains.com/lp/mono/)
+ *
+ * Issue: #644 (27.16 — Google Fonts external dependency removal)
+ */
+
+/* ── Inter ─────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/Inter-300.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/Inter-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Inter-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Inter-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Inter-700.woff2') format('woff2');
+}
+
+/* ── JetBrains Mono ─────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-600.woff2') format('woff2');
+}
