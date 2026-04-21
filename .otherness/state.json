@@ -2152,7 +2152,7 @@
       "priority": "medium"
     },
     "issue-543": {
-      "state": "in_review",
+      "state": "done",
       "title": "feat: Designer node library",
       "issue_number": 543,
       "labels": [
@@ -2162,10 +2162,12 @@
         "kro-ui"
       ],
       "priority": "medium",
-      "pr": "641"
+      "pr": "641",
+      "pr_merged": true,
+      "done_at": "2026-04-21T22:26:20Z"
     },
     "issue-544": {
-      "state": "in_review",
+      "state": "done",
       "title": "feat: Designer collaboration mode",
       "issue_number": 544,
       "labels": [
@@ -2175,7 +2177,9 @@
         "kro-ui"
       ],
       "priority": "medium",
-      "pr": "642"
+      "pr": "642",
+      "pr_merged": true,
+      "done_at": "2026-04-21T22:26:20Z"
     },
     "issue-570": {
       "state": "done",
