@@ -1,0 +1,57 @@
+/* AlertBellButton — health alert subscription toggle in the TopBar.
+ * Spec: .specify/specs/issue-540/spec.md
+ */
+
+.alert-bell-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition), border-color var(--transition);
+  flex-shrink: 0;
+}
+
+.alert-bell-btn:hover:not(:disabled) {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.alert-bell-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* Active (subscribed + granted) — highlighted with error/alert color */
+.alert-bell-btn--active {
+  color: var(--color-status-warning);
+  border-color: color-mix(in srgb, var(--color-status-warning) 25%, transparent);
+}
+
+.alert-bell-btn--active:hover {
+  color: var(--color-status-warning);
+  background: color-mix(in srgb, var(--color-status-warning) 10%, transparent);
+}
+
+/* Blocked (notifications denied) — muted, disabled */
+.alert-bell-btn--blocked {
+  color: var(--color-text-faint);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.alert-bell-btn:disabled {
+  pointer-events: auto; /* keep hover tooltip visible even when disabled */
+}
+
+.alert-bell-btn__icon {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
