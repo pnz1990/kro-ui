@@ -13,7 +13,7 @@ maqa:
   agents_path: ~/.otherness/agents
   status_update_cycles: 5
   product_validation_cycles: 3
-  session_item_limit: 3    # 3 items fits hourly cron (sessions ~30min)
+  session_item_limit: 2    # 2 items — kro-ui e2e is slow, keep under 60min OIDC window
   autonomous_mode: true    # operator authorized — agent acts on their behalf
 
 schedule:
