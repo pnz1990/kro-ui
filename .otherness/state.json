@@ -2366,7 +2366,7 @@
       "state": "done"
     },
     "issue-644": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.16 \u2014 self-host Inter and JetBrains Mono fonts (remove Google Fonts CDN dependency)",
       "issue_number": 644,
       "labels": [
@@ -2375,7 +2375,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "pr": "650",
+      "done_at": "2026-04-21T22:57:42Z"
     },
     "issue-645": {
       "state": "todo",
