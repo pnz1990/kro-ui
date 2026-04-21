@@ -26,11 +26,12 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 - ✅ Instance diff: F-8 snooze error DAG nodes; YAML diff foundation (PR #318, 2026-04)
 - ✅ Degraded health state (6th state), multi-segment health bar, copy instance YAML button (PR #277, 2026-04)
 - ✅ WARNINGS counter includes failed/unknown conditions (PR #328, 2026-04)
+- ✅ Instance diff: full side-by-side YAML comparison — LCS-based line diff with added/removed highlights; "Compare full YAML" button alongside spec diff in InstanceTable (PR #537, 2026-04)
 
 ## Future (🔲)
 
 - ✅ Instance bulk operations: multi-select + bulk YAML export on /instances page (PR #536, 2026-04)
-- 🔲 Instance diff: full side-by-side comparison between two instance snapshots
+- ✅ Instance diff: full side-by-side YAML comparison — LCS-based line diff (PR #537, 2026-04)
 - 🔲 Instance resource graph: show all k8s resources owned by this instance
 - 🔲 Partial-RBAC instance visibility: when the operator only has RBAC access to a subset of namespaces, `ListAllInstances` silently skips the inaccessible RGDs and the UI shows a smaller count with no explanation; add a `skippedRGDs` field to `ListAllInstancesResponse` and a "N RGD(s) hidden — insufficient permissions" advisory notice on the /instances page; without this, an operator with restricted access has no way to know they are seeing incomplete data (silent data loss is worse than an error message)
 - 🔲 Fleet per-cluster timeout not implemented: `docs/design/proposals/003-fleet-timeout-budget.md` documents a 2s per-cluster deadline in `summariseContext` but the implementation in `fleet.go` passes `r.Context()` (the 30s route-level context) directly with no inner per-cluster deadline; a single hung cluster can block the Fleet page for up to 30s; implement `context.WithTimeout(r.Context(), perClusterFleetTimeout)` in `summariseContext` and add the `TestFleetSummaryHandler_ContextTimeout` test documented in the proposal but never written
