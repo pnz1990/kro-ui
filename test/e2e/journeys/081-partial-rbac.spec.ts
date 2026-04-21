@@ -73,12 +73,11 @@ test.describe('Journey 081: Partial-RBAC — graceful degradation', () => {
   test('Step 3: /instances page renders without RBAC warning', async ({ page }) => {
     await page.goto(`${BASE}/instances`)
 
-    // Wait for the page to load (instances table or empty state)
+    // Wait for the instances count or error state to appear (page has loaded)
     await page.waitForFunction(() => {
-      const hasTable = !!document.querySelector('[data-testid="instances-table"]')
-      const hasEmpty = !!document.querySelector('.instances-page__empty')
-      const hasError = !!document.querySelector('.instances-page__error')
-      return hasTable || hasEmpty || hasError
+      const count = document.querySelector('[data-testid="instances-count"]')
+      const error = document.querySelector('.instances-page__error')
+      return (count !== null && count.textContent !== '') || error !== null
     }, { timeout: 30_000 })
 
     // RBAC warning should NOT be visible in a full-access cluster
