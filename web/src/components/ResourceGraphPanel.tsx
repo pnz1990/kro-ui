@@ -18,11 +18,17 @@ type ResourceStatus = 'running' | 'pending' | 'failed' | 'not-reported'
 
 function resourceStatus(item: K8sObject): ResourceStatus {
   const status = item.status
-  if (typeof status !== 'object' || status === null) return 'not-reported'
+
+  // Step 0: no status at all → stateless resource (ConfigMap, Secret, Namespace,
+  // ServiceAccount, etc.) → healthy by existence.
+  // See AGENTS.md anti-pattern: "isItemReady: stateless resources (ConfigMap etc.) are healthy by existence"
+  // See also: collection.ts isItemReady step-5 fast-path.
+  if (typeof status !== 'object' || status === null) return 'running'
+
   const s = status as Record<string, unknown>
 
-  // ConfigMap, Secret, Namespace, ServiceAccount, etc. have no conditions — treat as running.
-  // See AGENTS.md anti-pattern: "isItemReady: stateless resources (ConfigMap etc.) are healthy by existence"
+  // Also treat a status object with no phase and no conditions as running (e.g.
+  // ConfigMap with an empty status:{} from some controllers).
   if (!s.phase && !Array.isArray(s.conditions)) return 'running'
 
   const phase = s.phase
