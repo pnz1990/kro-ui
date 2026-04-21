@@ -6,14 +6,16 @@
 // Namespace filter: spec .specify/specs/062-instance-namespace-filter/spec.md
 // Issue #365/#368: health filter is synced to/from the ?health= URL param so
 // filtered views can be shared and survive page refresh.
+// spec issue-536: multi-select + bulk YAML export (O1-O7).
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { listAllInstances } from '@/lib/api'
+import { listAllInstances, getInstance } from '@/lib/api'
 import type { InstanceSummary } from '@/lib/api'
 import { formatAge } from '@/lib/format'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { translateApiError } from '@/lib/errors'
+import { cleanK8sObject, toYaml } from '@/lib/yaml'
 import StatusDot from '@/components/StatusDot'
 import './Instances.css'
 
@@ -97,6 +99,14 @@ export default function InstancesPage() {
   const [sortKey, setSortKey] = useState<SortKey>('health')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [page, setPage] = useState(0)
+
+  // spec issue-536: selection mode state (O1-O4)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [isExporting, setIsExporting] = useState(false)
+
+  // Stable instance key: namespace/name/rgdName uniquely identifies an instance
+  function instanceKey(i: InstanceSummary) { return `${i.namespace}/${i.name}/${i.rgdName}` }
 
   // Sync healthFilter from URL on mount (handles direct navigation with ?health=).
   // Only runs once; subsequent changes are driven by chip clicks.
@@ -194,6 +204,60 @@ export default function InstancesPage() {
     return counts
   }, [items])
 
+  // spec issue-536: Escape to exit selection mode (O4)
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && selectionMode) {
+        setSelectionMode(false)
+        setSelectedKeys(new Set())
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [selectionMode])
+
+  // spec issue-536: visible (post-filter) instance keys for "Select all" (O2)
+  const visibleKeys = useMemo(() => sorted.map((i) => instanceKey(i)), [sorted])
+  const allVisible = visibleKeys.length > 0 && visibleKeys.every((k) => selectedKeys.has(k))
+
+  function handleToggleSelectAll() {
+    if (allVisible) {
+      setSelectedKeys(new Set())
+    } else {
+      setSelectedKeys(new Set(visibleKeys))
+    }
+  }
+
+  // spec issue-536: bulk YAML export (O3)
+  async function handleExportYAML() {
+    const selected = sorted.filter((i) => selectedKeys.has(instanceKey(i)))
+    if (selected.length === 0) return
+    setIsExporting(true)
+    try {
+      const docs: string[] = []
+      for (const instance of selected) {
+        try {
+          const obj = await getInstance(instance.namespace || '_', instance.name, instance.rgdName)
+          const cleaned = cleanK8sObject(obj)
+          docs.push(toYaml(cleaned))
+        } catch {
+          docs.push(`# Failed to fetch ${instance.namespace}/${instance.name}`)
+        }
+      }
+      const yaml = docs.join('\n---\n')
+      const today = new Date().toISOString().slice(0, 10)
+      const filename = `kro-instances-${today}.yaml`
+      const blob = new Blob([yaml], { type: 'text/yaml' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename; a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+
   return (
     <div className="instances-page">
       <div className="instances-page__header">
@@ -232,8 +296,54 @@ export default function InstancesPage() {
                 : `${filtered.length} of ${items.length}`}
             </span>
           )}
+          {/* spec issue-536: selection mode toggle (O1, O5) */}
+          {!isLoading && !error && !selectionMode && (
+            <button
+              type="button"
+              className="instances-page__select-btn"
+              onClick={() => { setSelectionMode(true); setSelectedKeys(new Set()) }}
+              data-testid="instances-select-btn"
+            >
+              Select
+            </button>
+          )}
         </div>
       </div>
+
+      {/* spec issue-536: selection toolbar (O2) */}
+      {selectionMode && (
+        <div className="instances-page__selection-toolbar" data-testid="instances-selection-toolbar">
+          <label className="instances-page__select-all" data-testid="instances-select-all">
+            <input
+              type="checkbox"
+              checked={allVisible}
+              onChange={handleToggleSelectAll}
+              aria-label={allVisible ? 'Deselect all visible instances' : 'Select all visible instances'}
+            />
+            {allVisible ? `Deselect all (${visibleKeys.length})` : `Select all (${visibleKeys.length})`}
+          </label>
+          <span className="instances-page__selection-count" data-testid="instances-selection-count">
+            {selectedKeys.size} selected
+          </span>
+          <button
+            type="button"
+            className="instances-page__export-btn"
+            onClick={handleExportYAML}
+            disabled={selectedKeys.size === 0 || isExporting}
+            data-testid="instances-export-yaml"
+          >
+            {isExporting ? 'Exporting…' : 'Export YAML'}
+          </button>
+          <button
+            type="button"
+            className="instances-page__clear-btn"
+            onClick={() => { setSelectionMode(false); setSelectedKeys(new Set()) }}
+            data-testid="instances-selection-clear"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* Health state filter chips */}
       {!isLoading && items.length > 0 && (
@@ -292,6 +402,10 @@ export default function InstancesPage() {
           <table className="instances-table" data-testid="instances-table">
             <thead>
               <tr>
+                {/* spec issue-536: checkbox column (O1, O7) */}
+                {selectionMode && (
+                  <th className="instances-table__th instances-table__th--check" aria-label="Select" />
+                )}
                 <th
                   className="instances-table__th instances-table__th--state"
                   onClick={() => handleSort('health')}
@@ -349,14 +463,35 @@ export default function InstancesPage() {
                 const dotState = toDotState(health)
                 const age = item.creationTimestamp ? formatAge(item.creationTimestamp) : '—'
                 const nsDisplay = item.namespace || '(cluster)'
+                const key = instanceKey(item)
+                const isSelected = selectedKeys.has(key)
                 return (
                   <tr
                     key={`${item.rgdName}/${item.namespace}/${item.name}`}
-                    className="instances-table__row"
+                    className={`instances-table__row${isSelected ? ' instances-table__row--selected' : ''}`}
                     data-testid="instances-row"
-                    onClick={() => window.location.href = href}
-                    style={{ cursor: 'pointer' }}
+                    onClick={selectionMode ? undefined : () => { window.location.href = href }}
+                    style={{ cursor: selectionMode ? 'default' : 'pointer' }}
                   >
+                    {/* spec issue-536: checkbox cell (O7 — fixed 32px width) */}
+                    {selectionMode && (
+                      <td className="instances-table__td instances-table__td--check" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedKeys((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(key)) next.delete(key)
+                              else next.add(key)
+                              return next
+                            })
+                          }}
+                          aria-label={`Select instance ${item.name}`}
+                          data-testid={`instances-row-check-${item.name}`}
+                        />
+                      </td>
+                    )}
                     <td className="instances-table__td instances-table__td--state">
                       <StatusDot
                         state={dotState}
