@@ -28,6 +28,11 @@
       "last_seen": "2026-04-21T00:07:59Z",
       "item": "issue-535",
       "cycle": 2
+    },
+    "sess-19a75780": {
+      "last_seen": "2026-04-21T07:56:20Z",
+      "item": "issue-538",
+      "cycle": 1
     }
   },
   "features": {
@@ -2093,8 +2098,10 @@
       "pr_merged": true
     },
     "issue-536": {
-      "state": "todo",
-      "title": "feat: Instance bulk operations: select multiple instances, bulk delete with confirmation",
+      "state": "in_review",
+      "assigned_to": "sess-19a75780",
+      "pr_number": 602,
+      "title": "feat(instances): bulk multi-select and YAML export (spec issue-536)",
       "issue_number": 536,
       "labels": [
         "kind/enhancement",
@@ -2102,7 +2109,8 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "branch": "feat/issue-536"
     },
     "issue-537": {
       "state": "todo",
@@ -2117,7 +2125,9 @@
       "priority": "medium"
     },
     "issue-538": {
-      "state": "todo",
+      "state": "in_review",
+      "assigned_to": "sess-19a75780",
+      "assigned_at": "2026-04-21T07:56:20Z",
       "title": "feat: Instance resource graph: show all k8s resources owned by this instance",
       "issue_number": 538,
       "labels": [
@@ -2126,7 +2136,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "branch": "feat/issue-538",
+      "worktree": "/home/runner/work/kro-ui/kro-ui.issue-538",
+      "pr_number": 607
     },
     "issue-539": {
       "state": "todo",
