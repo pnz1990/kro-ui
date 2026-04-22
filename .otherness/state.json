@@ -2509,7 +2509,7 @@
       "issue": "679"
     },
     "issue-678": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.23",
       "labels": [
         "kind/enhancement",
@@ -2517,7 +2517,10 @@
         "kro-ui"
       ],
       "priority": "medium",
-      "issue": "678"
+      "issue": "678",
+      "pr_merged": true,
+      "pr_number": 701,
+      "done_at": "2026-04-22T11:29:38Z"
     },
     "issue-677": {
       "state": "todo",
