@@ -36,7 +36,7 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 - ✅ DAG screen reader text alternative: `buildDagDescription()` utility in `DAGGraph.tsx` generates a human-readable summary ("Resource graph: N nodes — label1 (type1), ... [, M connections]"); exported and used in `DAGGraph`, `LiveDAG`, and `StaticChainDAG`; each SVG has `aria-describedby` pointing to a visually-hidden `<span className="sr-only">`; `useId()` generates unique IDs to avoid conflicts when multiple DAGs are on screen; WCAG 2.1 SC 1.1.1 satisfied (spec issue-682, 🔲→✅ 2026-04)
 
 ## Future (🔲)
-- ✅ GraphRevision diff: navigate-by-change arrows in `RevisionYamlDiff` — "← prev change" / "next change →" bar between legend and columns; auto-scroll to first change on mount; "N / M" counter with aria-live; `data-change-idx` on each change block's first row; prev/next disabled at boundaries; hidden when YAML is identical (spec issue-680, PR TBD, 2026-04)
+- ✅ GraphRevision diff: navigate-by-change arrows in `RevisionYamlDiff` — "← prev change" / "next change →" bar between legend and columns; auto-scroll to first change on mount; "N / M" counter with aria-live; `data-change-idx` on each change block's first row; prev/next disabled at boundaries; hidden when YAML is identical (spec issue-680, PR #694, 2026-04)
 
 ---
 
