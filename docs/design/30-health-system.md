@@ -41,7 +41,7 @@ and the SRE dashboard. It provides the primary signal for operators monitoring a
 - ✅ Accessibility audit expansion: journey 074 expanded from 4 to 8 pages — added Steps 5–8 covering Overview/SRE dashboard, Fleet view, RGD Designer (/author), and Errors tab; all use `waitForFunction()` (no `waitForTimeout`); SVG elements excluded with `.exclude('svg')` as custom widgets; test-app-dependent steps use `test.skip` guard. (spec issue-581, 2026-04)
 - ✅ Skip-to-main-content link: `<a href="#main-content" className="layout__skip-link">` added as first element in Layout; `id="main-content"` on `<main>`; visually hidden off-screen via `top: -100%`, slides into view on `:focus`; WCAG 2.1 SC 2.4.1 (Bypass Blocks). (PR #TBD, issue-667, 2026-04)
 - ✅ Live health state change announcements: `aria-live="polite"` region `health-state-announcer` in InstanceDetail; `prevHealthRef` (useRef) tracks prior state; `useEffect` fires `setAriaAnnouncement()` only on transition (prev ≠ current); initial render skipped (prevRef=null); `HEALTH_STATE_ICON` from format.ts used in message; `sr-only` CSS class added to tokens.css for reuse across visually-hidden elements. WCAG 2.1 SC 4.1.3 (Status Messages). (PR #TBD, issue-668, 2026-04)
-
+- ✅ SRE dashboard in-session health sparkline: Overview W-1 "Instance health" widget now includes `HealthTrendSparkline` below the donut — records a sample on each successful `listAllInstances` poll via `useHealthTrend.recordDistribution`; shows % ready / % error+degraded over the current session; no persistence, no new deps; 3 unit tests (spec issue-712, 2026-04)
 ---
 
 ## Zone 1 — Obligations

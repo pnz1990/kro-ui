@@ -25,6 +25,7 @@ import {
 import { buildErrorHint } from '@/components/RGDCard'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useAlertContext } from '@/lib/alertContext'
+import { useHealthTrend } from '@/hooks/useHealthTrend'
 import OverviewWidget from '@/components/OverviewWidget'
 import InstanceHealthWidget from '@/components/InstanceHealthWidget'
 import './Home.css'
@@ -70,6 +71,9 @@ export default function Home() {
   // Health alert subscriptions — check transitions on each successful instance fetch
   const { checkTransitions } = useAlertContext()
 
+  // In-session health trend — accumulates per-poll snapshots for the W-1 sparkline
+  // (spec issue-712 O1). In-memory only, no localStorage (design §Zone 3).
+  const { samples: healthSamples, recordDistribution: recordHealthSample } = useHealthTrend()
   // ── Fetch orchestration ───────────────────────────────────────────────
 
   const fetchAll = useCallback(() => {
@@ -107,6 +111,10 @@ export default function Home() {
         setInstancesState({ data: instances.value, loading: false, error: null })
         // Fire health alerts on state transitions (spec issue-540)
         checkTransitions(instances.value.items ?? [])
+        // Record health snapshot for SRE dashboard sparkline (spec issue-712 O1).
+        // Use buildHealthDistribution (same as render path) for consistency.
+        // InstanceSummary→healthFromSummary is already used internally there.
+        recordHealthSample(buildHealthDistribution(instances.value.items ?? []))
       } else if (!isAbort(instances)) {
         const msg = instances.reason instanceof Error ? instances.reason.message : String(instances.reason)
         setInstancesState(s => ({ ...s, loading: false, error: msg }))
@@ -258,7 +266,7 @@ export default function Home() {
       <div className="home__grid">
 
         <OverviewWidget title="Instance health" loading={instancesState.loading} error={instancesState.error} onRetry={fetchAll} className="home__w1" data-testid="widget-instances">
-          <InstanceHealthWidget distribution={distribution} />
+          <InstanceHealthWidget distribution={distribution} samples={healthSamples} />
         </OverviewWidget>
 
         <OverviewWidget title="Controller metrics" loading={metricsState.loading || capabilitiesState.loading} error={metricsState.error ?? capabilitiesState.error} onRetry={fetchAll} className="home__w2" data-testid="widget-metrics">
