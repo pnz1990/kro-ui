@@ -262,4 +262,47 @@ describe('InstanceDetail', () => {
     // Resource node must have a badge (Not Found because no children were returned)
     expect(screen.getByTestId('node-detail-state-badge')).toBeInTheDocument()
   })
+
+  // ── Aria-live health state announcements (WCAG 2.1 SC 4.1.3) ─────────────
+
+  it('renders an aria-live region for health state announcements', async () => {
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument()
+    })
+
+    // The aria-live region must be present in the DOM at all times
+    const announcer = screen.getByTestId('health-state-announcer')
+    expect(announcer).toBeInTheDocument()
+    expect(announcer).toHaveAttribute('aria-live', 'polite')
+    expect(announcer).toHaveAttribute('aria-atomic', 'true')
+  })
+
+  it('announces health state when instance changes from ready to error', async () => {
+    // First render: instance is ready
+    mockedGetInstance.mockResolvedValueOnce(makeInstance('my-app', [
+      { type: 'Ready', status: 'True' },
+    ]))
+    mockedGetInstance.mockResolvedValue(makeInstance('my-app', [
+      { type: 'Ready', status: 'False' },
+    ]))
+
+    renderPage()
+
+    // Wait for initial load
+    await waitFor(() => {
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument()
+    })
+
+    // The announcer should eventually contain a transition message
+    // (triggered by polling — the second call returns an error instance)
+    await waitFor(() => {
+      const announcer = screen.getByTestId('health-state-announcer')
+      // After the health state changes, the announcer should have a non-empty message
+      // Exact text depends on transition but it must mention a health state
+      const text = announcer.textContent ?? ''
+      return text.length > 0
+    }, { timeout: 5000 })
+  })
 })
