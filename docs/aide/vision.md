@@ -167,8 +167,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Slow-API / fetch-timeout E2E scenario (journey 084) — PR #700 shipped (2026-04-22)
 - ✅ GraphRevision diff: navigate-by-change arrows (prev/next change, auto-scroll to first diff, N/M counter) — PR #694 shipped (2026-04-22)
 - ✅ Post-Donation Security Policy section added to `SECURITY.md` — PR #701 shipped (2026-04-22)
-- ✅ Air-gapped environment smoke test E2E (journey 085, issue #676) — PR #704 shipped (2026-04-22)
-- ✅ Degraded-cluster persona anchor journey (journey 086, issue #674) — PR #705 shipped (2026-04-22)
-- ✅ RBAC-restricted persona anchor journey (journey 087, issue #675) — PR #706 shipped (2026-04-22)
-- ✅ Scheduled workflow `cancel-in-progress` bug fix — 5h session outage resolved — PR #731 shipped (2026-04-22)
+- ✅ Air-gapped environment smoke test (anchor journey 26.4): journey 085 intercepts all external CDN requests; all pages render; self-hosted fonts served — PR #704 shipped (2026-04-22)
+- ✅ Degraded-cluster persona anchor journey (26.5): journey 086 Fleet → RGD detail → Errors tab → Validation tab; all 7 steps pass without crash — PR #705 shipped (2026-04-22)
+- ✅ RBAC-restricted persona anchor journey (26.6): journey 087 rbacHidden advisory UI verified + count propagation test — PR #706 shipped (2026-04-22)
 
