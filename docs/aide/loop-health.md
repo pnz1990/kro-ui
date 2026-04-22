@@ -1,33 +1,37 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 2).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 3).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
 ---
 
-## Quick-Glance (as of 2026-04-22)
+## Quick-Glance (as of 2026-04-22, scan 3)
 
 | Field | Value |
 |-------|-------|
 | **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20) |
-| **Last feature PR** | PR #701 — docs(security): Post-Donation Security Policy section (2026-04-22) |
-| **Last meaningful feature PR** | PR #700 — feat(e2e): journey 084 fetch-timeout / slow-API scenario (2026-04-22) |
-| **Next priority** | Open issues: #679 (27.24 community outreach), #677 (27.17 — ✅ SHIPPED), #676 (air-gapped smoke test), #675 (RBAC-restricted persona journey), #674 (degraded-cluster persona journey) |
+| **Last feature PR** | PR #704 — feat(e2e): journey 085 air-gapped smoke test (2026-04-22) |
+| **Last meaningful feature PR** | PR #704 — feat(e2e): journey 085 air-gapped (issue #676 ✅); PRs #705/#706 open for degraded-cluster and RBAC-restricted persona journeys |
+| **Next priority** | Open: #679 (27.24 community outreach — social gap), #675 (RBAC-restricted), #674 (degraded-cluster), #673 (Lighthouse CI threshold fix) |
 
 ---
 
 ## Donation Readiness
 
-Open issues queue: **6 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
+Open issues queue: **5 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
 
 Key open items:
 - `#679` 27.24 — second OWNERS approver (social gap, not code)
-- `#676` Air-gapped environment smoke test (anchor journey)
-- `#675` RBAC-restricted persona anchor journey
-- `#674` Degraded-cluster persona anchor journey
+- `#675` RBAC-restricted persona anchor journey (PR #706 open)
+- `#674` Degraded-cluster persona anchor journey (PR #705 open)
+- `#673` Lighthouse threshold fix (needs-human)
+- `#677` 27.17 OS light-mode issue — shipped (PR #692) but issue not closed
 
 Items shipped since last update:
+- ✅ PR #704 — air-gapped smoke test E2E journey 085 (issue #676)
+- ✅ PR #703 — fix(ci): TypeScript 6.0.3 pin for bun 1.3.13 compat
+- ✅ PR #701 — docs(security): Post-Donation Security Policy section (issue #678)
 - ✅ PR #700 — slow-API / fetch-timeout E2E (27.19)
 - ✅ PR #699 — scale E2E fixture: scale-wide 20-node RGD + journey 083 (27.18)
 - ✅ PR #694 — GraphRevision diff navigate-by-change arrows
