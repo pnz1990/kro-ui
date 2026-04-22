@@ -9,6 +9,7 @@ import {
   getControllerMetrics,
   getCapabilities,
   listEvents,
+  listContexts,
 } from '@/lib/api'
 import type { AllInstancesResponse, ControllerMetrics, K8sList, KroCapabilities, K8sObject, InstanceSummary } from '@/lib/api'
 import {
@@ -64,6 +65,9 @@ export default function Home() {
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null)
   const [lastAttemptFailed, setLastAttemptFailed] = useState(false)
   const [, setTick] = useState(0)
+
+  // Active context name — fetched once on mount for health snapshot (spec issue-720 O1)
+  const [activeContext, setActiveContext] = useState<string>('')
 
   const abortRef = useRef<AbortController | null>(null)
 
@@ -160,6 +164,13 @@ export default function Home() {
     return () => { abortRef.current?.abort() }
   }, [fetchAll])
 
+  // Fetch active context name once on mount for health snapshot (spec issue-720 O1)
+  useEffect(() => {
+    listContexts()
+      .then(r => setActiveContext(r.active ?? ''))
+      .catch(() => { /* non-fatal — context name is best-effort */ })
+  }, [])
+
   // ── Staleness tick (10s interval) ────────────────────────────────────
 
   useEffect(() => {
@@ -207,7 +218,7 @@ export default function Home() {
   if (fullPageError) {
     return (
       <div className="home">
-        <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
+        <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} distribution={distribution} topErroring={topErroring} activeContext={activeContext} />
         <div className="home__error" role="alert">
           <p className="home__error-message">Could not load cluster data — check that kro-ui can reach the cluster.</p>
           <button className="home__retry-btn" onClick={fetchAll}>Retry</button>
@@ -218,7 +229,7 @@ export default function Home() {
 
   return (
     <div className="home">
-      <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
+      <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} distribution={distribution} topErroring={topErroring} activeContext={activeContext} />
 
       {isOnboarding && (
         <div className="home__onboarding" data-testid="onboarding-empty-state">
@@ -292,14 +303,97 @@ export default function Home() {
 
 // ── Sub-components ────────────────────────────────────────────────────────
 
+/** Health snapshot v1 JSON format (stable — do not add fields without bumping version). */
+interface HealthSnapshot {
+  version: '1'
+  timestamp: string
+  context: string
+  health: {
+    total: number
+    ready: number
+    error: number
+    degraded: number
+    reconciling: number
+    pending: number
+    unknown: number
+  }
+  topErrors: Array<{ rgdName: string; count: number }>
+}
+
 interface HomeHeaderProps {
   isFetching: boolean
   lastFetchedAt: Date | null
   lastAttemptFailed: boolean
   onRefresh: () => void
+  /** Health distribution for the snapshot (spec issue-720 O1). */
+  distribution?: import('@/lib/format').HealthDistribution
+  /** Top erroring RGDs for the snapshot (spec issue-720 O1). */
+  topErroring?: import('@/lib/format').TopErroringRGD[]
+  /** Active kubeconfig context name (spec issue-720 O1). */
+  activeContext?: string
 }
 
-function HomeHeader({ isFetching, lastFetchedAt, lastAttemptFailed, onRefresh }: HomeHeaderProps) {
+function HomeHeader({
+  isFetching,
+  lastFetchedAt,
+  lastAttemptFailed,
+  onRefresh,
+  distribution,
+  topErroring,
+  activeContext,
+}: HomeHeaderProps) {
+  const [copied, setCopied] = useState(false)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleCopySnapshot() {
+    if (!distribution) return
+    const snapshot: HealthSnapshot = {
+      version: '1',
+      timestamp: new Date().toISOString(),
+      context: activeContext ?? '',
+      health: {
+        total: distribution.total,
+        ready: distribution.ready,
+        error: distribution.error,
+        degraded: distribution.degraded,
+        reconciling: distribution.reconciling,
+        pending: distribution.pending,
+        unknown: distribution.unknown,
+      },
+      topErrors: (topErroring ?? []).slice(0, 5).map(({ rgdName, errorCount }) => ({ rgdName, count: errorCount })),
+    }
+    const json = JSON.stringify(snapshot, null, 2)
+
+    // Clipboard API with execCommand fallback (spec O4: non-fatal on permission denial)
+    const fallback = () => {
+      try {
+        const el = document.createElement('textarea')
+        el.value = json
+        el.style.position = 'fixed'
+        el.style.top = '-9999px'
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+        triggerCopied()
+      } catch { /* silent */ }
+    }
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(json)
+        .then(() => triggerCopied())
+        .catch(fallback)
+    } else {
+      fallback()
+    }
+  }
+
+  function triggerCopied() {
+    setCopied(true)
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="home__header">
       <h1 className="home__heading">Overview</h1>
@@ -313,6 +407,20 @@ function HomeHeader({ isFetching, lastFetchedAt, lastAttemptFailed, onRefresh }:
           <span className="home__staleness" data-testid="overview-staleness">
             Updated {formatAge(lastFetchedAt.toISOString())}
           </span>
+        )}
+        {/* Copy health snapshot button (spec issue-720 O2/O3/O5) */}
+        {distribution !== undefined && (
+          <button
+            type="button"
+            className="home__copy-snapshot-btn"
+            onClick={handleCopySnapshot}
+            disabled={isFetching}
+            aria-label={copied ? 'Snapshot copied to clipboard' : 'Copy health snapshot to clipboard'}
+            data-testid="copy-snapshot-btn"
+            title="Copy health snapshot JSON to clipboard — share with your team or paste into incident tickets"
+          >
+            {copied ? '✓ Copied!' : '⎘ Copy snapshot'}
+          </button>
         )}
         <button
           type="button"

@@ -35,6 +35,7 @@ and the SRE dashboard. It provides the primary signal for operators monitoring a
 
 - ✅ Health trend sparkline: in-session health trend chart on RGD detail Instances tab — tracks % ready / % error+degraded over the current browser session; displays as SVG polyline with legend and sample count (spec issue-539, PR TBD, 2026-04)
 - ✅ Health alert subscriptions: in-session browser Notification API alerts — bell button in TopBar lets operators subscribe; fires a browser notification on transition to error/degraded; per-instance transition tracking (no duplicate alerts); blocked/unavailable states handled gracefully (spec issue-540, PR TBD, 2026-04)
+- ✅ Health snapshot clipboard export: "Copy snapshot" button in Overview header produces a stable JSON v1 blob with health counts, top-5 errors, cluster context name, and timestamp; clipboard API with execCommand fallback; 2s Copied! feedback; button disabled while fetching; 3 unit tests (spec issue-720, 2026-04)
 
 ## Future (🔲)
 - ✅ Color-blind accessible health indicators: `HEALTH_STATE_ICON` map (single source of truth) exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, and OverviewHealthBar chips; icons use `aria-hidden="true"` to avoid screen reader double-reading; satisfies WCAG 2.1 SC 1.4.1 (Use of Color). (PR #TBD, spec issue-580, 2026-04)
