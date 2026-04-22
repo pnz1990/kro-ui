@@ -37,6 +37,9 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 
 ## Future (🔲)
 
+- 🔲 Slow-API / fetch-timeout E2E scenario: `AbortController` and `withTimeout()` (30s, added PR #652) plumbing is untested in CI; add a kind-cluster E2E journey that delays an API endpoint via tc-netem or a mock handler and asserts the UI shows a "Request timed out" error rather than hanging indefinitely (GH #664, doc 27 §27.19)
+- 🔲 Scale E2E fixture: the largest test-app RGD has ~15 nodes; add a 50-node and 50-RGD fixture to the kind cluster CI to catch scale regressions before they surface in production; DAG minimap, VirtualGrid card math, and the DAGScaleGuard fallback are all tested manually but never under scale conditions in CI (GH #663, doc 27 §27.18)
+
 ---
 
 ## Zone 1 — Obligations

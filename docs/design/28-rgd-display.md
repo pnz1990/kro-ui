@@ -37,6 +37,7 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 
 ## Future (🔲)
 - ✅ GraphRevision diff: navigate-by-change arrows in `RevisionYamlDiff` — "← prev change" / "next change →" bar between legend and columns; auto-scroll to first change on mount; "N / M" counter with aria-live; `data-change-idx` on each change block's first row; prev/next disabled at boundaries; hidden when YAML is identical (spec issue-680, PR TBD, 2026-04)
+- 🔲 OS-preference light mode support: `window.matchMedia('prefers-color-scheme: light')` is not read; kro-ui always renders dark mode; users with OS light-mode preference see inverted contrast; add a `prefers-color-scheme` media query block to `tokens.css` that remaps the primary background/foreground tokens for light mode; feature-gated so it can be enabled incrementally (GH #677, doc 27 §27.17)
 
 ---
 
