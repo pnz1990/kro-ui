@@ -27,13 +27,19 @@ optimization advisor. It is the primary tool for developers creating new kro wor
 - ✅ Designer: import existing RGD from cluster (load from live cluster → editable form) (issue #542, 2026-04)
 - ✅ E2E journey for Designer cluster import panel: Playwright journey 082 covers toggle open, RGD list population, select + Load, form state replacement (issue #619, 2026-04)
 
+## Present (✅) — continued
+
+- ✅ Designer: node library — click-to-add from common resource templates (NodeLibrary component, GH #543, PR #641)
+- ✅ Designer: collaboration mode — share designer URL with readonly view (DesignerShareButton + DesignerReadonlyBanner, GH #544, PR #642)
+- ✅ Designer axe-core coverage: journey 074 Step 7 WCAG 2.1 AA blocking assertion on `/author`; upgraded to blocking in PR #689 (issue #683, 2026-04)
+- ✅ Designer: `localStorage` draft persistence — auto-save (debounced 2s) to `kro-ui-designer-draft`; "Restore draft?" banner; disabled in readonly mode (PR #654, 2026-04)
+- ✅ Designer tab focus restoration: `sessionStorage` persistence of active tab + selected DAG node (`kro-ui-designer-tab-state`); readonly/shared-URL mode excluded (PR #688, issue #684, 2026-04)
+- ✅ Designer: import existing RGD from cluster (load from live cluster → editable form, issue #542, PR #641)
+
 ## Future (🔲)
 
-- ✅ Designer: node library — click-to-add from common resource templates (NodeLibrary component, GH #543)
-- ✅ Designer: collaboration mode — share designer URL with readonly view (DesignerShareButton + DesignerReadonlyBanner, GH #544)
-- ✅ Designer axe-core coverage: journey 074 Step 7 runs WCAG 2.1 AA blocking axe-core assertion on `/author`; tab bar (role=tablist/tab, aria-selected), form inputs, and interactive elements are all in scope; SVG excluded as complex widget; upgraded from non-blocking to blocking in PR #689 (issue #683, 2026-04)
-- ✅ Designer: `localStorage` persistence of in-progress RGD draft — auto-save (debounced 2s) to `kro-ui-designer-draft` key; "Restore draft?" banner on next visit with Restore/Discard actions; disabled in readonly/shared-URL mode (PR #647, 2026-04)
-- ✅ Designer tab focus restoration: tab bar with Schema/Resources/YAML/Preview tabs; active tab and selected DAG node persisted to `sessionStorage` (`kro-ui-designer-tab-state`) so navigating away and returning restores last working context; readonly/shared-URL mode is excluded from persistence (issue #684, 2026-04)
+- 🔲 Designer: apply-to-cluster action — the Designer generates YAML for manual `kubectl apply`; a user already authenticated (kubeconfig loaded, kro-ui running) must context-switch to a terminal to apply; add an "Apply to cluster" button in the Designer YAML preview that POSTs the generated RGD YAML to a new `POST /api/v1/rgds` endpoint; the backend uses the dynamic client server-side apply with field manager `kro-ui`; the endpoint MUST validate against the RGD CRD schema before applying and return structured errors; this is the only mutating API kro-ui would ever have — explicitly gated behind a `canApplyRGDs` capability flag that defaults to false; this design item ensures the architecture decision (SSA vs create/replace, error surface, capability gate) is reviewed before any implementation starts
+- 🔲 Designer: CEL expression linter — when a user types a CEL expression in `readyWhen` or `includeWhen` fields, the tokenizer highlights syntax but does not validate semantics; a typo like `self.spec.replicas > "3"` (comparing int to string) is silently accepted; add a client-side CEL linter that runs after debounce and surfaces type errors and undefined references using the RGD schema as the type context; must not require a server round-trip; the existing `KroCodeBlock` tokenizer (`web/src/lib/highlighter.ts`) is the foundation — extend it with a type-checking pass
 
 ---
 
