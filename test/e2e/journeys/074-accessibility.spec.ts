@@ -222,15 +222,14 @@ test.describe('Journey 074 — Accessibility (axe-core WCAG 2.1 AA)', () => {
       `${results.passes.length} passes.`)
   })
 
-  // ── Step 7: RGD Designer (/author) (spec issue-581 O1) ────────────────────
+  // ── Step 7: RGD Designer (/author) (spec issue-581 O1, issue-683 O1 O2) ──────
 
   test('Step 7: RGD Designer (/author) has no critical/serious axe violations', async ({ page }) => {
     await page.goto(`${BASE}/author`)
-    // Wait for Designer canvas or main content to render
+    // Wait for Designer content to render — tab bar or form pane
     await page.waitForFunction(
-      () => document.querySelector('[data-testid="designer-canvas"]') !== null ||
-             document.querySelector('[class*="designer"]') !== null ||
-             // The Designer page renders node-type buttons in a sidebar
+      () => document.querySelector('[data-testid="designer-tab-bar"]') !== null ||
+             document.querySelector('[data-testid="rgd-authoring-form"]') !== null ||
              document.querySelector('[class*="author"]') !== null ||
              document.querySelector('main') !== null,
       { timeout: 20000 },
@@ -241,7 +240,10 @@ test.describe('Journey 074 — Accessibility (axe-core WCAG 2.1 AA)', () => {
       .exclude('svg')  // Designer DAG preview: complex SVG widget, separate audit
       .analyze()
 
-    logViolations(results.violations, 'Designer')
+    // Upgraded from logViolations (non-blocking) to assertNoViolations (blocking).
+    // The Designer tab bar uses role=tablist/tab/tabpanel with aria-selected, which
+    // is WCAG 2.1 AA compliant. If violations appear, they must be fixed. (issue-683 O1)
+    assertNoViolations(results.violations)
     console.log(`Designer axe: ${results.violations.length} total violations, ` +
       `${results.passes.length} passes.`)
   })
