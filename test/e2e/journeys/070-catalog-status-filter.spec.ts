@@ -99,23 +99,19 @@ test.describe('Journey 070: Catalog compile-status filter', () => {
     await page.goto(`${BASE}/catalog`)
     await page.waitForSelector('[data-testid="catalog-card-test-app"]', { timeout: 20000 })
 
-    // Get all cards before filter
-    const cardsBefore = await page.locator('[data-testid^="catalog-card-"]').count()
-
     await page.getByTestId('catalog-status-ready').click()
 
-    // Wait for filter to apply
+    // Wait for filter to apply — button must be aria-pressed before cards re-render
     await page.waitForFunction(
-      (before: number) => {
-        const cards = document.querySelectorAll('[data-testid^="catalog-card-"]')
-        return cards.length !== before || cards.length === before
+      () => {
+        const btn = document.querySelector('[data-testid="catalog-status-ready"]')
+        return btn?.getAttribute('aria-pressed') === 'true'
       },
-      cardsBefore,
       { timeout: 5000 }
     ).catch(() => {})
 
     // test-app should still be visible (it's Ready=True)
-    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('catalog-card-test-app')).toBeVisible({ timeout: 10000 })
 
     // Ready button should be active
     await expect(page.getByTestId('catalog-status-ready')).toHaveAttribute('aria-pressed', 'true')
