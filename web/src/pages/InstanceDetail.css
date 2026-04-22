@@ -120,6 +120,17 @@
   background: var(--color-surface);
 }
 
+/* Paused state — button is active/pressed; use accent color to signal state */
+.instance-detail-refresh-btn--paused {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: var(--color-surface-2);
+}
+
+.instance-detail-refresh-btn--paused:hover {
+  background: var(--color-surface-3);
+}
+
 .refresh-indicator {
   font-size: 12px;
   color: var(--color-text-faint);

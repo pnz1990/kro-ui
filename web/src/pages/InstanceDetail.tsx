@@ -249,7 +249,7 @@ export default function InstanceDetail() {
     return { instance, events }
   }, [namespace, instanceName, rgdName])
 
-  const { data: fastData, error: pollError, loading: pollLoading, lastRefresh, refresh: pollRefresh } = usePolling(
+  const { data: fastData, error: pollError, loading: pollLoading, lastRefresh, refresh: pollRefresh, paused: pollPaused, pause: pollPause, resume: pollResume } = usePolling(
     fetcher,
     [namespace, instanceName, rgdName],
     { intervalMs: 5000 },
@@ -328,11 +328,16 @@ export default function InstanceDetail() {
   //   - Skip the initial render (prevRef.current === null)
   //   - Use aria-live="polite" — not assertive (not an emergency)
   //   - Message format: "Instance health: <state> <icon>" (concise, unique)
+  //   - Suppress when tab is hidden — the user is not looking and screen
+  //     readers focused on another tab should not receive background noise
+  //     (GH #719)
   const prevHealthRef = useRef<InstanceHealthState | null>(null)
   const [ariaAnnouncement, setAriaAnnouncement] = useState('')
 
   useEffect(() => {
     if (!fastData) return
+    // Do not announce when the tab is hidden (GH #719)
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
     const currentHealth = applyDegradedState(
       extractInstanceHealth(fastData.instance),
       countHealthyChildren(nodeStateMap).hasError,
@@ -523,6 +528,17 @@ export default function InstanceDetail() {
         <div className="instance-detail-meta">
           {namespace && <span className="instance-detail-ns">{displayNamespace(namespace)}</span>}
           <RefreshIndicator lastRefresh={lastRefresh} error={instanceGone ? null : (pollError && !pollLoading ? pollError : null)} />
+          <button
+            type="button"
+            className={`instance-detail-refresh-btn${pollPaused ? ' instance-detail-refresh-btn--paused' : ''}`}
+            onClick={pollPaused ? pollResume : pollPause}
+            aria-label={pollPaused ? 'Resume live updates' : 'Pause live updates'}
+            aria-pressed={pollPaused}
+            title={pollPaused ? 'Resume live updates — re-enable 5-second polling' : 'Pause live updates — stop automatic polling (you can still refresh manually)'}
+            data-testid="instance-pause-btn"
+          >
+            {pollPaused ? '▶' : '⏸'}
+          </button>
           <button
             type="button"
             className="instance-detail-refresh-btn"
