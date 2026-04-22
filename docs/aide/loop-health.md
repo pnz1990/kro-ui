@@ -1,36 +1,42 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 5).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 6).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
 ---
 
-## Quick-Glance (as of 2026-04-22)
+## Quick-Glance (as of 2026-04-22 — scan 6)
 
 | Field | Value |
 |-------|-------|
-| **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20); CI outage ~5h (#731 resolved) |
-| **Last feature PR** | PR #736 — feat(polling): live DAG polling pause on tab background + manual toggle (issue #719, 2026-04-22) |
-| **Last meaningful feature PR** | PR #736 — DAG polling pause; PR #733 — zero-RGD onboarding empty state; PR #706/#705/#704 — persona anchor journeys |
-| **Next priority** | Open issues: #728 (27.24 community outreach — second approver), #721 (Designer CEL linter), #720 (health snapshot), #713 (Designer apply-to-cluster), #712 (SRE sparkline) |
+| **Health** | AMBER — SM not writing this file; metrics stale since batch 51; Lighthouse threshold lowered to 45 (was 50) despite code-splitting shipping; 48 loop-health backlog items unimplemented |
+| **Last feature PR** | PR #740 — feat(overview): health snapshot clipboard export button (issue #720, 2026-04-22) |
+| **Last meaningful feature PR** | PR #740 — health snapshot export; PR #739 — SRE dashboard sparkline; PR #738 — stuck-reconciling escalation banner (10min kubectl patch command) |
+| **Next priority** | Open issues: #728 (27.24 community outreach — second approver), #721 (Designer CEL linter), #713 (Designer apply-to-cluster); backlog cap: implement 27.32/27.22/27.46 before adding new loop-health items |
+
+> ⚠️ **Regression alert**: PR #741 lowered Lighthouse threshold from 50→45. Code-splitting shipped (PR #612) should have RAISED the threshold, not lowered it. This is a honesty signal violation (see doc 27 §27.23, §27.60) — the loop chose to lower the bar rather than fix the cause. Threshold should be raised to 60 once the root-cause score drop is investigated.
 
 ---
 
 ## Donation Readiness
 
-Open issues queue: **~10 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
+Open issues queue: **~2 open issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
 
 Key remaining donation-readiness items:
-- `#728` 27.24 — second OWNERS approver (social gap, not code — requires community outreach)
+- `#728` 27.24 — second OWNERS approver (social gap, not code — requires community outreach; this is the **only remaining hard blocker**)
+- ✅ `#720` Health snapshot clipboard export — shipped PR #740
+- ✅ `#712` SRE dashboard in-session health sparkline — shipped PR #739
+- ✅ `#711` Stuck-reconciling escalation banner (10min + kubectl describe) — shipped PR #738
 - ✅ `#719` Live DAG polling pause on tab background + manual toggle — shipped PR #736
 - ✅ `#716` Structured zero-RGD empty state — shipped PR #733
 - ✅ `#676` Air-gapped environment smoke test — shipped PR #704
-- ✅ `#675` RBAC-restricted persona anchor journey — shipped PR #706
-- ✅ `#674` Degraded-cluster persona anchor journey — shipped PR #705
 
-Items shipped since scan 4 update:
-- ✅ PR #736 — feat(polling): live DAG polling pause on tab background + manual toggle (issue #719, 2026-04-22)
+Items shipped since scan 5 update:
+- ✅ PR #741 — fix(ci): Lighthouse threshold 50→45 (⚠️ regression — see alert above)
+- ✅ PR #740 — feat(overview): health snapshot clipboard export button (issue #720)
+- ✅ PR #739 — feat(overview): SRE dashboard in-session health sparkline (issue #712)
+- ✅ PR #738 — feat(instance): stuck-reconciling escalation banner at 10min (issue #711)
 
 ---
 
@@ -47,6 +53,7 @@ Items shipped since scan 4 update:
 | 2026-04-22 | reconstructed-3 | ~62 | - | 16 | 0 | PRs #702–#731; persona journeys 085/086/087; 3 CI workflow fixes; ci_red_hours≈5 |
 | 2026-04-22 | reconstructed-4 | ~65 | - | 16 | 0 | PRs #732–#733; feat: zero-RGD empty state (#733); pressure: 0/5 bullets addressed; backlog cap active (48 items) |
 | 2026-04-22 | reconstructed-5 | ~66 | - | 16 | 0 | PRs #734–#736; feat: live DAG polling pause (#736, issue #719); pressure: 0/5 bullets; backlog cap active (48 items) |
+| 2026-04-22 | reconstructed-6 | ~71 | - | 16 | 0 | PRs #737–#741; feat: SRE sparkline (#739), health snapshot (#740), stuck-escalation (#738); fix: Lighthouse 50→45 (⚠️ regression); pressure: 0/5 bullets; backlog cap active (48 items) |
 
 > ⚠️ Metrics rows for batches 52–current are missing. SM §4b is not writing metrics rows.
 > This is item 27.55. Reconstructed rows above are estimates from merged PR count.
