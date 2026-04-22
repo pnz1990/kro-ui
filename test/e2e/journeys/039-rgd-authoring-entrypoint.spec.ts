@@ -85,7 +85,13 @@ test.describe('Journey 039 — RGD Designer Global Entrypoint', () => {
     await page.goto(`${BASE}/author`)
     await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 10000 })
 
-    // The DAG preview pane must be visible on the RGD Designer page
+    // The DAG preview pane is in the Preview tab — navigate there first
+    // (tab bar introduced in issue-684 PR #688)
+    const previewTab = page.getByTestId('designer-tab-preview')
+    await expect(previewTab).toBeVisible({ timeout: 5000 })
+    await previewTab.click()
+
+    // The DAG preview pane must be visible after switching to Preview tab
     await expect(page.locator('.author-page__dag-pane')).toBeVisible({ timeout: 5000 })
 
     // The page title must be "RGD Designer — kro-ui"

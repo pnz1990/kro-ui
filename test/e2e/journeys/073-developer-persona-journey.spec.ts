@@ -66,12 +66,21 @@ test.describe('073: Developer Persona Journey', () => {
   test('Step 2: YAML preview panel renders on the Designer page', async ({ page }) => {
     await page.goto(`${BASE}/author`)
 
+    // Wait for the tab bar to render (Designer uses a tab bar since issue-684)
+    await page.waitForFunction(() => {
+      return document.querySelector('[data-testid="designer-tab-bar"]') !== null
+    }, { timeout: 20000 })
+
+    // Navigate to the YAML tab — yaml-preview is only rendered in the YAML tab
+    const yamlTab = page.getByTestId('designer-tab-yaml')
+    await yamlTab.click()
+
     // Wait for the YAML preview panel
     await page.waitForFunction(() => {
       return document.querySelector('[data-testid="yaml-preview"]') !== null
-    }, { timeout: 20000 })
+    }, { timeout: 10000 })
 
-    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 5000 })
   })
 
   // ── Step 3: DAG preview pane renders ────────────────────────────────────────
@@ -79,10 +88,14 @@ test.describe('073: Developer Persona Journey', () => {
   test('Step 3: DAG preview pane renders (hint, DAG, or error state)', async ({ page }) => {
     await page.goto(`${BASE}/author`)
 
-    // Wait for the author page to be fully loaded
+    // Wait for the tab bar to render (Designer uses a tab bar since issue-684)
     await page.waitForFunction(() => {
-      return document.querySelector('.author-page') !== null
+      return document.querySelector('[data-testid="designer-tab-bar"]') !== null
     }, { timeout: 20000 })
+
+    // Navigate to the Preview tab — dag-pane is only rendered in the Preview tab
+    const previewTab = page.getByTestId('designer-tab-preview')
+    await previewTab.click()
 
     // DAG preview pane should show one of: hint text, DAG SVG, or error hint
     await page.waitForFunction(() => {
@@ -91,7 +104,7 @@ test.describe('073: Developer Persona Journey', () => {
       const dagError = document.querySelector('[data-testid="author-dag-error"]')
       const dagPane = document.querySelector('.author-page__dag-pane')
       return dagSvg !== null || dagHint !== null || dagError !== null || dagPane !== null
-    }, { timeout: 15000 })
+    }, { timeout: 10000 })
 
     const svgVisible = await page.locator('[data-testid="dag-svg"]').isVisible().catch(() => false)
     const hintVisible = await page.locator('.author-page__dag-hint').isVisible().catch(() => false)

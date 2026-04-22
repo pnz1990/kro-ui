@@ -115,7 +115,7 @@
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border-subtle);
-  border-left: 3px solid var(--color-accent);
+  border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-md);
   flex-wrap: wrap;
 }
@@ -123,7 +123,7 @@
 .author-page__draft-banner-text {
   font-family: var(--font-sans);
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   flex: 1 1 auto;
 }
 
@@ -145,13 +145,13 @@
 }
 
 .author-page__draft-btn--restore {
-  background: var(--color-accent);
-  color: var(--color-bg);
-  border-color: var(--color-accent);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-color: var(--color-primary);
 }
 
 .author-page__draft-btn--restore:hover {
-  background: var(--color-accent-hover, var(--color-accent));
+  background: var(--color-primary-hover);
   opacity: 0.9;
 }
 
@@ -163,5 +163,5 @@
 
 .author-page__draft-btn--discard:hover {
   background: var(--color-surface-3);
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
