@@ -1,6 +1,6 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 3).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 4).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
@@ -11,23 +11,25 @@
 | Field | Value |
 |-------|-------|
 | **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20); CI outage ~5h today (#731) |
-| **Last feature PR** | PR #706 — feat(e2e): journey 087 RBAC-restricted persona anchor journey (2026-04-22) |
-| **Last meaningful feature PR** | PR #706 — feat(e2e): journey 087 (issue #675); also #705 degraded-cluster, #704 air-gapped |
+| **Last feature PR** | PR #733 — feat(overview): structured zero-RGD empty state with kro health detection (2026-04-22) |
+| **Last meaningful feature PR** | PR #733 — feat(overview): zero-RGD onboarding empty state (issue #716); also #706 RBAC-restricted journey, #705 degraded-cluster, #704 air-gapped |
 | **Next priority** | Open issues: #728 (27.24 community outreach — second approver), #721 (Designer CEL linter), #720 (health snapshot), #719 (DAG polling pause), #713 (Designer apply-to-cluster) |
 
 ---
 
 ## Donation Readiness
 
-Open issues queue: **~14 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
+Open issues queue: **~10 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
 
 Key remaining donation-readiness items:
 - `#728` 27.24 — second OWNERS approver (social gap, not code — requires community outreach)
+- ✅ `#716` Structured zero-RGD empty state — shipped PR #733
 - ✅ `#676` Air-gapped environment smoke test — shipped PR #704
 - ✅ `#675` RBAC-restricted persona anchor journey — shipped PR #706
 - ✅ `#674` Degraded-cluster persona anchor journey — shipped PR #705
 
-Items shipped since scan 2 update:
+Items shipped since scan 3 update:
+- ✅ PR #733 — feat(overview): structured zero-RGD empty state with kro health detection (issue #716)
 - ✅ PR #706 — feat(e2e): journey 087 RBAC-restricted persona anchor journey (issue #675)
 - ✅ PR #705 — feat(e2e): journey 086 degraded-cluster persona anchor journey (issue #674)
 - ✅ PR #704 — feat(e2e): journey 085 air-gapped environment smoke test (issue #676)
@@ -48,6 +50,7 @@ Items shipped since scan 2 update:
 | 2026-04-22 | reconstructed | ~40 | - | 16 | +4 | PRs #549–#688; feat: a11y, designer, supply-chain, partial-RBAC, code-splitting, fonts |
 | 2026-04-22 | reconstructed-2 | ~51 | - | 16 | 0 | PRs #689–#701; OS light-mode, axe blocking, tab focus, scale/timeout E2E, GraphRevision nav |
 | 2026-04-22 | reconstructed-3 | ~62 | - | 16 | 0 | PRs #702–#731; persona journeys 085/086/087; 3 CI workflow fixes; ci_red_hours≈5 |
+| 2026-04-22 | reconstructed-4 | ~65 | - | 16 | 0 | PRs #732–#733; feat: zero-RGD empty state (#733); pressure: 0/5 bullets addressed; backlog cap active (48 items) |
 
 > ⚠️ Metrics rows for batches 52–current are missing. SM §4b is not writing metrics rows.
 > This is item 27.55. Reconstructed rows above are estimates from merged PR count.
