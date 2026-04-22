@@ -29,6 +29,15 @@ export interface RGDAuthoringFormProps {
    * Used when the page is in shared readonly collaboration mode (spec issue-544).
    */
   readonly?: boolean
+  /**
+   * Controls which sections are rendered.
+   * 'schema'    — Metadata + Spec Fields + Status Fields (sections 1-3)
+   * 'resources' — Resources only (section 4)
+   * 'all'       — all sections (default, for backwards compatibility)
+   *
+   * Spec: .specify/specs/issue-684/spec.md O2
+   */
+  visibleSections?: 'schema' | 'resources' | 'all'
 }
 
 const FIELD_TYPE_OPTIONS = [
@@ -97,7 +106,7 @@ function makeNewResource(): AuthoringResource {
  *              externalRef fields, advanced options (includeWhen/readyWhen)
  *              (US1, US3, US4, US5, US6)
  */
-export default function RGDAuthoringForm({ state, onChange, staticIssues, readonly = false }: RGDAuthoringFormProps) {
+export default function RGDAuthoringForm({ state, onChange, staticIssues, readonly = false, visibleSections = 'all' }: RGDAuthoringFormProps) {
   // ── Local UI state (not persisted to RGDAuthoringState) ──────────────────
   const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set())
   const [expandedAdvanced, setExpandedAdvanced] = useState<Set<string>>(new Set())
@@ -375,7 +384,9 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues, readon
         </div>
       )}
 
-      {/* Section 1 — Metadata */}
+      {/* Sections 1-3 — Schema (Metadata, Spec Fields, Status Fields) */}
+      {(visibleSections === 'schema' || visibleSections === 'all') && (
+      <>
       <section className="rgd-authoring-form__section">
         <h3 className="rgd-authoring-form__section-title">Metadata</h3>
         <div className="rgd-authoring-form__meta-grid">
@@ -700,8 +711,11 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues, readon
           + Add Status Field
         </button>
       </section>
+      </> )} {/* end schema sections */}
 
       {/* Section 4 — Resources */}
+      {(visibleSections === 'resources' || visibleSections === 'all') && (
+      <>
       <section className="rgd-authoring-form__section">
         <h3 className="rgd-authoring-form__section-title">Resources</h3>
         {state.resources.map((res) => {
@@ -1146,6 +1160,7 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues, readon
           + Add Resource
         </button>
       </section>
+      </> )} {/* end resources section */}
     </div>
   )
 }

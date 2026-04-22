@@ -1,16 +1,18 @@
 /* AuthorPage.css — Layout for the RGD Designer /author route.
  *
- * Three-section layout: form (left) | DAG preview + YAML preview stacked (right).
+ * Tab-based layout: header | banners | nav-bar | tab bar | tab content.
+ * Tabs: Schema (metadata/fields) | Resources | YAML | Preview (DAG).
  * All values use tokens.css custom properties — no hardcoded hex or rgba.
  *
  * Spec: .specify/specs/039-rgd-authoring-entrypoint/
  * Spec: .specify/specs/042-rgd-designer-nav/ (DAG preview column)
+ * Spec: .specify/specs/issue-684/ (tab bar + sessionStorage restoration)
  */
 
 .author-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   padding: 24px;
   min-height: 0;
   flex: 1;
@@ -57,39 +59,32 @@
   border-radius: var(--radius-sm);
 }
 
-/* ── Body — form (left) + right pane (right) ─────────────────────────── */
+/* ── Tab content area ────────────────────────────────────────────────── */
 
-.author-page__body {
-  display: flex;
-  gap: 20px;
+.author-page__tab-content {
   flex: 1;
   min-height: 0;
-  /* Stack vertically on narrow viewports */
-  flex-wrap: wrap;
-}
-
-.author-page__form-pane {
-  flex: 1 1 380px;
-  min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* ── Right pane — DAG preview + YAML preview stacked ─────────────────── */
+.author-page__tab-pane {
+  padding-top: 16px;
+}
 
-.author-page__right-pane {
-  flex: 1 1 420px;
+/* DAG tab pane — constrained height to keep DAG visible without scroll */
+.author-page__tab-pane--dag {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  min-height: 0;
-  min-width: 0;
+  gap: 8px;
 }
+
+/* ── DAG preview pane (used inside Preview tab) ──────────────────────── */
 
 .author-page__dag-pane {
   flex: 0 0 auto;
-  min-height: 200px;
-  max-height: 340px;
+  min-height: 260px;
+  max-height: 500px;
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -110,14 +105,6 @@
   color: var(--color-status-error);
 }
 
-.author-page__preview-pane {
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
 /* ── Draft restore banner (issue-647) ──────────────────────────────────────── */
 
 .author-page__draft-banner {
@@ -130,7 +117,6 @@
   border: 1px solid var(--color-border-subtle);
   border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-3);
   flex-wrap: wrap;
 }
 

@@ -1,7 +1,11 @@
 // AuthorPage.tsx — Standalone RGD Designer page at /author.
 //
-// Renders RGDAuthoringForm on the left, with a live DAG preview and YAML
-// preview stacked on the right. DAG updates are debounced at 300ms.
+// Layout: header + tab bar + tab content.
+// Tabs: Schema (metadata/fields) | Resources | YAML | Preview (DAG).
+//
+// Tab state and selected node ID are persisted to sessionStorage (key:
+// kro-ui-designer-tab-state) so navigating away and returning restores
+// the last working context.
 //
 // Spec: .specify/specs/039-rgd-authoring-entrypoint/ FR-001, FR-002, FR-003
 // Spec: .specify/specs/042-rgd-designer-nav/ (title rename + live DAG)
@@ -9,6 +13,7 @@
 // Spec: issue-543 (node library)
 // Spec: issue-544 (collaboration mode — share URL)
 // Spec: issue-647 (localStorage draft persistence)
+// Spec: issue-684 (tab focus restoration — sessionStorage)
 
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
@@ -26,6 +31,8 @@ import ClusterImportPanel from '@/components/ClusterImportPanel'
 import NodeLibrary from '@/components/NodeLibrary'
 import DesignerShareButton from '@/components/DesignerShareButton'
 import DesignerReadonlyBanner from '@/components/DesignerReadonlyBanner'
+import DesignerTabBar from '@/components/DesignerTabBar'
+import type { DesignerTab } from '@/components/DesignerTabBar'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
 import './AuthorPage.css'
@@ -35,6 +42,57 @@ const EMPTY_GRAPH: DAGGraph = { nodes: [], edges: [], width: 0, height: 0 }
 
 /** localStorage key for the in-progress RGD draft. Spec: issue-647 O1. */
 const DRAFT_KEY = 'kro-ui-designer-draft'
+
+/** sessionStorage key for Designer tab state. Spec: issue-684 O5. */
+const TAB_STATE_KEY = 'kro-ui-designer-tab-state'
+
+/** Shape of the persisted tab state. Spec: issue-684 O5. */
+interface DesignerTabState {
+  activeTab: DesignerTab
+  selectedNodeId: string | null
+}
+
+const VALID_TABS: DesignerTab[] = ['schema', 'resources', 'yaml', 'preview']
+
+/**
+ * Read persisted tab state from sessionStorage. Returns null on absence or
+ * corruption so callers can fall back to defaults. Spec: issue-684 O5, O7.
+ */
+function readTabState(): DesignerTabState | null {
+  try {
+    const raw = sessionStorage.getItem(TAB_STATE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as unknown
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('activeTab' in parsed) ||
+      !VALID_TABS.includes((parsed as DesignerTabState).activeTab)
+    ) {
+      return null
+    }
+    const { activeTab, selectedNodeId } = parsed as DesignerTabState
+    return {
+      activeTab,
+      selectedNodeId: typeof selectedNodeId === 'string' ? selectedNodeId : null,
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Write tab state to sessionStorage. Spec: issue-684 O5, O6.
+ * No-op when readonly (share URL) mode — ephemeral state should not persist.
+ */
+function writeTabState(state: DesignerTabState, readonly: boolean): void {
+  if (readonly) return
+  try {
+    sessionStorage.setItem(TAB_STATE_KEY, JSON.stringify(state))
+  } catch {
+    // Private browsing or quota exceeded — ignore silently
+  }
+}
 
 /**
  * Read a saved draft from localStorage. Returns null if absent or corrupt.
@@ -68,12 +126,13 @@ function resolveInitialState(): { state: RGDAuthoringState; readonly: boolean } 
  * Accessible at /author from the top bar "RGD Designer" nav link and
  * from Home / Catalog empty-state links.
  *
- * Layout: form (left) | live DAG preview + YAML preview stacked (right)
+ * Layout: header | tab bar | tab content
+ * Tabs: Schema (metadata + fields) | Resources | YAML | Preview (DAG)
  *
  * When a ?share= param is present, the page loads in readonly mode with
  * the encoded RGD state and shows a banner inviting the user to edit a copy.
  *
- * Spec: 039-rgd-authoring-entrypoint, 042-rgd-designer-nav, issue-544
+ * Spec: 039-rgd-authoring-entrypoint, 042-rgd-designer-nav, issue-544, issue-684
  */
 export default function AuthorPage() {
   usePageTitle('RGD Designer')
@@ -82,6 +141,26 @@ export default function AuthorPage() {
   const [rgdState, setRgdState] = useState<RGDAuthoringState>(initial.state)
   const [readonly, setReadonly] = useState<boolean>(initial.readonly)
   const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
+
+  // ── Tab state with sessionStorage restoration (issue-684) ────────────────
+  const [activeTab, setActiveTab] = useState<DesignerTab>(() => {
+    if (initial.readonly) return 'schema' // share URL: always start at schema (O6)
+    return readTabState()?.activeTab ?? 'schema'
+  })
+
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(() => {
+    if (initial.readonly) return null
+    return readTabState()?.selectedNodeId ?? null
+  })
+
+  // Persist tab state on change (O5). Skip in readonly mode (O6).
+  useEffect(() => {
+    writeTabState({ activeTab, selectedNodeId }, readonly)
+  }, [activeTab, selectedNodeId, readonly])
+
+  function handleTabChange(tab: DesignerTab) {
+    setActiveTab(tab)
+  }
 
   // ── localStorage draft persistence (issue-647) ──────────────────────────
   // On mount: if not in readonly (shared URL) mode and a draft exists, offer restore.
@@ -167,6 +246,42 @@ export default function AuthorPage() {
     }
   }, [debouncedState])
 
+  // ── Common banners (shown above tab bar) ────────────────────────────────
+  const banners = (
+    <>
+      {pendingDraft !== null && (
+        <div
+          className="author-page__draft-banner"
+          role="status"
+          data-testid="draft-restore-banner"
+        >
+          <span className="author-page__draft-banner-text">
+            You have an unsaved draft from a previous session.
+          </span>
+          <div className="author-page__draft-banner-actions">
+            <button
+              className="author-page__draft-btn author-page__draft-btn--restore"
+              onClick={handleRestoreDraft}
+              data-testid="draft-restore-btn"
+            >
+              Restore draft
+            </button>
+            <button
+              className="author-page__draft-btn author-page__draft-btn--discard"
+              onClick={handleDiscardDraft}
+              data-testid="draft-discard-btn"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+      {readonly && (
+        <DesignerReadonlyBanner onEdit={() => setReadonly(false)} />
+      )}
+    </>
+  )
+
   return (
     <div className="author-page">
       <div className="author-page__header">
@@ -178,71 +293,44 @@ export default function AuthorPage() {
           Scaffold a <code>ResourceGraphDefinition</code> YAML
         </p>
       </div>
-      <div className="author-page__body">
-        <div className="author-page__form-pane">
-          <NodeLibrary onAddResource={handleAddResource} />
-          {pendingDraft !== null && (
-            <div
-              className="author-page__draft-banner"
-              role="status"
-              data-testid="draft-restore-banner"
-            >
-              <span className="author-page__draft-banner-text">
-                You have an unsaved draft from a previous session.
-              </span>
-              <div className="author-page__draft-banner-actions">
-                <button
-                  className="author-page__draft-btn author-page__draft-btn--restore"
-                  onClick={handleRestoreDraft}
-                  data-testid="draft-restore-btn"
-                >
-                  Restore draft
-                </button>
-                <button
-                  className="author-page__draft-btn author-page__draft-btn--discard"
-                  onClick={handleDiscardDraft}
-                  data-testid="draft-discard-btn"
-                >
-                  Discard
-                </button>
-              </div>
-            </div>
-          )}
-          {readonly && (
-            <DesignerReadonlyBanner onEdit={() => setReadonly(false)} />
-          )}
-          <ClusterImportPanel onImport={setRgdState} />
-          <YAMLImportPanel onImport={setRgdState} />
-          <RGDAuthoringForm
-            state={rgdState}
-            onChange={readonly ? undefined : setRgdState}
-            staticIssues={staticIssues}
-            readonly={readonly}
-          />
-        </div>
-        <div className="author-page__right-pane">
-          <div className="author-page__dag-pane">
-            <StaticChainDAG
-              graph={dagGraph}
-              rgds={[]}
-              rgdName={debouncedState.rgdName || 'my-rgd'}
+
+      {banners}
+
+      <NodeLibrary onAddResource={handleAddResource} />
+      <ClusterImportPanel onImport={setRgdState} />
+      <YAMLImportPanel onImport={setRgdState} />
+
+      {/* Tab bar — Schema | Resources | YAML | Preview */}
+      <DesignerTabBar activeTab={activeTab} onTabChange={handleTabChange} />
+
+      {/* Tab content */}
+      <div className="author-page__tab-content" role="tabpanel" data-testid="designer-tab-content">
+        {activeTab === 'schema' && (
+          <div className="author-page__tab-pane">
+            <RGDAuthoringForm
+              state={rgdState}
+              onChange={readonly ? undefined : setRgdState}
+              staticIssues={staticIssues}
+              readonly={readonly}
+              visibleSections="schema"
             />
           </div>
-          {dagError !== null && (
-            <p
-              className="author-page__dag-hint author-page__dag-hint--error"
-              data-testid="author-dag-error"
-              role="alert"
-            >
-              DAG preview unavailable: {dagError}
-            </p>
-          )}
-          {dagError === null && debouncedState.resources.length === 0 && (
-            <p className="author-page__dag-hint">
-              Add resources to see the dependency graph
-            </p>
-          )}
-          <div className="author-page__preview-pane">
+        )}
+
+        {activeTab === 'resources' && (
+          <div className="author-page__tab-pane">
+            <RGDAuthoringForm
+              state={rgdState}
+              onChange={readonly ? undefined : setRgdState}
+              staticIssues={staticIssues}
+              readonly={readonly}
+              visibleSections="resources"
+            />
+          </div>
+        )}
+
+        {activeTab === 'yaml' && (
+          <div className="author-page__tab-pane">
             <YAMLPreview
               yaml={rgdYaml}
               title="ResourceGraphDefinition"
@@ -251,7 +339,35 @@ export default function AuthorPage() {
               validateLoading={dryRunLoading}
             />
           </div>
-        </div>
+        )}
+
+        {activeTab === 'preview' && (
+          <div className="author-page__tab-pane author-page__tab-pane--dag">
+            <div className="author-page__dag-pane">
+              <StaticChainDAG
+                graph={dagGraph}
+                rgds={[]}
+                rgdName={debouncedState.rgdName || 'my-rgd'}
+                selectedNodeId={selectedNodeId ?? undefined}
+                onNodeClick={(id) => setSelectedNodeId(id)}
+              />
+            </div>
+            {dagError !== null && (
+              <p
+                className="author-page__dag-hint author-page__dag-hint--error"
+                data-testid="author-dag-error"
+                role="alert"
+              >
+                DAG preview unavailable: {dagError}
+              </p>
+            )}
+            {dagError === null && debouncedState.resources.length === 0 && (
+              <p className="author-page__dag-hint">
+                Add resources to see the dependency graph
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
