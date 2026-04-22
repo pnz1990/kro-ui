@@ -8,7 +8,7 @@
   border-top: 1px solid var(--color-border-subtle);
   font-family: var(--font-sans);
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);  /* --color-text-faint (#71717a) fails WCAG 4.5:1 on --color-surface; use --color-text-muted (#a1a1aa, 5.6:1) */
   flex-shrink: 0;
 }
 
