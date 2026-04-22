@@ -57,3 +57,30 @@ We follow [coordinated disclosure](https://en.wikipedia.org/wiki/Coordinated_vul
 - **Minimal runtime image**: Production container uses `distroless/static:nonroot`
   (no shell, no package manager, non-root user)
 - **RBAC enforcement**: kro-ui never issues mutating Kubernetes API calls; only `get`, `list`, and `watch` verbs are used
+
+## Post-Donation Security Policy
+
+> **This section describes a planned future change, not current policy.**
+> It is included here so it is not overlooked during the kubernetes-sigs donation
+> PR review. The current reporting route (GitHub Security Advisories above) remains
+> in effect until the donation is complete.
+
+When kro-ui is donated to `kubernetes-sigs/kro`, security vulnerability reports
+must be routed through the **kubernetes-sigs security process**:
+
+- **Email**: `security@kubernetes.io`
+- **Process**: [kubernetes/community security reporting](https://kubernetes.io/docs/reference/issues-security/security/)
+- **SLA**: the Kubernetes security team acknowledges reports within 3 business days
+
+At donation time, this `SECURITY.md` will be updated to:
+1. Replace the `pnz1990/kro-ui` GitHub Security Advisories URL with `security@kubernetes.io`
+2. Adopt the kubernetes-sigs disclosure timeline (typically 90-day coordinated disclosure)
+3. Reference the kubernetes-sigs `SECURITY_CONTACTS` file
+
+**What to do if you find a vulnerability before donation is complete:**
+
+Report via [GitHub Security Advisories](https://github.com/pnz1990/kro-ui/security/advisories/new)
+as described in the `## Reporting a Vulnerability` section above.
+
+See `GOVERNANCE.md` for the donation readiness process and `OWNERS` for
+the current reviewer/approver list.
