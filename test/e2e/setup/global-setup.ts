@@ -87,6 +87,8 @@ export default async function globalSetup() {
     clusterScopedReady: false,
     externalCollectionReady: false,
     celComprehensionsReady: false,
+    // spec issue-663 (27.18) — scale fixture
+    scaleReady: false,
   }
 
   // ── 1. Create kind cluster ───────────────────────────────────────────────
@@ -373,6 +375,26 @@ export default async function globalSetup() {
         console.log('[setup] ✓ upstream-cel-comprehensions ready')
       } catch (e) {
         console.warn('[setup] upstream-cel-comprehensions skipped (requires kro v0.9.0+ for CEL comprehension macros):', (e as Error).message?.split('\n')[0])
+      }
+    })(),
+
+    // ── 6m. scale-wide RGD + instance (issue-663 27.18) ───────────────────
+    // Single wide RGD with 20 ConfigMap nodes — largest in fixture corpus.
+    // Exercises DAG renderer at scale. Non-fatal on failure; journey 083
+    // guards with fixtureState.scaleReady.
+    (async () => {
+      try {
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'scale-test-rgds.yaml')])
+        await execFileAsync('kubectl', [
+          '--kubeconfig', KUBECONFIG_PATH,
+          'wait', 'rgd/scale-wide',
+          '--for=condition=Ready', '--timeout=180s',
+        ])
+        execFile('kubectl', ['--kubeconfig', KUBECONFIG_PATH, 'apply', '-f', join(FIXTURES_DIR, 'scale-test-instances.yaml')])
+        fixtureState.scaleReady = true
+        console.log('[setup] ✓ scale-wide ready (20 nodes)')
+      } catch (e) {
+        console.warn('[setup] scale-wide fixture failed (non-fatal):', (e as Error).message?.split('\n')[0])
       }
     })(),
 

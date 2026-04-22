@@ -1,0 +1,285 @@
+# Copyright 2026 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# scale-test-rgds.yaml — scale fixture: a single wide RGD with 20 resource
+# nodes (the largest in CI). Exercises the kro-ui DAG renderer at scale,
+# validates that the Overview loads within TTI budget, and catches regressions
+# where the DAG locks up the browser on large graphs.
+#
+# Design ref: docs/design/27-stage3-kro-tracking.md §27.18 (🔲 → ✅)
+# Applied by test/e2e/setup/global-setup.ts (6m block).
+#
+# Why 20 nodes (not 50):
+#   A kind cluster's kro controller reconciles 20 ConfigMaps in <30s in CI.
+#   50 resources would push E2E setup past the 20-minute budget. 20 is the
+#   largest single RGD in the fixture corpus, sufficient to exercise the
+#   linear-layout and arrow-routing paths in the DAG renderer.
+#
+# Node structure: fan-out — all resource nodes are children of the root CR,
+# with no cross-resource dependencies. This maximises DAG width and exercises
+# the horizontal layout path (the most stressful for the SVG renderer).
+---
+apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: scale-wide
+spec:
+  schema:
+    apiVersion: v1alpha1
+    kind: ScaleWideApp
+    group: e2e.kro-ui.dev
+    spec:
+      appName: string | default=scale-wide-test
+    status:
+      nodeCount: "20"
+  resources:
+    - id: configNode01
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-01
+          namespace: kro-ui-demo
+        data:
+          node: "01"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode02
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-02
+          namespace: kro-ui-demo
+        data:
+          node: "02"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode03
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-03
+          namespace: kro-ui-demo
+        data:
+          node: "03"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode04
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-04
+          namespace: kro-ui-demo
+        data:
+          node: "04"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode05
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-05
+          namespace: kro-ui-demo
+        data:
+          node: "05"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode06
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-06
+          namespace: kro-ui-demo
+        data:
+          node: "06"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode07
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-07
+          namespace: kro-ui-demo
+        data:
+          node: "07"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode08
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-08
+          namespace: kro-ui-demo
+        data:
+          node: "08"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode09
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-09
+          namespace: kro-ui-demo
+        data:
+          node: "09"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode10
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-10
+          namespace: kro-ui-demo
+        data:
+          node: "10"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode11
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-11
+          namespace: kro-ui-demo
+        data:
+          node: "11"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode12
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-12
+          namespace: kro-ui-demo
+        data:
+          node: "12"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode13
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-13
+          namespace: kro-ui-demo
+        data:
+          node: "13"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode14
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-14
+          namespace: kro-ui-demo
+        data:
+          node: "14"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode15
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-15
+          namespace: kro-ui-demo
+        data:
+          node: "15"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode16
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-16
+          namespace: kro-ui-demo
+        data:
+          node: "16"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode17
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-17
+          namespace: kro-ui-demo
+        data:
+          node: "17"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode18
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-18
+          namespace: kro-ui-demo
+        data:
+          node: "18"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode19
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-19
+          namespace: kro-ui-demo
+        data:
+          node: "19"
+          app: ${schema.spec.appName}
+          group: scale-wide
+
+    - id: configNode20
+      template:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: ${schema.spec.appName}-node-20
+          namespace: kro-ui-demo
+        data:
+          node: "20"
+          app: ${schema.spec.appName}
+          group: scale-wide
