@@ -230,43 +230,18 @@ else
 fi
 ```
 
-## Step 8 — Deploy otherness scheduled workflow
-
-The otherness scheduled workflow enables the autonomous loop to run automatically without
-human intervention. This step deploys it to `.github/workflows/` from the otherness repo.
-
-```bash
-OTHERNESS_WORKFLOW="$HOME/.otherness/.github/workflows/otherness-scheduled.yml"
-TARGET_DIR=".github/workflows"
-TARGET_FILE="$TARGET_DIR/otherness-scheduled.yml"
-
-if [ -f "$TARGET_FILE" ]; then
-  echo "otherness-scheduled.yml already present — skipping."
-elif [ ! -f "$OTHERNESS_WORKFLOW" ]; then
-  echo "⚠️  ~/.otherness/.github/workflows/otherness-scheduled.yml not found."
-  echo "   Ensure ~/.otherness is cloned from pnz1990/otherness and run this setup again."
-else
-  mkdir -p "$TARGET_DIR"
-  cp "$OTHERNESS_WORKFLOW" "$TARGET_FILE"
-  echo "Deployed otherness-scheduled.yml to $TARGET_FILE"
-  # Stage and commit the workflow file
-  git add "$TARGET_FILE" 2>/dev/null || true
-  echo "Workflow file staged. Commit and push to activate the scheduled loop."
-fi
-```
-
 ## Done
 
 Edit `otherness-config.yaml` to set your `BUILD_COMMAND`, `TEST_COMMAND`, `LINT_COMMAND`, and other project-specific values. If your project has a UI, add `project.job_family: FEE`; for platform/infrastructure projects use `SysDE`; backend-only projects can omit the field (defaults to `SDE`).
 
 **Before running `/otherness.run`**: edit `docs/aide/vision.md` to describe your project. This is the most important thing — the autonomous team reads it on every startup.
 
-**To activate the scheduled loop:**
-The workflow was deployed to `.github/workflows/otherness-scheduled.yml` in Step 8.
+**To activate the scheduled loop (optional but recommended):**
+The loop can run automatically every 6 hours via GitHub Actions — no human needed.
 1. Go to: GitHub repo → Settings → Secrets and variables → Actions → New repository secret
 2. Add `ANTHROPIC_API_KEY` (or your LLM provider key) as a secret name
-3. Commit and push the workflow file (if not already done)
-4. The loop will fire automatically on schedule
+3. In `otherness-config.yaml`, uncomment the `schedule:` section and set your cron
+4. `.github/workflows/otherness-scheduled.yml` is already present and will fire on schedule
 
 See `docs/design/19-scheduled-execution.md` for full details.
 

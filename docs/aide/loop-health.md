@@ -1,6 +1,6 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 2).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 3).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
@@ -11,29 +11,38 @@
 | Field | Value |
 |-------|-------|
 | **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20) |
-| **Last feature PR** | PR #701 — docs(security): Post-Donation Security Policy section (2026-04-22) |
-| **Last meaningful feature PR** | PR #700 — feat(e2e): journey 084 fetch-timeout / slow-API scenario (2026-04-22) |
-| **Next priority** | Open issues: #679 (27.24 community outreach), #677 (27.17 — ✅ SHIPPED), #676 (air-gapped smoke test), #675 (RBAC-restricted persona journey), #674 (degraded-cluster persona journey) |
+| **Last feature PR** | PR #726 — fix(workflow): agent_version/upgrade_policy regex (2026-04-22) |
+| **Last meaningful feature PR** | PR #706 — feat(e2e): journey 087 RBAC-restricted persona anchor journey (2026-04-22) |
+| **Next priority** | Open issues: #721 (Designer CEL linter), #720 (health snapshot export), #719 (live DAG polling pause), #718 (namespace instance count), #717 (Lighthouse PR comment), #716 (first-time empty state), #679 (27.24 community outreach) |
 
 ---
 
 ## Donation Readiness
 
-Open issues queue: **6 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
+Open issues queue: **~14 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
 
 Key open items:
 - `#679` 27.24 — second OWNERS approver (social gap, not code)
-- `#676` Air-gapped environment smoke test (anchor journey)
-- `#675` RBAC-restricted persona anchor journey
-- `#674` Degraded-cluster persona anchor journey
+- `#721` Designer: CEL expression linter
+- `#720` Health system: health snapshot clipboard export
+- `#719` Instance management: live DAG polling pause on tab background
+- `#718` Instance management: namespace instance count summary
+- `#717` RGD display: Lighthouse score regression comment on PRs
+- `#716` RGD display: first-time user zero-RGD empty state
 
 Items shipped since last update:
-- ✅ PR #700 — slow-API / fetch-timeout E2E (27.19)
-- ✅ PR #699 — scale E2E fixture: scale-wide 20-node RGD + journey 083 (27.18)
-- ✅ PR #694 — GraphRevision diff navigate-by-change arrows
-- ✅ PR #692 — OS-preference light mode (27.17)
-- ✅ PR #689 — Designer axe-core scan promoted to blocking
-- ✅ PR #688 — Designer tab focus sessionStorage persistence
+- ✅ PR #726 — fix(workflow): agent_version/upgrade_policy regex
+- ✅ PR #706 — feat(e2e): journey 087 RBAC-restricted persona anchor (issue #675 CLOSED)
+- ✅ PR #705 — feat(e2e): journey 086 degraded-cluster persona anchor (issue #674 CLOSED)
+- ✅ PR #704 — feat(e2e): journey 085 air-gapped smoke test (issue #676 CLOSED)
+- ✅ PR #703 — fix(ci): pin typescript 6.0.3
+- ✅ PR #701 — docs(security): Post-Donation Security Policy (issue #678 CLOSED)
+- ✅ PR #700 — feat(e2e): journey 084 fetch-timeout / slow-API scenario (27.19)
+- ✅ PR #699 — feat(e2e): scale-wide fixture + journey 083 (27.18)
+- ✅ PR #694 — feat(revisions): navigate-by-change arrows in GraphRevision diff
+- ✅ PR #692 — feat(theme): OS-preference light mode (27.17)
+- ✅ PR #689 — feat(a11y): Designer axe-core scan promoted to blocking
+- ✅ PR #688 — feat(designer): tab bar sessionStorage focus persistence
 
 ---
 

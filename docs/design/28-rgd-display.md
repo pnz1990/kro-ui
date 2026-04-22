@@ -38,6 +38,10 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 
 ## Future (🔲)
 
+- 🔲 Lighthouse score regression comment on PRs: GitHub Actions step in `perf.yml` that posts a PR comment with the Lighthouse score delta (current vs. base branch); comment includes score, LCP, TBT, and bundle size delta; comment is updated in-place on subsequent pushes; blocks merge only when the score drops below the threshold (currently 70); provides per-PR visibility without requiring local Lighthouse runs (issue #717)
+- 🔲 First-time user zero-RGD empty state: when a cluster has no ResourceGroupDefinitions (Overview page loads with empty list), show a rich onboarding empty state instead of a blank grid — includes a "Get started" callout with links to kro.run quickstart, the RGD Designer (/author), and a minimal `kubectl apply` snippet; dismissible once the user has visited /author; persisted in `localStorage` (`kro-ui-onboarding-dismissed`); resets if the cluster context changes (issue #716)
+- 🔲 kro upstream field parity SLO: automated check (weekly GitHub Actions cron or SM §4a addition) that diffs `kubernetes-sigs/kro` CRD schemas against the fields rendered in kro-ui; any new CRD field not reflected in the UI opens a `feat(kro-field-parity):` issue automatically; ensures kro-ui never silently falls behind upstream kro API additions; complements the kro release tracking automation (issue #710)
+
 ---
 
 ## Zone 1 — Obligations

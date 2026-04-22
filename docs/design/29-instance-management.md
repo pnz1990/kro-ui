@@ -37,6 +37,9 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 
 ## Future (🔲)
 
+- 🔲 Live DAG polling pause on tab background: suspend the 5s interval when the browser tab is not visible (`document.addEventListener('visibilitychange', ...)`); resume on tab focus; reduces unnecessary API calls for background tabs; `usePolling` hook already accepts an `enabled` flag — wire it to `document.visibilityState === 'visible'`; add `aria-label="Live polling paused — tab inactive"` indicator in the DAG header when paused (issue #719)
+- 🔲 Namespace instance count summary: per-namespace instance count chips in the `/instances` global search page header — shows `default: 3 | kube-system: 0 | my-ns: 7` aggregation bar above the table; derived from the existing `ListAllInstances` fan-out response; updates when namespace filter changes; provides at-a-glance density view without requiring separate API calls (issue #718)
+
 ---
 
 ## Zone 1 — Obligations

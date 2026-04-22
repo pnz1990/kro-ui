@@ -24,15 +24,15 @@ chosen to be consistent with or stricter than the practices used in the kro code
 
 ## Current Status
 
-v0.10.0 — production-capable. 90+ features merged across 690+ PRs. kro v0.9.1 support.
-Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.32–27.64),
-and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extensions).
+v0.10.0 — production-capable. 90+ features merged across 720+ PRs. kro v0.9.1 support.
+Anchor persona journeys (085-087) now complete. Open issues #679 (2nd OWNERS approver),
+#710-#721 (next product features), and loop system health gaps (doc 27 §27.32–27.68).
 
 ---
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-22 (scan 2) — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-22 (scan 3) — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -167,4 +167,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Slow-API / fetch-timeout E2E scenario (journey 084) — PR #700 shipped (2026-04-22)
 - ✅ GraphRevision diff: navigate-by-change arrows (prev/next change, auto-scroll to first diff, N/M counter) — PR #694 shipped (2026-04-22)
 - ✅ Post-Donation Security Policy section added to `SECURITY.md` — PR #701 shipped (2026-04-22)
+- ✅ Air-gapped environment smoke test (journey 085): kro-ui binary with all external network requests intercepted; Overview/Catalog/Fleet/Designer pages render; self-hosted fonts served correctly — PR #704 shipped (2026-04-22, issue #676 CLOSED)
+- ✅ Degraded-cluster persona anchor journey (journey 086): Fleet page with injected degraded fleet summary → failing RGD detail → Errors tab → Validation tab → YAML tab; all 7 steps pass — PR #705 shipped (2026-04-22, issue #674 CLOSED)
+- ✅ RBAC-restricted persona anchor journey (journey 087): /instances page with injected rbacHidden=3; RBAC advisory UI; live cluster check; count propagation — PR #706 shipped (2026-04-22, issue #675 CLOSED)
 
