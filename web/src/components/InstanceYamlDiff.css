@@ -206,3 +206,53 @@
   display: block;
   min-height: 1.5em;
 }
+
+/* ── Navigate-by-change bar (spec issue-680 O1–O8) ──────────────────────── */
+/* Shared between RevisionYamlDiff and future callers that import this CSS.   */
+
+.yaml-diff-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-2);
+}
+
+.yaml-diff-nav__btn {
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.yaml-diff-nav__btn:hover:not(:disabled) {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  border-color: var(--color-border-focus);
+}
+
+.yaml-diff-nav__btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.yaml-diff-nav__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.yaml-diff-nav__counter {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: center;
+}
+

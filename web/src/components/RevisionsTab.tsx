@@ -30,7 +30,7 @@
 // GH #274: kro v0.9.0 upgrade — Graph Revisions tab
 // GH #579: GraphRevision YAML diff line-level highlighting
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { listGraphRevisions } from '@/lib/api'
 import type { K8sObject } from '@/lib/api'
 import { formatAge, extractCreationTimestamp } from '@/lib/format'
@@ -145,6 +145,68 @@ function RevisionYamlDiff({ a, b, onClose }: RevisionYamlDiffProps) {
   const rows = useMemo(() => computeLineDiff(yamlA, yamlB), [yamlA, yamlB])
   const changedCount = useMemo(() => countChangedLines(rows), [rows])
 
+  // Navigate-by-change: track current change index (O1–O8)
+  // A "change" is the first row of each contiguous block of added/removed lines.
+  const changeIndices = useMemo<number[]>(() => {
+    const indices: number[] = []
+    let prevChanged = false
+    for (let i = 0; i < rows.length; i++) {
+      const isChanged = rows[i].status === 'added' || rows[i].status === 'removed'
+      if (isChanged && !prevChanged) {
+        indices.push(i)
+      }
+      prevChanged = isChanged
+    }
+    return indices
+  }, [rows])
+
+  const totalChanges = changeIndices.length
+  const [currentChangeIdx, setCurrentChangeIdx] = useState(0)
+
+  // Refs to the two column body containers for scroll synchronization
+  const colARef = useRef<HTMLDivElement>(null)
+  const colBRef = useRef<HTMLDivElement>(null)
+
+  // Scroll both columns to the row at changeIndices[changeIdx] (O2, O3)
+  const scrollToChange = useCallback((changeIdx: number) => {
+    const rowIdx = changeIndices[changeIdx]
+    if (rowIdx === undefined) return
+    // Find the row in col A using data-change-idx (O8)
+    const findRow = (container: HTMLDivElement | null): HTMLTableRowElement | null => {
+      if (!container) return null
+      return container.querySelector<HTMLTableRowElement>(
+        `[data-change-idx="${rowIdx}"]`
+      )
+    }
+    const rowA = findRow(colARef.current)
+    const rowB = findRow(colBRef.current)
+    rowA?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    rowB?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [changeIndices])
+
+  // Auto-scroll to first change on mount (O5)
+  const hasFiredInitialScroll = useRef(false)
+  useEffect(() => {
+    if (totalChanges > 0 && !hasFiredInitialScroll.current) {
+      hasFiredInitialScroll.current = true
+      // Small delay to let the DOM render before scrolling
+      const id = setTimeout(() => scrollToChange(0), 80)
+      return () => clearTimeout(id)
+    }
+  }, [totalChanges, scrollToChange])
+
+  function handlePrev() {
+    const next = Math.max(0, currentChangeIdx - 1)
+    setCurrentChangeIdx(next)
+    scrollToChange(next)
+  }
+
+  function handleNext() {
+    const next = Math.min(totalChanges - 1, currentChangeIdx + 1)
+    setCurrentChangeIdx(next)
+    scrollToChange(next)
+  }
+
   return (
     <div className="revisions-tab__diff-panel instance-yaml-diff" data-testid="revisions-diff-panel">
       {/* Header — O4: N lines differ summary */}
@@ -184,6 +246,44 @@ function RevisionYamlDiff({ a, b, onClose }: RevisionYamlDiffProps) {
         </span>
       </div>
 
+      {/* Navigate-by-change bar (O1, O2, O3, O4, O6, O7) */}
+      {totalChanges > 0 && (
+        <div
+          className="yaml-diff-nav"
+          data-testid="yaml-diff-nav"
+          aria-label="Navigate between changes"
+        >
+          <button
+            type="button"
+            className="yaml-diff-nav__btn"
+            onClick={handlePrev}
+            disabled={currentChangeIdx === 0}
+            aria-label="Previous change"
+            data-testid="yaml-diff-nav-prev"
+          >
+            ← prev change
+          </button>
+          <span
+            className="yaml-diff-nav__counter"
+            aria-live="polite"
+            aria-atomic="true"
+            data-testid="yaml-diff-nav-counter"
+          >
+            {currentChangeIdx + 1} / {totalChanges}
+          </span>
+          <button
+            type="button"
+            className="yaml-diff-nav__btn"
+            onClick={handleNext}
+            disabled={currentChangeIdx === totalChanges - 1}
+            aria-label="Next change"
+            data-testid="yaml-diff-nav-next"
+          >
+            next change →
+          </button>
+        </div>
+      )}
+
       {/* Side-by-side columns — O1, O2, O3, O5 */}
       <div className="instance-yaml-diff__cols" data-testid="revisions-yaml-diff-cols">
         {/* Column A */}
@@ -191,26 +291,35 @@ function RevisionYamlDiff({ a, b, onClose }: RevisionYamlDiffProps) {
           <div className="instance-yaml-diff__col-header" title={labelA}>
             {labelA}
           </div>
-          <div className="instance-yaml-diff__col-body" data-testid="revisions-yaml-diff-col-a">
+          <div
+            className="instance-yaml-diff__col-body"
+            data-testid="revisions-yaml-diff-col-a"
+            ref={colARef}
+          >
             <table className="yaml-diff-table" aria-label={`YAML for ${labelA}`}>
               <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className={`yaml-diff-table__row yaml-diff-table__row--${row.status === 'added' ? 'empty' : row.status}`}
-                  >
-                    <td className="yaml-diff-table__gutter">
-                      {row.aIndex !== null ? row.aIndex : ''}
-                    </td>
-                    <td className="yaml-diff-table__code">
-                      {row.aLine !== null ? (
-                        <code>{row.aLine}</code>
-                      ) : (
-                        <span className="yaml-diff-table__absent" aria-hidden="true" />
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((row, i) => {
+                  // O8: assign data-change-idx to the first row of each change block
+                  const isChangeStart = changeIndices.includes(i)
+                  return (
+                    <tr
+                      key={i}
+                      className={`yaml-diff-table__row yaml-diff-table__row--${row.status === 'added' ? 'empty' : row.status}`}
+                      {...(isChangeStart ? { 'data-change-idx': i } : {})}
+                    >
+                      <td className="yaml-diff-table__gutter">
+                        {row.aIndex !== null ? row.aIndex : ''}
+                      </td>
+                      <td className="yaml-diff-table__code">
+                        {row.aLine !== null ? (
+                          <code>{row.aLine}</code>
+                        ) : (
+                          <span className="yaml-diff-table__absent" aria-hidden="true" />
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -221,26 +330,34 @@ function RevisionYamlDiff({ a, b, onClose }: RevisionYamlDiffProps) {
           <div className="instance-yaml-diff__col-header" title={labelB}>
             {labelB}
           </div>
-          <div className="instance-yaml-diff__col-body" data-testid="revisions-yaml-diff-col-b">
+          <div
+            className="instance-yaml-diff__col-body"
+            data-testid="revisions-yaml-diff-col-b"
+            ref={colBRef}
+          >
             <table className="yaml-diff-table" aria-label={`YAML for ${labelB}`}>
               <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className={`yaml-diff-table__row yaml-diff-table__row--${row.status === 'removed' ? 'empty' : row.status}`}
-                  >
-                    <td className="yaml-diff-table__gutter">
-                      {row.bIndex !== null ? row.bIndex : ''}
-                    </td>
-                    <td className="yaml-diff-table__code">
-                      {row.bLine !== null ? (
-                        <code>{row.bLine}</code>
-                      ) : (
-                        <span className="yaml-diff-table__absent" aria-hidden="true" />
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((row, i) => {
+                  const isChangeStart = changeIndices.includes(i)
+                  return (
+                    <tr
+                      key={i}
+                      className={`yaml-diff-table__row yaml-diff-table__row--${row.status === 'removed' ? 'empty' : row.status}`}
+                      {...(isChangeStart ? { 'data-change-idx': i } : {})}
+                    >
+                      <td className="yaml-diff-table__gutter">
+                        {row.bIndex !== null ? row.bIndex : ''}
+                      </td>
+                      <td className="yaml-diff-table__code">
+                        {row.bLine !== null ? (
+                          <code>{row.bLine}</code>
+                        ) : (
+                          <span className="yaml-diff-table__absent" aria-hidden="true" />
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
