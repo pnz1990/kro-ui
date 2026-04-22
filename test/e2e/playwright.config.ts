@@ -35,11 +35,11 @@ const BASE_URL = `http://localhost:${PORT}`
 //   chunk-7:  041,045-047  UX audit, designer, kro v0.9.0, ux-improvements, state-map
 //   chunk-8:  051-059   instance diff, response cache, multi-version kro, ux-gaps-round3,
 //                       health-summary, status-tooltip, cache-flush, global-instances, warnings
-//   chunk-9:  060-075   health-filter, fleet-reconciling, instances-filter, health-sort,
+//   chunk-9:  060-088   health-filter, fleet-reconciling, instances-filter, health-sort,
 //                       status-message, error-banner, catalog-status-filter, kro-v091,
 //                       operator-persona-journey, sre-persona-journey, developer-persona-journey,
-//                       fleet-persona-journey
-//   serial:   007       context-switcher — runs after all chunks complete
+//                       fleet-persona-journey, light-mode-persona (088)
+//   serial:   007,089   context-switcher, multi-context-persona — runs after all chunks complete
 //
 // Each chunk runs with workers: 4 (parallel files); the serial project uses workers: 1.
 
@@ -150,28 +150,31 @@ export default defineConfig({
       fullyParallel: true,
     },
     {
-      // chunk-9 covers journeys added in specs 060–087       // (health-filter, fleet-reconciling, instances-filter, health-sort,
-       //  status-message, error-banner, catalog-status-filter, kro-v091,
-       //  operator-persona-journey, sre-persona-journey, developer-persona-journey,
-       //  accessibility (074), fleet-persona-journey,
-       //  error-state-overview (076), error-state-fleet (077),
-       //  error-state-rgd-detail (078), error-state-instance-detail (079),
-       //  performance-budget (080), partial-rbac (081),
-       //  designer-cluster-import (082), scale-fixture (083),
-       //  fetch-timeout (084), air-gapped-smoke (085),
-       //  degraded-cluster-persona (086), rbac-restricted-persona (087))
+      // chunk-9 covers journeys added in specs 060–088
+      // (health-filter, fleet-reconciling, instances-filter, health-sort,
+      //  status-message, error-banner, catalog-status-filter, kro-v091,
+      //  operator-persona-journey, sre-persona-journey, developer-persona-journey,
+      //  accessibility (074), fleet-persona-journey,
+      //  error-state-overview (076), error-state-fleet (077),
+      //  error-state-rgd-detail (078), error-state-instance-detail (079),
+      //  performance-budget (080), partial-rbac (081),
+      //  designer-cluster-import (082), scale-fixture (083),
+      //  fetch-timeout (084), air-gapped-smoke (085),
+      //  degraded-cluster-persona (086), rbac-restricted-persona (087),
+      //  light-mode-persona (088))
       name: 'chunk-9',
-      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086|087)-.*\.spec\.ts/,      ...PARALLEL_OPTS,
+      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086|087|088)-.*\.spec\.ts/,
+      ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
     },
 
-    // ── Serial: context-switcher (depends on all parallel chunks) ─────────
-    // Journey 007 calls POST /api/v1/contexts/switch — global server state.
+    // ── Serial: context-switcher + multi-context persona (depends on all parallel chunks) ──
+    // Journey 007 and 089 call POST /api/v1/contexts/switch — global server state.
     // Must run after all other journeys to avoid context race conditions.
     {
       name: 'serial',
-      testMatch: /007-.*\.spec\.ts/,
+      testMatch: /(007|089)-.*\.spec\.ts/,
       dependencies: ['chunk-1', 'chunk-3', 'chunk-4', 'chunk-5', 'chunk-6', 'chunk-7', 'chunk-8', 'chunk-9'],
       ...PARALLEL_OPTS,
       workers: 1,
