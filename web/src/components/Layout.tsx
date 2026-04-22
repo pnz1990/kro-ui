@@ -98,6 +98,11 @@ export default function Layout() {
   return (
     <AlertContext.Provider value={{ checkTransitions }}>
       <div className="layout">
+        {/* Skip-to-main-content link — WCAG 2.1 SC 2.4.1 (Bypass Blocks)
+            Visually hidden until focused; keyboard/screen-reader users jump past navigation. */}
+        <a href="#main-content" className="layout__skip-link">
+          Skip to main content
+        </a>
         <TopBar
           contexts={contexts}
           activeContext={activeContext}
@@ -153,7 +158,7 @@ export default function Layout() {
             </button>
           </div>
         )}
-        <main className="layout__content">
+        <main className="layout__content" id="main-content">
           <Outlet key={activeContext} />
         </main>
         <Footer />
