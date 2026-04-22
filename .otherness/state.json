@@ -2381,7 +2381,7 @@
       "done_at": "2026-04-21T22:57:42Z"
     },
     "issue-645": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.20 \u2014 frontend per-request fetch timeout (AbortSignal.timeout 30s fallback)",
       "issue_number": 645,
       "labels": [
@@ -2393,7 +2393,7 @@
       "priority": "medium"
     },
     "issue-646": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.21 \u2014 Fleet per-cluster inner deadline (context.WithTimeout 5s in summariseContext)",
       "issue_number": 646,
       "labels": [
@@ -2405,7 +2405,7 @@
       "priority": "medium"
     },
     "issue-647": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Designer localStorage draft persistence \u2014 restore in-progress RGD on navigation",
       "issue_number": 647,
       "labels": [
@@ -2429,6 +2429,145 @@
       "priority": "medium",
       "pr_merged": true,
       "done_at": "2026-04-21T23:43:37Z"
+    },
+    "issue-684": {
+      "state": "todo",
+      "title": "feat: Designer tab focus restoration: navigating away from `/author` and returning resets the ac",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "684"
+    },
+    "issue-683": {
+      "state": "todo",
+      "title": "feat: Designer axe-core coverage: the `/author` page is not included in journey 074 axe-core sca",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "683"
+    },
+    "issue-682": {
+      "state": "done",
+      "title": "feat: DAG screen reader text alternative: the DAG is an SVG with `role=\"button\"` nodes; there is",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "682",
+      "branch": "feat/issue-682",
+      "worktree": "/home/runner/work/kro-ui/kro-ui.issue-682",
+      "pr_merged": true,
+      "pr_number": 686,
+      "done_at": "2026-04-22T03:51:17Z"
+    },
+    "issue-680": {
+      "state": "todo",
+      "title": "feat: GraphRevision diff: the two-panel line-level diff view with navigate-by-change arrows is n",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "680"
+    },
+    "issue-679": {
+      "state": "todo",
+      "title": "feat: 27.24",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "679"
+    },
+    "issue-678": {
+      "state": "todo",
+      "title": "feat: 27.23",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "678"
+    },
+    "issue-677": {
+      "state": "todo",
+      "title": "feat: 27.17",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "677"
+    },
+    "issue-676": {
+      "state": "todo",
+      "title": "feat: Air-gapped environment smoke test: start kro-ui binary with no external network access (bl",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "676"
+    },
+    "issue-675": {
+      "state": "todo",
+      "title": "feat: RBAC-restricted persona journey: an operator with read-only access to only 2 of 5 namespac",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "675"
+    },
+    "issue-674": {
+      "state": "todo",
+      "title": "feat: Degraded-cluster persona anchor journey: an operator who sees a degraded cluster in the Fl",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "674"
+    },
+    "issue-664": {
+      "state": "todo",
+      "title": "feat: 27.19",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "664"
+    },
+    "issue-663": {
+      "state": "todo",
+      "title": "feat: 27.18",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "663"
     }
   },
   "sm_cycle_count": 6,
