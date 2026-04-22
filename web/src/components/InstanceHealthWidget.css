@@ -1,4 +1,10 @@
-.ihw {
+ .ihw {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ihw__top {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -76,3 +82,12 @@
   font-size: 0.875rem;
   color: var(--color-text-faint);
 }
+
+/* ── Sparkline (spec issue-712 O2) ───────────────────────────────────── */
+
+.ihw__sparkline {
+  width: 100%;
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: 8px;
+}
+

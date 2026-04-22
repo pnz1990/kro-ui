@@ -66,6 +66,37 @@
   cursor: default;
 }
 
+/* Copy health snapshot button (spec issue-720 O5) — same visual weight as Refresh */
+.home__copy-snapshot-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.home__copy-snapshot-btn:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.home__copy-snapshot-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* "Copied!" confirmation state — brief green accent */
+.home__copy-snapshot-btn[aria-label*="copied"] {
+  color: var(--color-status-ready);
+  border-color: var(--color-status-ready);
+}
+
 /* ── Widget grid ─────────────────────────────────────────────────────── */
 
 .home__grid {
