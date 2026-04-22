@@ -37,6 +37,10 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 
 ## Future (🔲)
 
+- 🔲 Instance management: stuck-reconciling escalation banner — an instance can be in `reconciling` state for hours with no transition and no UI escalation; the deletion debugger escalates for *terminating* instances after 5 minutes (PR #290) but no equivalent exists for *reconciling* instances that are not terminating; add a "stuck reconciling" banner that triggers when an instance has been continuously in `reconciling` state for >10 minutes (detected via `creationTimestamp` vs current time or the last observed state-transition in conditions); the banner should show elapsed time and suggest `kubectl describe <kind> <name>` as a first debugging step; consistent with the terminating escalation pattern
+- 🔲 Instance management: namespace instance count summary — the `/instances` page shows all instances from all namespaces but has no aggregate view of "how many instances per namespace"; an operator managing 20 namespaces cannot see at a glance which namespace has the most activity or the most errors; add a namespace summary header or collapsible group row to the `/instances` table that shows `N instances (M errors)` per namespace when more than 1 namespace is present
+- 🔲 Instance management: live DAG polling pause on tab background — the live DAG polls at 5s unconditionally; a user who leaves an instance detail page open overnight generates thousands of unnecessary List API calls; add automatic pause when `document.visibilityState === 'hidden'` (tab backgrounded) and resume when foregrounded; also add a manual "Pause live updates" toggle; this reduces API load and prevents the aria-live region (PR #670) from announcing state transitions to screen reader users who are focused on a different tab
+
 ---
 
 ## Zone 1 — Obligations

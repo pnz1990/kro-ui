@@ -24,9 +24,9 @@ chosen to be consistent with or stricter than the practices used in the kro code
 
 ## Current Status
 
-v0.10.0 — production-capable. 90+ features merged across 690+ PRs. kro v0.9.1 support.
-Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.32–27.64),
-and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extensions).
+v0.10.0 — production-capable. 90+ features merged across 706+ PRs. kro v0.9.1 support.
+Pending work: OS-preference light mode (PR #692), donation social gap (#679 second OWNERS approver),
+and kro upstream features as they land. All hard donation blockers resolved.
 
 ---
 
@@ -166,5 +166,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Scale E2E fixture: `scale-wide` 20-node RGD + journey 083 DOM Interactive ≤2000ms — PR #699 shipped (2026-04-22)
 - ✅ Slow-API / fetch-timeout E2E scenario (journey 084) — PR #700 shipped (2026-04-22)
 - ✅ GraphRevision diff: navigate-by-change arrows (prev/next change, auto-scroll to first diff, N/M counter) — PR #694 shipped (2026-04-22)
-- ✅ Post-Donation Security Policy section added to `SECURITY.md` — PR #701 shipped (2026-04-22)
+- ✅ Air-gapped smoke test: Playwright journey 085 intercepts all external CDN requests; self-hosted fonts served correctly — PR #704 shipped (2026-04-22)
+- ✅ Degraded-cluster persona anchor journey: journey 086 — Fleet page with injected degraded summary → failing RGD detail → Errors tab → Validation tab → YAML tab — PR #705 shipped (2026-04-22)
+- ✅ RBAC-restricted persona anchor journey: journey 087 — /instances page with injected rbacHidden=3; RBAC advisory UI verified — PR #706 shipped (2026-04-22)
 
