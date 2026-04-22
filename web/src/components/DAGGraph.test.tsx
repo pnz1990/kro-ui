@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import DAGGraph from './DAGGraph'
+import DAGGraph, { buildDagDescription } from './DAGGraph'
 import type { DAGGraph as DAGGraphType, DAGNode, DAGEdge } from '@/lib/dag'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -379,5 +379,66 @@ describe('DAGGraph', () => {
     const spy = vi.spyOn(event, 'preventDefault')
     groupA.dispatchEvent(event)
     expect(spy).toHaveBeenCalled()
+  })
+})
+
+// ── buildDagDescription (WCAG 2.1 SC 1.1.1) ──────────────────────────────────
+
+describe('buildDagDescription', () => {
+  it('T024a: single node, no edges', () => {
+    const node = makeNode('myApp', { nodeType: 'instance' })
+    const graph = makeGraph([node])
+    const desc = buildDagDescription(graph)
+    expect(desc).toBe('Resource graph: 1 node — myApp (instance)')
+  })
+
+  it('T024b: two nodes, one edge', () => {
+    const nodeA = makeNode('nodeA', { nodeType: 'instance' })
+    const nodeB = makeNode('nodeB', { nodeType: 'resource' })
+    const edge: DAGEdge = { from: 'nodeA', to: 'nodeB' }
+    const graph = makeGraph([nodeA, nodeB], [edge])
+    const desc = buildDagDescription(graph)
+    expect(desc).toBe('Resource graph: 2 nodes — nodeA (instance), nodeB (resource), 1 connection')
+  })
+
+  it('T024c: two edges uses plural "connections"', () => {
+    const nodeA = makeNode('a', { nodeType: 'instance' })
+    const nodeB = makeNode('b', { nodeType: 'resource' })
+    const nodeC = makeNode('c', { nodeType: 'resource' })
+    const graph = makeGraph([nodeA, nodeB, nodeC], [
+      { from: 'a', to: 'b' },
+      { from: 'a', to: 'c' },
+    ])
+    const desc = buildDagDescription(graph)
+    expect(desc).toContain('2 connections')
+  })
+
+  it('T024d: large graph (>8 nodes) summarises as "N nodes"', () => {
+    const nodes = Array.from({ length: 10 }, (_, i) =>
+      makeNode(`n${i}`, { nodeType: 'resource' }),
+    )
+    const graph = makeGraph(nodes)
+    const desc = buildDagDescription(graph)
+    expect(desc).toContain('10 nodes')
+    // Should NOT list individual node names
+    expect(desc).not.toContain('n0 (resource)')
+  })
+
+  it('T024e: DAGGraph renders aria-describedby pointing to sr-only description', () => {
+    const node = makeNode('svc', { nodeType: 'resource', x: 50, y: 32 })
+    const graph = makeGraph([node])
+    const { container } = render(<DAGGraph graph={graph} />)
+
+    const svg = container.querySelector('[data-testid="dag-svg"]')
+    expect(svg).toBeTruthy()
+
+    const describedById = svg!.getAttribute('aria-describedby')
+    expect(describedById).toBeTruthy()
+
+    const descEl = container.querySelector(`#${describedById}`)
+    expect(descEl).toBeTruthy()
+    expect(descEl!.textContent).toContain('Resource graph:')
+    expect(descEl!.textContent).toContain('svc')
+    expect(descEl!.className).toContain('sr-only')
   })
 })

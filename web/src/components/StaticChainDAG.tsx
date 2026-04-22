@@ -22,7 +22,7 @@
 //
 // Spec: .specify/specs/025-rgd-static-chain-graph/
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 import { buildChainSubgraph, nodeBadge, forEachLabel, liveStateClass, nodeStateForNode } from '@/lib/dag'
@@ -32,6 +32,7 @@ import DAGTooltip from './DAGTooltip'
 import type { DAGTooltipTarget } from './DAGTooltip'
 import DAGLegend from './DAGLegend'
 import DAGScaleGuard from './DAGScaleGuard'
+import { buildDagDescription } from './DAGGraph'
 import './StaticChainDAG.css'
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -225,6 +226,7 @@ export default function StaticChainDAG({
 }: StaticChainDAGProps) {
   const navigate = useNavigate()
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const descId = useId()
   const [hoveredTooltip, setHoveredTooltip] = useState<(DAGTooltipTarget & { nodeState?: NodeLiveState }) | null>(null)
   // Debounced hide: gives the cursor time to travel from the node to the tooltip.
   // Issue #188 — without this, onMouseLeave fires before the cursor reaches the tooltip.
@@ -325,6 +327,10 @@ export default function StaticChainDAG({
   return (
     <DAGScaleGuard graph={graph}>
     <div className="dag-graph-container static-chain-dag-container">
+      {/* sr-only description — WCAG 2.1 SC 1.1.1: text alternative for the SVG graph */}
+      <span id={descId} className="sr-only">
+        {buildDagDescription(graph)}
+      </span>
       <svg
         ref={svgRef}
         data-testid="dag-svg"
@@ -333,6 +339,7 @@ export default function StaticChainDAG({
         viewBox={`0 0 ${graph.width} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Resource dependency graph"
+        aria-describedby={descId}
         role="img"
       >
         <defs>

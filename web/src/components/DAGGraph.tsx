@@ -9,7 +9,7 @@
 // Spec issue-575 (27.13): DAGScaleGuard wraps the SVG — graphs >100 nodes
 //   show a text-mode fallback by default to prevent browser lock-up.
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useId } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 // Issue #255: fittedHeight extracted to dag.ts alongside fittedWidth — no more duplication
 import { nodeBadge, forEachLabel, fittedWidth, fittedHeight } from '@/lib/dag'
@@ -171,6 +171,25 @@ function NodeGroup({
 }
 
 /**
+ * Build a screen-reader text alternative for a DAG graph.
+ *
+ * Format: "Resource graph: N node(s) — label1 (type1), label2 (type2)[, ...] — M connection(s)"
+ * For large graphs (>8 nodes): summarise with counts only to avoid overwhelming the user.
+ * WCAG 2.1 SC 1.1.1: provides a text alternative for the complex SVG image.
+ */
+export function buildDagDescription(graph: DAGGraph): string {
+  const n = graph.nodes.length
+  const e = graph.edges.length
+  const nodeStr =
+    n <= 8
+      ? graph.nodes.map((nd) => `${nd.label} (${nd.nodeType})`).join(', ')
+      : `${n} nodes`
+  const edgeStr =
+    e === 0 ? '' : `, ${e} connection${e === 1 ? '' : 's'}`
+  return `Resource graph: ${n} node${n === 1 ? '' : 's'} — ${nodeStr}${edgeStr}`
+}
+
+/**
  * DAGGraph — renders a DAGGraph as inline SVG.
  *
  * Purely data-driven: no kro-specific knowledge. Pass any DAGGraph
@@ -186,6 +205,7 @@ export default function DAGGraph({
   const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
+  const descId = useId()
 
   // Sorted node list for Arrow key navigation.
   // Sort by (y ASC, x ASC) — top-to-bottom, left-to-right (reading order).
@@ -212,6 +232,10 @@ export default function DAGGraph({
   return (
     <DAGScaleGuard graph={graph}>
       <div className="dag-graph-container">
+        {/* sr-only description — WCAG 2.1 SC 1.1.1: text alternative for the SVG graph */}
+        <span id={descId} className="sr-only">
+          {buildDagDescription(graph)}
+        </span>
         <svg
         ref={svgRef}
         data-testid="dag-svg"
@@ -220,6 +244,7 @@ export default function DAGGraph({
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Resource dependency graph"
+        aria-describedby={descId}
         role="img"
       >
         <defs>
