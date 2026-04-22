@@ -30,6 +30,7 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 - ✅ Instance bulk operations: multi-select + bulk YAML export on /instances page (PR #536, 2026-04)
 - ✅ Instance resource graph: show all k8s resources owned by this instance, grouped by kind, with health status dots and clickable rows (spec issue-538, 2026-04)
 - ✅ Partial-RBAC instance visibility: `ListAllInstances` tracks forbidden RGDs via atomic counter and returns `rbacHidden` in response; `ListInstances` returns 200 + `{"items":[],"warning":"insufficient permissions"}` on Forbidden; `/instances` page and RGD detail Instances tab show "N RGD(s) hidden — insufficient permissions" when rbacHidden > 0; Go unit tests + E2E journey 081 (spec issue-648, 2026-04)
+- ✅ Namespace instance count summary: when >1 namespace is present on `/instances` and no namespace filter is active, a row of clickable namespace pills appears below the health filter chips showing `{name} {N}` with an additional `M err` badge on pills with erroring instances; clicking a pill filters the table to that namespace (also hides the summary); pills are sorted by instance count desc; accessible via `role="group" aria-label="Instances per namespace"` (spec issue-718, 🔲→✅ 2026-04)
 
 ## Present (✅) — continued
 
