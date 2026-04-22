@@ -23,6 +23,11 @@
       "last_seen": "2026-04-20T21:56:16Z",
       "item": "issue-570",
       "cycle": 1
+    },
+    "sess-14d5911c": {
+      "last_seen": "2026-04-22T08:36:12Z",
+      "item": "issue-680-done",
+      "cycle": 2
     }
   },
   "features": {
@@ -2477,15 +2482,18 @@
       "done_at": "2026-04-22T03:51:17Z"
     },
     "issue-680": {
-      "state": "todo",
-      "title": "feat: GraphRevision diff: the two-panel line-level diff view with navigate-by-change arrows is n",
+      "state": "done",
+      "title": "feat(revisions): navigate-by-change arrows in GraphRevision YAML diff",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "kro-ui"
       ],
       "priority": "medium",
-      "issue": "680"
+      "issue": "680",
+      "pr_merged": true,
+      "pr_number": 694,
+      "done_at": "2026-04-22T08:36:12Z"
     },
     "issue-679": {
       "state": "todo",
