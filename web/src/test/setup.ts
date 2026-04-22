@@ -20,3 +20,20 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
 if (typeof Element !== 'undefined' && !Element.prototype.scrollTo) {
   Element.prototype.scrollTo = () => {}
 }
+
+// JSDOM does not implement window.matchMedia.
+// Provide a minimal stub that returns dark preference by default.
+// Tests that need to control the value can override it with vi.fn().
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  window.matchMedia = (query: string) => ({
+    matches: false, // default: dark OS preference
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  } as MediaQueryList)
+}
+

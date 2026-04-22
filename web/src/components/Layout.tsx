@@ -8,6 +8,7 @@ import { listContexts, getCapabilities } from '@/lib/api'
 import type { KubeContext, KroCapabilities } from '@/lib/api'
 import { isNetworkError } from '@/lib/errors'
 import { useAlertSubscription } from '@/hooks/useAlertSubscription'
+import { useTheme } from '@/hooks/useTheme'
 import { AlertContext } from '@/lib/alertContext'
 import Footer from './Footer'
 import TopBar from './TopBar'
@@ -30,6 +31,9 @@ export default function Layout() {
   // errors, that is 2/2 = 100% — show the cluster-unreachable banner.
   const networkFailuresRef = useRef(0)
   const navigate = useNavigate()
+
+  // OS-preference theme sync with localStorage override (spec 27.17)
+  const { theme, setTheme } = useTheme()
 
   // Health alert subscriptions (spec issue-540)
   const { available: alertAvailable, subscriptionState, toggleSubscription, checkTransitions } = useAlertSubscription()
@@ -110,6 +114,8 @@ export default function Layout() {
           alertAvailable={alertAvailable}
           alertSubscriptionState={subscriptionState}
           onAlertToggle={toggleSubscription}
+          theme={theme}
+          onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         />
         {showVersionWarning && (
           <div
