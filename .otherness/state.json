@@ -2725,15 +2725,31 @@
       "priority": "medium"
     },
     "issue-719": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance management: live DAG polling pause on tab background",
+      "assigned_to": "sess-c4ede11b",
+      "assigned_at": "2026-04-22T21:34:19Z",
+      "branch": "feat/issue-719",
+      "worktree": "../kro-ui.issue-719",
       "labels": [
         "kind/enhancement",
         "priority/medium",
-        "size/s",
-        "area/agent-loop"
+        "size/s"
       ],
-      "priority": "medium"
+      "areas": [
+        "area/ui"
+      ],
+      "file_spaces": [
+        "web/src/hooks/",
+        "web/src/components/",
+        "web/src/pages/"
+      ],
+      "issue_number": 719,
+      "priority": "medium",
+      "pr_number": 736,
+      "pr_url": "https://github.com/pnz1990/kro-ui/pull/736",
+      "pr_merged": true,
+      "done_at": "2026-04-22T21:56:01Z"
     },
     "issue-720": {
       "state": "todo",
