@@ -3,6 +3,7 @@ import ContextSwitcher from './ContextSwitcher'
 import AlertBellButton from './AlertBellButton'
 import type { KubeContext } from '@/lib/api'
 import type { AlertSubscriptionState } from '@/hooks/useAlertSubscription'
+import type { ThemePreference } from '@/hooks/useTheme'
 import './TopBar.css'
 
 interface TopBarProps {
@@ -15,6 +16,10 @@ interface TopBarProps {
   alertSubscriptionState?: AlertSubscriptionState
   /** Called when the bell button is clicked. */
   onAlertToggle?: () => Promise<void>
+  /** Currently active theme ('light' | 'dark'). */
+  theme?: ThemePreference
+  /** Called when the user clicks the theme toggle button. */
+  onThemeToggle?: () => void
 }
 
 export default function TopBar({
@@ -24,6 +29,8 @@ export default function TopBar({
   alertAvailable = false,
   alertSubscriptionState = 'inactive',
   onAlertToggle,
+  theme = 'dark',
+  onThemeToggle,
 }: TopBarProps) {
   return (
     <header className="top-bar">
@@ -90,6 +97,18 @@ export default function TopBar({
           subscriptionState={alertSubscriptionState}
           onToggle={onAlertToggle}
         />
+      )}
+      {onThemeToggle && (
+        <button
+          type="button"
+          className="top-bar__theme-toggle"
+          onClick={onThemeToggle}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          data-testid="topbar-theme-toggle"
+        >
+          {theme === 'dark' ? '☀' : '☾'}
+        </button>
       )}
       <ContextSwitcher
         contexts={contexts}

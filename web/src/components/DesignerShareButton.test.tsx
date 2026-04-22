@@ -1,7 +1,7 @@
 // DesignerShareButton.test.tsx — Unit tests for the Designer share button.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import DesignerShareButton from './DesignerShareButton'
 import type { RGDAuthoringState } from '@/lib/generator'
 
@@ -81,8 +81,8 @@ describe('DesignerShareButton', () => {
     const btn = screen.getByTestId('designer-share-btn')
     await act(async () => { fireEvent.click(btn) })
     expect(screen.getByText('Copied!')).toBeInTheDocument()
-    act(() => { vi.advanceTimersByTime(2000) })
-    await waitFor(() => expect(screen.getByText('Share')).toBeInTheDocument())
+    await act(async () => { vi.advanceTimersByTime(2000) })
+    expect(screen.getByText('Share')).toBeInTheDocument()
     vi.useRealTimers()
   })
 })
