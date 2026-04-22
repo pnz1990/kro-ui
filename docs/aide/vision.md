@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-22 — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-22 — autonomous vision scan (vibe-vision-auto) — Designer tab focus shipped (PR #688); gaps 27.65–27.68 added
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -73,7 +73,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~External Google Fonts dependency~~ ✅ shipped (PR #650) | doc 27 §27.16 | Self-hosted Inter + JetBrains Mono WOFF2 in `web/public/fonts/`; `index.html` no longer references Google Fonts CDN |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
-| Designer tab focus not persisted | doc 31 | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
+| ~~Designer tab focus not persisted~~ ✅ shipped (PR #688) | doc 31 | Tab bar with sessionStorage focus restoration; active tab + selected DAG node persisted across navigation |
 | ~~Designer draft not persisted~~ ✅ shipped (PR #654) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt; disabled in readonly/shared-URL mode |
 | ~~DAG screen reader text alternative missing~~ ✅ shipped (PR #686) | doc 28 | `buildDagDescription()` generates human-readable summary; SVGs have `aria-describedby`; WCAG 2.1 SC 1.1.1 |
 
@@ -127,6 +127,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Pressure block in workflow YAML never self-evolves | doc 27 §27.62 | Scan 5 detects stale pressure but only queues a Future item; if 27.43 (extract to `pressure-context.md`) is implemented, Scan 5 must actually rewrite the file — agents raise the bar, not humans |
 | Scheduled workflow Step A requires full prompt copy per project — can't inherit scan improvements | doc 27 §27.63 | All projects must copy-paste the full vibe-vision-auto prompt into their workflow; bug fixes and new scans require a workflow PR per project; use `prompt: "read and follow ~/.otherness/agents/vibe-vision-auto.md"` instead |
 | No machine-readable health endpoint for external monitoring | doc 27 §27.64 | `loop-health.md` is markdown; a dashboard tool cannot consume it; `loop-health.json` companion file enables COORD to read prior session health and adjust its plan |
+| COORD starts each session blind — never reads prior health state | doc 27 §27.65 | 27.64 makes reading loop-health.json "possible"; nothing makes it mandatory; COORD must read §0 Preflight and override queue-pick when health is RED/AMBER for ≥2 sessions |
+| No adversarial evaluation to break frame-lock | doc 27 §27.66 | 27.25 triggers arch-audit but uses same agent/prompt; a second adversarial invocation instructed to assume the design is wrong is the only mechanism that can detect shared blind spots |
+| No GitHub repo template for zero-configuration otherness setup | doc 27 §27.67 | Every new project still requires a human to know the workflow YAML format, pinned SHAs, and config schema; a `pnz1990/otherness-template` repo eliminates this |
+| Report issue body has no pinned health dashboard link | doc 27 §27.68 | SM comments are append-only; a human arriving at issue #637 must scroll through comments to find health; the issue *body* must contain a static `## Health Dashboard` link to `loop-health.md` |
 
 ### Already addressed (recent PRs)
 
