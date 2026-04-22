@@ -187,6 +187,11 @@ export default function Home() {
     && instancesState.error === null && rgdsState.error === null
     && (instancesState.data?.total ?? 0) === 0 && rgdItems.length === 0
 
+  // kro health detection for onboarding empty state
+  const kroRunning = isOnboarding && capabilitiesState.data !== null
+  const kroNotDetected = isOnboarding && !capabilitiesState.loading && capabilitiesState.error !== null
+  const kroStatusLoading = isOnboarding && capabilitiesState.loading
+
   function truncate(s: string, n: number): string {
     return s.length > n ? s.slice(0, n) + '…' : s
   }
@@ -216,10 +221,37 @@ export default function Home() {
       <HomeHeader isFetching={isFetching} lastFetchedAt={lastFetchedAt} lastAttemptFailed={lastAttemptFailed} onRefresh={fetchAll} />
 
       {isOnboarding && (
-        <div className="home__onboarding">
+        <div className="home__onboarding" data-testid="onboarding-empty-state">
           <h2 className="home__onboarding-title">Welcome to kro-ui</h2>
-          <p className="home__onboarding-desc">No ResourceGraphDefinitions or instances found yet.</p>
-          <Link to="/author" className="home__onboarding-cta">Open RGD Designer</Link>
+          <p className="home__onboarding-desc">No ResourceGraphDefinitions or instances found on this cluster yet.</p>
+
+          <div
+            className={
+              `home__onboarding-kro-status` +
+              (kroRunning ? ' home__onboarding-kro-status--running' : '') +
+              (kroNotDetected ? ' home__onboarding-kro-status--error' : '') +
+              (kroStatusLoading ? ' home__onboarding-kro-status--loading' : '')
+            }
+            role="status"
+            aria-live="polite"
+            data-testid="onboarding-kro-status"
+          >
+            {kroStatusLoading && 'Checking kro status\u2026'}
+            {kroRunning && `\u2713 kro is running${capabilitiesState.data?.version ? ` (${capabilitiesState.data.version})` : ''}`}
+            {kroNotDetected && '\u26a0 kro not detected — check your kubeconfig context'}
+          </div>
+
+          <div className="home__onboarding-actions">
+            <Link to="/author" className="home__onboarding-cta">Create your first RGD</Link>
+            <a
+              href="https://kro.run/docs/getting-started/quick-start"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="home__onboarding-link"
+            >
+              Get started with kro &rarr;
+            </a>
+          </div>
         </div>
       )}
 

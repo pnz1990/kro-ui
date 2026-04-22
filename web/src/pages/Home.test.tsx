@@ -301,3 +301,70 @@ describe('full-page error', () => {
     })
   })
 })
+
+// ── Onboarding empty state ──────────────────────────────────────────────
+
+describe('onboarding empty state', () => {
+  it('shows onboarding banner when 0 RGDs and 0 instances', async () => {
+    renderHome()
+    await waitFor(() => {
+      expect(screen.getByTestId('onboarding-empty-state')).toBeInTheDocument()
+    })
+  })
+
+  it('shows "kro is running" when capabilities API succeeds', async () => {
+    renderHome()
+    await waitFor(() => {
+      const status = screen.getByTestId('onboarding-kro-status')
+      expect(status.textContent).toContain('kro is running')
+    })
+  })
+
+  it('shows kro version in the running status when available', async () => {
+    renderHome()
+    await waitFor(() => {
+      const status = screen.getByTestId('onboarding-kro-status')
+      expect(status.textContent).toContain('v0.9.0')
+    })
+  })
+
+  it('shows "kro not detected" when capabilities API fails', async () => {
+    mockGetCapabilities.mockRejectedValue(new Error('connection refused'))
+    renderHome()
+    await waitFor(() => {
+      const status = screen.getByTestId('onboarding-kro-status')
+      expect(status.textContent).toContain('kro not detected')
+    })
+  })
+
+  it('shows "Create your first RGD" CTA linking to /author', async () => {
+    renderHome()
+    await waitFor(() => {
+      const cta = screen.getByRole('link', { name: /create your first rgd/i })
+      expect(cta).toBeInTheDocument()
+      expect(cta).toHaveAttribute('href', '/author')
+    })
+  })
+
+  it('shows quickstart link to kro.run', async () => {
+    renderHome()
+    await waitFor(() => {
+      const link = screen.getByRole('link', { name: /get started with kro/i })
+      expect(link).toBeInTheDocument()
+      expect(link).toHaveAttribute('href', expect.stringContaining('kro.run'))
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    })
+  })
+
+  it('does NOT show onboarding banner when RGDs are present', async () => {
+    mockListRGDs.mockResolvedValue({
+      items: [{ metadata: { name: 'my-rgd' }, spec: {} }],
+      metadata: {},
+    })
+    renderHome()
+    await waitFor(() => {
+      expect(screen.queryByTestId('onboarding-empty-state')).not.toBeInTheDocument()
+    })
+  })
+})
