@@ -58,23 +58,23 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
 | ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
 | ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
-| Fleet per-cluster timeout not implemented | doc 27 §27.21 + doc 29 | `summariseContext` uses the 30s route context; one hung cluster blocks the Fleet page for up to 30s; the `TestFleetSummaryHandler_ContextTimeout` test documented in proposals/003 was never written |
+| ~~Fleet per-cluster timeout not implemented~~ ✅ shipped (PR #653) | doc 27 §27.21 + doc 29 | `summariseContext` adds `context.WithTimeout(parent, 5*time.Second)`; `TestFleetSummaryHandler_ContextTimeout` verifies 6s completion when a cluster hangs |
 | No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has ~15 nodes; no 50-node or 50-RGD scenario in CI; scale regressions are invisible until a user reports in production |
-| Frontend API calls have no internal timeout | doc 27 §27.20 | `api.ts` passes caller `AbortSignal` but adds no internal timeout; callers that omit a signal hang indefinitely on a stuck server; `AbortSignal.timeout(30_000)` needed in `get()` and `post()` |
+| ~~Frontend API calls have no internal timeout~~ ✅ shipped (PR #652) | doc 27 §27.20 | `withTimeout()` in `api.ts` wraps every `get()`/`post()` with `AbortSignal.any([callerSignal, AbortSignal.timeout(30_000)])`; matches 30s server-side route deadline |
 
 ### Minor gaps (should be addressed before donation, not blockers)
 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
-| axe-core covers only 4 pages | doc 30 | Designer, Fleet, SRE dashboard, Errors tab not scanned; could have WCAG violations |
+| ~~axe-core covers only 4 pages~~ ✅ shipped (PR #634) | doc 30 | axe-core coverage expanded to 8 pages including Designer, Fleet, SRE dashboard, Errors tab |
 | No skip-to-main-content link | doc 30 | Keyboard users tab through the full nav on every page load; WCAG 2.1 SC 2.4.1 |
 | No `aria-live` on health state transitions | doc 30 | Screen readers not informed when instance health changes during 5s polling cycle; WCAG 2.1 SC 4.1.3 |
 | DAG arrow-key navigation missing | doc 28 | Tab-only traversal of DAG nodes; no spatial movement between graph neighbours; WCAG 2.1 SC 2.1.1 |
-| External Google Fonts dependency | doc 27 §27.16 | Breaks in air-gapped clusters; privacy concern; blocks rendering until CDN responds |
+| ~~External Google Fonts dependency~~ ✅ shipped (PR #650) | doc 27 §27.16 | Self-hosted Inter + JetBrains Mono WOFF2 in `web/public/fonts/`; `index.html` no longer references Google Fonts CDN |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
 | Designer tab focus not persisted | doc 31 (new item) | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
-| Designer draft not persisted | doc 31 | Closing `/author` silently discards all edits; `localStorage` auto-save needed |
+| ~~Designer draft not persisted~~ ✅ in progress (PR #654 open) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt implemented; PR #654 pending merge |
 
 ### Development loop gaps (not donation blockers, but slow the path there)
 
@@ -115,6 +115,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Skills library utilization is untraceable — consulted count never recorded | doc 27 §27.51 | 15 skills exist but no session log records which were read; ENG must add `## Skills consulted` to work log; SM must track `skills_consulted` as a metrics column |
 | Scan output never validated before commit — corrupt writes silently committed | doc 27 §27.52 | Python crash mid-write produces truncated doc; post-write validation of section structure must run before `git commit`; failures must post a `[SCAN ERROR]` comment |
 | Skills library content quality is invisible to human and loop alike | doc 27 §27.53 | `skills_count=15` says nothing about coverage; `docs/aide/skills-inventory.md` must list each skill with summary, age, and citation count |
+| vision-scan PRs accumulate unmerged — docs on main stay stale | doc 27 §27.54 | PRs #643, #651, #655 are open vision-scan outputs that never landed on main; future items promoted in those PRs are invisible until merged |
+| Metrics table has no row since batch 51 (2026-04-20) despite active shipping | doc 27 §27.55 | 30+ PRs merged after 2026-04-20 with no metrics row; SM §4b is not running or not reaching the write step |
+| Daily report issue rotation fragments health history across issues | doc 27 §27.56 | REPORT_ISSUE rotated #439→#637; no permanent single view of multi-day health trend; loop-health items in the development loop gaps table have no cross-day continuity |
+| System Loop Health `🔲` items in doc 27 unverifiable — sit indefinitely unimplemented | doc 27 §27.57 | 27.22–27.53 cannot be promoted by Scan 1 (which matches PR titles); need a Scan 1b that checks agent file timestamps against item creation date |
 
 ### Already addressed (recent PRs)
 
@@ -138,4 +142,9 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
 - ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
 - ✅ Color-blind accessible health indicators: `HEALTH_STATE_ICON` map, icon prefixes on HealthPill/ReadinessBadge/OverviewHealthBar — spec issue-580 shipped (2026-04-21)
+- ✅ axe-core coverage expanded to 8 pages (Designer, Fleet, SRE dashboard, Errors tab) — PR #634 shipped (2026-04-21)
+- ✅ Self-hosted Google Fonts (Inter + JetBrains Mono WOFF2) — no more CDN dependency — PR #650 shipped (2026-04-21)
+- ✅ Fleet per-cluster 5s inner deadline in `summariseContext` — PR #653 shipped (2026-04-21)
+- ✅ Per-request 30s fetch timeout via `AbortSignal.timeout` in `api.ts` — PR #652 shipped (2026-04-21)
+- ✅ Partial-RBAC instance visibility: second implementation pass with `rbacHidden` advisory — PR #656 shipped (2026-04-21)
 

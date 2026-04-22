@@ -123,6 +123,44 @@ describe('Layout', () => {
   })
 })
 
+describe('Layout — skip-to-main-content link (WCAG 2.1 SC 2.4.1)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedListContexts.mockResolvedValue({ contexts: [], active: 'test-ctx' })
+    mockedGetCapabilities.mockResolvedValue({
+      version: 'v0.9.1', apiVersion: 'kro.run/v1alpha1',
+      featureGates: {}, knownResources: [],
+      schema: { hasForEach: true, hasExternalRef: true, hasExternalRefSelector: true, hasScope: true, hasTypes: true, hasGraphRevisions: true },
+      isSupported: true,
+    })
+  })
+
+  it('renders a skip-to-main-content link as the first focusable element', async () => {
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('child-content')).toBeInTheDocument()
+    })
+
+    const skipLink = screen.getByRole('link', { name: /skip to main content/i })
+    expect(skipLink).toBeInTheDocument()
+    expect(skipLink).toHaveAttribute('href', '#main-content')
+  })
+
+  it('skip link targets the main element with id="main-content"', async () => {
+    renderLayout()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('child-content')).toBeInTheDocument()
+    })
+
+    // The <main> landmark must have id="main-content" for the skip link to work
+    const main = document.querySelector('main')
+    expect(main).not.toBeNull()
+    expect(main!.id).toBe('main-content')
+  })
+})
+
 describe('Layout — cluster-unreachable banner', () => {
   beforeEach(() => {
     vi.clearAllMocks()

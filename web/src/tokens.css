@@ -348,3 +348,20 @@ button {
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-faint); }
 
+/* ── Screen-reader only (sr-only) ───────────────────────────────────────── */
+/* Visually hidden element accessible to screen readers and keyboard navigation.
+   Used for aria-live announcements and supplemental context text.
+   Follows the widely-accepted clip-based technique (preserves display in
+   accessibility tree without occupying layout space). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
