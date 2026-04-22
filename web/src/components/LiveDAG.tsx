@@ -71,9 +71,11 @@ interface NodeGroupProps {
   svgRef: React.RefObject<SVGSVGElement | null>
   /** Pre-filtered children for collection badge (only passed for collection nodes). */
   children?: K8sObject[]
+  /** Arrow key navigation callback (prev/next in reading order). */
+  onArrowKey?: (nodeId: string, direction: 'prev' | 'next') => void
 }
 
-function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, children }: NodeGroupProps) {
+function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, children, onArrowKey }: NodeGroupProps) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
   // Fixed pixel offsets — safe for both 48px (resource) and 60px (collection) nodes.
@@ -112,6 +114,16 @@ function NodeGroup({ node, state, isSelected, onNodeClick, onHover, svgRef, chil
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onNodeClick?.(node)
+        } else if (
+          e.key === 'ArrowRight' ||
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowUp'
+        ) {
+          e.preventDefault()
+          const direction =
+            e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 'next' : 'prev'
+          onArrowKey?.(node.id, direction)
         }
       }}
     >
@@ -204,6 +216,27 @@ export default function LiveDAG({
   const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
+
+  // Sorted node list for Arrow key navigation (y ASC, x ASC — reading order).
+  const sortedNodes = [...graph.nodes].sort((a, b) => {
+    if (a.y !== b.y) return a.y - b.y
+    return a.x - b.x
+  })
+
+  function handleArrowKey(nodeId: string, direction: 'prev' | 'next') {
+    const idx = sortedNodes.findIndex((n) => n.id === nodeId)
+    if (idx === -1) return
+    const nextIdx =
+      direction === 'next'
+        ? Math.min(idx + 1, sortedNodes.length - 1)
+        : Math.max(idx - 1, 0)
+    const targetId = sortedNodes[nextIdx]?.id
+    if (!targetId || targetId === nodeId) return
+    const el = svgRef.current?.querySelector<SVGGElement>(
+      `[data-testid="dag-node-${targetId}"]`,
+    )
+    el?.focus()
+  }
   // Debounced hide — gives cursor time to travel from node to tooltip. Issue #188.
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -280,6 +313,7 @@ export default function LiveDAG({
               }}
               svgRef={svgRef}
               children={node.nodeType === 'collection' ? children : undefined}
+              onArrowKey={handleArrowKey}
             />
           ))}
         </g>

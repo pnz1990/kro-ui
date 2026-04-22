@@ -301,6 +301,27 @@ export default function StaticChainDAG({
 
   const svgHeight = baseHeight + Math.max(0, extraHeight)
 
+  // Sorted node list for Arrow key navigation (y ASC, x ASC — reading order).
+  const sortedNodes = useMemo(
+    () => [...graph.nodes].sort((a, b) => (a.y !== b.y ? a.y - b.y : a.x - b.x)),
+    [graph.nodes],
+  )
+
+  function handleArrowKey(nodeId: string, direction: 'prev' | 'next') {
+    const idx = sortedNodes.findIndex((n) => n.id === nodeId)
+    if (idx === -1) return
+    const nextIdx =
+      direction === 'next'
+        ? Math.min(idx + 1, sortedNodes.length - 1)
+        : Math.max(idx - 1, 0)
+    const targetId = sortedNodes[nextIdx]?.id
+    if (!targetId || targetId === nodeId) return
+    const el = svgRef.current?.querySelector<SVGGElement>(
+      `[data-testid="dag-node-${targetId}"]`,
+    )
+    el?.focus()
+  }
+
   return (
     <DAGScaleGuard graph={graph}>
     <div className="dag-graph-container static-chain-dag-container">
@@ -400,6 +421,12 @@ export default function StaticChainDAG({
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       onNodeClick?.(node.id)
+                    } else if (
+                      e.key === 'ArrowRight' || e.key === 'ArrowDown' ||
+                      e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+                    ) {
+                      e.preventDefault()
+                      handleArrowKey(node.id, e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 'next' : 'prev')
                     }
                   }}
                   onMouseEnter={() => {
