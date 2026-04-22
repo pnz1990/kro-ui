@@ -52,12 +52,14 @@ function NodeGroup({
   onNodeClick,
   onHover,
   svgRef,
+  onArrowKey,
 }: {
   node: DAGNode
   isSelected: boolean
   onNodeClick?: (id: string) => void
   onHover: (target: DAGTooltipTarget | null) => void
   svgRef: React.RefObject<SVGSVGElement | null>
+  onArrowKey?: (nodeId: string, direction: 'prev' | 'next') => void
 }) {
   const badge = nodeBadge(node)
   const cx = node.x + node.width / 2
@@ -98,6 +100,16 @@ function NodeGroup({
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onNodeClick?.(node.id)
+        } else if (
+          e.key === 'ArrowRight' ||
+          e.key === 'ArrowDown' ||
+          e.key === 'ArrowLeft' ||
+          e.key === 'ArrowUp'
+        ) {
+          e.preventDefault()
+          const direction =
+            e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 'next' : 'prev'
+          onArrowKey?.(node.id, direction)
         }
       }}
     >
@@ -175,6 +187,28 @@ export default function DAGGraph({
   const svgRef = useRef<SVGSVGElement>(null)
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
+  // Sorted node list for Arrow key navigation.
+  // Sort by (y ASC, x ASC) — top-to-bottom, left-to-right (reading order).
+  const sortedNodes = [...graph.nodes].sort((a, b) => {
+    if (a.y !== b.y) return a.y - b.y
+    return a.x - b.x
+  })
+
+  function handleArrowKey(nodeId: string, direction: 'prev' | 'next') {
+    const idx = sortedNodes.findIndex((n) => n.id === nodeId)
+    if (idx === -1) return
+    const nextIdx =
+      direction === 'next'
+        ? Math.min(idx + 1, sortedNodes.length - 1)
+        : Math.max(idx - 1, 0)
+    const targetId = sortedNodes[nextIdx]?.id
+    if (!targetId || targetId === nodeId) return
+    const el = svgRef.current?.querySelector<SVGGElement>(
+      `[data-testid="dag-node-${targetId}"]`,
+    )
+    el?.focus()
+  }
+
   return (
     <DAGScaleGuard graph={graph}>
       <div className="dag-graph-container">
@@ -232,6 +266,7 @@ export default function DAGGraph({
               onNodeClick={onNodeClick}
               onHover={setHoveredTooltip}
               svgRef={svgRef}
+              onArrowKey={handleArrowKey}
             />
           ))}
         </g>
