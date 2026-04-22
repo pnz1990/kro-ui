@@ -493,3 +493,109 @@ describe('InstancesPage bulk operations (spec issue-536)', () => {
     expect(screen.getByTestId('instances-export-yaml')).not.toBeDisabled()
   })
 })
+
+// ── Namespace summary — spec issue-718 ─────────────────────────────────
+
+describe('namespace instance count summary', () => {
+  it('does NOT show namespace summary when only 1 namespace', async () => {
+    mockedList.mockResolvedValue({
+      items: [
+        makeInstance('alpha', { namespace: 'default' }),
+        makeInstance('beta', { namespace: 'default' }),
+      ],
+      total: 2,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.queryByTestId('instances-ns-summary')).toBeNull())
+  })
+
+  it('shows namespace summary when >1 namespace', async () => {
+    mockedList.mockResolvedValue({
+      items: [
+        makeInstance('alpha', { namespace: 'prod' }),
+        makeInstance('beta', { namespace: 'staging' }),
+        makeInstance('gamma', { namespace: 'prod' }),
+      ],
+      total: 3,
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByTestId('instances-ns-summary')).toBeInTheDocument()
+    })
+  })
+
+  it('shows correct instance counts per namespace', async () => {
+    mockedList.mockResolvedValue({
+      items: [
+        makeInstance('alpha', { namespace: 'prod' }),
+        makeInstance('beta', { namespace: 'prod' }),
+        makeInstance('gamma', { namespace: 'staging' }),
+      ],
+      total: 3,
+    })
+    renderPage()
+    await waitFor(() => {
+      const prodPill = screen.getByTestId('instances-ns-pill-prod')
+      expect(prodPill).toBeInTheDocument()
+      expect(prodPill.textContent).toContain('2')
+      const stagingPill = screen.getByTestId('instances-ns-pill-staging')
+      expect(stagingPill.textContent).toContain('1')
+    })
+  })
+
+  it('shows error count on pills with erroring instances', async () => {
+    mockedList.mockResolvedValue({
+      items: [
+        makeInstance('alpha', { namespace: 'prod', ready: 'False', state: '' }),
+        makeInstance('beta', { namespace: 'prod', ready: 'True' }),
+        makeInstance('gamma', { namespace: 'staging' }),
+      ],
+      total: 3,
+    })
+    renderPage()
+    await waitFor(() => {
+      const prodPill = screen.getByTestId('instances-ns-pill-prod')
+      expect(prodPill.textContent).toContain('err')
+    })
+  })
+
+  it('clicking namespace pill filters the table', async () => {
+    const user = userEvent.setup()
+    mockedList.mockResolvedValue({
+      items: [
+        makeInstance('alpha', { namespace: 'prod' }),
+        makeInstance('beta', { namespace: 'staging' }),
+        makeInstance('gamma', { namespace: 'prod' }),
+      ],
+      total: 3,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-ns-summary')).toBeInTheDocument())
+
+    await user.click(screen.getByTestId('instances-ns-pill-prod'))
+
+    // After filtering: only prod instances visible; namespace summary hidden (nsFilter set)
+    await waitFor(() => {
+      expect(screen.queryByTestId('instances-ns-summary')).toBeNull()
+    })
+  })
+
+  it('does NOT show namespace summary when a namespace filter is active', async () => {
+    mockedList.mockResolvedValue({
+      items: [
+        makeInstance('alpha', { namespace: 'prod' }),
+        makeInstance('beta', { namespace: 'staging' }),
+      ],
+      total: 2,
+    })
+    renderPage()
+    await waitFor(() => expect(screen.getByTestId('instances-ns-summary')).toBeInTheDocument())
+
+    // Select namespace filter via dropdown
+    const select = screen.getByTestId('instances-ns-filter')
+    await userEvent.selectOptions(select, 'prod')
+    await waitFor(() => {
+      expect(screen.queryByTestId('instances-ns-summary')).toBeNull()
+    })
+  })
+})

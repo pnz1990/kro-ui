@@ -396,3 +396,67 @@
   color: var(--color-text-muted);
   font-size: 0.8125rem;
 }
+
+/* ── Namespace instance count summary — spec issue-718 ─────────────────── */
+
+.instances-page__ns-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0 0 0;
+}
+
+.instances-page__ns-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 10px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.instances-page__ns-pill:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-border-hover, var(--color-primary-border));
+  color: var(--color-text);
+}
+
+.instances-page__ns-pill--has-errors {
+  border-color: color-mix(in srgb, var(--color-status-error) 30%, transparent);
+}
+
+.instances-page__ns-pill-name {
+  font-weight: 500;
+  color: var(--color-text);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instances-page__ns-pill-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.instances-page__ns-pill-errors {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-status-error);
+  background: color-mix(in srgb, var(--color-status-error) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-status-error) 25%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+}

@@ -208,6 +208,24 @@ export default function InstancesPage() {
     return counts
   }, [items])
 
+  // Namespace instance count summary — spec issue-718
+  // Shows N instances (M errors) per namespace when >1 namespace is present.
+  // Each entry is clickable to filter by that namespace.
+  const namespaceSummary = useMemo(() => {
+    if (namespaceOptions.length <= 1) return []
+    const map = new Map<string, { count: number; errors: number }>()
+    for (const i of items) {
+      const ns = i.namespace || '_'
+      const entry = map.get(ns) ?? { count: 0, errors: 0 }
+      entry.count++
+      if (toHealthState(i) === 'error') entry.errors++
+      map.set(ns, entry)
+    }
+    return Array.from(map.entries())
+      .map(([ns, v]) => ({ ns, ...v }))
+      .sort((a, b) => b.count - a.count || a.ns.localeCompare(b.ns))
+  }, [items, namespaceOptions.length])
+
   // spec issue-536: Escape to exit selection mode (O4)
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -388,6 +406,32 @@ export default function InstancesPage() {
               </button>
             )
           })}
+        </div>
+      )}
+
+      {/* Namespace instance count summary — spec issue-718
+          Shown when >1 namespace present and no namespace filter active.
+          Each pill is a button to filter by that namespace. */}
+      {!isLoading && !nsFilter && namespaceSummary.length > 1 && (
+        <div className="instances-page__ns-summary" data-testid="instances-ns-summary" role="group" aria-label="Instances per namespace">
+          {namespaceSummary.map(({ ns, count, errors }) => (
+            <button
+              key={ns}
+              type="button"
+              className={`instances-page__ns-pill${errors > 0 ? ' instances-page__ns-pill--has-errors' : ''}`}
+              onClick={() => { setNsFilter(ns); setPage(0) }}
+              data-testid={`instances-ns-pill-${ns}`}
+              title={`Click to filter by namespace ${ns}`}
+            >
+              <span className="instances-page__ns-pill-name">{ns}</span>
+              <span className="instances-page__ns-pill-count">{count}</span>
+              {errors > 0 && (
+                <span className="instances-page__ns-pill-errors" aria-label={`${errors} error${errors !== 1 ? 's' : ''}`}>
+                  {errors} err
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       )}
 
