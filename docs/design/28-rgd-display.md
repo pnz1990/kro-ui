@@ -38,6 +38,10 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 
 ## Future (🔲)
 
+- 🔲 RGD display: kro upstream feature parity — when `kubernetes-sigs/kro` ships new RGD fields (e.g. new `spec.resources[].includeWhen` modes, new CEL built-ins, new scope values), the display surface must reflect them; DAG node inspection panels must render new fields rather than ignoring them; the kro-upstream-check workflow opens issues automatically (doc 27 §27.1) but there is no design commitment that new RGD fields land in the display surface within N days of a new kro release; add an explicit SLO: any new kro CRD field that is user-visible must appear in the RGD display surface within 2 kro-ui releases of the kro version that introduced it (2026-04)
+- 🔲 RGD display: first-time user empty state — when a cluster has 0 RGDs, the Overview shows an empty grid with no guidance; a new user does not know whether kro is installed, whether they have the right kubeconfig context, or how to create their first RGD; add a structured empty state that: (1) checks kro health via the capabilities API and shows "kro is running" vs "kro not detected"; (2) links to the kro quickstart doc; (3) shows a "Create your first RGD" CTA pointing to the Designer (/author); the first-time-onboarding feature (PR #139) addressed the footer/tagline but not the empty-grid empty state — this is the most impactful moment for a new kro-ui user (2026-04)
+- 🔲 RGD display: Lighthouse score regression guard — PR #612 shipped code splitting (score ≥70); future PRs that re-bundle dependencies or add large components can silently regress the score; the current perf.yml threshold (70) will flag catastrophic regressions but a score drop from 85 to 71 passes CI without alerting anyone; add a per-PR Lighthouse diff comment (current score vs baseline from main) so developers can see the impact of their change before merge; the visibility goal: a human looking at a PR can see "Lighthouse: 78 → 73 (-5)" without reading the full CI log (2026-04)
+
 ---
 
 ## Zone 1 — Obligations
