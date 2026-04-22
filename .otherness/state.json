@@ -2571,7 +2571,7 @@
       "done_at": "2026-04-22T14:16:41Z"
     },
     "issue-674": {
-      "state": "in_review",
+      "state": "done",
       "title": "feat: Degraded-cluster persona anchor journey: an operator who sees a degraded cluster in the Fl",
       "labels": [
         "kind/enhancement",
@@ -2613,6 +2613,149 @@
       "pr_merged": true,
       "pr_number": 699,
       "done_at": "2026-04-22T11:12:35Z"
+    },
+    "issue-709": {
+      "state": "todo",
+      "title": "feat: 26.7",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-710": {
+      "state": "todo",
+      "title": "feat: RGD display: kro upstream field parity SLO",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-711": {
+      "state": "todo",
+      "title": "feat: Instance management: stuck-reconciling escalation banner",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-712": {
+      "state": "todo",
+      "title": "feat: Health system: SRE dashboard in-session health sparkline",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-713": {
+      "state": "todo",
+      "title": "feat: Designer: apply-to-cluster action",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-714": {
+      "state": "todo",
+      "title": "feat: 26.8",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-715": {
+      "state": "todo",
+      "title": "feat: 26.9",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-716": {
+      "state": "done",
+      "title": "feat: RGD display: first-time user zero-RGD empty state",
+      "branch": "feat/issue-716",
+      "pr_number": 733,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium"
+      ],
+      "priority": "medium"
+    },
+    "issue-717": {
+      "state": "todo",
+      "title": "feat: RGD display: Lighthouse score regression comment on PRs",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-718": {
+      "state": "todo",
+      "title": "feat: Instance management: namespace instance count summary",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-719": {
+      "state": "todo",
+      "title": "feat: Instance management: live DAG polling pause on tab background",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-720": {
+      "state": "todo",
+      "title": "feat: Health system: health snapshot clipboard export",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-721": {
+      "state": "todo",
+      "title": "feat: Designer: CEL expression linter",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
     }
   },
   "sm_cycle_count": 6,
