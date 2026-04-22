@@ -160,6 +160,8 @@ describe('Layout — skip-to-main-content link (WCAG 2.1 SC 2.4.1)', () => {
     expect(main!.id).toBe('main-content')
   })
 })
+
+describe('Layout — cluster-unreachable banner', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedListContexts.mockResolvedValue({ contexts: [], active: 'test-ctx' })
