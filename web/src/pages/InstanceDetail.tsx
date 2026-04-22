@@ -29,7 +29,8 @@ import type { NodeLiveState } from '@/lib/instanceNodeState'
 import { buildDAGGraph } from '@/lib/dag'
 import { buildNodeStateMap } from '@/lib/instanceNodeState'
 import { resolveChildResourceInfo } from '@/lib/resolveResourceName'
-import { extractInstanceHealth, applyDegradedState, displayNamespace } from '@/lib/format'
+import { extractInstanceHealth, applyDegradedState, displayNamespace, HEALTH_STATE_ICON } from '@/lib/format'
+import type { InstanceHealthState } from '@/lib/format'
 import { countHealthyChildren } from '@/lib/telemetry'
 import { usePolling } from '@/hooks/usePolling'
 import { isTerminating, getDeletionTimestamp, getFinalizers } from '@/lib/k8s'
@@ -318,6 +319,35 @@ export default function InstanceDetail() {
     if (instanceGone) instanceGoneRef.current = true
   }, [instanceGone])
 
+  // ── Aria-live health state transition announcements (WCAG 2.1 SC 4.1.3) ──
+  // Screen readers receive no feedback when the health state changes silently
+  // during a poll cycle. We announce state transitions (not every poll).
+  //
+  // Rules:
+  //   - Only fire on TRANSITION (prev !== current); ignore identical polls
+  //   - Skip the initial render (prevRef.current === null)
+  //   - Use aria-live="polite" — not assertive (not an emergency)
+  //   - Message format: "Instance health: <state> <icon>" (concise, unique)
+  const prevHealthRef = useRef<InstanceHealthState | null>(null)
+  const [ariaAnnouncement, setAriaAnnouncement] = useState('')
+
+  useEffect(() => {
+    if (!fastData) return
+    const currentHealth = applyDegradedState(
+      extractInstanceHealth(fastData.instance),
+      countHealthyChildren(nodeStateMap).hasError,
+    )
+    const current = currentHealth.state
+    const prev = prevHealthRef.current
+
+    if (prev !== null && prev !== current) {
+      const icon = HEALTH_STATE_ICON[current] ?? ''
+      setAriaAnnouncement(`Instance health changed to ${current} ${icon}`)
+    }
+
+    prevHealthRef.current = current
+  }, [fastData, nodeStateMap])
+
   // ── Node click handler ───────────────────────────────────────────────────
   function handleNodeClick(node: DAGNode) {
     setSelectedNodeId(node.id)
@@ -469,6 +499,18 @@ export default function InstanceDetail() {
           </li>
         </ol>
       </nav>
+
+      {/* Aria-live region for health state transition announcements (WCAG 2.1 SC 4.1.3).
+          Visually hidden but read by screen readers on transition.
+          Only updated when health STATE changes — not on every poll cycle. */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        data-testid="health-state-announcer"
+      >
+        {ariaAnnouncement}
+      </div>
 
       {/* Header */}
       <div className="instance-detail-header">
