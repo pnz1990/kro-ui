@@ -18,3 +18,5 @@
 | 2026-04-20 | 7 | 49 | - | 0 | 0 | 12 | 0 | 1 | session sess-a2827ba4; merged PR #516 (handlers 95.9%→97.0%, summariseContext 97.8%, ValidateRGD 92.2%) |
 | 2026-04-20 | 8 | 55 | - | 0 | 0 | 12 | 0 | 5 | session sess-e227815e; merged PRs #510,#512 (E2E journey depth+a11y), #521 (k8s 92.6%→93.9%: ScrapeMetrics 64%→93%, RBAC aggregation 100%), #522 (handlers 97.0%→98.2%, total 94.8%→95.9%) |
 | 2026-04-20 | 51 | 16 | - | 0 | 0 | 12 | 0 | 3 | session sess-2dcdc244; merged PRs #545 (kro-upstream-check), #546 (a11y journey 074 chunk), #547 (error-state journeys 076-079) |
+| 2026-04-21 | 52-92 (gap) | - | - | - | - | - | - | - | notes=41 batches unrecorded — SM §4b not running; see session logs and item 27.55 |
+| 2026-04-22 | reconstructed | 40 | - | - | - | 16 | +4 | ~10 | reconstructed by vibe-vision-auto from gh pr list; PRs #549–#688; feat: a11y (DAG nav, SR text, aria-live, skip-link), designer (draft persist, tab focus, cluster import), supply-chain (cosign+SBOM), partial-RBAC, code-splitting, self-hosted-fonts; skills_count from ls ~/.otherness/agents/skills/*.md; item 27.55 |
