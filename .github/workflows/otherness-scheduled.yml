@@ -224,8 +224,7 @@ jobs:
       # Failure here is non-blocking — Step B always runs regardless.
       - name: Otherness — Vision scan (Step A)
         continue-on-error: true
-        uses: anomalyco/opencode/github@  # 
-        env:
+        uses: anomalyco/opencode/github@3175a3c61853e4666acb24fa435783826596665d  # v1.14.20env:
           AWS_REGION:          us-east-1
           GH_TOKEN:            ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           GITHUB_TOKEN:        ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
@@ -289,8 +288,7 @@ jobs:
       # agents_path validated against allowlist before agent reads it (doc 27 §M6).
       # Uses App token when available (M3), falls back to GH_TOKEN PAT.
       - name: Run otherness
-        uses: anomalyco/opencode/github@  # 
-        env:
+        uses: anomalyco/opencode/github@3175a3c61853e4666acb24fa435783826596665d  # v1.14.20env:
           AWS_REGION:          us-east-1
           GH_TOKEN:            ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           GITHUB_TOKEN:        ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
