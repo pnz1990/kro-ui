@@ -63,7 +63,7 @@
 .node-library__hint {
   font-family: var(--font-sans);
   font-size: 0.75rem;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   margin: 0 14px 8px;
 }
 
@@ -184,7 +184,7 @@
 .node-library__template-desc {
   font-family: var(--font-sans);
   font-size: 0.71875rem;
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   margin: 1px 8px 4px;
   line-height: 1.4;
 }

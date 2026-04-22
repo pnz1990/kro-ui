@@ -68,11 +68,12 @@ test.describe('Journey 045 — RGD Designer Validation & Optimizer', () => {
     const kindInput = page.locator('#rgd-kind')
     await kindInput.clear()
 
-    // Inline error must appear beneath the Kind input
+    // Inline error must appear beneath the Kind input (on Schema tab)
     await expect(page.getByText('Kind is required')).toBeVisible({ timeout: 3000 })
 
-    // The YAML preview must still be rendered — validation is advisory only
-    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 3000 })
+    // Switch to YAML tab to verify the preview is still rendered — validation is advisory only
+    await page.getByTestId('designer-tab-yaml').click()
+    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 5000 })
   })
 
   // ── Step 2: PascalCase warning (US1) ───────────────────────────────────
@@ -185,7 +186,11 @@ test.describe('Journey 045 — RGD Designer Validation & Optimizer', () => {
 
   test('Step 7: "Validate against cluster" button is visible in the YAML preview area', async ({ page }) => {
     await page.goto(`${BASE}/author`)
-    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 10000 })
+
+    // Navigate to YAML tab — yaml-preview and dry-run-btn are in the YAML tab
+    await page.getByTestId('designer-tab-yaml').click()
+    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 5000 })
 
     // The dry-run validate button must be present
     await expect(page.getByTestId('dry-run-btn')).toBeVisible({ timeout: 5000 })
@@ -197,7 +202,11 @@ test.describe('Journey 045 — RGD Designer Validation & Optimizer', () => {
 
   test('Step 8: clicking "Validate against cluster" shows loading state temporarily', async ({ page }) => {
     await page.goto(`${BASE}/author`)
-    await expect(page.getByTestId('dry-run-btn')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 10000 })
+
+    // Navigate to YAML tab — dry-run-btn is in the YAML tab
+    await page.getByTestId('designer-tab-yaml').click()
+    await expect(page.getByTestId('dry-run-btn')).toBeVisible({ timeout: 5000 })
 
     // Click validate — button should briefly show loading state
     await page.getByTestId('dry-run-btn').click()
@@ -219,11 +228,15 @@ test.describe('Journey 045 — RGD Designer Validation & Optimizer', () => {
 
   test('Step 9: Copy kubectl apply button remains present and enabled regardless of validation state', async ({ page }) => {
     await page.goto(`${BASE}/author`)
-    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByTestId('rgd-authoring-form')).toBeVisible({ timeout: 10000 })
 
-    // Introduce errors to show the validation badge
+    // Introduce errors on Schema tab to show the validation badge
     await page.locator('#rgd-kind').clear()
     await expect(page.getByTestId('validation-summary')).toBeVisible({ timeout: 3000 })
+
+    // Switch to YAML tab to verify the Copy kubectl apply button is still present
+    await page.getByTestId('designer-tab-yaml').click()
+    await expect(page.getByTestId('yaml-preview')).toBeVisible({ timeout: 5000 })
 
     // The Copy kubectl apply button must still be present and enabled
     const copyBtn = page.getByText('Copy kubectl apply')

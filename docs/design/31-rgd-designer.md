@@ -31,7 +31,7 @@ optimization advisor. It is the primary tool for developers creating new kro wor
 
 - ✅ Designer: node library — click-to-add from common resource templates (NodeLibrary component, GH #543)
 - ✅ Designer: collaboration mode — share designer URL with readonly view (DesignerShareButton + DesignerReadonlyBanner, GH #544)
-- 🔲 Designer axe-core coverage: the `/author` page is not included in journey 074 axe-core scan; the authoring form has many interactive elements (dropdowns, text inputs, toggle buttons, CEL editor) that could have WCAG violations; add axe-core assertion for the Designer in the accessibility journey; referenced in 30-health-system.md §Accessibility audit expansion but needs explicit Designer ownership here
+- ✅ Designer axe-core coverage: journey 074 Step 7 runs WCAG 2.1 AA blocking axe-core assertion on `/author`; tab bar (role=tablist/tab, aria-selected), form inputs, and interactive elements are all in scope; SVG excluded as complex widget; upgraded from non-blocking to blocking in PR #689 (issue #683, 2026-04)
 - ✅ Designer: `localStorage` persistence of in-progress RGD draft — auto-save (debounced 2s) to `kro-ui-designer-draft` key; "Restore draft?" banner on next visit with Restore/Discard actions; disabled in readonly/shared-URL mode (PR #647, 2026-04)
 - ✅ Designer tab focus restoration: tab bar with Schema/Resources/YAML/Preview tabs; active tab and selected DAG node persisted to `sessionStorage` (`kro-ui-designer-tab-state`) so navigating away and returning restores last working context; readonly/shared-URL mode is excluded from persistence (issue #684, 2026-04)
 

@@ -47,12 +47,12 @@ test.describe('Journey 048 — UI Polish', () => {
       return
     }
 
-    await page.goto(BASE)
+    await page.goto(`${BASE}/catalog`)
 
     // Wait for at least one RGD card — use a longer timeout for throttled CI cluster
     const appeared = await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="rgd-card-"]').length > 0 ||
-            document.querySelectorAll('.rgd-card').length > 0,
+      () => document.querySelectorAll('[data-testid^="catalog-card-"], [data-testid^="rgd-card-"]').length > 0 ||
+            document.querySelectorAll('.rgd-card, .catalog-card').length > 0,
       { timeout: 40_000 }
     ).catch(() => null)
 
@@ -62,7 +62,7 @@ test.describe('Journey 048 — UI Polish', () => {
     }
 
     // No raw "undefined" or "[object Object]" in card content
-    const cards = page.locator('[data-testid^="rgd-card-"], .rgd-card')
+    const cards = page.locator('[data-testid^="catalog-card-"], [data-testid^="rgd-card-"], .rgd-card, .catalog-card')
     const firstCard = cards.first()
     await expect(firstCard).toBeVisible({ timeout: 5_000 })
     const cardText = await firstCard.textContent() ?? ''

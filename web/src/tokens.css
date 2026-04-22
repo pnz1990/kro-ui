@@ -19,7 +19,7 @@
   --color-primary-subtle:  rgba(91, 142, 240, 0.06);  /* lighter tint for hover states */
   --color-primary-border:  rgba(91, 142, 240, 0.30);  /* tinted border for badges */
   --color-primary-text:    #93b4f8;   /* primary hue for text on dark bg */
-  --color-on-primary:      #ffffff;   /* text/icon on a --color-primary background */
+  --color-on-primary:      #111113;   /* text/icon on --color-primary bg (dark mode: 5b8ef0 needs dark text for 4.5:1 AA) */
 
   /* Backgrounds — 3-level depth hierarchy */
   --color-bg:              #1b1b1d;   /* page */
