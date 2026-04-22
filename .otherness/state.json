@@ -2431,7 +2431,7 @@
       "done_at": "2026-04-21T23:43:37Z"
     },
     "issue-684": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Designer tab focus restoration: navigating away from `/author` and returning resets the ac",
       "labels": [
         "kind/enhancement",
@@ -2439,7 +2439,9 @@
         "kro-ui"
       ],
       "priority": "medium",
-      "issue": "684"
+      "issue": "684",
+      "pr_merged": true,
+      "done_at": "2026-04-22T05:38:04Z"
     },
     "issue-683": {
       "state": "todo",
