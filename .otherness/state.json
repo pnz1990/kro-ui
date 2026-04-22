@@ -2449,7 +2449,7 @@
       "done_at": "2026-04-22T05:38:04Z"
     },
     "issue-683": {
-      "state": "in_review",
+      "state": "done",
       "title": "feat: Designer axe-core coverage: the `/author` page is not included in journey 074 axe-core sca",
       "labels": [
         "kind/enhancement",
@@ -2463,7 +2463,9 @@
       "branch": "feat/issue-683",
       "worktree": "../kro-ui.issue-683",
       "pr_number": 689,
-      "pr_url": "https://github.com/pnz1990/kro-ui/pull/689"
+      "pr_url": "https://github.com/pnz1990/kro-ui/pull/689",
+      "pr_merged": true,
+      "done_at": "2026-04-22T10:52:27Z"
     },
     "issue-682": {
       "state": "done",
