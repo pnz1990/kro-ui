@@ -24,15 +24,15 @@ chosen to be consistent with or stricter than the practices used in the kro code
 
 ## Current Status
 
-v0.10.0 — production-capable. 90+ features merged across 615+ PRs. kro v0.9.1 support.
-Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.32–27.36),
+v0.10.0 — production-capable. 90+ features merged across 690+ PRs. kro v0.9.1 support.
+Pending work: donation readiness gaps (doc 27), loop system health gaps (doc 27 §27.32–27.64),
 and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extensions).
 
 ---
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 6)
+> Last updated: 2026-04-22 — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -67,14 +67,15 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | ~~axe-core covers only 4 pages~~ ✅ shipped (PR #634) | doc 30 | axe-core coverage expanded to 8 pages including Designer, Fleet, SRE dashboard, Errors tab |
-| No skip-to-main-content link | doc 30 | Keyboard users tab through the full nav on every page load; WCAG 2.1 SC 2.4.1 |
-| No `aria-live` on health state transitions | doc 30 | Screen readers not informed when instance health changes during 5s polling cycle; WCAG 2.1 SC 4.1.3 |
-| DAG arrow-key navigation missing | doc 28 | Tab-only traversal of DAG nodes; no spatial movement between graph neighbours; WCAG 2.1 SC 2.1.1 |
+| ~~No skip-to-main-content link~~ ✅ shipped (PR #669) | doc 30 | Skip-nav link added as first focusable element in Layout; `id="main-content"` on `<main>`; WCAG 2.1 SC 2.4.1 |
+| ~~No `aria-live` on health state transitions~~ ✅ shipped (PR #670) | doc 30 | `aria-live="polite"` region in InstanceDetail with `prevRef` transition tracking; WCAG 2.1 SC 4.1.3 |
+| ~~DAG arrow-key navigation missing~~ ✅ shipped (PR #685) | doc 28 | ArrowKey navigation between DAG nodes (y ASC, x ASC reading order); WCAG 2.1 SC 2.1.1 |
 | ~~External Google Fonts dependency~~ ✅ shipped (PR #650) | doc 27 §27.16 | Self-hosted Inter + JetBrains Mono WOFF2 in `web/public/fonts/`; `index.html` no longer references Google Fonts CDN |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
-| Designer tab focus not persisted | doc 31 (new item) | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
-| ~~Designer draft not persisted~~ ✅ in progress (PR #654 open) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt implemented; PR #654 pending merge |
+| Designer tab focus not persisted | doc 31 | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
+| ~~Designer draft not persisted~~ ✅ shipped (PR #654) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt; disabled in readonly/shared-URL mode |
+| ~~DAG screen reader text alternative missing~~ ✅ shipped (PR #686) | doc 28 | `buildDagDescription()` generates human-readable summary; SVGs have `aria-describedby`; WCAG 2.1 SC 1.1.1 |
 
 ### Development loop gaps (not donation blockers, but slow the path there)
 
@@ -119,6 +120,13 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Metrics table has no row since batch 51 (2026-04-20) despite active shipping | doc 27 §27.55 | 30+ PRs merged after 2026-04-20 with no metrics row; SM §4b is not running or not reaching the write step |
 | Daily report issue rotation fragments health history across issues | doc 27 §27.56 | REPORT_ISSUE rotated #439→#637; no permanent single view of multi-day health trend; loop-health items in the development loop gaps table have no cross-day continuity |
 | System Loop Health `🔲` items in doc 27 unverifiable — sit indefinitely unimplemented | doc 27 §27.57 | 27.22–27.53 cannot be promoted by Scan 1 (which matches PR titles); need a Scan 1b that checks agent file timestamps against item creation date |
+| `docs/aide/loop-health.md` missing 2+ days after being specified | doc 27 §27.58 | Items 27.26 and 27.32 both specified this file; it still doesn't exist; SM §4f is not writing it; all health visibility depends on this file existing |
+| Vision-scan PRs accumulate unmerged — docs on main diverge from scan output | doc 27 §27.59 | PR #672 is an open vision-scan output; `main` doc 27 lacks items 27.40–27.57; SM §4g needs a recovery step to squash-merge stale vision-scan PRs at batch start |
+| GREEN health signal is un-falsifiable — no substantive PR threshold | doc 27 §27.60 | A `chore(config):` one-liner earns GREEN; substantive_pr_count (feat: + design-doc issue link) required before GREEN is honest |
+| vibe-vision-auto Step A output may never land on main if Step B fails | doc 27 §27.61 | Step A commits to a session branch; if Step B is cancelled or exits early, the scan PR is never merged; add auto-merge of stale vision-scan PRs at the start of Step A |
+| Pressure block in workflow YAML never self-evolves | doc 27 §27.62 | Scan 5 detects stale pressure but only queues a Future item; if 27.43 (extract to `pressure-context.md`) is implemented, Scan 5 must actually rewrite the file — agents raise the bar, not humans |
+| Scheduled workflow Step A requires full prompt copy per project — can't inherit scan improvements | doc 27 §27.63 | All projects must copy-paste the full vibe-vision-auto prompt into their workflow; bug fixes and new scans require a workflow PR per project; use `prompt: "read and follow ~/.otherness/agents/vibe-vision-auto.md"` instead |
+| No machine-readable health endpoint for external monitoring | doc 27 §27.64 | `loop-health.md` is markdown; a dashboard tool cannot consume it; `loop-health.json` companion file enables COORD to read prior session health and adjust its plan |
 
 ### Already addressed (recent PRs)
 
@@ -147,4 +155,9 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Fleet per-cluster 5s inner deadline in `summariseContext` — PR #653 shipped (2026-04-21)
 - ✅ Per-request 30s fetch timeout via `AbortSignal.timeout` in `api.ts` — PR #652 shipped (2026-04-21)
 - ✅ Partial-RBAC instance visibility: second implementation pass with `rbacHidden` advisory — PR #656 shipped (2026-04-21)
+- ✅ Designer draft localStorage persistence with "Restore draft?" restore prompt — PR #654 shipped (2026-04-22)
+- ✅ Skip-to-main-content link in Layout — PR #669 shipped (2026-04-22)
+- ✅ `aria-live` health state announcements in InstanceDetail — PR #670 shipped (2026-04-22)
+- ✅ DAG Arrow key navigation between nodes (WCAG 2.1 SC 2.1.1) — PR #685 shipped (2026-04-22)
+- ✅ DAG screen reader text alternative via `buildDagDescription()` (WCAG 2.1 SC 1.1.1) — PR #686 shipped (2026-04-22)
 

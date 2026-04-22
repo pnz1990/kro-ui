@@ -139,4 +139,77 @@ test.describe('073: Developer Persona Journey', () => {
     expect(namespacedVisible || clusterVisible).toBe(true)
   })
 
+  // ── Step 6: Tab bar renders all four tabs ─────────────────────────────────────
+
+  test('Step 6: RGD Designer tab bar renders Schema, Resources, YAML, Preview tabs', async ({ page }) => {
+    await page.goto(`${BASE}/author`)
+
+    // Wait for the tab bar to render
+    await page.waitForFunction(() => {
+      return document.querySelector('[data-testid="designer-tab-bar"]') !== null
+    }, { timeout: 20000 })
+
+    // All four tabs must be visible
+    await expect(page.getByTestId('designer-tab-schema')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('designer-tab-resources')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('designer-tab-yaml')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('designer-tab-preview')).toBeVisible({ timeout: 5000 })
+
+    // Schema tab is active by default
+    const schemaTab = page.getByTestId('designer-tab-schema')
+    const schemaSelected = await schemaTab.getAttribute('aria-selected')
+    expect(schemaSelected).toBe('true')
+  })
+
+  // ── Step 7: Tab focus restoration after navigation ─────────────────────────────
+
+  test('Step 7: Navigating to Resources tab and returning restores tab state', async ({ page }) => {
+    await page.goto(`${BASE}/author`)
+
+    // Wait for tab bar
+    await page.waitForFunction(() => {
+      return document.querySelector('[data-testid="designer-tab-bar"]') !== null
+    }, { timeout: 20000 })
+
+    // Click Resources tab
+    await page.getByTestId('designer-tab-resources').click()
+
+    // Verify Resources tab is now active
+    await page.waitForFunction(() => {
+      const tab = document.querySelector('[data-testid="designer-tab-resources"]')
+      return tab?.getAttribute('aria-selected') === 'true'
+    }, { timeout: 5000 })
+
+    // Navigate away (to Overview)
+    const overviewLink = page.locator('a[href="/"]').first()
+    const hasLink = await overviewLink.isVisible().catch(() => false)
+    if (hasLink) {
+      await overviewLink.click()
+      // Wait for navigation away from /author
+      await page.waitForFunction(() => {
+        return !window.location.pathname.startsWith('/author')
+      }, { timeout: 5000 })
+    } else {
+      // Fallback: navigate programmatically
+      await page.goto(BASE)
+    }
+
+    // Navigate back to /author
+    await page.goto(`${BASE}/author`)
+
+    // Wait for tab bar to re-render
+    await page.waitForFunction(() => {
+      return document.querySelector('[data-testid="designer-tab-bar"]') !== null
+    }, { timeout: 20000 })
+
+    // Resources tab should be restored from sessionStorage (spec issue-684 O3)
+    await page.waitForFunction(() => {
+      const tab = document.querySelector('[data-testid="designer-tab-resources"]')
+      return tab?.getAttribute('aria-selected') === 'true'
+    }, { timeout: 5000 })
+
+    const resourcesTab = page.getByTestId('designer-tab-resources')
+    await expect(resourcesTab).toHaveAttribute('aria-selected', 'true')
+  })
+
 })
