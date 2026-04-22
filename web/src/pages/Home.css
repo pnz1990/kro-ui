@@ -141,7 +141,7 @@
   align-items: center;
   text-align: center;
   padding: 28px 24px;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -163,6 +163,46 @@
   margin: 0;
 }
 
+.home__onboarding-kro-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.home__onboarding-kro-status--running {
+  background: color-mix(in srgb, var(--color-status-ready) 12%, transparent);
+  color: var(--color-status-ready);
+  border-color: color-mix(in srgb, var(--color-status-ready) 30%, transparent);
+}
+
+.home__onboarding-kro-status--error {
+  background: color-mix(in srgb, var(--color-status-degraded) 12%, transparent);
+  color: var(--color-status-degraded);
+  border-color: color-mix(in srgb, var(--color-status-degraded) 30%, transparent);
+}
+
+.home__onboarding-kro-status--loading {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+.home__onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
 .home__onboarding-cta {
   display: inline-flex;
   align-items: center;
@@ -179,6 +219,17 @@
 
 .home__onboarding-cta:hover {
   background: var(--color-primary-hover);
+}
+
+.home__onboarding-link {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-primary-text);
+  text-decoration: none;
+}
+
+.home__onboarding-link:hover {
+  text-decoration: underline;
 }
 
 /* ── W-2: Controller Metrics ──────────────────────────────────────────── */
