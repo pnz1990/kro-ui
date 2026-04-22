@@ -15,16 +15,24 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	types2 "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
@@ -617,4 +625,117 @@ func TestRealFleetClientBuilder_BuildClient(t *testing.T) {
 		assert.NotNil(t, clients.Dynamic())
 		assert.NotNil(t, clients.Discovery())
 	})
+}
+
+// ── TestFleetSummaryHandler_ContextTimeout (T032, spec issue-646 O3) ──────────
+
+// slowFleetClientBuilder returns clients whose List() call blocks until the
+// context is cancelled (simulating a cluster that accepts the connection but
+// never sends a response). This tests the per-cluster 5s inner deadline.
+type slowFleetClientBuilder struct{}
+
+// slowK8sClients wraps a slowDynamic so it implements k8sclient.K8sClients.
+type slowK8sClients struct {
+	dyn  *slowDynamic
+	disc *stubDiscovery
+}
+
+func (s *slowK8sClients) Dynamic() dynamic.Interface              { return s.dyn }
+func (s *slowK8sClients) Discovery() discovery.DiscoveryInterface { return s.disc }
+func (s *slowK8sClients) CachedServerGroupsAndResources() ([]*metav1.APIResourceList, error) {
+	_, lists, err := s.disc.ServerGroupsAndResources()
+	return lists, err
+}
+
+func (b *slowFleetClientBuilder) BuildClient(_, _ string) (k8sclient.K8sClients, error) {
+	return &slowK8sClients{
+		dyn:  &slowDynamic{},
+		disc: newStubDiscovery(),
+	}, nil
+}
+
+// slowDynamic returns a NamespaceableResourceInterface whose List() blocks until ctx is done.
+type slowDynamic struct{}
+
+func (s *slowDynamic) Resource(_ schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
+	return &slowNamespaceableResource{}
+}
+
+type slowNamespaceableResource struct{}
+
+func (s *slowNamespaceableResource) List(ctx context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+func (s *slowNamespaceableResource) Get(_ context.Context, _ string, _ metav1.GetOptions, _ ...string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Apply(_ context.Context, _ string, _ *unstructured.Unstructured, _ metav1.ApplyOptions, _ ...string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) ApplyStatus(_ context.Context, _ string, _ *unstructured.Unstructured, _ metav1.ApplyOptions) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Create(_ context.Context, _ *unstructured.Unstructured, _ metav1.CreateOptions, _ ...string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Update(_ context.Context, _ *unstructured.Unstructured, _ metav1.UpdateOptions, _ ...string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) UpdateStatus(_ context.Context, _ *unstructured.Unstructured, _ metav1.UpdateOptions) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Delete(_ context.Context, _ string, _ metav1.DeleteOptions, _ ...string) error {
+	return fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) DeleteCollection(_ context.Context, _ metav1.DeleteOptions, _ metav1.ListOptions) error {
+	return fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Watch(_ context.Context, _ metav1.ListOptions) (watch.Interface, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Patch(_ context.Context, _ string, _ types2.PatchType, _ []byte, _ metav1.PatchOptions, _ ...string) (*unstructured.Unstructured, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+func (s *slowNamespaceableResource) Namespace(_ string) dynamic.ResourceInterface {
+	return s
+}
+
+// TestFleetSummaryHandler_ContextTimeout verifies that a single hung cluster
+// does not hold the Fleet response beyond the 5s per-cluster inner deadline.
+// Spec: .specify/specs/issue-646/spec.md O3
+func TestFleetSummaryHandler_ContextTimeout(t *testing.T) {
+	ctxStub := &stubClientFactory{
+		contexts: []k8sclient.Context{
+			{Name: "slow-cluster", Cluster: "slow-cluster"},
+		},
+	}
+
+	// Builder returns clients whose List() blocks until context is cancelled.
+	builder := &slowFleetClientBuilder{}
+	h := &Handler{
+		ctxMgr:       ctxStub,
+		fleetBuilder: builder,
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/fleet/summary", nil)
+	rr := httptest.NewRecorder()
+
+	start := time.Now()
+	h.FleetSummary(rr, req)
+	elapsed := time.Since(start)
+
+	// The response must arrive within 6 seconds — the inner deadline fires at 5s.
+	assert.Less(t, elapsed, 6*time.Second,
+		"Fleet response must not hang beyond the 5s per-cluster inner deadline; got %v", elapsed)
+
+	// The slow cluster must report an unhealthy status (unreachable or kro-not-installed).
+	require.Equal(t, http.StatusOK, rr.Code)
+	body := rr.Body.String()
+	assert.Contains(t, body, "slow-cluster",
+		"response must include the slow cluster entry")
+	assert.True(t,
+		strings.Contains(body, string(types.ClusterUnreachable)) ||
+			strings.Contains(body, string(types.ClusterKroNotInstalled)),
+		"slow cluster must be marked unreachable or kro-not-installed; body: %s", body)
 }
