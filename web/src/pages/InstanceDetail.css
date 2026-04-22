@@ -179,20 +179,39 @@
   color: var(--color-reconciling);
 }
 
-/* Escalated variant — shown when reconciling for > 5 minutes */
+/* Escalated variant — shown when reconciling for > 10 minutes (spec issue-711) */
 .reconciling-banner--stuck {
   background: var(--node-error-bg);
   border-color: var(--node-error-border);
   color: var(--color-error);
+  align-items: flex-start;
 }
 
 .reconciling-banner--stuck .reconciling-banner-pulse {
   animation-duration: 0.8s;
+  margin-top: 2px;
 }
 
 .reconciling-banner-pulse {
   animation: reconciling-pulse 1.5s ease-in-out infinite;
   font-size: 10px;
+  flex-shrink: 0;
+}
+
+/* kubectl describe command — monospace, user-selectable (spec issue-711, O2) */
+.reconciling-banner-cmd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  color: var(--color-text);
+  margin-top: 2px;
+  user-select: all;
+  cursor: text;
+  word-break: break-all;
 }
 
 .instance-gone-banner {

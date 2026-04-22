@@ -2,6 +2,8 @@
 // Bar mode removed — donut only. No toggle.
 
 import type { HealthDistribution } from '@/lib/format'
+import type { HealthSample } from '@/hooks/useHealthTrend'
+import HealthTrendSparkline from './HealthTrendSparkline'
 import './InstanceHealthWidget.css'
 
 export type ChartMode = 'bar' | 'donut'
@@ -9,6 +11,9 @@ export type { HealthDistribution }
 
 interface InstanceHealthWidgetProps {
   distribution: HealthDistribution
+  /** In-session health trend samples. When provided, renders a sparkline below
+   *  the legend. Fewer than 2 samples show the sparkline's own placeholder. */
+  samples?: HealthSample[]
 }
 
 type HealthKey = 'error' | 'degraded' | 'reconciling' | 'pending' | 'unknown' | 'ready'
@@ -28,7 +33,7 @@ const DONUT_CY = 52
 const DONUT_STROKE = 14
 const DONUT_C = 2 * Math.PI * DONUT_R
 
-export default function InstanceHealthWidget({ distribution }: InstanceHealthWidgetProps) {
+export default function InstanceHealthWidget({ distribution, samples }: InstanceHealthWidgetProps) {
   const { total } = distribution
   const activeSegments = HEALTH_ORDER.filter(({ key }) => distribution[key] > 0)
 
@@ -54,12 +59,13 @@ export default function InstanceHealthWidget({ distribution }: InstanceHealthWid
 
   return (
     <div className="ihw" data-testid="instance-health-widget">
-      <svg
-        className="ihw__svg"
-        viewBox="0 0 104 104"
-        role="img"
-        aria-label="Instance health distribution"
-      >
+      <div className="ihw__top">
+        <svg
+          className="ihw__svg"
+          viewBox="0 0 104 104"
+          role="img"
+          aria-label="Instance health distribution"
+        >
         <circle
           cx={DONUT_CX} cy={DONUT_CY} r={DONUT_R}
           fill="none"
@@ -96,6 +102,14 @@ export default function InstanceHealthWidget({ distribution }: InstanceHealthWid
           </div>
         ))}
       </div>
+      </div>{/* end .ihw__top */}
+
+      {/* In-session health trend sparkline — spec issue-712 O2 */}
+      {samples !== undefined && (
+        <div className="ihw__sparkline">
+          <HealthTrendSparkline samples={samples} />
+        </div>
+      )}
     </div>
   )
 }
