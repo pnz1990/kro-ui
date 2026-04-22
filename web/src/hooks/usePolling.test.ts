@@ -12,6 +12,11 @@ describe('usePolling', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    // Restore visibility state to 'visible'
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    })
   })
 
   // ── T001: calls fetcher on mount ─────────────────────────────────────────
@@ -145,5 +150,219 @@ describe('usePolling', () => {
 
     expect(result.current.lastRefresh).not.toBeNull()
     expect(result.current.lastRefresh?.getTime()).toBe(now.getTime())
+  })
+
+  // ── T007: manual pause stops polling (GH #719) ───────────────────────────
+
+  it('T007: manual pause() stops the interval', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ value: 1 })
+
+    const { result } = renderHook(() =>
+      usePolling(fetcher, [], { intervalMs: 5000 }),
+    )
+
+    // Initial fetch
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    // Pause
+    act(() => {
+      result.current.pause()
+    })
+    expect(result.current.paused).toBe(true)
+
+    // Advance 20s — no new polls should fire while paused
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20000)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  // ── T008: resume() restarts polling and triggers immediate fetch ──────────
+
+  it('T008: resume() restarts polling and fetches immediately', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ value: 1 })
+
+    const { result } = renderHook(() =>
+      usePolling(fetcher, [], { intervalMs: 5000 }),
+    )
+
+    // Initial fetch
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    // Pause
+    act(() => {
+      result.current.pause()
+    })
+
+    // Resume — should trigger an immediate re-fetch
+    await act(async () => {
+      result.current.resume()
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    expect(result.current.paused).toBe(false)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+
+    // Polling continues after resume
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  // ── T009: visibilitychange hides tab → stops interval (GH #719) ──────────
+
+  it('T009: auto-pause when tab becomes hidden', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ value: 1 })
+
+    renderHook(() =>
+      usePolling(fetcher, [], { intervalMs: 5000, pauseOnHidden: true }),
+    )
+
+    // Initial fetch
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    // Simulate tab going hidden
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    // Advance time — no polling while hidden
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20000)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  // ── T010: visibilitychange shows tab → resumes polling (GH #719) ─────────
+
+  it('T010: auto-resume when tab becomes visible again', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ value: 1 })
+
+    renderHook(() =>
+      usePolling(fetcher, [], { intervalMs: 5000, pauseOnHidden: true }),
+    )
+
+    // Initial fetch
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    // Hide tab
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10000)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1) // still paused
+
+    // Show tab — immediate fetch should fire
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(2) // resumed + immediate fetch
+
+    // Interval resumes too
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(3)
+  })
+
+  // ── T011: pauseOnHidden=false disables auto-pause behaviour ──────────────
+
+  it('T011: pauseOnHidden=false — keeps polling when tab is hidden', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ value: 1 })
+
+    renderHook(() =>
+      usePolling(fetcher, [], { intervalMs: 5000, pauseOnHidden: false }),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    // Simulate hidden tab
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    // Polling should continue when opt-out
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
+  // ── T012: manual pause takes precedence over auto-resume ─────────────────
+
+  it('T012: manual pause is not overridden by tab becoming visible', async () => {
+    const fetcher = vi.fn().mockResolvedValue({ value: 1 })
+
+    const { result } = renderHook(() =>
+      usePolling(fetcher, [], { intervalMs: 5000, pauseOnHidden: true }),
+    )
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0)
+    })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    // Manually pause first
+    act(() => {
+      result.current.pause()
+    })
+
+    // Hide tab then show tab — auto-resume should NOT fire because user paused
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    })
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    })
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      await vi.advanceTimersByTimeAsync(0)
+    })
+
+    // Still paused — no additional fetches
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(result.current.paused).toBe(true)
   })
 })
