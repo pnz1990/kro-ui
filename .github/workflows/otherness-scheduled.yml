@@ -135,17 +135,21 @@ jobs:
           AGENT_VERSION=$(python3 -c "
           import re
           for line in open('otherness-config.yaml'):
-              m = re.match(r'^\s+agent_version:\s*[\"\'']?([^\"\'#\n\s]+)[\"\'']?', line)
-              if m and m.group(1) not in ('','\"\"',\"''\"):
-                  print(m.group(1)); break
+              m = re.match(r'^\s+agent_version:\s*(.+)', line)
+              if m:
+                  val = m.group(1).split('#')[0].strip().strip('\"').strip(\"'\")
+                  if val and val not in ('', '\"\"', \"''\"):
+                      print(val); break
           " 2>/dev/null || echo "")
 
           UPGRADE_POLICY=$(python3 -c "
           import re
           for line in open('otherness-config.yaml'):
-              m = re.match(r'^\s+upgrade_policy:\s*[\"\'']?([^\"\'#\n\s]+)[\"\'']?', line)
-              if m and m.group(1) not in ('','\"\"',\"''\"):
-                  print(m.group(1)); break
+              m = re.match(r'^\s+upgrade_policy:\s*(.+)', line)
+              if m:
+                  val = m.group(1).split('#')[0].strip().strip('\"').strip(\"'\")
+                  if val and val not in ('', '\"\"', \"''\"):
+                      print(val); break
           " 2>/dev/null || echo "")
 
           echo "[otherness] agent_version=${AGENT_VERSION:-unset} upgrade_policy=${UPGRADE_POLICY:-none}"
@@ -230,6 +234,8 @@ jobs:
           GH_TOKEN:            ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           GITHUB_TOKEN:        ${{ steps.app-token.outputs.token || secrets.GH_TOKEN }}
           OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'
+          # speckit non-interactive permissions — design doc 42 §O2
+          SPECKIT_COPILOT_ALLOW_ALL_TOOLS: "1"
         with:
           model: amazon-bedrock/global.anthropic.claude-sonnet-4-6
           use_github_token: "true"
@@ -297,6 +303,8 @@ jobs:
           # Pre-approve all tool permissions — no interactive TTY on runners.
           # ctx.ask() blocks indefinitely without this (doc 19 — confirmed fix).
           OPENCODE_PERMISSION: '{"bash":"allow","read":"allow","edit":"allow","write":"allow","glob":"allow","grep":"allow","list":"allow","external_directory":"allow","webfetch":"allow","task":"allow","todowrite":"allow","skill":"allow"}'
+          # speckit non-interactive permissions — design doc 42 §O2
+          SPECKIT_COPILOT_ALLOW_ALL_TOOLS: "1"
         with:
           model: amazon-bedrock/global.anthropic.claude-sonnet-4-6
           use_github_token: "true"
