@@ -80,6 +80,11 @@ export default defineConfig({
     // Grant clipboard permissions so journey 006 can assert copy-button output
     contextOptions: {
       permissions: ['clipboard-read', 'clipboard-write'],
+      // Force dark color scheme — kro-ui defaults to dark mode and all E2E
+      // color assertions (journey 006) check dark-mode token values.
+      // Without this, Playwright's default light OS preference would activate
+      // useTheme() light mode, changing token colors and breaking journey 006.
+      colorScheme: 'dark',
     },
   },
 
