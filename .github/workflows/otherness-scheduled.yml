@@ -181,6 +181,8 @@ jobs:
             else
               echo "[otherness] Already at newest allowed version ($AGENT_VERSION)"
             fi
+          fi
+
           if [ -n "$AGENT_VERSION" ] && [ "$RESOLVED_VERSION" = "$AGENT_VERSION" ]; then
             git -C ~/.otherness fetch --tags --quiet 2>/dev/null || true
             git -C ~/.otherness checkout "$AGENT_VERSION" --quiet 2>/dev/null \
