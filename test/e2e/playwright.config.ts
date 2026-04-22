@@ -145,7 +145,7 @@ export default defineConfig({
       fullyParallel: true,
     },
     {
-      // chunk-9 covers journeys added in specs 060–086       // (health-filter, fleet-reconciling, instances-filter, health-sort,
+      // chunk-9 covers journeys added in specs 060–087       // (health-filter, fleet-reconciling, instances-filter, health-sort,
        //  status-message, error-banner, catalog-status-filter, kro-v091,
        //  operator-persona-journey, sre-persona-journey, developer-persona-journey,
        //  accessibility (074), fleet-persona-journey,
@@ -154,9 +154,9 @@ export default defineConfig({
        //  performance-budget (080), partial-rbac (081),
        //  designer-cluster-import (082), scale-fixture (083),
        //  fetch-timeout (084), air-gapped-smoke (085),
-       //  degraded-cluster-persona (086))
+       //  degraded-cluster-persona (086), rbac-restricted-persona (087))
       name: 'chunk-9',
-      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086)-.*\.spec\.ts/,      ...PARALLEL_OPTS,
+      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086|087)-.*\.spec\.ts/,      ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
     },

@@ -62,9 +62,10 @@ They do not map 1:1 to a feature spec; they map to a persona and a dod-journey.
 
 ✅ 26.4 — Air-gapped smoke test (issue #676): Playwright journey 085 intercepts all external CDN requests; asserts Overview/Catalog/Fleet/Designer pages render, self-hosted Inter-400.woff2 is served by the binary.
 ✅ 26.5 — Degraded-cluster persona anchor journey (issue #674): journey 086 — Fleet page with injected degraded fleet summary → navigate to failing RGD detail → Errors tab → Validation tab (conditions) → YAML tab; all 7 steps pass without crash.
+✅ 26.6 — RBAC-restricted persona journey (issue #675): journey 087 — /instances page with injected rbacHidden=3 verifies RBAC advisory UI; live cluster check verifies no advisory when rbacHidden=0; count propagation test verifies rbacHidden=7 displays correctly.
 
 ---
 
 ## Future
 
-- 🔲 RBAC-restricted persona journey: an operator with read-only access to only 2 of 5 namespaces opens the /instances page; the journey must assert the "N RGDs hidden — insufficient permissions" advisory is visible (tests the partial-RBAC gap in 29-instance-management.md)
+- 🔲 Air-gapped environment smoke test: start kro-ui binary with no external network access (block fonts.googleapis.com at the host level); assert the UI is still fully functional and all text renders with a system fallback font — required before self-hosting fonts (spec 27.16) to prove the fallback path works
