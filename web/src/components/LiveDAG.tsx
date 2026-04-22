@@ -8,10 +8,11 @@
 // Fix #73 / Spec 021: hover tooltip via shared DAGTooltip (portal, viewport-clamped).
 // Spec 021: readyWhen badge on nodes with hasReadyWhen.
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useId } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
-// Issue #255: fittedHeight extracted to dag.ts alongside fittedWidth — no more duplication
+
 import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel, nodeStateForNode, fittedWidth, fittedHeight } from '@/lib/dag'
+import { buildDagDescription } from './DAGGraph'
 import type { NodeStateMap, NodeLiveState } from '@/lib/instanceNodeState'
 import type { K8sObject } from '@/lib/api'
 import CollectionBadge from './CollectionBadge'
@@ -215,6 +216,7 @@ export default function LiveDAG({
   const svgHeight = fittedHeight(graph)
   const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
+  const descId = useId()
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
   // Sorted node list for Arrow key navigation (y ASC, x ASC — reading order).
@@ -254,6 +256,10 @@ export default function LiveDAG({
 
   return (
     <div className="dag-graph-container live-dag-container">
+      {/* sr-only description — WCAG 2.1 SC 1.1.1: text alternative for the SVG graph */}
+      <span id={descId} className="sr-only">
+        {buildDagDescription(graph)}
+      </span>
       <svg
         ref={svgRef}
         data-testid="dag-svg"
@@ -262,6 +268,7 @@ export default function LiveDAG({
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         aria-label="Live resource dependency graph"
+        aria-describedby={descId}
         role="img"
       >
         <defs>
