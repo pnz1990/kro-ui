@@ -147,4 +147,45 @@ describe('InstanceHealthWidget', () => {
     const circles = container.querySelectorAll('circle')
     expect(circles.length).toBe(2)
   })
+
+  // ── Sparkline (spec issue-712 O2) ──────────────────────────────
+
+  it('does NOT render sparkline when samples prop is undefined', () => {
+    render(<InstanceHealthWidget distribution={makeDistribution({ ready: 5, total: 5 })} />)
+    // No sparkline container
+    expect(document.querySelector('.ihw__sparkline')).not.toBeInTheDocument()
+  })
+
+  it('renders sparkline placeholder when samples prop is an empty array', () => {
+    render(
+      <InstanceHealthWidget
+        distribution={makeDistribution({ ready: 5, total: 5 })}
+        samples={[]}
+      />,
+    )
+    // Sparkline container is present
+    const sparklineContainer = document.querySelector('.ihw__sparkline')
+    expect(sparklineContainer).toBeInTheDocument()
+    // HealthTrendSparkline renders "not enough data" placeholder for < 2 samples
+    expect(sparklineContainer?.textContent).toContain('Not enough data')
+  })
+
+  it('renders sparkline chart when 2+ samples are provided', () => {
+    const now = Date.now()
+    const twoSamples = [
+      { timestamp: now - 5000, total: 3, ready: 2, error: 0, degraded: 0, reconciling: 1, pending: 0, unknown: 0 },
+      { timestamp: now, total: 3, ready: 3, error: 0, degraded: 0, reconciling: 0, pending: 0, unknown: 0 },
+    ]
+    const { container } = render(
+      <InstanceHealthWidget
+        distribution={makeDistribution({ ready: 3, total: 3 })}
+        samples={twoSamples}
+      />,
+    )
+    const sparklineContainer = document.querySelector('.ihw__sparkline')
+    expect(sparklineContainer).toBeInTheDocument()
+    // SVG polylines should be rendered (2 lines: ready + error)
+    const polylines = container.querySelectorAll('polyline')
+    expect(polylines.length).toBeGreaterThanOrEqual(2)
+  })
 })

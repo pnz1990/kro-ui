@@ -305,4 +305,92 @@ describe('InstanceDetail', () => {
       return text.length > 0
     }, { timeout: 5000 })
   })
+
+  // ── Stuck-reconciling escalation banner (spec issue-711) ──────────────────
+
+  it('does NOT escalate reconciling banner when stuck for < 10 minutes', async () => {
+    // Instance is reconciling (IN_PROGRESS) with a 5-minute-old condition
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    mockedGetInstance.mockResolvedValue({
+      apiVersion: 'app.k8s.io/v1alpha1',
+      kind: 'WebApp',
+      metadata: { name: 'my-app', namespace: 'default', creationTimestamp: fiveMinAgo },
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [
+          { type: 'Ready', status: 'False', lastTransitionTime: fiveMinAgo },
+        ],
+      },
+    })
+
+    renderPage()
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument(),
+    )
+
+    // Normal reconciling banner should show, but no kubectl describe command
+    const banner = document.querySelector('.reconciling-banner')
+    expect(banner).toBeInTheDocument()
+    expect(banner).not.toHaveClass('reconciling-banner--stuck')
+    // No kubectl describe code block
+    expect(document.querySelector('.reconciling-banner-cmd')).not.toBeInTheDocument()
+  })
+
+  it('escalates reconciling banner with kubectl describe when stuck >= 10 minutes', async () => {
+    // Instance is reconciling with a 15-minute-old condition
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+    mockedGetInstance.mockResolvedValue({
+      apiVersion: 'app.k8s.io/v1alpha1',
+      kind: 'WebApp',
+      metadata: { name: 'my-app', namespace: 'default', creationTimestamp: fifteenMinAgo },
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [
+          { type: 'Ready', status: 'False', lastTransitionTime: fifteenMinAgo },
+        ],
+      },
+    })
+
+    renderPage()
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument(),
+    )
+
+    // Stuck variant must be present
+    const banner = document.querySelector('.reconciling-banner--stuck')
+    expect(banner).toBeInTheDocument()
+
+    // Must include the kubectl describe command (O2)
+    const cmd = document.querySelector('.reconciling-banner-cmd')
+    expect(cmd).toBeInTheDocument()
+    expect(cmd?.textContent).toContain('kubectl describe')
+    expect(cmd?.textContent).toContain('webapp') // kind lowercased
+    expect(cmd?.textContent).toContain('my-app')  // instance name
+    expect(cmd?.textContent).toContain('-n default') // namespace flag
+  })
+
+  it('omits namespace flag from kubectl describe for cluster-scoped instances', async () => {
+    const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+    mockedGetInstance.mockResolvedValue({
+      apiVersion: 'app.k8s.io/v1alpha1',
+      kind: 'WebApp',
+      metadata: { name: 'my-app', namespace: '_', creationTimestamp: fifteenMinAgo },
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [
+          { type: 'Ready', status: 'False', lastTransitionTime: fifteenMinAgo },
+        ],
+      },
+    })
+
+    // Render with namespace='_' (cluster-scoped)
+    renderPage('test-app', '_', 'my-app')
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument(),
+    )
+
+    const cmd = document.querySelector('.reconciling-banner-cmd')
+    expect(cmd).toBeInTheDocument()
+    expect(cmd?.textContent).not.toContain('-n')
+  })
 })
