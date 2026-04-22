@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-21 — autonomous vision scan (vibe-vision-auto, run 6)
+> Last updated: 2026-04-22 — autonomous vision scan (vibe-vision-auto, run 7)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -41,7 +41,6 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 
 | Gap | Design doc item | Why it blocks |
 |-----|----------------|---------------|
-| ~~No signed artifacts or SBOM in release~~ ✅ shipped | doc 27 §27.10 | Shipped (PR #626): cosign keyless signing + CycloneDX SBOM + SLSA provenance attestation |
 | ~~No signed artifacts or SBOM in release~~ ✅ shipped (PR #626) | doc 27 §27.10 | Shipped: cosign keyless signing, CycloneDX SBOM via anchore/sbom-action, SLSA provenance attestation |
 | ~~No `GOVERNANCE.md`~~ ✅ shipped | doc 27 §27.8 | Shipped (PR #592) |
 | ~~No `CODE_OF_CONDUCT.md` at repo root~~ ✅ shipped | doc 27 §27.9 | Shipped (PR #592) |
@@ -52,8 +51,6 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | ~~DAG unusable at 200+ nodes~~ ✅ shipped (PR #613) | doc 28 + doc 27 §27.13 | DAG scale guard shipped: text-mode fallback for >100-node graphs with opt-in toggle |
-| ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red (duplicate row removed) |
-| ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | `rbacHidden` field in ListAllInstancesResponse; "N RGD(s) hidden — insufficient permissions" advisory on /instances; Go unit tests + E2E journey 081 |
 | ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
 | ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
@@ -67,14 +64,14 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | Gap | Design doc item | Impact |
 |-----|----------------|--------|
 | ~~axe-core covers only 4 pages~~ ✅ shipped (PR #634) | doc 30 | axe-core coverage expanded to 8 pages including Designer, Fleet, SRE dashboard, Errors tab |
-| No skip-to-main-content link | doc 30 | Keyboard users tab through the full nav on every page load; WCAG 2.1 SC 2.4.1 |
-| No `aria-live` on health state transitions | doc 30 | Screen readers not informed when instance health changes during 5s polling cycle; WCAG 2.1 SC 4.1.3 |
+| ~~No skip-to-main-content link~~ ✅ shipped (PR #669) | doc 30 | Skip-nav link added as first focusable element in Layout; `id="main-content"` on `<main>`; `.sr-only` hidden until focused; satisfies WCAG 2.1 SC 2.4.1 |
+| ~~No `aria-live` on health state transitions~~ ✅ shipped (PR #670) | doc 30 | `aria-live="polite"` region added to InstanceDetail; announces health transitions on polling cycle; satisfies WCAG 2.1 SC 4.1.3 |
 | DAG arrow-key navigation missing | doc 28 | Tab-only traversal of DAG nodes; no spatial movement between graph neighbours; WCAG 2.1 SC 2.1.1 |
 | ~~External Google Fonts dependency~~ ✅ shipped (PR #650) | doc 27 §27.16 | Self-hosted Inter + JetBrains Mono WOFF2 in `web/public/fonts/`; `index.html` no longer references Google Fonts CDN |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
 | Designer tab focus not persisted | doc 31 (new item) | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
-| ~~Designer draft not persisted~~ ✅ in progress (PR #654 open) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt implemented; PR #654 pending merge |
+| ~~Designer draft not persisted~~ ✅ shipped (PR #654) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt implemented and merged |
 
 ### Development loop gaps (not donation blockers, but slow the path there)
 
@@ -118,7 +115,10 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | vision-scan PRs accumulate unmerged — docs on main stay stale | doc 27 §27.54 | PRs #643, #651, #655 are open vision-scan outputs that never landed on main; future items promoted in those PRs are invisible until merged |
 | Metrics table has no row since batch 51 (2026-04-20) despite active shipping | doc 27 §27.55 | 30+ PRs merged after 2026-04-20 with no metrics row; SM §4b is not running or not reaching the write step |
 | Daily report issue rotation fragments health history across issues | doc 27 §27.56 | REPORT_ISSUE rotated #439→#637; no permanent single view of multi-day health trend; loop-health items in the development loop gaps table have no cross-day continuity |
-| System Loop Health `🔲` items in doc 27 unverifiable — sit indefinitely unimplemented | doc 27 §27.57 | 27.22–27.53 cannot be promoted by Scan 1 (which matches PR titles); need a Scan 1b that checks agent file timestamps against item creation date |
+| System Loop Health `🔲` items in doc 27 unverifiable — sit indefinitely unimplemented | doc 27 §27.57 | 27.22–27.57 cannot be promoted by Scan 1 (which matches PR titles); need a Scan 1b that checks agent file timestamps against item creation date |
+| `docs/aide/loop-health.md` is missing — SM health dashboard is dark | doc 27 §27.58 | File specified by 27.26/27.32 does not exist as of 2026-04-22; SM is not writing it; all health visibility improvements depend on this file existing |
+| Vision-scan PRs accumulating unmerged — doc 27 on main lags reality | doc 27 §27.59 | Open PRs from prior vibe-vision-auto runs contain items 27.40–57; `main` does not have them; SM §4g needs a recovery step to squash-merge stale scan PRs at batch start |
+| GREEN health signal is structurally un-falsifiable — CI pass ≠ meaningful shipping | doc 27 §27.60 | Any `chore:` one-liner passes CI and earns GREEN; `substantive_pr_count >= 1` threshold required before SM can post GREEN honestly |
 
 ### Already addressed (recent PRs)
 
@@ -136,8 +136,6 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ v0.10.0 release (goreleaser binary + Docker image) — PR #589 shipped
 - ✅ DAG scale guard (>100-node text-mode fallback) — PR #613 shipped (2026-04-21)
 - ✅ Frontend code splitting (React.lazy per route, bundle ~150KB gzipped) — PR #612 shipped (2026-04-21)
-- ✅ Supply chain security: cosign signing + CycloneDX SBOM + SLSA provenance — PR #626 shipped (2026-04-21)
-- ✅ Partial-RBAC graceful degradation: `rbacHidden` indicator + "N hidden" advisory on /instances — PR #622 shipped (2026-04-21)
 - ✅ Supply chain security: cosign signing, SBOM, SLSA provenance — PR #626 shipped (2026-04-21)
 - ✅ Partial-RBAC graceful degradation: rbacHidden indicator, "N RGDs hidden" advisory — PR #622 shipped (2026-04-21)
 - ✅ YAML diff line-level highlighting in RevisionsTab (LCS algorithm) — PR #624 shipped (2026-04-21)
@@ -147,4 +145,8 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Fleet per-cluster 5s inner deadline in `summariseContext` — PR #653 shipped (2026-04-21)
 - ✅ Per-request 30s fetch timeout via `AbortSignal.timeout` in `api.ts` — PR #652 shipped (2026-04-21)
 - ✅ Partial-RBAC instance visibility: second implementation pass with `rbacHidden` advisory — PR #656 shipped (2026-04-21)
+- ✅ Skip-to-main-content link in Layout — PR #669 shipped (2026-04-22)
+- ✅ aria-live health state announcements in InstanceDetail (WCAG 2.1 SC 4.1.3) — PR #670 shipped (2026-04-22)
+- ✅ Designer localStorage draft persistence — auto-save and restore prompt — PR #654 shipped (2026-04-22)
+- ✅ Logo/favicon PNGs replaced with 32×32 optimized versions (was 4.1MB, now 206 bytes) — PR #661 shipped (2026-04-22)
 
