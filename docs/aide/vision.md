@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-22 — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-22 (scan 2) — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -59,7 +59,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
 | ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
 | ~~Fleet per-cluster timeout not implemented~~ ✅ shipped (PR #653) | doc 27 §27.21 + doc 29 | `summariseContext` adds `context.WithTimeout(parent, 5*time.Second)`; `TestFleetSummaryHandler_ContextTimeout` verifies 6s completion when a cluster hangs |
-| No scale E2E fixture | doc 27 §27.18 | Largest fixture RGD has ~15 nodes; no 50-node or 50-RGD scenario in CI; scale regressions are invisible until a user reports in production |
+| ~~No scale E2E fixture~~ ✅ shipped (PR #699) | doc 27 §27.18 | `scale-wide` RGD with 20 ConfigMap nodes + journey 083; DOM Interactive ≤2000ms assertion; registered in Playwright chunk-9 |
 | ~~Frontend API calls have no internal timeout~~ ✅ shipped (PR #652) | doc 27 §27.20 | `withTimeout()` in `api.ts` wraps every `get()`/`post()` with `AbortSignal.any([callerSignal, AbortSignal.timeout(30_000)])`; matches 30s server-side route deadline |
 
 ### Minor gaps (should be addressed before donation, not blockers)
@@ -71,9 +71,9 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~No `aria-live` on health state transitions~~ ✅ shipped (PR #670) | doc 30 | `aria-live="polite"` region in InstanceDetail with `prevRef` transition tracking; WCAG 2.1 SC 4.1.3 |
 | ~~DAG arrow-key navigation missing~~ ✅ shipped (PR #685) | doc 28 | ArrowKey navigation between DAG nodes (y ASC, x ASC reading order); WCAG 2.1 SC 2.1.1 |
 | ~~External Google Fonts dependency~~ ✅ shipped (PR #650) | doc 27 §27.16 | Self-hosted Inter + JetBrains Mono WOFF2 in `web/public/fonts/`; `index.html` no longer references Google Fonts CDN |
-| OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
-| Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
-| Designer tab focus not persisted | doc 31 | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
+| ~~OS-preference light mode ignored~~ ✅ shipped (PR #692) | doc 27 §27.17 | `useTheme()` hook reads OS preference on mount; `localStorage` override for manual toggle; `data-theme` attribute synced to `document.documentElement` |
+| ~~Slow-API/fetch-timeout E2E untested~~ ✅ shipped (PR #700) | doc 27 §27.19 | Journey 084: loading indicator during delayed response, error state on `route.abort('timedout')`, Retry button triggers new fetch; registered in chunk-9 |
+| ~~Designer tab focus not persisted~~ ✅ shipped (PR #688) | doc 31 | Tab bar + `sessionStorage` focus restoration (`kro-ui-designer-tab-state`); excluded in readonly/shared-URL mode |
 | ~~Designer draft not persisted~~ ✅ shipped (PR #654) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt; disabled in readonly/shared-URL mode |
 | ~~DAG screen reader text alternative missing~~ ✅ shipped (PR #686) | doc 28 | `buildDagDescription()` generates human-readable summary; SVGs have `aria-describedby`; WCAG 2.1 SC 1.1.1 |
 
@@ -160,4 +160,11 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ `aria-live` health state announcements in InstanceDetail — PR #670 shipped (2026-04-22)
 - ✅ DAG Arrow key navigation between nodes (WCAG 2.1 SC 2.1.1) — PR #685 shipped (2026-04-22)
 - ✅ DAG screen reader text alternative via `buildDagDescription()` (WCAG 2.1 SC 1.1.1) — PR #686 shipped (2026-04-22)
+- ✅ OS-preference light mode: `useTheme()` hook reads `prefers-color-scheme`, `localStorage` override — PR #692 shipped (2026-04-22)
+- ✅ Designer tab focus/sessionStorage restoration (`kro-ui-designer-tab-state`) — PR #688 shipped (2026-04-22)
+- ✅ Designer axe-core scan promoted to blocking — PR #689 shipped (2026-04-22)
+- ✅ Scale E2E fixture: `scale-wide` 20-node RGD + journey 083 DOM Interactive ≤2000ms — PR #699 shipped (2026-04-22)
+- ✅ Slow-API / fetch-timeout E2E scenario (journey 084) — PR #700 shipped (2026-04-22)
+- ✅ GraphRevision diff: navigate-by-change arrows (prev/next change, auto-scroll to first diff, N/M counter) — PR #694 shipped (2026-04-22)
+- ✅ Post-Donation Security Policy section added to `SECURITY.md` — PR #701 shipped (2026-04-22)
 

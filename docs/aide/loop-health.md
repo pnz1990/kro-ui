@@ -1,8 +1,8 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub written by vibe-vision-auto on 2026-04-22
-> because the SM has not been writing this file (see doc 27 §27.26, §27.32, §27.58, §27.68).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 2).
 > The SM should replace this stub with a live-computed version on the next batch completion.
+> See doc 27 §27.26, §27.32, §27.58, §27.68.
 
 ---
 
@@ -11,21 +11,29 @@
 | Field | Value |
 |-------|-------|
 | **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20) |
-| **Last feature PR** | PR #688 — feat(designer): tab bar with sessionStorage focus restoration (2026-04-22) |
-| **Next priority** | Implement top 3 System Loop Health items: 27.65 (SM rules audit), 27.32 (write loop-health.md), 27.22 (busywork detection) |
+| **Last feature PR** | PR #701 — docs(security): Post-Donation Security Policy section (2026-04-22) |
+| **Last meaningful feature PR** | PR #700 — feat(e2e): journey 084 fetch-timeout / slow-API scenario (2026-04-22) |
+| **Next priority** | Open issues: #679 (27.24 community outreach), #677 (27.17 — ✅ SHIPPED), #676 (air-gapped smoke test), #675 (RBAC-restricted persona journey), #674 (degraded-cluster persona journey) |
 
 ---
 
 ## Donation Readiness
 
-Open blockers visible via GitHub issues: **10 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
+Open issues queue: **6 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
 
-Key open blockers:
-- `#683` Designer axe-core coverage (27.65 prerequisite)
-- `#680` GraphRevision diff two-panel line-level diff
-- `#677` OS-preference light mode (27.17)
-- `#676` Air-gapped environment smoke test
-- `#664` E2E slow-API / fetch-timeout scenario (27.19)
+Key open items:
+- `#679` 27.24 — second OWNERS approver (social gap, not code)
+- `#676` Air-gapped environment smoke test (anchor journey)
+- `#675` RBAC-restricted persona anchor journey
+- `#674` Degraded-cluster persona anchor journey
+
+Items shipped since last update:
+- ✅ PR #700 — slow-API / fetch-timeout E2E (27.19)
+- ✅ PR #699 — scale E2E fixture: scale-wide 20-node RGD + journey 083 (27.18)
+- ✅ PR #694 — GraphRevision diff navigate-by-change arrows
+- ✅ PR #692 — OS-preference light mode (27.17)
+- ✅ PR #689 — Designer axe-core scan promoted to blocking
+- ✅ PR #688 — Designer tab focus sessionStorage persistence
 
 ---
 
@@ -42,7 +50,7 @@ Key open blockers:
 | 2026-04-20 | 7 | 49 | - | 12 | 0 | sess-a2827ba4; coverage micro-PRs |
 | 2026-04-20 | 8 | 55 | - | 12 | 0 | sess-e227815e; 5 PRs |
 | 2026-04-20 | 51 | 16 | - | 12 | 0 | sess-2dcdc244; kro-upstream + a11y |
-| 2026-04-22 | *reconstructed* | ~40 | - | 15 | +3 | PRs #612–#688; feat: a11y + designer + supply-chain |
+| 2026-04-22 | *reconstructed* | ~51 | - | 15 | +3 | PRs #612–#701; feat: a11y (DAG nav, SR text, aria-live, skip-link, Designer axe), designer (draft persist, tab focus, cluster import, collab, node-lib), supply-chain, partial-RBAC, code-splitting, self-hosted-fonts, OS light-mode, scale E2E, fetch-timeout E2E, GraphRevision diff nav |
 
 > ⚠️ Metrics rows for batches 52–current are missing. SM §4b is not writing metrics rows.
 > This is item 27.55. The reconstructed row above is an estimate from merged PR count.
@@ -58,6 +66,10 @@ These 27.xx items are the highest-impact open gaps. The SM should pick ONE per s
 3. **27.46** — COORD must refuse chore work when `feat:` issues are open (enforcement at decision time, not retrospectively)
 4. **27.37** — Metrics continuity: write gap sentinel row when batch number jumps
 5. **27.28** — Silent session failure detection: circuit-breaker posts FAILED comment when 0 PRs merged + 0 comments posted
+
+> ⚠️ The System Loop Health section in doc 27 now has 47 unimplemented items (27.22–27.68).
+> Per item 27.66: the scan will NOT add new items until at least the top 3 are implemented.
+> The loop must consume its backlog before adding new queue items.
 
 ---
 
