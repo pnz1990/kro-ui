@@ -141,6 +141,12 @@ function reconcilingSinceMinutes(instance: K8sObject | null): number | null {
 
 // ── Reconciling banner ─────────────────────────────────────────────────────
 
+/**
+ * Threshold in minutes before the reconciling banner escalates to the "stuck"
+ * variant with an explicit kubectl describe suggestion (spec issue-711, O1).
+ */
+const STUCK_RECONCILING_THRESHOLD_MINS = 10
+
 /** Format a duration in minutes as a human-readable string.
  * e.g. 3827m → "2d 15h", 90m → "1h 30m", 45m → "45m".
  */
@@ -579,20 +585,37 @@ export default function InstanceDetail() {
         </div>
       )}
 
-      {/* Reconciling banner (FR-003) — only when NOT terminating */}
+      {/* Reconciling banner (FR-003) — only when NOT terminating.
+          Escalates to "stuck" variant after STUCK_RECONCILING_THRESHOLD_MINS
+          with an explicit kubectl describe command (spec issue-711, O1-O2). */}
       {fastData && !isTerminating(fastData.instance) && isReconciling(fastData.instance) && (() => {
         const mins = reconcilingSinceMinutes(fastData.instance)
-        const isStuck = mins !== null && mins >= 5
+        const isStuck = mins !== null && mins >= STUCK_RECONCILING_THRESHOLD_MINS
+        const instanceKind =
+          typeof fastData.instance.kind === 'string' ? fastData.instance.kind.toLowerCase() : 'resource'
+        const nsFlag = namespace && namespace !== '_' ? ` -n ${namespace}` : ''
+        const kubectlDescribeCmd = `kubectl describe ${instanceKind} ${instanceName ?? ''}${nsFlag}`
         return (
           <div
             className={`reconciling-banner${isStuck ? ' reconciling-banner--stuck' : ''}`}
             role="status"
             aria-live="polite"
-            title="kro is actively applying changes to this instance's managed resources. This is normal during creation and after spec changes. If this persists, check the Conditions panel for details."
+            title={
+              isStuck
+                ? `kro has been reconciling this instance for ${formatReconcileDuration(mins!)}. Run: ${kubectlDescribeCmd}`
+                : 'kro is actively applying changes to this instance\'s managed resources. This is normal during creation and after spec changes. If this persists, check the Conditions panel for details.'
+            }
           >
             <span className="reconciling-banner-pulse" aria-hidden="true">●</span>
             {isStuck
-              ? <>kro has been reconciling this instance for {formatReconcileDuration(mins!)} — check the Conditions panel and <code>kubectl describe</code> the child resources for errors.</>
+              ? (
+                <>
+                  kro has been reconciling this instance for{' '}
+                  <strong>{formatReconcileDuration(mins!)}</strong>
+                  {' '}— check the Conditions panel for errors. First step:{' '}
+                  <code className="reconciling-banner-cmd">{kubectlDescribeCmd}</code>
+                </>
+              )
               : 'kro is reconciling this instance'
             }
           </div>
