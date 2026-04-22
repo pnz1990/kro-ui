@@ -4,6 +4,32 @@
   min-height: 100vh;
 }
 
+/* Skip-to-main-content link — WCAG 2.1 SC 2.4.1 (Bypass Blocks).
+   Visually hidden off-screen until focused; keyboard/screen-reader users
+   see it as the first Tab stop and can jump past navigation to #main-content.
+   Must be the very first focusable element in the DOM (before TopBar). */
+.layout__skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  padding: 8px 16px;
+  background: var(--color-surface-2);
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 2px solid var(--color-primary);
+  border-radius: 0 0 4px 0;
+  z-index: 9999;
+  /* Transition brings the link into view on focus */
+  transition: top 0.1s ease;
+}
+
+.layout__skip-link:focus {
+  top: 0;
+  outline: none;
+}
+
 /* Unsupported kro version warning banner (spec 053-multi-version-kro) */
 .layout__version-warning {
   display: flex;
