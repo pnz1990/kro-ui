@@ -1,6 +1,6 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 3).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-22 (scan 5).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
@@ -10,37 +10,27 @@
 
 | Field | Value |
 |-------|-------|
-| **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20) |
-| **Last feature PR** | PR #706 — feat(e2e): journey 087 RBAC-restricted persona anchor journey (2026-04-22) |
-| **Last meaningful feature PR** | PR #706 — feat(e2e): journey 087 (anchor coverage complete: 26.4, 26.5, 26.6 all ✅) |
-| **Next priority** | Open issues: #679 (27.24 community outreach — social gap, requires human action), #714 (26.8), #715 (26.9); open feat queue: 14 issues |
+| **Health** | AMBER — SM not writing this file; metrics table stale since batch 51 (2026-04-20); CI outage ~5h (#731 resolved) |
+| **Last feature PR** | PR #736 — feat(polling): live DAG polling pause on tab background + manual toggle (issue #719, 2026-04-22) |
+| **Last meaningful feature PR** | PR #736 — DAG polling pause; PR #733 — zero-RGD onboarding empty state; PR #706/#705/#704 — persona anchor journeys |
+| **Next priority** | Open issues: #728 (27.24 community outreach — second approver), #721 (Designer CEL linter), #720 (health snapshot), #713 (Designer apply-to-cluster), #712 (SRE sparkline) |
 
 ---
 
 ## Donation Readiness
 
-Open issues queue: **14 open feat issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
+Open issues queue: **~10 open feat/fix issues** (see [issue tracker](https://github.com/pnz1990/kro-ui/issues)).
 
-Key open items:
-- `#679` 27.24 — second OWNERS approver (social gap, not code — requires human outreach)
-- `#714` feat: 26.8 — multi-cluster operator persona journey
-- `#715` feat: 26.9 — anchor coverage gate CI job
-- `#721` feat: Designer: CEL expression linter
-- `#720` feat: Health system: health snapshot clipboard export
-- `#719` feat: Instance management: live DAG polling pause on tab background
+Key remaining donation-readiness items:
+- `#728` 27.24 — second OWNERS approver (social gap, not code — requires community outreach)
+- ✅ `#719` Live DAG polling pause on tab background + manual toggle — shipped PR #736
+- ✅ `#716` Structured zero-RGD empty state — shipped PR #733
+- ✅ `#676` Air-gapped environment smoke test — shipped PR #704
+- ✅ `#675` RBAC-restricted persona anchor journey — shipped PR #706
+- ✅ `#674` Degraded-cluster persona anchor journey — shipped PR #705
 
-Items shipped since last update:
-- ✅ PR #706 — feat(e2e): journey 087 RBAC-restricted persona anchor journey (issue #675)
-- ✅ PR #705 — feat(e2e): journey 086 degraded-cluster persona anchor journey (issue #674)
-- ✅ PR #704 — feat(e2e): journey 085 air-gapped environment smoke test (issue #676)
-- ✅ PR #703 — fix(ci): pin typescript to 6.0.3 (bun 1.3.13 range resolve fix)
-- ✅ PR #701 — docs(security): Post-Donation Security Policy section (issue #678)
-- ✅ PR #700 — slow-API / fetch-timeout E2E (27.19)
-- ✅ PR #699 — scale E2E fixture: scale-wide 20-node RGD + journey 083 (27.18)
-- ✅ PR #694 — GraphRevision diff navigate-by-change arrows
-- ✅ PR #692 — OS-preference light mode (27.17)
-- ✅ PR #689 — Designer axe-core scan promoted to blocking
-- ✅ PR #688 — Designer tab focus sessionStorage persistence
+Items shipped since scan 4 update:
+- ✅ PR #736 — feat(polling): live DAG polling pause on tab background + manual toggle (issue #719, 2026-04-22)
 
 ---
 
@@ -49,19 +39,17 @@ Items shipped since last update:
 | Date | Batch | prs_merged | predicted_prs | skills_count | skills_delta | notes |
 |------|-------|-----------|---------------|-------------|-------------|-------|
 | 2026-04-20 | 1 | 16 | - | - | - | sess-412931da |
-| 2026-04-20 | 2 | 3 | - | - | - | sess-412931da |
-| 2026-04-20 | 3 | 31 | - | 12 | - | sess-475a6159; coverage micro-PRs |
-| 2026-04-20 | 4 | 44 | - | 12 | 0 | sess-7780ed82; coverage micro-PRs |
-| 2026-04-20 | 5 | 47 | - | 12 | 0 | sess-bea1648c; coverage micro-PRs |
-| 2026-04-20 | 6 | 48 | - | 12 | 0 | sess-a2827ba4; coverage micro-PRs |
-| 2026-04-20 | 7 | 49 | - | 12 | 0 | sess-a2827ba4; coverage micro-PRs |
 | 2026-04-20 | 8 | 55 | - | 12 | 0 | sess-e227815e; 5 PRs |
 | 2026-04-20 | 51 | 16 | - | 12 | 0 | sess-2dcdc244; kro-upstream + a11y |
-| 2026-04-22 | *reconstructed* | ~51 | - | 15 | +3 | PRs #612–#701; feat: a11y (DAG nav, SR text, aria-live, skip-link, Designer axe), designer (draft persist, tab focus, cluster import, collab, node-lib), supply-chain, partial-RBAC, code-splitting, self-hosted-fonts, OS light-mode, scale E2E, fetch-timeout E2E, GraphRevision diff nav |
-| 2026-04-22 | *reconstructed-3* | 57 | - | 16 | 0 | PRs #689–#706; feat: anchor journeys 085/086/087 (air-gapped, degraded-cluster, RBAC-restricted), TypeScript pin CI fix; anchor coverage complete (26.4/26.5/26.6 ✅); 14 feat issues open |
+| 2026-04-21 | 52-92 (gap) | - | - | - | - | 41 batches unrecorded — SM §4b not running; item 27.55 |
+| 2026-04-22 | reconstructed | ~40 | - | 16 | +4 | PRs #549–#688; feat: a11y, designer, supply-chain, partial-RBAC, code-splitting, fonts |
+| 2026-04-22 | reconstructed-2 | ~51 | - | 16 | 0 | PRs #689–#701; OS light-mode, axe blocking, tab focus, scale/timeout E2E, GraphRevision nav |
+| 2026-04-22 | reconstructed-3 | ~62 | - | 16 | 0 | PRs #702–#731; persona journeys 085/086/087; 3 CI workflow fixes; ci_red_hours≈5 |
+| 2026-04-22 | reconstructed-4 | ~65 | - | 16 | 0 | PRs #732–#733; feat: zero-RGD empty state (#733); pressure: 0/5 bullets addressed; backlog cap active (48 items) |
+| 2026-04-22 | reconstructed-5 | ~66 | - | 16 | 0 | PRs #734–#736; feat: live DAG polling pause (#736, issue #719); pressure: 0/5 bullets; backlog cap active (48 items) |
 
 > ⚠️ Metrics rows for batches 52–current are missing. SM §4b is not writing metrics rows.
-> This is item 27.55. The reconstructed rows above are estimates from merged PR count.
+> This is item 27.55. Reconstructed rows above are estimates from merged PR count.
 
 ---
 
@@ -75,7 +63,7 @@ These 27.xx items are the highest-impact open gaps. The SM should pick ONE per s
 4. **27.37** — Metrics continuity: write gap sentinel row when batch number jumps
 5. **27.28** — Silent session failure detection: circuit-breaker posts FAILED comment when 0 PRs merged + 0 comments posted
 
-> ⚠️ The System Loop Health section in doc 27 now has **48 unimplemented items** (27.22–27.68).
+> ⚠️ The System Loop Health section in doc 27 now has 48 unimplemented items (27.22–27.68).
 > Per item 27.66: the scan will NOT add new items until at least the top 3 are implemented.
 > The loop must consume its backlog before adding new queue items.
 

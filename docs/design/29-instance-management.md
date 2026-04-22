@@ -34,6 +34,7 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 ## Present (✅) — continued
 
 - ✅ Fleet per-cluster inner deadline: `summariseContext()` in `fleet.go` adds `context.WithTimeout(parent, 5*time.Second)` as its first statement; the errgroup fan-out uses the bounded context; `TestFleetSummaryHandler_ContextTimeout` verifies the response completes within 6s when a cluster's `List()` hangs indefinitely (PR #653, 2026-04)
+- ✅ Stuck-reconciling escalation banner: reconciling banner escalates to error-style "stuck" variant after 10 minutes with an explicit `kubectl describe <kind> <name>` command; cluster-scoped instances omit the `-n` flag; 3 unit tests cover the 10-minute threshold, command format, and cluster-scoped case (spec issue-711, 2026-04)
 
 ## Future (🔲)
 
