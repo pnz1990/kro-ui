@@ -68,4 +68,7 @@ They do not map 1:1 to a feature spec; they map to a persona and a dod-journey.
 
 ## Future
 
-- 🔲 Air-gapped environment smoke test: start kro-ui binary with no external network access (block fonts.googleapis.com at the host level); assert the UI is still fully functional and all text renders with a system fallback font — required before self-hosting fonts (spec 27.16) to prove the fallback path works
+- ✅ Air-gapped environment smoke test: Playwright journey 085 intercepts all external CDN requests and asserts all pages render + self-hosted fonts are served — shipped as 26.4 (PR #704)
+- 🔲 26.7 — Persona: kro contributor / donation reviewer — a persona journey that walks through the full donation-readiness evidence from a reviewer's perspective: GOVERNANCE.md, OWNERS, SECURITY.md, supply chain artifacts, axe-core results, Lighthouse score; ensures these are all discoverable from the README without prior knowledge of the project
+- 🔲 26.8 — Persona: multi-cluster operator — a platform engineer who manages 3+ clusters; exercises Fleet page, context-switcher, per-cluster health comparison, and drills into a degraded cluster's RGDs; asserts cache-flush behavior when switching clusters (anti-pattern from doc 27 §326)
+- 🔲 26.9 — Anchor coverage gate: CI job that fails if any definition-of-done.md journey has no corresponding anchor journey file; prevents future DoD additions from being untested at the persona level

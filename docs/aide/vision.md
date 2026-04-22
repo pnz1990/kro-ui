@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-22 (scan 2) — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-22 (scan 3) — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -167,4 +167,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Slow-API / fetch-timeout E2E scenario (journey 084) — PR #700 shipped (2026-04-22)
 - ✅ GraphRevision diff: navigate-by-change arrows (prev/next change, auto-scroll to first diff, N/M counter) — PR #694 shipped (2026-04-22)
 - ✅ Post-Donation Security Policy section added to `SECURITY.md` — PR #701 shipped (2026-04-22)
+- ✅ Air-gapped environment smoke test (anchor journey 26.4): journey 085 intercepts all external CDN requests; all pages render; self-hosted fonts served — PR #704 shipped (2026-04-22)
+- ✅ Degraded-cluster persona anchor journey (26.5): journey 086 Fleet → RGD detail → Errors tab → Validation tab; all 7 steps pass without crash — PR #705 shipped (2026-04-22)
+- ✅ RBAC-restricted persona anchor journey (26.6): journey 087 rbacHidden advisory UI verified + count propagation test — PR #706 shipped (2026-04-22)
 
