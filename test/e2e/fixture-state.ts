@@ -53,6 +53,8 @@ interface FixtureState {
   clusterScopedReady: boolean
   externalCollectionReady: boolean
   celComprehensionsReady: boolean
+  // Added in spec issue-663 (27.18) — scale fixture
+  scaleReady: boolean
 }
 
 const DEFAULTS: FixtureState = {
@@ -60,6 +62,7 @@ const DEFAULTS: FixtureState = {
   collectionReady: false, multiReady: false, externalRefReady: false, celFunctionsReady: false,
   cartesianReady: false, collectionChainReady: false, contagiousReady: false,
   clusterScopedReady: false, externalCollectionReady: false, celComprehensionsReady: false,
+  scaleReady: false,
 }
 
 const STATE_PATH = resolve(__dirname, 'fixture-state.json')
