@@ -37,7 +37,8 @@ instance detail with live DAG, and tools for debugging stuck or terminating inst
 
 ## Future (🔲)
 
----
+- 🔲 Live DAG error back-off: the live DAG polls the instance detail endpoint every 5s unconditionally; when a cluster becomes unreachable (network partition, API server restart), the polling continues to fire and log errors at full rate; add exponential back-off in `usePolling` so repeated HTTP 5xx or network errors double the interval (cap 60s); reset to 5s on the first successful response; add a visible "Polling paused — retrying in Ns" banner so the operator knows the data may be stale; without back-off a 5-minute cluster outage generates 60 failed API calls per instance page open — a **reliability** regression that also floods server-side logs
+- 🔲 Partial-results indicator on `/instances` fan-out: `ListAllInstances` returns partial results when one or more contexts are unreachable (timed-out contexts are skipped, not surfaced); the UI shows the returned instances with no indication that N contexts were excluded; add an `unreachableContexts []string` field to `ListAllInstancesResponse` and render a dismissible banner "Results may be incomplete — N cluster(s) unreachable: <names>" when the field is non-empty; this is a **honesty** gap — an operator searching for a missing instance may conclude it doesn't exist when it's actually in an unreachable cluster
 
 ## Zone 1 — Obligations
 

@@ -73,7 +73,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~External Google Fonts dependency~~ ✅ shipped (PR #650) | doc 27 §27.16 | Self-hosted Inter + JetBrains Mono WOFF2 in `web/public/fonts/`; `index.html` no longer references Google Fonts CDN |
 | OS-preference light mode ignored | doc 27 §27.17 | `window.matchMedia('prefers-color-scheme')` never read; light-mode users see wrong contrast ratios |
 | Slow-API/fetch-timeout E2E untested | doc 27 §27.19 | `AbortController` plumbing exists but is never exercised in CI; hanging API goes untested |
-| Designer tab focus not persisted | doc 31 | Navigating away from `/author` and returning resets active tab; `sessionStorage` persistence needed |
+| ~~Designer tab focus not persisted~~ ✅ shipped (PR #688) | doc 31 | Tab bar with sessionStorage focus restoration shipped; navigating away and returning restores active tab and selected DAG node |
 | ~~Designer draft not persisted~~ ✅ shipped (PR #654) | doc 31 | `localStorage` auto-save with "Restore draft?" prompt; disabled in readonly/shared-URL mode |
 | ~~DAG screen reader text alternative missing~~ ✅ shipped (PR #686) | doc 28 | `buildDagDescription()` generates human-readable summary; SVGs have `aria-describedby`; WCAG 2.1 SC 1.1.1 |
 
@@ -160,4 +160,6 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ `aria-live` health state announcements in InstanceDetail — PR #670 shipped (2026-04-22)
 - ✅ DAG Arrow key navigation between nodes (WCAG 2.1 SC 2.1.1) — PR #685 shipped (2026-04-22)
 - ✅ DAG screen reader text alternative via `buildDagDescription()` (WCAG 2.1 SC 1.1.1) — PR #686 shipped (2026-04-22)
+- ✅ Designer tab bar with sessionStorage focus restoration — PR #688 shipped (2026-04-22)
+- ✅ GraphRevision diff navigate-by-change arrows — prev/next change navigation with auto-scroll and counter — PR #694 shipped (2026-04-22)
 

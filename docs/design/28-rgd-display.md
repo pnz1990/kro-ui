@@ -37,6 +37,8 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 
 ## Future (🔲)
 - ✅ GraphRevision diff: navigate-by-change arrows in `RevisionYamlDiff` — "← prev change" / "next change →" bar between legend and columns; auto-scroll to first change on mount; "N / M" counter with aria-live; `data-change-idx` on each change block's first row; prev/next disabled at boundaries; hidden when YAML is identical (spec issue-680, PR TBD, 2026-04)
+- 🔲 RGD compile error expand: the error hint on error-state cards is a single truncated line; a long compile error (e.g. CEL parse failure with line/column) is cut off with no affordance to see the full message; add an expand toggle to the error hint card overlay so operators can read the full compile error without navigating to the RGD detail page; this is a **visibility** gap — an operator triaging 20 error-state RGDs must click into each one to see the actual error
+- 🔲 DAG disconnected-graph rendering: Dagre assumes a connected directed graph; an RGD with no edges between two resource subgraphs (which is valid kro YAML when resources have no CEL references between them) produces overlapping nodes at the same x=0 coordinate; add a pre-layout step that detects disconnected components and assigns them non-overlapping x-offsets; add an E2E assertion using a fixture RGD with two disjoint resource groups; currently invisible because all test fixtures have connected graphs
 
 ---
 
