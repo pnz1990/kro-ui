@@ -30,6 +30,7 @@
 import { useState, useCallback } from 'react'
 import type { K8sObject } from '@/lib/api'
 import { isHealthyCondition, conditionStatusLabel } from '@/lib/conditions'
+import ReconciliationTimeline from './ReconciliationTimeline'
 import './ConditionsPanel.css'
 
 interface ConditionsPanelProps {
@@ -217,6 +218,7 @@ export default function ConditionsPanel({ instance }: ConditionsPanelProps) {
           )
         })}
       </div>
+      <ReconciliationTimeline instance={instance} />
     </div>
   )
 }

@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-23 (scan 7) — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-23 (vibe-vision-auto scan 8) — autonomous vision scan
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -57,7 +57,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
 | ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
-| ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; ⚠️ threshold lowered to 45 (PR #741) — investigate root-cause score drop and raise threshold back to 60+ |
+| ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612), threshold regression ⚠️ open (doc 28 §28.5) | doc 27 §27.14 + doc 28 §28.5 | Code splitting shipped: route-based React.lazy reduces initial bundle; ⚠️ threshold lowered to 45 (PR #741) — PR #757 Lighthouse diff comment now surfaces per-PR scores; raise threshold to 60 once 3 consecutive main scores exceed 60 |
 | ~~Fleet per-cluster timeout not implemented~~ ✅ shipped (PR #653) | doc 27 §27.21 + doc 29 | `summariseContext` adds `context.WithTimeout(parent, 5*time.Second)`; `TestFleetSummaryHandler_ContextTimeout` verifies 6s completion when a cluster hangs |
 | ~~No scale E2E fixture~~ ✅ shipped (PR #699) | doc 27 §27.18 | `scale-wide` RGD with 20 ConfigMap nodes + journey 083; DOM Interactive ≤2000ms assertion; registered in Playwright chunk-9 |
 | ~~Frontend API calls have no internal timeout~~ ✅ shipped (PR #652) | doc 27 §27.20 | `withTimeout()` in `api.ts` wraps every `get()`/`post()` with `AbortSignal.any([callerSignal, AbortSignal.timeout(30_000)])`; matches 30s server-side route deadline |
@@ -131,6 +131,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Monoculture problem: no adversarial review step exists | doc 27 §27.25 | All agents use the same COORD→ENG→QA→SM→PM chain; there is no step that assumes the chain is wrong and looks for evidence; the "assume the current approach is wrong" arch-audit instruction in 27.25 has not triggered in any session; a donation reviewer looking at the architecture today would see no evidence the team has tested its own assumptions |
 | New project pressure context is blank — first scan is blind | doc 27 §27.39 | `/otherness.onboard` generates a Step A prompt with no project-specific "Context for this vision scan:" section; the first autonomous scan of a new project runs with zero diagnostic context — it adds generic TODO-inferred items that have nothing to do with the product's actual gaps |
 | `docs/aide/product-changelog.md` does not exist — product advancement invisible | doc 28 §28.4 | A human reviewing the repo right now sees `docs/aide/loop-health.md` (loop health) and `docs/aide/vision.md` (donation readiness) but no rolling list of recently shipped user-visible features; "is the product getting better?" requires reading 40+ PR titles; a `product-changelog.md` with a 10-row rolling table of features (date, PR, user-visible description) would answer this in 10 seconds |
+| Lighthouse CI threshold lowered to 45 — performance commitment weakened | doc 28 §28.5 | Code splitting shipped (PR #612) but threshold dropped from 50 to 45 (PR #741); target is ≥60; PR #757 Lighthouse diff comment now visible on PRs but threshold not yet restored; a donation reviewer running `perf.yml` sees a 45/100 bar and rightly questions performance commitment |
 
 ### Already addressed (recent PRs)
 
@@ -181,4 +182,8 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ SRE dashboard in-session health sparkline (HealthTrendSparkline below donut) — PR #739 shipped (2026-04-22)
 - ✅ Health snapshot clipboard export button in Overview header — PR #740 shipped (2026-04-22)
 - ✅ Designer CEL expression linter for readyWhen/includeWhen fields — PR #743 shipped (2026-04-23)
+- ✅ kro upstream field parity SLO documented in CONTRIBUTING.md — PR #748 shipped (2026-04-23)
+- ✅ Designer apply-to-cluster action (POST /api/v1/rgds/apply, canApplyRGDs gate) — PR #752 shipped (2026-04-23)
+- ✅ Lighthouse score diff comment on PRs (perf.yml posts branch vs main delta) — PR #757 shipped (2026-04-23)
+- ✅ RGD detail "Changes since last revision" banner on Graph tab (kro v0.9.1+) — PR #782 shipped (2026-04-23)
 

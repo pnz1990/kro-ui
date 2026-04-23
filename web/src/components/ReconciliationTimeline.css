@@ -1,0 +1,131 @@
+/* ReconciliationTimeline.css — Vertical state transition timeline.
+ *
+ * All colors from tokens.css custom properties — no hardcoded hex or rgba().
+ * Spec: .specify/specs/issue-764/ O6
+ */
+
+.reconciliation-timeline {
+  border-top: 1px solid var(--color-border-subtle);
+  padding: 12px 16px 8px;
+}
+
+.timeline-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+/* Ordered list — remove default list styling */
+.timeline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Each timeline row */
+.timeline-entry {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.timeline-entry:last-child {
+  padding-bottom: 0;
+}
+
+/* Dot — state indicator */
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+  margin-right: 10px;
+  position: relative;
+  z-index: 1;
+  border: 1px solid;
+}
+
+.timeline-dot--ready {
+  background: var(--node-alive-bg);
+  border-color: var(--node-alive-border);
+}
+
+.timeline-dot--error {
+  background: var(--node-error-bg);
+  border-color: var(--node-error-border);
+}
+
+.timeline-dot--unknown {
+  background: var(--node-notfound-bg);
+  border-color: var(--color-border);
+}
+
+/* Vertical connector line between dots */
+.timeline-connector {
+  position: absolute;
+  left: 3px; /* (8px dot width / 2) - (2px line width / 2) */
+  top: 13px; /* dot height (8) + margin-top (4) + 1 */
+  bottom: 0;
+  width: 2px;
+  background: var(--color-border-subtle);
+}
+
+/* Entry content area */
+.timeline-entry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* State label badge */
+.timeline-state-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.timeline-state-label--ready {
+  color: var(--color-alive);
+}
+
+.timeline-state-label--error {
+  color: var(--color-error);
+}
+
+.timeline-state-label--unknown {
+  color: var(--color-text-muted);
+}
+
+/* Condition type */
+.timeline-condition-type {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Reason code */
+.timeline-reason {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+}
+
+/* Absolute + relative timestamp */
+.timeline-time {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+}
+
+.timeline-age {
+  color: var(--color-text-faint);
+}
