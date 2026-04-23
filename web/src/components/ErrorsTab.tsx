@@ -149,6 +149,49 @@ export function groupErrorPatterns(instances: K8sObject[]): ErrorGroup[] {
   return groups
 }
 
+// ── Top message aggregation (spec issue-775, 30.2) ────────────────────────
+
+/** A single entry in the top-messages frequency table. */
+export interface TopMessageEntry {
+  /** Raw condition message text. */
+  message: string
+  /** Number of instances that reported this exact message. */
+  count: number
+}
+
+/**
+ * aggregateTopMessages — produce a frequency-sorted list of error messages
+ * across all error groups.
+ *
+ * Algorithm:
+ *   1. Walk all error groups; count instances per unique message string.
+ *   2. Sort descending by count, then alphabetically for stability.
+ *   3. Return top N entries (default: 5).
+ *
+ * Only messages that appear in more than 1 instance are included (a single
+ * instance error is not a "pattern"). Absent/empty messages are skipped.
+ *
+ * Spec: docs/design/30-health-system.md §Future 30.2
+ */
+export function aggregateTopMessages(
+  groups: ErrorGroup[],
+  topN = 5,
+): TopMessageEntry[] {
+  const freq = new Map<string, number>()
+
+  for (const g of groups) {
+    const msg = g.message
+    if (!msg || msg === '(no message)') continue
+    freq.set(msg, (freq.get(msg) ?? 0) + g.count)
+  }
+
+  return Array.from(freq.entries())
+    .filter(([, count]) => count > 1)
+    .sort(([, a], [, b]) => b !== a ? b - a : 0)
+    .slice(0, topN)
+    .map(([message, count]) => ({ message, count }))
+}
+
 // ── Component ─────────────────────────────────────────────────────────────
 
 const MAX_VISIBLE_INSTANCES = 10
@@ -202,6 +245,10 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
     () => groupErrorPatterns(instances ?? []),
     [instances],
   )
+
+  // Top error messages — frequency-sorted list for the pattern banner (spec 30.2).
+  // Only shown when ≥2 instances share the same message (i.e., cluster-wide rollout failure).
+  const topMessages = useMemo(() => aggregateTopMessages(groups), [groups])
 
   // ── Toggle helpers ───────────────────────────────────────────────────────
 
@@ -296,6 +343,33 @@ export default function ErrorsTab({ rgdName, namespace }: ErrorsTabProps) {
             {groups.length} error {groups.length === 1 ? 'pattern' : 'patterns'} across{' '}
             {totalAffected} {totalAffected === 1 ? 'instance' : 'instances'}
           </div>
+
+          {/* Top error messages (spec 30.2) — cluster-wide rollout failures */}
+          {topMessages.length > 0 && (
+            <div
+              className="errors-tab__top-messages"
+              data-testid="errors-top-messages"
+              aria-label="Top error messages by frequency"
+            >
+              <div className="errors-tab__top-messages-title">Top error messages</div>
+              <ul className="errors-tab__top-messages-list">
+                {topMessages.map((entry, idx) => (
+                  <li
+                    key={idx}
+                    className="errors-tab__top-messages-row"
+                    data-testid="errors-top-message-row"
+                  >
+                    <span className="errors-tab__top-messages-count" aria-label={`${entry.count} instances`}>
+                      {entry.count}×
+                    </span>
+                    <span className="errors-tab__top-messages-text" title={entry.message}>
+                      {entry.message}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="errors-tab__groups">
             {groups.map((group) => {
