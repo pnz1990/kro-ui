@@ -18,6 +18,7 @@ import {
   getRecentlyCreated,
   getMayBeStuck,
   HEALTH_STATE_ICON,
+  computeRevisionNodeDiff,
 } from './format'
 import type { InstanceSummary } from './api'
 
@@ -766,7 +767,7 @@ describe('getMayBeStuck', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
-  })
+   })
   afterEach(() => { vi.useRealTimers() })
 
   it('filters to only stuck IN_PROGRESS and sorts oldest first', () => {
@@ -778,5 +779,90 @@ describe('getMayBeStuck', () => {
     ]
     const result = getMayBeStuck(items)
     expect(result.map(i => i.name)).toEqual(['oldest', 'older'])
+  })
+})
+
+// ── computeRevisionNodeDiff (spec issue-767 / design doc 28.1) ───────────────
+
+function makeRevision(revNum: number, resourceIds: string[]): import('./api').K8sObject {
+  return {
+    apiVersion: 'kro.run/v1alpha1',
+    kind: 'GraphRevision',
+    metadata: { name: `rev-${revNum}`, namespace: 'default' },
+    spec: {
+      revision: revNum,
+      resources: resourceIds.map((id) => ({ id, template: { kind: 'ConfigMap' } })),
+    },
+  }
+}
+
+describe('computeRevisionNodeDiff', () => {
+  it('detects added nodes', () => {
+    const prior = makeRevision(1, ['svc', 'deploy'])
+    const latest = makeRevision(2, ['svc', 'deploy', 'configmap'])
+    const diff = computeRevisionNodeDiff(prior, latest)
+    expect(diff).not.toBeNull()
+    expect(diff!.added).toEqual(['configmap'])
+    expect(diff!.removed).toEqual([])
+    expect(diff!.priorRevisionNumber).toBe(1)
+    expect(diff!.latestRevisionNumber).toBe(2)
+  })
+
+  it('detects removed nodes', () => {
+    const prior = makeRevision(1, ['svc', 'deploy', 'configmap'])
+    const latest = makeRevision(2, ['svc', 'deploy'])
+    const diff = computeRevisionNodeDiff(prior, latest)
+    expect(diff).not.toBeNull()
+    expect(diff!.added).toEqual([])
+    expect(diff!.removed).toEqual(['configmap'])
+  })
+
+  it('returns empty arrays when graph is identical', () => {
+    const prior = makeRevision(1, ['svc', 'deploy'])
+    const latest = makeRevision(2, ['svc', 'deploy'])
+    const diff = computeRevisionNodeDiff(prior, latest)
+    expect(diff).not.toBeNull()
+    expect(diff!.added).toEqual([])
+    expect(diff!.removed).toEqual([])
+  })
+
+  it('detects both added and removed in same revision', () => {
+    const prior = makeRevision(1, ['svc', 'old-resource'])
+    const latest = makeRevision(2, ['svc', 'new-resource'])
+    const diff = computeRevisionNodeDiff(prior, latest)
+    expect(diff).not.toBeNull()
+    expect(diff!.added).toEqual(['new-resource'])
+    expect(diff!.removed).toEqual(['old-resource'])
+  })
+
+  it('returns null when prior has no resources array', () => {
+    const prior: import('./api').K8sObject = {
+      apiVersion: 'kro.run/v1alpha1',
+      kind: 'GraphRevision',
+      metadata: { name: 'rev-1', namespace: 'default' },
+      spec: { revision: 1 }, // no resources key
+    }
+    const latest = makeRevision(2, ['svc'])
+    expect(computeRevisionNodeDiff(prior, latest)).toBeNull()
+  })
+
+  it('returns null when latest has no resources array', () => {
+    const prior = makeRevision(1, ['svc'])
+    const latest: import('./api').K8sObject = {
+      apiVersion: 'kro.run/v1alpha1',
+      kind: 'GraphRevision',
+      metadata: { name: 'rev-2', namespace: 'default' },
+      spec: { revision: 2 }, // no resources key
+    }
+    expect(computeRevisionNodeDiff(prior, latest)).toBeNull()
+  })
+
+  it('handles empty resources arrays (zero-resource RGD)', () => {
+    const prior = makeRevision(1, [])
+    const latest = makeRevision(2, [])
+    const diff = computeRevisionNodeDiff(prior, latest)
+    expect(diff).not.toBeNull()
+    expect(diff!.added).toEqual([])
+    expect(diff!.removed).toEqual([])
   })
 })
