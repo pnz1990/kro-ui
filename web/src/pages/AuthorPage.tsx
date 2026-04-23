@@ -15,7 +15,7 @@
 // Spec: issue-647 (localStorage draft persistence)
 // Spec: issue-684 (tab focus restoration — sessionStorage)
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/lib/generator'
 import type { RGDAuthoringState, AuthoringResource } from '@/lib/generator'
 import { buildDAGGraph } from '@/lib/dag'
@@ -33,6 +33,7 @@ import NodeLibrary from '@/components/NodeLibrary'
 import DesignerShareButton from '@/components/DesignerShareButton'
 import DesignerReadonlyBanner from '@/components/DesignerReadonlyBanner'
 import DesignerTabBar from '@/components/DesignerTabBar'
+import DesignerTour, { TOUR_KEY } from '@/components/DesignerTour'
 import type { DesignerTab } from '@/components/DesignerTabBar'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -199,6 +200,39 @@ export default function AuthorPage() {
     setPendingDraft(null)
   }, [])
 
+  // ── Guided tour (spec issue-766) ─────────────────────────────────────────
+  // Show on first visit (toured key absent) unless in readonly mode (O1, O8).
+  const [tourVisible, setTourVisible] = useState<boolean>(() => {
+    if (initial.readonly) return false
+    try {
+      return localStorage.getItem(TOUR_KEY) !== 'true'
+    } catch {
+      return false
+    }
+  })
+  const [tourStep, setTourStep] = useState(0)
+
+  // Dismiss: mark toured and hide (O3, O4).
+  const handleTourDismiss = useCallback(() => {
+    try {
+      localStorage.setItem(TOUR_KEY, 'true')
+    } catch { /* ignore */ }
+    setTourVisible(false)
+    setTourStep(0)
+  }, [])
+
+  // Re-trigger: remove toured key and show tour again (O5).
+  const handleTourRetrigger = useCallback(() => {
+    try {
+      localStorage.removeItem(TOUR_KEY)
+    } catch { /* ignore */ }
+    setTourStep(0)
+    setTourVisible(true)
+  }, [])
+
+  // "?" button ref for keeping focus when tour closes (a11y best practice).
+  const tourTriggerRef = useRef<HTMLButtonElement>(null)
+
   // ── Node library — append resource from template ─────────────────────────
   const handleAddResource = useCallback((resource: AuthoringResource) => {
     setRgdState((prev) => ({ ...prev, resources: [...prev.resources, resource] }))
@@ -315,11 +349,26 @@ export default function AuthorPage() {
   )
 
   return (
+    <>
     <div className="author-page">
       <div className="author-page__header">
         <div className="author-page__header-row">
           <h1 className="author-page__title">RGD Designer</h1>
-          <DesignerShareButton state={rgdState} />
+          <div className="author-page__header-actions">
+            {!readonly && (
+              <button
+                ref={tourTriggerRef}
+                className="author-page__tour-trigger-btn"
+                onClick={handleTourRetrigger}
+                aria-label="Open Designer guided tour"
+                data-testid="tour-trigger-btn"
+                title="Open guided tour"
+              >
+                ?
+              </button>
+            )}
+            <DesignerShareButton state={rgdState} />
+          </div>
         </div>
         <p className="author-page__subtitle">
           Scaffold a <code>ResourceGraphDefinition</code> YAML
@@ -406,5 +455,16 @@ export default function AuthorPage() {
         )}
       </div>
     </div>
+
+    {/* Guided tour overlay (spec issue-766) — portal, shown on first visit */}
+    {tourVisible && !readonly && (
+      <DesignerTour
+        step={tourStep}
+        onNext={() => setTourStep((s) => s + 1)}
+        onBack={() => setTourStep((s) => Math.max(0, s - 1))}
+        onDismiss={handleTourDismiss}
+      />
+    )}
+    </>
   )
 }

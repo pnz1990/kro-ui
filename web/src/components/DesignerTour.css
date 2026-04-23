@@ -1,0 +1,159 @@
+/* DesignerTour.css — Styles for the Designer guided onboarding tour.
+ *
+ * All values use tokens.css custom properties — no hardcoded hex or rgba.
+ * Design ref: docs/design/31-rgd-designer.md §Future 31.1 → ✅
+ * Spec: issue-766 O6
+ */
+
+/* ── Backdrop ──────────────────────────────────────────────────────────────── */
+
+.designer-tour__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: color-mix(in srgb, var(--color-bg) 60%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Tour card ─────────────────────────────────────────────────────────────── */
+
+.designer-tour__card {
+  position: relative;
+  z-index: 901;
+  width: min(420px, calc(100vw - 32px));
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-tooltip);
+  padding: 20px 24px;
+  outline: none;
+}
+
+/* ── Header (step counter + skip) ─────────────────────────────────────────── */
+
+.designer-tour__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.designer-tour__step-count {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.designer-tour__skip-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s;
+}
+
+.designer-tour__skip-btn:hover {
+  color: var(--color-text);
+}
+
+.designer-tour__skip-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* ── Step content ──────────────────────────────────────────────────────────── */
+
+.designer-tour__title {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.designer-tour__description {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+/* ── Footer (dots + navigation) ───────────────────────────────────────────── */
+
+.designer-tour__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Progress dots */
+.designer-tour__dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.designer-tour__dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-border);
+  transition: background 0.15s;
+}
+
+.designer-tour__dot--active {
+  background: var(--color-primary);
+}
+
+/* Navigation buttons */
+.designer-tour__nav {
+  display: flex;
+  gap: 8px;
+}
+
+.designer-tour__nav-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.designer-tour__nav-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.designer-tour__nav-btn--back {
+  color: var(--color-text-muted);
+  background: none;
+  border: 1px solid var(--color-border);
+}
+
+.designer-tour__nav-btn--back:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.designer-tour__nav-btn--next {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid transparent;
+}
+
+.designer-tour__nav-btn--next:hover {
+  background: var(--color-primary-hover);
+}

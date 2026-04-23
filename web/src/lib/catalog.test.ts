@@ -7,6 +7,8 @@ import {
   matchesLabelFilter,
   collectAllLabels,
   sortCatalog,
+  computeComplexityScore,
+  countChainingReferences,
 } from './catalog'
 import type { K8sObject } from './api'
 
@@ -317,5 +319,93 @@ describe('sortCatalog', () => {
     sortCatalog(entries, 'name')
     expect(entries[0]).toBe(original[0])
     expect(entries[1]).toBe(original[1])
+  })
+
+  it('sorts by complexity descending (spec issue-768 O3)', () => {
+    const entries = [
+      { rgd: makeRGD('simple', 'Simple', []), instanceCount: 0, complexityScore: 1 },
+      { rgd: makeRGD('complex', 'Complex', []), instanceCount: 0, complexityScore: 10 },
+      { rgd: makeRGD('medium', 'Medium', []), instanceCount: 0, complexityScore: 5 },
+    ]
+    const result = sortCatalog(entries, 'complexity')
+    expect(result.map((e) => (e.rgd.metadata as Record<string, unknown>)?.name))
+      .toEqual(['complex', 'medium', 'simple'])
+  })
+})
+
+// ── computeComplexityScore (spec issue-768 28.2 O1, O6) ──────────────
+
+function makeRGDWithForEach(name: string, resources: Array<{ kind: string; forEach?: string }>): K8sObject {
+  return {
+    metadata: { name },
+    spec: {
+      schema: { kind: name + 'Kind' },
+      resources: resources.map((r) =>
+        r.forEach
+          ? { template: { kind: r.kind }, forEach: r.forEach }
+          : { template: { kind: r.kind } },
+      ),
+    },
+  }
+}
+
+describe('computeComplexityScore', () => {
+  it('returns 0 for an RGD with no resources', () => {
+    const rgd: K8sObject = { metadata: { name: 'empty' }, spec: { schema: { kind: 'Empty' }, resources: [] } }
+    expect(computeComplexityScore(rgd, 0)).toBe(0)
+  })
+
+  it('counts resources correctly (no forEach, no chaining)', () => {
+    const rgd = makeRGDWithForEach('app', [{ kind: 'Deployment' }, { kind: 'Service' }])
+    expect(computeComplexityScore(rgd, 0)).toBe(2)
+  })
+
+  it('adds 3 per forEach resource', () => {
+    // 2 resources + 1 forEach: 2 + 3 = 5
+    const rgd = makeRGDWithForEach('app', [
+      { kind: 'Deployment' },
+      { kind: 'Pod', forEach: 'items' },
+    ])
+    expect(computeComplexityScore(rgd, 0)).toBe(5)
+  })
+
+  it('adds 2 per chaining reference', () => {
+    // 1 resource + 2 chains: 1 + 4 = 5
+    const rgd = makeRGDWithForEach('app', [{ kind: 'Deployment' }])
+    expect(computeComplexityScore(rgd, 2)).toBe(5)
+  })
+
+  it('combines resources + forEach + chaining', () => {
+    // 3 resources + 2 forEach + 1 chaining: 3 + 6 + 2 = 11
+    const rgd = makeRGDWithForEach('complex', [
+      { kind: 'Deployment' },
+      { kind: 'Pod', forEach: 'pods' },
+      { kind: 'ConfigMap', forEach: 'configs' },
+    ])
+    expect(computeComplexityScore(rgd, 1)).toBe(11)
+  })
+
+  it('handles missing spec gracefully', () => {
+    const rgd: K8sObject = { metadata: { name: 'no-spec' } }
+    expect(computeComplexityScore(rgd, 0)).toBe(0)
+  })
+})
+
+describe('countChainingReferences', () => {
+  it('returns 0 when no template kinds match any other RGD schema', () => {
+    const app = makeRGD('app', 'App', ['Deployment'])
+    const db = makeRGD('db', 'Database', ['StatefulSet'])
+    expect(countChainingReferences(app, [app, db])).toBe(0)
+  })
+
+  it('counts references to other RGD schema kinds', () => {
+    const db = makeRGD('db', 'Database', [])
+    const app = makeRGD('app', 'App', ['Database', 'Service'])
+    expect(countChainingReferences(app, [app, db])).toBe(1)
+  })
+
+  it('does not count self-reference', () => {
+    const self = makeRGD('self', 'Self', ['Self'])
+    expect(countChainingReferences(self, [self])).toBe(0)
   })
 })

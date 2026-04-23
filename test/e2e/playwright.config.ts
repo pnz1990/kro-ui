@@ -35,10 +35,11 @@ const BASE_URL = `http://localhost:${PORT}`
 //   chunk-7:  041,045-047  UX audit, designer, kro v0.9.0, ux-improvements, state-map
 //   chunk-8:  051-059   instance diff, response cache, multi-version kro, ux-gaps-round3,
 //                       health-summary, status-tooltip, cache-flush, global-instances, warnings
-//   chunk-9:  060-091   health-filter, fleet-reconciling, instances-filter, health-sort,
+//   chunk-9:  060-092   health-filter, fleet-reconciling, instances-filter, health-sort,
 //                       status-message, error-banner, catalog-status-filter, kro-v091,
 //                       fleet-persona-journey, designer-roundtrip-persona (090),
-//                       kro-contributor-persona (091)
+//                       kro-contributor-persona (091),
+//                       multi-cluster-operator-persona (092)
 //   serial:   007       context-switcher — runs after all chunks complete
 //
 // Each chunk runs with workers: 4 (parallel files); the serial project uses workers: 1.
@@ -85,6 +86,23 @@ export default defineConfig({
       // Without this, Playwright's default light OS preference would activate
       // useTheme() light mode, changing token colors and breaking journey 006.
       colorScheme: 'dark',
+    },
+
+    // Pre-mark the Designer guided tour as seen so the overlay backdrop
+    // never intercepts pointer events in journeys that navigate to /author.
+    // The tour is a first-visit UX feature; E2E tests verify individual
+    // Designer capabilities, not the tour itself (tour is tested in
+    // DesignerTour.test.tsx unit tests and the dedicated 087-tour journey).
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: BASE_URL,
+          localStorage: [
+            { name: 'kro-ui-designer-toured', value: 'true' },
+          ],
+        },
+      ],
     },
   },
 
@@ -150,7 +168,7 @@ export default defineConfig({
       fullyParallel: true,
     },
     {
-      // chunk-9 covers journeys added in specs 060–091
+      // chunk-9 covers journeys added in specs 060–092
       // (health-filter, fleet-reconciling, instances-filter, health-sort,
       //  status-message, error-banner, catalog-status-filter, kro-v091,
       //  operator-persona-journey, sre-persona-journey, developer-persona-journey,
@@ -162,9 +180,10 @@ export default defineConfig({
       //  fetch-timeout (084), air-gapped-smoke (085),
       //  degraded-cluster-persona (086), rbac-restricted-persona (087),
       //  designer-roundtrip-persona (090),
-      //  kro-contributor-persona (091))
+      //  kro-contributor-persona (091),
+      //  multi-cluster-operator-persona (092))
       name: 'chunk-9',
-      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086|087|090|091)-.*\.spec\.ts/,
+      testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086|087|090|091|092)-.*\.spec\.ts/,
       ...PARALLEL_OPTS,
       workers: 4,
       fullyParallel: true,
