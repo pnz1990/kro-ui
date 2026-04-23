@@ -1,23 +1,25 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-23 (scan 7).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-23 (scan 8).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
 ---
 
-## Quick-Glance (as of 2026-04-23 — scan 7)
+## Quick-Glance (as of 2026-04-23 — scan 8)
 
 | Field | Value |
 |-------|-------|
-| **Health** | AMBER — SM not writing this file; metrics stale since batch 51 (SM §4b not reached); Lighthouse threshold lowered to 45 (was 50); 48 loop-health backlog items unimplemented; pressure: 0/5 bullets addressed for 7 consecutive scans |
-| **Last feature PR** | PR #743 — feat(designer): CEL expression linter for readyWhen/includeWhen fields (2026-04-23) |
-| **Last meaningful feature PR** | PR #743 — CEL linter (issue #721 ✅); PR #740 — health snapshot export; PR #739 — SRE sparkline |
-| **Next priority** | Open: #744 (E2E for CEL linter), #717 (Lighthouse regression comment on PRs), #713 (Designer apply-to-cluster), #710 (kro upstream field parity SLO); URGENT: implement 27.32/27.22/27.46 in SM/standalone agent files |
+| **Health** | AMBER — SM not writing this file; metrics stale since batch 51 (SM §4b not reached); Lighthouse threshold still at 45 (not raised back to 60+); 48 loop-health backlog items unimplemented; pressure: 0/5 bullets addressed for 8 consecutive scans; 4 unmerged vision-scan PRs (#707, #708, #723, #742) |
+| **Last feature PR** | PR #748 — docs(contributing): kro upstream field parity SLO (2026-04-23) |
+| **Last meaningful feature PR** | PR #743 — feat(designer): CEL expression linter for readyWhen/includeWhen fields (2026-04-23) |
+| **Next priority** | Open: #744 (E2E for CEL linter), #717 (Lighthouse regression comment on PRs), #713 (Designer apply-to-cluster), #728 (second OWNERS approver — only hard blocker); URGENT: merge 4 unmerged vision-scan PRs; implement 27.32/27.22/27.46 in SM/standalone agent files |
 
 > ⚠️ **Regression alert**: PR #741 lowered Lighthouse threshold from 50→45. Code-splitting shipped (PR #612) should have RAISED the threshold, not lowered it. This is a honesty signal violation (see doc 27 §27.23, §27.60). Threshold should be raised to ≥60 once root-cause score drop is investigated. Open issue: #717 (Lighthouse regression comment on PRs) is a partial step.
 
-> ⚠️ **Pressure signal**: 0/5 pressure bullets addressed for 7 consecutive scan runs. The 5 lenses (reliability, loop honesty, self-improvement, onboarding, visibility) map directly to items 27.22–27.66 which have 48 unimplemented entries. The product is advancing (PR #743 shipped today) but the *development system itself* is not improving. The backlog cap (27.66) is correctly blocking new additions but the SM is not consuming existing items.
+> ⚠️ **Pressure signal**: 0/5 pressure bullets addressed for 8 consecutive scan runs. The 5 lenses (reliability, loop honesty, self-improvement, onboarding, visibility) map directly to items 27.22–27.66 which have 48 unimplemented entries. The product is advancing (PR #743/748 shipped today) but the *development system itself* is not improving. The backlog cap (27.66) is correctly blocking new System Loop Health additions but the SM is not consuming existing items.
+
+> ⚠️ **Vision-scan PR debt**: 4 unmerged vision-scan PRs (#707, #708, #723, #742) are accumulating. Design docs on `main` do not reflect these updates. See doc 27 §27.54, §27.59, §27.61 for the recovery protocol. The SM must merge these before opening any new work (standalone.md §4g).
 
 ---
 
