@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useParams, useSearchParams, useLocation, Link } from "react-router-dom"
-import { getRGD, listRGDs, listInstances, getInstance, getInstanceChildren } from "@/lib/api"
+import { getRGD, listRGDs, listInstances, getInstance, getInstanceChildren, listGraphRevisions } from "@/lib/api"
 import type { K8sObject, K8sList } from "@/lib/api"
 import { translateApiError } from "@/lib/errors"
 import { toYaml, cleanK8sObject } from "@/lib/yaml"
 import { buildDAGGraph, detectCollapseGroups } from "@/lib/dag"
-import { extractRGDKind, extractReadyStatus, extractLastRevision } from "@/lib/format"
+import { extractRGDKind, extractReadyStatus, extractLastRevision, computeRevisionNodeDiff } from "@/lib/format"
+import type { RevisionNodeDiff } from "@/lib/format"
 import { buildNodeStateMap } from "@/lib/instanceNodeState"
 import type { NodeStateMap } from "@/lib/instanceNodeState"
 import { usePageTitle } from "@/hooks/usePageTitle"
@@ -24,6 +25,7 @@ import GenerateTab from "@/components/GenerateTab"
 import OptimizationAdvisor from "@/components/OptimizationAdvisor"
 import InstanceOverlayBar from "@/components/InstanceOverlayBar"
 import RevisionsTab from "@/components/RevisionsTab"
+import RevisionChangesBanner from "@/components/RevisionChangesBanner"
 import type { PickerItem } from "@/components/InstanceOverlayBar"
 import { useCapabilities } from "@/lib/features"
 import RGDStatStrip from "@/components/RGDStatStrip"
@@ -152,6 +154,37 @@ export default function RGDDetail() {
       })
     return () => ac.abort()
   }, [name])
+
+  // ── Revision diff for Graph tab "what's new" banner (spec issue-767, design doc 28.1) ──
+  // Fetched lazily when the Graph tab is active and hasRevisions=true.
+  // null = not yet fetched or error (banner silently suppressed).
+  const [revisionDiff, setRevisionDiff] = useState<RevisionNodeDiff | null>(null)
+
+  useEffect(() => {
+    if (!hasRevisions || activeTab !== "graph" || !name) {
+      setRevisionDiff(null)
+      return
+    }
+    let cancelled = false
+    listGraphRevisions(name)
+      .then((data) => {
+        if (cancelled) return
+        const revs = (data.items ?? []) as K8sObject[]
+        // Sort descending by spec.revision so revs[0] = latest, revs[1] = prior
+        revs.sort((a, b) => {
+          const aNum = (a.spec as Record<string, unknown>)?.revision
+          const bNum = (b.spec as Record<string, unknown>)?.revision
+          const aVal = typeof aNum === 'number' ? aNum : 0
+          const bVal = typeof bNum === 'number' ? bNum : 0
+          return bVal - aVal
+        })
+        if (revs.length < 2) { setRevisionDiff(null); return }
+        const diff = computeRevisionNodeDiff(revs[1], revs[0])
+        setRevisionDiff(diff)
+      })
+      .catch(() => { if (!cancelled) setRevisionDiff(null) })
+    return () => { cancelled = true }
+  }, [hasRevisions, activeTab, name])
 
   // Fetch all instances (no namespace filter) when the Instances tab is active.
   // This provides the full list from which namespace options are derived (FR-003).
@@ -596,6 +629,13 @@ export default function RGDDetail() {
                   )
                 })()}
               </div>
+            )}
+            {/* Design doc 28.1: "Changes since last revision" banner (kro v0.9.1+) */}
+            {revisionDiff && (
+              <RevisionChangesBanner
+                diff={revisionDiff}
+                onDiffRevisions={() => setTab("revisions")}
+              />
             )}
             <div
               className={`rgd-graph-area${selectedNode ? " rgd-graph-area--with-panel" : ""}`}

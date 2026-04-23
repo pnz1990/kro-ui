@@ -599,3 +599,64 @@ export function getMayBeStuck(items: InstanceSummary[], n = 5): InstanceSummary[
     })
     .slice(0, n)
 }
+
+// ── GraphRevision node diff (spec issue-767, design doc 28.1) ────────────────
+
+/**
+ * RevisionNodeDiff — result of comparing two GraphRevision specs.
+ *
+ * added:   node IDs present in `latest` but not in `prior`
+ * removed: node IDs present in `prior` but not in `latest`
+ */
+export interface RevisionNodeDiff {
+  added: string[]
+  removed: string[]
+  priorRevisionNumber: number
+  latestRevisionNumber: number
+}
+
+/**
+ * computeRevisionNodeDiff — compare the resource node sets of two GraphRevision objects.
+ *
+ * Nodes are identified by `spec.resources[].id`. The schema node ("schema") is
+ * excluded — it is always present and is not a managed resource.
+ *
+ * Returns null when either object is missing a parseable spec.resources array.
+ */
+export function computeRevisionNodeDiff(
+  prior: K8sObject,
+  latest: K8sObject,
+): RevisionNodeDiff | null {
+  function extractNodeIds(rev: K8sObject): Set<string> | null {
+    const spec = rev.spec
+    if (typeof spec !== 'object' || spec === null) return null
+    const resources = (spec as Record<string, unknown>).resources
+    if (!Array.isArray(resources)) return null
+    const ids = new Set<string>()
+    for (const r of resources) {
+      if (typeof r === 'object' && r !== null) {
+        const id = (r as Record<string, unknown>).id
+        if (typeof id === 'string' && id) ids.add(id)
+      }
+    }
+    return ids
+  }
+
+  const priorIds = extractNodeIds(prior)
+  const latestIds = extractNodeIds(latest)
+  if (!priorIds || !latestIds) return null
+
+  const priorRevisionNumber = (() => {
+    const spec = prior.spec as Record<string, unknown> | undefined
+    return typeof spec?.revision === 'number' ? spec.revision : 0
+  })()
+  const latestRevisionNumber = (() => {
+    const spec = latest.spec as Record<string, unknown> | undefined
+    return typeof spec?.revision === 'number' ? spec.revision : 0
+  })()
+
+  const added = [...latestIds].filter((id) => !priorIds.has(id))
+  const removed = [...priorIds].filter((id) => !latestIds.has(id))
+
+  return { added, removed, priorRevisionNumber, latestRevisionNumber }
+}
