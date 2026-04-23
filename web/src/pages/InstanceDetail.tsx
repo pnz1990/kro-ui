@@ -147,6 +147,38 @@ function reconcilingSinceMinutes(instance: K8sObject | null): number | null {
  */
 const STUCK_RECONCILING_THRESHOLD_MINS = 10
 
+/**
+ * Factor applied to the estimated baseline reconcile time to determine when
+ * an instance is "taking longer than usual" (design doc 30.1).
+ *
+ * Baseline = STUCK_RECONCILING_THRESHOLD_MINS / 2 = 5 minutes.
+ * Slow threshold = RECONCILE_SLOW_FACTOR × baseline = 2 × 5 = 10... wait,
+ * this would overlap with stuck. Use half of STUCK threshold as baseline.
+ *
+ * Slow fires at:  STUCK_RECONCILING_THRESHOLD_MINS / 2 minutes (5m)
+ * Stuck fires at: STUCK_RECONCILING_THRESHOLD_MINS minutes (10m)
+ */
+export const RECONCILE_SLOW_FACTOR = 2
+
+/** Estimated baseline reconcile time in minutes (half of stuck threshold). */
+const RECONCILE_BASELINE_MINS = STUCK_RECONCILING_THRESHOLD_MINS / RECONCILE_SLOW_FACTOR
+
+/**
+ * isReconcilingSlow — returns true when the instance is reconciling AND has
+ * been doing so for longer than RECONCILE_BASELINE_MINS, but not yet long
+ * enough to show the "stuck" banner.
+ *
+ * Fires the "taking longer than usual" warning between 5m and 10m.
+ * (design doc 30.1, spec issue-765 O1)
+ */
+export function isReconcilingSlow(instance: K8sObject | null): boolean {
+  if (!instance) return false
+  const mins = reconcilingSinceMinutes(instance)
+  if (mins === null) return false
+  // Only show "slow" banner between BASELINE and STUCK threshold
+  return mins >= RECONCILE_BASELINE_MINS && mins < STUCK_RECONCILING_THRESHOLD_MINS
+}
+
 /** Format a duration in minutes as a human-readable string.
  * e.g. 3827m → "2d 15h", 90m → "1h 30m", 45m → "45m".
  */
@@ -621,6 +653,20 @@ export default function InstanceDetail() {
           </div>
         )
       })()}
+
+      {/* "Taking longer than usual" slow-reconcile banner (design doc 30.1, spec issue-765 O1).
+          Shown when reconciling for >5m but before the stuck banner escalation at 10m. */}
+      {fastData && !isTerminating(fastData.instance) && isReconcilingSlow(fastData.instance) && (
+        <div
+          className="reconciling-slow-banner"
+          role="status"
+          aria-live="polite"
+          data-testid="reconciling-slow-banner"
+        >
+          <span className="reconciling-slow-banner__icon" aria-hidden="true">⚠</span>
+          Reconciliation is taking longer than usual — check the Conditions panel for details.
+        </div>
+      )}
 
       {/* Instance deleted banner */}
       {instanceGoneRef.current && (
