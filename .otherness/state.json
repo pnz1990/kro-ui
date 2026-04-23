@@ -2942,16 +2942,19 @@
       "completed_at": "2026-04-23T14:22:09Z"
     },
     "issue-771": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 29.2",
+      "title": "feat: 29.2 \u2014 Live DAG node search keyboard shortcut",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "pr_number": 801,
+      "done_at": "2026-04-23T15:30:52Z"
     },
     "issue-772": {
       "state": "todo",
