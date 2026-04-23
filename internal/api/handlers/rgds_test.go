@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -610,4 +611,179 @@ func TestListInstances_ForbiddenReturns200WithWarning(t *testing.T) {
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&body))
 	assert.Empty(t, body.Items, "items must be empty when Forbidden (O2)")
 	assert.Equal(t, "insufficient permissions", body.Warning, "warning must be set (O2)")
+}
+
+// ── TestApplyRGD (spec issue-713) ─────────────────────────────────────────────
+
+const applyTestValidRGDYAML = `apiVersion: kro.run/v1alpha1
+kind: ResourceGraphDefinition
+metadata:
+  name: my-webapp
+spec:
+  schema:
+    kind: WebApp
+`
+
+const applyTestWrongKindYAML = `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-deploy
+`
+// TestApplyRGD verifies the POST /api/v1/rgds/apply handler (spec issue-713).
+// NOTE: subtests are NOT parallel because they share the package-level capCache.
+func TestApplyRGD(t *testing.T) {
+
+	tests := []struct {
+		name   string
+		setup  func(t *testing.T) *Handler
+		body   string
+		check  func(t *testing.T, rr *httptest.ResponseRecorder)
+	}{
+		{
+			name: "O3: returns 403 when canApplyRGDs is false (capability disabled)",
+			setup: func(t *testing.T) *Handler {
+				t.Helper()
+				// Clear the cache and set canApplyRGDs=false.
+				capCache.set(&k8sclient.KroCapabilities{
+					FeatureGates: map[string]bool{"canApplyRGDs": false},
+				})
+				t.Cleanup(func() { capCache.set(nil) })
+				return newRGDTestHandler(newStubDynamic(), newStubDiscovery())
+			},
+			body: applyTestValidRGDYAML,
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusForbidden, rr.Code)
+				assert.Contains(t, rr.Body.String(), "canApplyRGDs is disabled")
+			},
+		},
+		{
+			name: "O3: returns 403 when capabilities not yet fetched",
+			setup: func(t *testing.T) *Handler {
+				t.Helper()
+				// Ensure cache is empty.
+				capCache.set(nil)
+				t.Cleanup(func() { capCache.set(nil) })
+				return newRGDTestHandler(newStubDynamic(), newStubDiscovery())
+			},
+			body: applyTestValidRGDYAML,
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusForbidden, rr.Code)
+				assert.Contains(t, rr.Body.String(), "not yet detected")
+			},
+		},
+		{
+			name: "O7: returns 400 for empty body",
+			setup: func(t *testing.T) *Handler {
+				t.Helper()
+				capCache.set(&k8sclient.KroCapabilities{
+					FeatureGates: map[string]bool{"canApplyRGDs": true},
+				})
+				t.Cleanup(func() { capCache.set(nil) })
+				return newRGDTestHandler(newStubDynamic(), newStubDiscovery())
+			},
+			body: "",
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+				assert.Contains(t, rr.Body.String(), "empty body")
+			},
+		},
+		{
+			name: "O7: returns 400 for wrong kind",
+			setup: func(t *testing.T) *Handler {
+				t.Helper()
+				capCache.set(&k8sclient.KroCapabilities{
+					FeatureGates: map[string]bool{"canApplyRGDs": true},
+				})
+				t.Cleanup(func() { capCache.set(nil) })
+				return newRGDTestHandler(newStubDynamic(), newStubDiscovery())
+			},
+			body: applyTestWrongKindYAML,
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusBadRequest, rr.Code)
+				assert.Contains(t, rr.Body.String(), "ResourceGraphDefinition")
+			},
+		},
+		{
+			name: "O1+O2: returns 201 when RGD is created (not found → apply succeeds)",
+			setup: func(t *testing.T) *Handler {
+				t.Helper()
+				capCache.set(&k8sclient.KroCapabilities{
+					FeatureGates: map[string]bool{"canApplyRGDs": true},
+				})
+				t.Cleanup(func() { capCache.set(nil) })
+
+				applied := makeRGDObject("my-webapp", "WebApp", "", "")
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					// Get returns NotFound — RGD doesn't exist yet.
+					getErr: k8serrors.NewNotFound(
+						schema.GroupResource{Resource: k8sclient.RGDResource}, "my-webapp"),
+					applyConfigured: true,
+					applyResult:     applied,
+				}
+				return newRGDTestHandler(dyn, newStubDiscovery())
+			},
+			body: applyTestValidRGDYAML,
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusCreated, rr.Code)
+				var resp ApplyRGDResponse
+				require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+				assert.Equal(t, "my-webapp", resp.Name)
+				assert.True(t, resp.Created, "Created must be true on first apply")
+				assert.Contains(t, resp.Message, "Created")
+			},
+		},
+		{
+			name: "O2: returns 200 when RGD is updated (already exists → apply succeeds)",
+			setup: func(t *testing.T) *Handler {
+				t.Helper()
+				capCache.set(&k8sclient.KroCapabilities{
+					FeatureGates: map[string]bool{"canApplyRGDs": true},
+				})
+				t.Cleanup(func() { capCache.set(nil) })
+
+				existing := makeRGDObject("my-webapp", "WebApp", "", "")
+				applied := makeRGDObject("my-webapp", "WebApp", "", "")
+				dyn := newStubDynamic()
+				dyn.resources[rgdGVR] = &stubNamespaceableResource{
+					// Get returns the existing RGD — it already exists.
+					getItems: map[string]*unstructured.Unstructured{"my-webapp": existing},
+					applyConfigured: true,
+					applyResult:     applied,
+				}
+				return newRGDTestHandler(dyn, newStubDiscovery())
+			},
+			body: applyTestValidRGDYAML,
+			check: func(t *testing.T, rr *httptest.ResponseRecorder) {
+				t.Helper()
+				assert.Equal(t, http.StatusOK, rr.Code)
+				var resp ApplyRGDResponse
+				require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+				assert.Equal(t, "my-webapp", resp.Name)
+				assert.False(t, resp.Created, "Created must be false on update")
+				assert.Contains(t, resp.Message, "Updated")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// NOTE: no t.Parallel() — test cases modify shared capCache
+			h := tt.setup(t)
+			r := chi.NewRouter()
+			r.Post("/api/v1/rgds/apply", h.ApplyRGD)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/rgds/apply",
+				strings.NewReader(tt.body))
+			req.Header.Set("Content-Type", "text/plain")
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+			tt.check(t, rr)
+		})
+	}
 }

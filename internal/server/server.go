@@ -158,6 +158,10 @@ func NewRouter(factory *k8sclient.ClientFactory) (chi.Router, error) {
 			r.Post("/rgds/validate", h.ValidateRGD)
 			// POST: offline static analysis only — no K8s API calls issued (§III, GH #303).
 			r.Post("/rgds/validate/static", h.ValidateRGDStatic)
+			// POST: server-side apply — the only mutating endpoint in kro-ui.
+			// Gated behind canApplyRGDs capability flag (defaults false).
+			// Spec: .specify/specs/issue-713/spec.md O1–O3
+			r.Post("/rgds/apply", h.ApplyRGD)
 
 			// Instances — NOT cached (live polling)
 			// Global instance search (spec 058): GET /instances lists ALL instances across all RGDs.
