@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-22 (scan 5) — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-22 (scan 6) — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -57,7 +57,7 @@ reviewing this today would find. Each has a corresponding `🔲 Future` item in 
 | ~~GraphRevision diff — line-level YAML panel is raw blocks~~ ✅ shipped (PR #624) | doc 28 | YAML diff line-level highlighting shipped: LCS algorithm in `@/lib/diff`, added/removed lines highlighted green/red |
 | ~~No partial-RBAC test~~ ✅ shipped (PR #622) | doc 27 §27.12 | Shipped: `rbacHidden` counter, "N RGDs hidden — insufficient permissions" advisory, E2E journey 081 |
 | ~~Color as sole health differentiator~~ ✅ shipped | doc 30 | `HEALTH_STATE_ICON` map exported from `format.ts`; icon prefixes (✓/✗/⚠/↻/…/?) added to HealthPill, ReadinessBadge, OverviewHealthBar chips; satisfies WCAG 2.1 SC 1.4.1 (spec issue-580) |
-| ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; perf.yml threshold raised to 70 |
+| ~~521KB bundle / Lighthouse ~60~~ ✅ shipped (PR #612) | doc 27 §27.14 | Code splitting shipped: route-based React.lazy reduces initial bundle; ⚠️ threshold lowered to 45 (PR #741) — investigate root-cause score drop and raise threshold back to 60+ |
 | ~~Fleet per-cluster timeout not implemented~~ ✅ shipped (PR #653) | doc 27 §27.21 + doc 29 | `summariseContext` adds `context.WithTimeout(parent, 5*time.Second)`; `TestFleetSummaryHandler_ContextTimeout` verifies 6s completion when a cluster hangs |
 | ~~No scale E2E fixture~~ ✅ shipped (PR #699) | doc 27 §27.18 | `scale-wide` RGD with 20 ConfigMap nodes + journey 083; DOM Interactive ≤2000ms assertion; registered in Playwright chunk-9 |
 | ~~Frontend API calls have no internal timeout~~ ✅ shipped (PR #652) | doc 27 §27.20 | `withTimeout()` in `api.ts` wraps every `get()`/`post()` with `AbortSignal.any([callerSignal, AbortSignal.timeout(30_000)])`; matches 30s server-side route deadline |
@@ -120,7 +120,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Metrics table has no row since batch 51 (2026-04-20) despite active shipping | doc 27 §27.55 | 30+ PRs merged after 2026-04-20 with no metrics row; SM §4b is not running or not reaching the write step |
 | Daily report issue rotation fragments health history across issues | doc 27 §27.56 | REPORT_ISSUE rotated #439→#637; no permanent single view of multi-day health trend; loop-health items in the development loop gaps table have no cross-day continuity |
 | System Loop Health `🔲` items in doc 27 unverifiable — sit indefinitely unimplemented | doc 27 §27.57 | 27.22–27.53 cannot be promoted by Scan 1 (which matches PR titles); need a Scan 1b that checks agent file timestamps against item creation date |
-| `docs/aide/loop-health.md` missing 2+ days after being specified | doc 27 §27.58 | Items 27.26 and 27.32 both specified this file; it still doesn't exist; SM §4f is not writing it; all health visibility depends on this file existing |
+| `docs/aide/loop-health.md` maintained as scan stub, not SM-written | doc 27 §27.58 | File now exists (written by vibe-vision-auto scan stub per 27.68); SM §4f still not writing it on batch completion; the file's "Quick-Glance" is scan-reconstructed, not live-computed by the SM |
 | Vision-scan PRs accumulate unmerged — docs on main diverge from scan output | doc 27 §27.59 | PR #672 is an open vision-scan output; `main` doc 27 lacks items 27.40–27.57; SM §4g needs a recovery step to squash-merge stale vision-scan PRs at batch start |
 | GREEN health signal is un-falsifiable — no substantive PR threshold | doc 27 §27.60 | A `chore(config):` one-liner earns GREEN; substantive_pr_count (feat: + design-doc issue link) required before GREEN is honest |
 | vibe-vision-auto Step A output may never land on main if Step B fails | doc 27 §27.61 | Step A commits to a session branch; if Step B is cancelled or exits early, the scan PR is never merged; add auto-merge of stale vision-scan PRs at the start of Step A |
@@ -172,4 +172,8 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ RBAC-restricted persona anchor journey (journey 087, issue #675) — PR #706 shipped (2026-04-22)
 - ✅ Scheduled workflow `cancel-in-progress` bug fix — 5h session outage resolved — PR #731 shipped (2026-04-22)
 - ✅ Live DAG polling pause on tab background + manual ⏸/▶ toggle in InstanceDetail — PR #736 shipped (2026-04-22)
+- ✅ Namespace instance count summary with clickable pills on /instances — PR #734 shipped (2026-04-22)
+- ✅ Stuck-reconciling escalation banner at 10 minutes with kubectl describe command — PR #738 shipped (2026-04-22)
+- ✅ SRE dashboard in-session health sparkline (HealthTrendSparkline below donut) — PR #739 shipped (2026-04-22)
+- ✅ Health snapshot clipboard export button in Overview header — PR #740 shipped (2026-04-22)
 

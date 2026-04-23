@@ -34,6 +34,7 @@ optimization advisor. It is the primary tool for developers creating new kro wor
 - ✅ Designer axe-core coverage: journey 074 Step 7 runs WCAG 2.1 AA blocking axe-core assertion on `/author`; tab bar (role=tablist/tab, aria-selected), form inputs, and interactive elements are all in scope; SVG excluded as complex widget; upgraded from non-blocking to blocking in PR #689 (issue #683, 2026-04)
 - ✅ Designer: `localStorage` persistence of in-progress RGD draft — auto-save (debounced 2s) to `kro-ui-designer-draft` key; "Restore draft?" banner on next visit with Restore/Discard actions; disabled in readonly/shared-URL mode (PR #647, 2026-04)
 - ✅ Designer tab focus restoration: tab bar with Schema/Resources/YAML/Preview tabs; active tab and selected DAG node persisted to `sessionStorage` (`kro-ui-designer-tab-state`) so navigating away and returning restores last working context; readonly/shared-URL mode is excluded from persistence (issue #684, 2026-04)
+- ✅ Designer: CEL expression linter — `lintCEL(expr, context)` pure-TS function in `web/src/lib/cel-linter.ts` detects unclosed string literals, unclosed `${...}` templates, unclosed brackets, and bare string literals in boolean-result contexts; debounced inline error hint (`CELLintHint` component) rendered below `readyWhen` and `includeWhen` CEL inputs with `--color-status-error` styling and `role="alert"` accessibility; 32 unit tests; zero new dependencies (spec issue-721, 🔲→✅ 2026-04)
 
 ---
 
