@@ -120,7 +120,7 @@ Each has a corresponding `🔲 Future` item in doc 27.
 | Metrics table has no row since batch 51 (2026-04-20) despite active shipping | doc 27 §27.55 | 30+ PRs merged after 2026-04-20 with no metrics row; SM §4b is not running or not reaching the write step |
 | Daily report issue rotation fragments health history across issues | doc 27 §27.56 | REPORT_ISSUE rotated #439→#637; no permanent single view of multi-day health trend; loop-health items in the development loop gaps table have no cross-day continuity |
 | System Loop Health `🔲` items in doc 27 unverifiable — sit indefinitely unimplemented | doc 27 §27.57 | 27.22–27.53 cannot be promoted by Scan 1 (which matches PR titles); need a Scan 1b that checks agent file timestamps against item creation date |
-| `docs/aide/loop-health.md` maintained as scan stub, not SM-written | doc 27 §27.58 | File now exists (written by vibe-vision-auto scan stub per 27.68); SM §4f still not writing it on batch completion; the file's "Quick-Glance" is scan-reconstructed, not live-computed by the SM |
+| `docs/aide/loop-health.md` maintained as scan stub, not SM-written | doc 27 §27.58 | File now exists (written by vibe-vision-auto scan stubs since scan 7 per 27.68); SM §4f still not writing it on batch completion; the file's "Quick-Glance" is scan-reconstructed, not live-computed by the SM |
 | Vision-scan PRs accumulate unmerged — docs on main diverge from scan output | doc 27 §27.59 | PR #672 is an open vision-scan output; `main` doc 27 lacks items 27.40–27.57; SM §4g needs a recovery step to squash-merge stale vision-scan PRs at batch start |
 | GREEN health signal is un-falsifiable — no substantive PR threshold | doc 27 §27.60 | A `chore(config):` one-liner earns GREEN; substantive_pr_count (feat: + design-doc issue link) required before GREEN is honest |
 | vibe-vision-auto Step A output may never land on main if Step B fails | doc 27 §27.61 | Step A commits to a session branch; if Step B is cancelled or exits early, the scan PR is never merged; add auto-merge of stale vision-scan PRs at the start of Step A |
@@ -177,4 +177,6 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ SRE dashboard in-session health sparkline (HealthTrendSparkline below donut) — PR #739 shipped (2026-04-22)
 - ✅ Health snapshot clipboard export button in Overview header — PR #740 shipped (2026-04-22)
 - ✅ Designer CEL expression linter for readyWhen/includeWhen fields — PR #743 shipped (2026-04-23)
+- ✅ kro upstream field parity SLO: CONTRIBUTING.md commitment that new kro CRD fields appear in display surface within 2 releases — PR #748 shipped (2026-04-23)
+- ✅ Designer apply-to-cluster action: `POST /api/v1/rgds/apply` with `canApplyRGDs` feature gate, SSA apply, 6 unit tests — PR #752 shipped (2026-04-23)
 
