@@ -10,7 +10,7 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import InstanceDetail from './InstanceDetail'
+import InstanceDetail, { isReconcilingSlow, RECONCILE_SLOW_FACTOR } from './InstanceDetail'
 
 // ── API mocks ───────────────────────────────────────────────────────────────
 
@@ -392,5 +392,110 @@ describe('InstanceDetail', () => {
     const cmd = document.querySelector('.reconciling-banner-cmd')
     expect(cmd).toBeInTheDocument()
     expect(cmd?.textContent).not.toContain('-n')
+  })
+})
+
+// ── isReconcilingSlow (design doc 30.1, spec issue-765) ─────────────────────
+
+function makeSlowInstance(reconcilingSinceMs: number): import('@/lib/api').K8sObject {
+  const t = new Date(Date.now() - reconcilingSinceMs).toISOString()
+  return {
+    apiVersion: 'kro.run/v1alpha1',
+    kind: 'WebApp',
+    metadata: { name: 'my-app', namespace: 'default' },
+    status: {
+      state: 'IN_PROGRESS',
+      conditions: [
+        { type: 'Ready', status: 'False', lastTransitionTime: t },
+      ],
+    },
+  }
+}
+
+describe('isReconcilingSlow', () => {
+  beforeEach(() => { vi.useFakeTimers() })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('exports RECONCILE_SLOW_FACTOR = 2 (O3)', () => {
+    expect(RECONCILE_SLOW_FACTOR).toBe(2)
+  })
+
+  it('returns false for null instance', () => {
+    expect(isReconcilingSlow(null)).toBe(false)
+  })
+
+  it('returns false when reconciling for < 5 minutes', () => {
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+    const inst = makeSlowInstance(4 * 60 * 1000) // 4m ago
+    expect(isReconcilingSlow(inst)).toBe(false)
+  })
+
+  it('returns true when reconciling for exactly 5 minutes', () => {
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+    const inst = makeSlowInstance(5 * 60 * 1000 + 1000) // 5m1s
+    expect(isReconcilingSlow(inst)).toBe(true)
+  })
+
+  it('returns true when reconciling for 7 minutes (between 5 and 10)', () => {
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+    const inst = makeSlowInstance(7 * 60 * 1000)
+    expect(isReconcilingSlow(inst)).toBe(true)
+  })
+
+  it('returns false when reconciling for >= 10 minutes (stuck threshold — that banner takes over)', () => {
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+    const inst = makeSlowInstance(10 * 60 * 1000 + 1000) // 10m1s
+    expect(isReconcilingSlow(inst)).toBe(false)
+  })
+
+  it('returns false for ACTIVE (non-reconciling) instance', () => {
+    const inst: import('@/lib/api').K8sObject = {
+      apiVersion: 'kro.run/v1alpha1',
+      kind: 'WebApp',
+      metadata: { name: 'my-app', namespace: 'default' },
+      status: {
+        state: 'ACTIVE',
+        conditions: [{ type: 'Ready', status: 'True', lastTransitionTime: new Date().toISOString() }],
+      },
+    }
+    expect(isReconcilingSlow(inst)).toBe(false)
+  })
+})
+
+describe('reconciling-slow-banner integration', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T12:10:00Z'))
+    const sevenMinAgo = new Date(Date.now() - 7 * 60 * 1000).toISOString()
+    mockedGetInstance.mockResolvedValue({
+      apiVersion: 'kro.run/v1alpha1',
+      kind: 'WebApp',
+      metadata: { name: 'my-app', namespace: 'default', creationTimestamp: sevenMinAgo },
+      status: {
+        state: 'IN_PROGRESS',
+        conditions: [
+          { type: 'Ready', status: 'False', lastTransitionTime: sevenMinAgo },
+        ],
+      },
+    })
+    mockedGetInstanceEvents.mockResolvedValue({ items: [], metadata: {} })
+    mockedGetInstanceChildren.mockResolvedValue({ items: [] })
+    mockedGetRGD.mockResolvedValue({
+      apiVersion: 'kro.run/v1alpha1',
+      kind: 'ResourceGroupDefinition',
+      metadata: { name: 'test-app', namespace: 'default' },
+      spec: { schema: { kind: 'WebApp', spec: {} }, resources: [] },
+    })
+    mockedListRGDs.mockResolvedValue({ items: [], metadata: {} })
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('shows "taking longer than usual" banner when reconciling for 7 minutes (O1)', async () => {
+    renderPage('test-app', 'default', 'my-app')
+    await waitFor(() =>
+      expect(screen.getByTestId('instance-detail-page')).toBeInTheDocument(),
+    )
+    expect(screen.getByTestId('reconciling-slow-banner')).toBeInTheDocument()
+    expect(screen.getByText(/taking longer than usual/i)).toBeInTheDocument()
   })
 })
