@@ -479,7 +479,7 @@ describe('reconciling-slow-banner integration', () => {
       },
     })
     mockedGetInstanceEvents.mockResolvedValue({ items: [], metadata: {} })
-    mockedGetInstanceChildren.mockResolvedValue({ items: [], metadata: {} })
+    mockedGetInstanceChildren.mockResolvedValue({ items: [] })
     mockedGetRGD.mockResolvedValue({
       apiVersion: 'kro.run/v1alpha1',
       kind: 'ResourceGroupDefinition',
