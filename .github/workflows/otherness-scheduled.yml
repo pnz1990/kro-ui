@@ -256,8 +256,10 @@ jobs:
                 s = re.match(r'^(\w[\w_]*):', line)
                 if s: section = s.group(1)
                 if section == 'maqa':
-                    m = re.match(r'^\s+agents_path:\s*[\"\'']?([^\"\'#\n]+)[\"\'']?', line)
-                    if m: print(os.path.expanduser(m.group(1).strip())); break
+                    m = re.match(r'^\s+agents_path:\s*(.+)', line)
+                    if m:
+                        val = m.group(1).split('#')[0].strip().strip('"').strip("'")
+                        print(os.path.expanduser(val)); break
             " 2>/dev/null || echo "$HOME/.otherness/agents")
             ALLOWED_PREFIX="$HOME/.otherness"
             if [[ "$AGENTS_PATH" != "$ALLOWED_PREFIX"* ]]; then
@@ -328,8 +330,10 @@ jobs:
                 s = re.match(r'^(\w[\w_]*):', line)
                 if s: section = s.group(1)
                 if section == 'maqa':
-                    m = re.match(r'^\s+agents_path:\s*[\"\'']?([^\"\'#\n]+)[\"\'']?', line)
-                    if m: print(os.path.expanduser(m.group(1).strip())); break
+                    m = re.match(r'^\s+agents_path:\s*(.+)', line)
+                    if m:
+                        val = m.group(1).split('#')[0].strip().strip('"').strip("'")
+                        print(os.path.expanduser(val)); break
             " 2>/dev/null || echo "$HOME/.otherness/agents")
             ALLOWED_PREFIX="$HOME/.otherness"
             if [[ "$AGENTS_PATH" != "$ALLOWED_PREFIX"* ]]; then
