@@ -33,6 +33,11 @@
       "last_seen": "2026-04-23T05:12:50Z",
       "item": "issue-711",
       "cycle": 1
+    },
+    "sess-0bf1b96d": {
+      "last_seen": "2026-04-23T10:25:23Z",
+      "item": "issue-766",
+      "cycle": 2
     }
   },
   "features": {
@@ -2840,7 +2845,7 @@
       "priority": "medium"
     },
     "issue-764": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
       "title": "feat: 29.1",
       "labels": [
@@ -2849,7 +2854,8 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": 785
     },
     "issue-765": {
       "state": "todo",
@@ -2864,7 +2870,7 @@
       "priority": "medium"
     },
     "issue-766": {
-      "state": "todo",
+      "state": "in_review",
       "status": "todo",
       "title": "feat: 31.1",
       "labels": [
@@ -2873,7 +2879,8 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": 790
     },
     "issue-767": {
       "state": "done",
