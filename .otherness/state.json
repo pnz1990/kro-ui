@@ -3,7 +3,7 @@
   "project": "kro-ui",
   "mode": "standalone",
   "initialized": "2026-04-14",
-  "last_updated": "2026-04-14",
+  "last_updated": "2026-04-23T14:22:09Z",
   "current_queue": null,
   "last_sm_review": null,
   "last_pm_review": null,
@@ -2858,16 +2858,18 @@
       "pr": 785
     },
     "issue-765": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 30.1",
+      "title": "feat(instance-detail): slow-reconcile taking longer than usual banner",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "#783",
+      "completed_at": "2026-04-23T14:22:09Z"
     },
     "issue-766": {
       "state": "done",
@@ -2898,40 +2900,46 @@
       "done_at": "2026-04-23T07:31:47Z"
     },
     "issue-768": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 28.2",
+      "title": "feat(catalog): RGD complexity score badge and default sort \u2014 28.2",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "#791",
+      "completed_at": "2026-04-23T14:22:09Z"
     },
     "issue-769": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 28.3",
+      "title": "docs(design): mark 28.3 DAG self-improvement gate \u2705",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "#792",
+      "completed_at": "2026-04-23T14:22:09Z"
     },
     "issue-770": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 28.4",
+      "title": "feat(docs): product changelog advancement signal \u2014 28.4",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "#796",
+      "completed_at": "2026-04-23T14:22:09Z"
     },
     "issue-771": {
       "state": "todo",
@@ -2958,16 +2966,18 @@
       "priority": "medium"
     },
     "issue-773": {
-      "state": "todo",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 29.4",
+      "title": "feat(instance-detail): per-node reconciliation duration badge \u2014 29.4",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "#797",
+      "completed_at": "2026-04-23T14:22:09Z"
     },
     "issue-774": {
       "state": "todo",
@@ -3064,6 +3074,12 @@
         "area/agent-loop"
       ],
       "priority": "medium"
+    },
+    "issue-744": {
+      "state": "done",
+      "title": "test(e2e): journey 091 \u2014 Designer CEL expression linter",
+      "pr": "#755",
+      "completed_at": "2026-04-23T14:22:09Z"
     }
   },
   "sm_cycle_count": 6,
