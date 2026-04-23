@@ -6,18 +6,18 @@
 
 ---
 
-## Quick-Glance (as of 2026-04-23 — scan 7)
+## Quick-Glance (as of 2026-04-23 — batch-1 sess-7d63c961)
 
 | Field | Value |
 |-------|-------|
-| **Health** | AMBER — SM not writing this file; metrics stale since batch 51 (SM §4b not reached); Lighthouse threshold lowered to 45 (was 50); 48 loop-health backlog items unimplemented; pressure: 0/5 bullets addressed for 7 consecutive scans |
-| **Last feature PR** | PR #743 — feat(designer): CEL expression linter for readyWhen/includeWhen fields (2026-04-23) |
-| **Last meaningful feature PR** | PR #743 — CEL linter (issue #721 ✅); PR #740 — health snapshot export; PR #739 — SRE sparkline |
-| **Next priority** | Open: #744 (E2E for CEL linter), #717 (Lighthouse regression comment on PRs), #713 (Designer apply-to-cluster), #710 (kro upstream field parity SLO); URGENT: implement 27.32/27.22/27.46 in SM/standalone agent files |
+| **Health** | GREEN — 1 design-doc-backed PR merged (PR #748); CI all-green; E2E pass 11m49s; SM phase now writing this file (27.32 partial ✅) |
+| **Last feature PR** | PR #748 — docs(contributing): kro upstream field parity SLO (issue #710 ✅, 2026-04-23) |
+| **Last meaningful feature PR** | PR #748 — kro upstream field parity SLO; PR #743 — CEL expression linter (issue #721 ✅) |
+| **Next priority** | Open: #747 [NEEDS HUMAN] feat/issue-717 push (GitHub App lacks `workflows` permission); #713 (Designer apply-to-cluster); #679 (27.24 community outreach); skills_delta=0 for 8 consecutive runs — 27.24 learn frequency gate still pending |
 
-> ⚠️ **Regression alert**: PR #741 lowered Lighthouse threshold from 50→45. Code-splitting shipped (PR #612) should have RAISED the threshold, not lowered it. This is a honesty signal violation (see doc 27 §27.23, §27.60). Threshold should be raised to ≥60 once root-cause score drop is investigated. Open issue: #717 (Lighthouse regression comment on PRs) is a partial step.
+> ⚠️ **issue-717 blocked**: feat(perf): Lighthouse regression comment on PRs is implemented on branch `feat/issue-717` but cannot be pushed because the GitHub App token lacks `workflows` permission. See issue #747 for resolution path.
 
-> ⚠️ **Pressure signal**: 0/5 pressure bullets addressed for 7 consecutive scan runs. The 5 lenses (reliability, loop honesty, self-improvement, onboarding, visibility) map directly to items 27.22–27.66 which have 48 unimplemented entries. The product is advancing (PR #743 shipped today) but the *development system itself* is not improving. The backlog cap (27.66) is correctly blocking new additions but the SM is not consuming existing items.
+> ℹ️ **pressure**: 0/5 pressure bullets addressed for 8 consecutive runs. `skills_delta=0` persists. Items 27.22 (housekeeping-detection), 27.24 (learn frequency gate), and 27.46 (loop honesty thresholds) remain unimplemented in agent files.
 
 ---
 
@@ -34,12 +34,8 @@ Key remaining donation-readiness items:
 - ✅ `#716` Structured zero-RGD empty state — shipped PR #733
 - ✅ `#676` Air-gapped environment smoke test — shipped PR #704
 
-Items shipped since scan 6 update:
-- ✅ PR #743 — feat(designer): CEL expression linter for readyWhen/includeWhen (issue #721)
-- ✅ PR #741 — fix(ci): Lighthouse threshold 50→45 (⚠️ regression — see alert above)
-- ✅ PR #740 — feat(overview): health snapshot clipboard export button (issue #720)
-- ✅ PR #739 — feat(overview): SRE dashboard in-session health sparkline (issue #712)
-- ✅ PR #738 — feat(instance): stuck-reconciling escalation banner at 10min (issue #711)
+Items shipped since scan 7 update:
+- ✅ PR #748 — docs(contributing): kro upstream field parity SLO (issue #710) — 2026-04-23
 
 ---
 
