@@ -478,15 +478,15 @@ describe('reconciling-slow-banner integration', () => {
         ],
       },
     })
-    mockedGetInstanceEvents.mockResolvedValue({ items: [] })
-    mockedGetInstanceChildren.mockResolvedValue({ items: [] })
+    mockedGetInstanceEvents.mockResolvedValue({ items: [], metadata: {} })
+    mockedGetInstanceChildren.mockResolvedValue({ items: [], metadata: {} })
     mockedGetRGD.mockResolvedValue({
       apiVersion: 'kro.run/v1alpha1',
       kind: 'ResourceGroupDefinition',
       metadata: { name: 'test-app', namespace: 'default' },
       spec: { schema: { kind: 'WebApp', spec: {} }, resources: [] },
     })
-    mockedListRGDs.mockResolvedValue({ items: [] })
+    mockedListRGDs.mockResolvedValue({ items: [], metadata: {} })
   })
   afterEach(() => { vi.useRealTimers() })
 
