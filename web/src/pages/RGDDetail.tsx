@@ -161,7 +161,10 @@ export default function RGDDetail() {
   const [revisionDiff, setRevisionDiff] = useState<RevisionNodeDiff | null>(null)
 
   useEffect(() => {
-    if (!hasRevisions || activeTab !== "graph" || !name) return
+    if (!hasRevisions || activeTab !== "graph" || !name) {
+      setRevisionDiff(null)
+      return
+    }
     let cancelled = false
     listGraphRevisions(name)
       .then((data) => {
