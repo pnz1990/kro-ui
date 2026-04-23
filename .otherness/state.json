@@ -28,6 +28,11 @@
       "last_seen": "2026-04-22T08:36:12Z",
       "item": "issue-680-done",
       "cycle": 2
+    },
+    "sess-8b6e02af": {
+      "last_seen": "2026-04-23T05:12:50Z",
+      "item": "issue-711",
+      "cycle": 1
     }
   },
   "features": {
@@ -2627,7 +2632,7 @@
       "note": "already-implemented-issue-closed"
     },
     "issue-710": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: RGD display: kro upstream field parity SLO",
       "labels": [
         "kind/enhancement",
@@ -2635,10 +2640,12 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "done_at": "2026-04-23T05:13:31Z"
     },
     "issue-711": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance management: stuck-reconciling escalation banner",
       "labels": [
         "kind/enhancement",
@@ -2646,7 +2653,13 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "assigned_to": "sess-8b6e02af",
+      "assigned_at": "2026-04-23T05:12:50Z",
+      "branch": "feat/issue-711",
+      "worktree": "../kro-ui.issue-711",
+      "pr_merged": true,
+      "done_at": "2026-04-23T05:13:16Z"
     },
     "issue-712": {
       "state": "done",
@@ -2661,7 +2674,7 @@
       "note": "already-implemented-issue-closed"
     },
     "issue-713": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Designer: apply-to-cluster action",
       "labels": [
         "kind/enhancement",
@@ -2669,7 +2682,9 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "done_at": "2026-04-23T05:13:31Z"
     },
     "issue-714": {
       "state": "done",
@@ -2707,7 +2722,7 @@
       "priority": "medium"
     },
     "issue-717": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: RGD display: Lighthouse score regression comment on PRs",
       "labels": [
         "kind/enhancement",
@@ -2715,7 +2730,10 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "pr_number": 757,
+      "done_at": "2026-04-23T05:36:38Z"
     },
     "issue-718": {
       "state": "done",
