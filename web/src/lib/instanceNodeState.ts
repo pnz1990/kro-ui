@@ -63,6 +63,13 @@ export interface NodeStateEntry {
   finalizers?: string[]
   /** Raw deletionTimestamp ISO string when terminating. Spec: 031-deletion-debugger FR-003 */
   deletionTimestamp?: string
+  /**
+   * ISO timestamp of when this node entered its current state.
+   * Sourced from `conditions[type=Ready].lastTransitionTime` on the child resource.
+   * Used to display "Xm in state" on the node detail panel (spec issue-773, 29.4).
+   * Absent when the child has no Ready condition or no lastTransitionTime.
+   */
+  stateEnteredAt?: string
 }
 
 /** Map from node ID → NodeStateEntry. Built once per poll cycle. */
@@ -166,6 +173,22 @@ function parseApiVersion(apiVersion: unknown): { group: string; version: string 
   const parts = apiVersion.split('/')
   if (parts.length === 2) return { group: parts[0], version: parts[1] }
   return { group: '', version: parts[0] ?? 'v1' }
+}
+
+/**
+ * getReadyLastTransitionTime — returns lastTransitionTime from the Ready condition.
+ * Falls back to any condition's lastTransitionTime if Ready is absent.
+ * Returns undefined when no condition has a lastTransitionTime.
+ * Used to populate NodeStateEntry.stateEnteredAt (spec issue-773, 29.4).
+ */
+function getReadyLastTransitionTime(conditions: K8sCondition[]): string | undefined {
+  const ready = conditions.find((c) => c.type === 'Ready')
+  if (ready?.lastTransitionTime) return ready.lastTransitionTime
+  // Fallback: use any condition with a lastTransitionTime
+  for (const c of conditions) {
+    if (c.lastTransitionTime) return c.lastTransitionTime
+  }
+  return undefined
 }
 
 // ── Main export ────────────────────────────────────────────────────────────
@@ -303,6 +326,7 @@ export function buildNodeStateMap(
       terminating: childTerminating || undefined,
       finalizers: childFinalizers.length > 0 ? childFinalizers : undefined,
       deletionTimestamp: childDeletionTimestamp,
+      stateEnteredAt: getReadyLastTransitionTime(getChildConditions(child)),
     }
   }
 

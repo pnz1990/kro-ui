@@ -19,6 +19,7 @@ import { getResource } from '@/lib/api'
 import { toYaml, cleanK8sObject } from '@/lib/yaml'
 import { isTerminating, getDeletionTimestamp, getFinalizers, formatRelativeTime } from '@/lib/k8s'
 import { translateApiError } from '@/lib/errors'
+import { formatAge } from '@/lib/format'
 import KroCodeBlock from './KroCodeBlock'
 import FinalizersPanel from './FinalizersPanel'
 import './LiveNodeDetailPanel.css'
@@ -29,6 +30,12 @@ export interface LiveNodeDetailPanelProps {
   node: DAGNode
   /** Live state of this node — may change each poll cycle. */
   liveState: NodeLiveState | undefined
+  /**
+   * ISO timestamp when this node entered its current state.
+   * Sourced from conditions[type=Ready].lastTransitionTime on the child resource.
+   * Rendered as "Xm in state" next to the StateBadge (spec issue-773, 29.4).
+   */
+  stateEnteredAt?: string
   /** Resolved resource info for YAML fetch. */
   resourceInfo: {
     kind: string
@@ -302,6 +309,7 @@ function nonEmpty(exprs: string[]): string[] {
 export default function LiveNodeDetailPanel({
   node,
   liveState,
+  stateEnteredAt,
   resourceInfo,
   onClose,
 }: LiveNodeDetailPanelProps) {
@@ -350,6 +358,16 @@ export default function LiveNodeDetailPanel({
               {node.kind || node.label}
             </span>
             <StateBadge state={liveState} />
+            {stateEnteredAt && (
+              <span
+                className="live-state-age"
+                data-testid="node-detail-state-age"
+                aria-label={`In current state since ${stateEnteredAt}`}
+                title={`State entered: ${stateEnteredAt}`}
+              >
+                {formatAge(stateEnteredAt)} in state
+              </span>
+            )}
           </div>
           <span className="node-detail-id">{node.id}</span>
         </div>

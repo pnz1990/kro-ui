@@ -56,6 +56,18 @@
   color: var(--color-not-found);
 }
 
+/* ── Live state age badge (spec issue-773 29.4) ──────────────────────────── */
+
+.live-state-age {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ── YAML section ─────────────────────────────────────────────────────────── */
 
 .node-yaml-section {

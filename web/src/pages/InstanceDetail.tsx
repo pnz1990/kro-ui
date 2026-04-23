@@ -451,6 +451,15 @@ export default function InstanceDetail() {
     return nodeStateMap[selectedNode.id]?.state ?? 'not-found'
   }, [selectedNode, fastData, nodeStateMap])
 
+  // ── Time in current state for the selected node (spec issue-773 29.4) ────
+  // Returns the ISO timestamp when the node entered its current state.
+  // Used to render "Xm in state" in LiveNodeDetailPanel next to the StateBadge.
+  const selectedNodeStateEnteredAt: string | undefined = useMemo(() => {
+    if (!selectedNode || !fastData) return undefined
+    if (selectedNode.nodeType === 'instance' || selectedNode.nodeType === 'state') return undefined
+    return nodeStateMap[selectedNode.id]?.stateEnteredAt
+  }, [selectedNode, fastData, nodeStateMap])
+
   // ── Resource graph synthetic node (spec issue-538) ────────────────────────
   // When a resource row is clicked in ResourceGraphPanel, synthesize a minimal
   // DAGNode so we can reuse LiveNodeDetailPanel for YAML display.
@@ -754,6 +763,7 @@ export default function InstanceDetail() {
         <LiveNodeDetailPanel
           node={selectedNode}
           liveState={selectedNodeLiveState}
+          stateEnteredAt={selectedNodeStateEnteredAt}
           resourceInfo={resolvedResourceInfo}
           onClose={handlePanelClose}
         />
