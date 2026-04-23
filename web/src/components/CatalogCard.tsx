@@ -27,8 +27,7 @@ interface CatalogCardProps {
   usedBy: string[]
   /** Callback when a label pill is clicked — activates the label filter. */
   onLabelClick: (label: string) => void
-  /**
-   * When true, the card is in selection mode: clicking the body toggles selection
+  /** When true, the card is in selection mode: clicking the body toggles selection
    * instead of navigating to the RGD detail page. A checkbox overlay is shown.
    * spec issue-534 O1, O8.
    */
@@ -37,6 +36,11 @@ interface CatalogCardProps {
   selected?: boolean
   /** Called when the user toggles the card's selection state. */
   onToggle?: (name: string, selected: boolean) => void
+  /**
+   * Pre-computed complexity score for this RGD (spec issue-768 28.2).
+   * When > 0, shown as a numeric badge. Absent or 0 → badge hidden.
+   */
+  complexityScore?: number
 }
 
 export default function CatalogCard({
@@ -47,6 +51,7 @@ export default function CatalogCard({
   selectable = false,
   selected = false,
   onToggle,
+  complexityScore,
 }: CatalogCardProps) {
   const name = extractRGDName(rgd)
   const kind = extractRGDKind(rgd)
@@ -80,6 +85,16 @@ export default function CatalogCard({
         {kind && (
           <span className="catalog-card__kind" data-testid="catalog-card-kind">
             {kind}
+          </span>
+        )}
+        {typeof complexityScore === 'number' && complexityScore > 0 && (
+          <span
+            className="catalog-card__complexity-badge"
+            data-testid="complexity-badge"
+            title={`Complexity score: ${complexityScore}`}
+            aria-label={`Complexity ${complexityScore}`}
+          >
+            {complexityScore}
           </span>
         )}
         <span className="catalog-card__stat" data-testid="catalog-card-resources">
