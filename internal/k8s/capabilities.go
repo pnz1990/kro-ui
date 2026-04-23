@@ -76,6 +76,10 @@ func Baseline() *KroCapabilities {
 		FeatureGates: map[string]bool{
 			"CELOmitFunction":         false,
 			"InstanceConditionEvents": false,
+			// canApplyRGDs gates the only mutating endpoint in kro-ui (POST /api/v1/rgds/apply).
+			// Defaults to false — must be explicitly enabled via DetectCapabilities or config.
+			// Spec: .specify/specs/issue-713/spec.md O3
+			"canApplyRGDs": false,
 		},
 		KnownResources: []string{"resourcegraphdefinitions"},
 		Schema: SchemaCapabilities{

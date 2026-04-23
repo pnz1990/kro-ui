@@ -20,9 +20,10 @@ import { STARTER_RGD_STATE, generateRGDYAML, rgdAuthoringStateToSpec } from '@/l
 import type { RGDAuthoringState, AuthoringResource } from '@/lib/generator'
 import { buildDAGGraph } from '@/lib/dag'
 import type { DAGGraph } from '@/lib/dag'
-import type { StaticIssue } from '@/lib/api'
+import type { StaticIssue, ApplyRGDResult } from '@/lib/api'
 import * as api from '@/lib/api'
 import { extractShareFromUrl } from '@/lib/share'
+import { useCapabilities } from '@/lib/features'
 import RGDAuthoringForm from '@/components/RGDAuthoringForm'
 import StaticChainDAG from '@/components/StaticChainDAG'
 import YAMLPreview from '@/components/YAMLPreview'
@@ -142,6 +143,9 @@ export default function AuthorPage() {
   const [readonly, setReadonly] = useState<boolean>(initial.readonly)
   const rgdYaml = useMemo(() => generateRGDYAML(rgdState), [rgdState])
 
+  // ── Capabilities — used to gate canApplyRGDs (spec issue-713) ───────────
+  const { capabilities } = useCapabilities()
+
   // ── Tab state with sessionStorage restoration (issue-684) ────────────────
   const [activeTab, setActiveTab] = useState<DesignerTab>(() => {
     if (initial.readonly) return 'schema' // share URL: always start at schema (O6)
@@ -226,6 +230,34 @@ export default function AuthorPage() {
       setDryRunResult({ valid: false, error: 'Could not reach cluster' })
     } finally {
       setDryRunLoading(false)
+    }
+  }
+
+  // ── Apply to cluster (spec issue-713) — manual, triggered by button ─────
+  // Only rendered when canApplyRGDs capability is true (O3, O4).
+  const [applyResult, setApplyResult] = useState<ApplyRGDResult | null>(null)
+  const [applyError, setApplyError] = useState<string | null>(null)
+  const [applyLoading, setApplyLoading] = useState(false)
+
+  // Clear stale apply result whenever YAML changes
+  useEffect(() => {
+    setApplyResult(null)
+    setApplyError(null)
+  }, [rgdYaml])
+
+  const canApplyRGDs = capabilities?.featureGates?.['canApplyRGDs'] === true
+
+  async function handleApply() {
+    setApplyLoading(true)
+    setApplyResult(null)
+    setApplyError(null)
+    try {
+      const res = await api.applyRGD(rgdYaml)
+      setApplyResult(res)
+    } catch (err) {
+      setApplyError(err instanceof Error ? err.message : 'Apply failed')
+    } finally {
+      setApplyLoading(false)
     }
   }
 
@@ -337,6 +369,10 @@ export default function AuthorPage() {
               onValidate={handleValidate}
               validateResult={dryRunResult}
               validateLoading={dryRunLoading}
+              onApply={canApplyRGDs && !readonly ? handleApply : undefined}
+              applyResult={applyResult}
+              applyError={applyError}
+              applyLoading={applyLoading}
             />
           </div>
         )}

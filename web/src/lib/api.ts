@@ -350,3 +350,44 @@ export async function validateRGDStatic(yaml: string): Promise<StaticValidationR
     return { issues: [] }
   }
 }
+
+// ── Apply to cluster ──────────────────────────────────────────────────
+
+/**
+ * Result of applying an RGD YAML to the cluster (POST /api/v1/rgds/apply).
+ *
+ * Spec: .specify/specs/issue-713/spec.md O6
+ */
+export interface ApplyRGDResult {
+  /** metadata.name of the created or updated RGD. */
+  name: string
+  /** true when a new RGD was created; false when an existing one was updated. */
+  created: boolean
+  /** Human-readable summary, e.g. "Created RGD my-rgd". */
+  message: string
+}
+
+/**
+ * Apply a ResourceGraphDefinition YAML to the cluster via server-side apply.
+ *
+ * Gated behind the canApplyRGDs capability flag (defaults false).
+ * Throws on non-OK HTTP responses (including 403 when capability is disabled).
+ *
+ * Spec: .specify/specs/issue-713/spec.md O1–O7
+ */
+export async function applyRGD(yaml: string): Promise<ApplyRGDResult> {
+  const res = await fetch(BASE + '/rgds/apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: yaml,
+  })
+  if (!res.ok) {
+    let errMsg = `HTTP ${res.status}`
+    try {
+      const body = await res.json() as { error?: string }
+      if (body.error) errMsg = body.error
+    } catch { /* ignore parse error */ }
+    throw new Error(errMsg)
+  }
+  return res.json() as Promise<ApplyRGDResult>
+}

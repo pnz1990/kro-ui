@@ -15,6 +15,7 @@
 package handlers
 
 import (
+	"io"
 	"net/http"
 	"strings"
 
@@ -22,7 +23,9 @@ import (
 	"github.com/rs/zerolog"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
@@ -153,4 +156,134 @@ func (h *Handler) ListInstances(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Debug().Str("rgd", name).Str("kind", kind).Msg("listed instances")
 	respond(w, http.StatusOK, list)
+}
+
+// applyRGDFieldManager is the SSA field manager used when applying RGDs via the Designer.
+// Using a distinct field manager ensures kro-ui's applied fields can be tracked separately
+// from fields managed by kubectl or other tooling.
+const applyRGDFieldManager = "kro-ui"
+
+// ApplyRGDResponse is the response payload for POST /api/v1/rgds/apply.
+type ApplyRGDResponse struct {
+	// Name is the metadata.name of the RGD that was created or updated.
+	Name string `json:"name"`
+	// Created is true when a new RGD was created; false when an existing one was updated.
+	Created bool `json:"created"`
+	// Message is a human-readable summary (e.g. "Created RGD my-rgd" or "Updated RGD my-rgd").
+	Message string `json:"message"`
+}
+
+// ApplyRGD applies a ResourceGraphDefinition YAML to the cluster via server-side apply.
+//
+// This is the only mutating endpoint in kro-ui. It is gated behind the canApplyRGDs
+// capability flag (spec issue-713 O3), which defaults to false.
+//
+// POST /api/v1/rgds/apply
+// Content-Type: text/plain  (raw YAML body)
+//
+// Response:
+//   - 201: RGD created — ApplyRGDResponse{created:true}
+//   - 200: RGD updated — ApplyRGDResponse{created:false}
+//   - 400: invalid YAML, wrong kind, or empty body
+//   - 403: canApplyRGDs capability is false
+//   - 503: cluster unreachable
+//
+// Spec: .specify/specs/issue-713/spec.md O1–O7
+func (h *Handler) ApplyRGD(w http.ResponseWriter, r *http.Request) {
+	log := zerolog.Ctx(r.Context())
+
+	// O3: capability gate — canApplyRGDs must be true to use this endpoint.
+	// capCache is the module-level cache populated by GetCapabilities.
+	if cached := capCache.get(); cached != nil {
+		if !cached.FeatureGates["canApplyRGDs"] {
+			respondError(w, http.StatusForbidden,
+				"canApplyRGDs is disabled; enable it in kro-ui capabilities to use the apply-to-cluster feature")
+			return
+		}
+	} else {
+		// Capabilities not yet fetched — fail-safe: deny the apply.
+		respondError(w, http.StatusForbidden,
+			"kro capabilities not yet detected; retry after the capabilities endpoint has been called")
+		return
+	}
+
+	// O7: parse request body as YAML.
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes))
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "failed to read request body: "+err.Error())
+		return
+	}
+	if len(body) == 0 {
+		respondError(w, http.StatusBadRequest, "empty body")
+		return
+	}
+
+	// Decode YAML → unstructured object.
+	obj := &unstructured.Unstructured{}
+	decoder := k8syaml.NewYAMLOrJSONDecoder(strings.NewReader(string(body)), 4096)
+	if err := decoder.Decode(&obj.Object); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid YAML: "+err.Error())
+		return
+	}
+
+	// O7: validate kind and apiVersion.
+	gvk := obj.GroupVersionKind()
+	if gvk.Group != k8sclient.KroGroup || gvk.Kind != "ResourceGraphDefinition" {
+		respondError(w, http.StatusBadRequest,
+			"body must be a ResourceGraphDefinition (kro.run/v1alpha1), got: "+gvk.String())
+		return
+	}
+
+	rgdName := obj.GetName()
+	if rgdName == "" {
+		respondError(w, http.StatusBadRequest, "metadata.name is required")
+		return
+	}
+
+	// Check whether the RGD already exists so we can return the correct status code.
+	_, getErr := h.factory.Dynamic().Resource(rgdGVR).Get(r.Context(), rgdName, metav1.GetOptions{})
+	wasCreated := k8serrors.IsNotFound(getErr)
+
+	// O1: Apply via server-side apply with field manager kro-ui, force=false.
+	applied, err := h.factory.Dynamic().Resource(rgdGVR).Apply(
+		r.Context(),
+		rgdName,
+		obj,
+		metav1.ApplyOptions{
+			FieldManager: applyRGDFieldManager,
+			Force:        false,
+		},
+	)
+	if err != nil {
+		if k8serrors.IsForbidden(err) || k8serrors.IsUnauthorized(err) {
+			log.Warn().Err(err).Str("rgd", rgdName).Msg("ApplyRGD: RBAC denied")
+			respondError(w, http.StatusForbidden, "cluster RBAC denied apply: "+err.Error())
+			return
+		}
+		log.Error().Err(err).Str("rgd", rgdName).Msg("failed to apply RGD")
+		respondError(w, http.StatusServiceUnavailable, "cluster unreachable: "+err.Error())
+		return
+	}
+
+	appliedName := applied.GetName()
+	if appliedName == "" {
+		appliedName = rgdName
+	}
+
+	var action string
+	var status int
+	if wasCreated {
+		action = "Created"
+		status = http.StatusCreated
+	} else {
+		action = "Updated"
+		status = http.StatusOK
+	}
+
+	log.Info().Str("rgd", appliedName).Bool("created", wasCreated).Msg("ApplyRGD: success")
+	respond(w, status, ApplyRGDResponse{
+		Name:    appliedName,
+		Created: wasCreated,
+		Message: action + " RGD " + appliedName,
+	})
 }

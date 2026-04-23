@@ -3,12 +3,14 @@
 // Wraps KroCodeBlock for syntax-highlighted display.
 // Adds a "Copy kubectl apply" button that copies a heredoc snippet.
 // Adds a "Validate against cluster" button (US9) that triggers a dry-run apply.
+// Adds an "Apply to cluster" button (spec issue-713) gated on canApplyRGDs capability.
 //
 // Spec: .specify/specs/026-rgd-yaml-generator/ FR-006, FR-007
 // Spec: .specify/specs/045-rgd-designer-validation-optimizer/ US7 (React.memo), US9 (dry-run)
+// Spec: .specify/specs/issue-713/spec.md O4, O5
 
 import { memo, useState, useCallback } from 'react'
-import type { DryRunResult } from '@/lib/api'
+import type { DryRunResult, ApplyRGDResult } from '@/lib/api'
 import KroCodeBlock from '@/components/KroCodeBlock'
 import './YAMLPreview.css'
 
@@ -23,6 +25,19 @@ export interface YAMLPreviewProps {
   validateResult?: DryRunResult | null
   /** US9: true while a validation request is in-flight. */
   validateLoading?: boolean
+  /**
+   * Apply-to-cluster callback (spec issue-713 O5).
+   * When provided, an "Apply to cluster" button is rendered.
+   * The callback is invoked when the user clicks the button.
+   * The parent is responsible for making the API call and passing applyResult.
+   */
+  onApply?: () => void
+  /** Current apply result, or null when no apply has been attempted. */
+  applyResult?: ApplyRGDResult | null
+  /** Error message from the last apply attempt, or null when no error. */
+  applyError?: string | null
+  /** true while an apply request is in-flight. */
+  applyLoading?: boolean
 }
 
 /**
@@ -36,6 +51,10 @@ export interface YAMLPreviewProps {
  * When onValidate is provided, a "Validate against cluster" button is shown
  * that triggers a dry-run apply via the backend (spec 045 US9).
  *
+ * When onApply is provided, an "Apply to cluster" button is shown that applies
+ * the RGD YAML to the cluster via SSA (spec issue-713 O4, O5).
+ * The parent controls whether to show onApply (check canApplyRGDs capability).
+ *
  * Wrapped in React.memo so it skips reconciliation when yaml/title props are
  * unchanged — avoids redundant re-renders on large forms (spec 045 US7).
  */
@@ -45,6 +64,10 @@ const YAMLPreview = memo(function YAMLPreview({
   onValidate,
   validateResult,
   validateLoading,
+  onApply,
+  applyResult,
+  applyError,
+  applyLoading,
 }: YAMLPreviewProps) {
   const [copiedKubectl, setCopiedKubectl] = useState(false)
 
@@ -84,6 +107,18 @@ const YAMLPreview = memo(function YAMLPreview({
             {validateLoading ? 'Validating\u2026' : 'Validate against cluster'}
           </button>
         )}
+        {onApply && (
+          <button
+            type="button"
+            className="yaml-preview__kubectl-btn yaml-preview__apply-btn"
+            onClick={onApply}
+            disabled={applyLoading}
+            aria-busy={applyLoading ? 'true' : undefined}
+            data-testid="apply-to-cluster-btn"
+          >
+            {applyLoading ? 'Applying\u2026' : 'Apply to cluster'}
+          </button>
+        )}
       </div>
       {validateResult !== null && validateResult !== undefined && (
         <div className="yaml-preview__validate-result" data-testid="dry-run-result">
@@ -94,6 +129,21 @@ const YAMLPreview = memo(function YAMLPreview({
               ✗ Validation failed: {(validateResult as { valid: false; error: string }).error}
             </span>
           )}
+        </div>
+      )}
+      {/* Apply result — shown after apply completes (spec issue-713 O6) */}
+      {applyResult !== null && applyResult !== undefined && (
+        <div className="yaml-preview__validate-result" data-testid="apply-result">
+          <span className="yaml-preview__validate-ok">
+            ✓ {applyResult.message}
+          </span>
+        </div>
+      )}
+      {applyError !== null && applyError !== undefined && applyError !== '' && (
+        <div className="yaml-preview__validate-result" data-testid="apply-error">
+          <span className="yaml-preview__validate-err">
+            ✗ Apply failed: {applyError}
+          </span>
         </div>
       )}
     </div>
