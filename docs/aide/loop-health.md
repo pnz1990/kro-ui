@@ -1,23 +1,23 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-23 (scan 8).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-23 (scan 9).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
 ---
 
-## Quick-Glance (as of 2026-04-23 — scan 8 / batch-2 reconstructed)
+## Quick-Glance (as of 2026-04-23 — scan 9 / reconstructed-9)
 
 | Field | Value |
 |-------|-------|
-| **Health** | GREEN — 4 meaningful PRs merged since batch-1 (PR #752 Designer apply-to-cluster, #757 Lighthouse diff comment, #782 RGD changes-since-revision banner, #749 SM loop-health update); CI all-green |
-| **Last feature PR** | PR #782 — feat(rgd-detail): changes-since-last-revision banner on Graph tab (issue #767 ✅, 2026-04-23) |
-| **Last meaningful feature PR** | PR #782 — RGD changes-since-revision banner; PR #752 — Designer apply-to-cluster; PR #757 — Lighthouse diff comment on PRs |
-| **Next priority** | Open feat: issues: #781 (31.4), #780 (31.3), #779 (31.2), #778 (30.5), #774 (29.5); skills_delta=0 for 9 consecutive runs — 27.24 learning frequency gate still pending; #728 community outreach for second OWNERS approver remains the only donation hard-blocker |
+| **Health** | GREEN — 8 meaningful PRs merged since reconstructed-8 (PR #785 reconciliation timeline, #790 designer tour, #791 catalog complexity score, #796 product-changelog, #787/#788 persona E2E journeys 091/092, #792 28.3 DAG O4 obligation, #799 workflow fix); CI all-green |
+| **Last feature PR** | PR #799 — fix(workflow): fix agents_path regex — restores sessions |
+| **Last meaningful feature PR** | PR #791 — feat(catalog): RGD complexity score badge; PR #790 — feat(designer): onboarding guided tour; PR #785 — feat(instance-detail): reconciliation timeline |
+| **Next priority** | Open feat: issues: #781 (31.4), #780 (31.3), #779 (31.2), #778 (30.5), #774 (29.5); skills_delta=0 for 10 consecutive runs — 27.S1/27.S6 unimplemented; #728 community outreach for second OWNERS approver remains the only donation hard-blocker |
 
-> ⚠️ **issue-751 resolved**: PR #757 (Lighthouse score diff comment on PRs) has now merged — the workflows permission issue is no longer blocking. The `perf.yml` workflow now posts a per-PR Lighthouse score diff comment.
+> ℹ️ **pressure** (scan 9): 4/5 bullets addressed (80% — above 60% threshold; rewrite reminder already queued in doc 28). Unaddressed bullet: "Is the self-improvement real?" — skills_delta=0 for 10 consecutive scans, no /otherness.learn trigger has fired, monoculture mechanisms 27.S1 and 27.S6 remain unimplemented in agent files. The backlog cap (27.66) prevents adding new loop-health items until 27.32 is codified in `sm.md §4f`.
 
-> ℹ️ **pressure**: 3/5 pressure bullets addressed (60% — at the Scan 5 threshold). `skills_delta=0` persists for 9 consecutive runs (threshold is 5 per 27.31 — SM must open a learning velocity issue before the next batch). Items 27.22 (housekeeping-detection), 27.24 (learn frequency gate), and 27.46 (loop honesty thresholds) remain unimplemented in agent files.
+> ℹ️ **product-changelog.md**: now exists — PR #796 shipped 28.4 (advancement signal). vision.md development loop gaps table updated by scan 9 to remove the stale row.
 
 ---
 
@@ -35,7 +35,15 @@ Key remaining donation-readiness items:
 - ✅ `#716` Structured zero-RGD empty state — shipped PR #733
 - ✅ `#676` Air-gapped environment smoke test — shipped PR #704
 
-Items shipped since scan 8 update: N/A (scan 8 is current)
+Items shipped since scan 8 update (PRs #783–#799):
+- ✅ PR #785 — reconciliation timeline on ConditionsPanel (29.1)
+- ✅ PR #790 — Designer onboarding guided tour 4-step overlay (31.1)
+- ✅ PR #791 — Catalog RGD complexity score badge + default sort (28.2)
+- ✅ PR #796 — product-changelog.md advancement signal (28.4)
+- ✅ PR #787 — E2E journey 091: kro contributor/donation reviewer persona
+- ✅ PR #788 — E2E journey 092: multi-cluster operator persona
+- ✅ PR #792 — docs(design): mark 28.3 DAG self-improvement gate ✅ confirmed
+- ✅ PR #799 — fix(workflow): agents_path regex fix (restores session delivery)
 
 ---
 
@@ -56,6 +64,7 @@ Items shipped since scan 8 update: N/A (scan 8 is current)
 | 2026-04-23 | reconstructed-7 | ~72 | - | 16 | 0 | PR #743: feat(designer) CEL expression linter (issue #721 ✅); pressure: 0/5 bullets (7th consecutive scan); open feat: issues: #744 #717 #713 #710; SM §4b still not reached; backlog cap active (48 items) |
 | 2026-04-23 | batch-1 | 73 | - | 16 | 0 | session sess-7d63c961; PR #748: kro upstream field parity SLO; SM phase wrote loop-health.md (27.32 partial ✅); skills_delta=0 (8th run); pressure: 0/5 |
 | 2026-04-23 | reconstructed-8 | 82 | - | 16 | 0 | PRs #749–#782; feat: apply-to-cluster (#752), Lighthouse diff PR comment (#757), RGD changes-since-revision (#782); 28.5 new gap added; pressure: 3/5 (60% — scan 5 threshold reached); skills_delta=0 (9th run — 27.24 threshold exceeded at 5, SM must open learning velocity issue) |
+| 2026-04-23 | reconstructed-9 | 90 | - | 16 | 0 | PRs #783–#799; feat: reconciliation timeline (#785, 29.1), designer guided tour (#790, 31.1), catalog complexity score (#791, 28.2), product-changelog.md (#796, 28.4), persona E2E journeys 091+092 (#787+#788); fix: agents_path regex (#799); pressure: 4/5 (80% — above threshold); skills_delta=0 (10th run, self-improvement bullet still 0 matches); backlog cap active |
 
 > ⚠️ Metrics rows for batches 52–current are missing. SM §4b is not writing metrics rows.
 > This is item 27.55. Reconstructed rows above are estimates from merged PR count.
@@ -75,7 +84,8 @@ These 27.xx items are the highest-impact open gaps. The SM should pick ONE per s
 > ⚠️ The System Loop Health section in doc 27 now has 47 unimplemented items (27.22–27.68).
 > Per item 27.66: the scan will NOT add new items until at least the top 3 are implemented.
 > The loop must consume its backlog before adding new queue items.
-> ⚠️ NEW: `skills_delta=0` for 9 consecutive runs. Per 27.31 rule: threshold is 5 batches. SM MUST open a learning velocity issue before the next batch.
+> ⚠️ `skills_delta=0` for 10 consecutive runs. Per 27.31 rule: threshold is 5 batches. SM MUST open a learning velocity issue. The self-improvement pressure bullet scores 0 matches — the only un-addressed lens from the pressure context.
+> ⚠️ Backlog cap (27.66): cap lifts when 27.32 is codified in `sm.md §4f`. Status: `docs/aide/loop-health.md` exists (scan-maintained) but SM §4f has no explicit write step.
 
 ---
 
