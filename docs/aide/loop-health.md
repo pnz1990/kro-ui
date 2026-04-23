@@ -1,23 +1,23 @@
 # Loop Health Dashboard
 
-> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-23 (scan 7).
+> **Maintained by**: SM phase (§4f) every batch. Stub updated by vibe-vision-auto on 2026-04-23 (scan 8).
 > The SM should replace this stub with a live-computed version on the next batch completion.
 > See doc 27 §27.26, §27.32, §27.58, §27.68.
 
 ---
 
-## Quick-Glance (as of 2026-04-23 — batch-1 sess-7d63c961)
+## Quick-Glance (as of 2026-04-23 — scan 8)
 
 | Field | Value |
 |-------|-------|
-| **Health** | GREEN — 1 design-doc-backed PR merged (PR #748); CI all-green; E2E pass 11m49s; SM phase now writing this file (27.32 partial ✅) |
-| **Last feature PR** | PR #748 — docs(contributing): kro upstream field parity SLO (issue #710 ✅, 2026-04-23) |
-| **Last meaningful feature PR** | PR #748 — kro upstream field parity SLO; PR #743 — CEL expression linter (issue #721 ✅) |
-| **Next priority** | Open: #747 [NEEDS HUMAN] feat/issue-717 push (GitHub App lacks `workflows` permission); #713 (Designer apply-to-cluster); #679 (27.24 community outreach); skills_delta=0 for 8 consecutive runs — 27.24 learn frequency gate still pending |
+| **Health** | GREEN — 2 design-doc-backed PRs merged today (#752 apply-to-cluster, #748 field parity SLO); CI all-green |
+| **Last feature PR** | PR #752 — feat(designer): apply-to-cluster action — POST /api/v1/rgds/apply with canApplyRGDs gate (issue #713 ✅, 2026-04-23) |
+| **Last meaningful feature PR** | PR #752 — Designer apply-to-cluster; PR #748 — kro upstream field parity SLO; PR #743 — CEL expression linter |
+| **Next priority** | Open: #747 [NEEDS HUMAN] feat/issue-717 push (GitHub App lacks `workflows` permission); #728/#679 (27.24 community outreach — only remaining hard blocker); skills_delta=0 for 9 consecutive runs — 27.24 learn frequency gate still pending |
 
 > ⚠️ **issue-717 blocked**: feat(perf): Lighthouse regression comment on PRs is implemented on branch `feat/issue-717` but cannot be pushed because the GitHub App token lacks `workflows` permission. See issue #747 for resolution path.
 
-> ℹ️ **pressure**: 0/5 pressure bullets addressed for 8 consecutive runs. `skills_delta=0` persists. Items 27.22 (housekeeping-detection), 27.24 (learn frequency gate), and 27.46 (loop honesty thresholds) remain unimplemented in agent files.
+> ℹ️ **pressure**: 0/5 pressure bullets addressed for 9 consecutive runs. `skills_delta=0` persists. Items 27.22 (housekeeping-detection), 27.24 (learn frequency gate), and 27.46 (loop honesty thresholds) remain unimplemented in agent files. Backlog cap active (48 items, item 27.66): scan will NOT add new 27.xx items until top 3 are implemented.
 
 ---
 
@@ -35,7 +35,9 @@ Key remaining donation-readiness items:
 - ✅ `#676` Air-gapped environment smoke test — shipped PR #704
 
 Items shipped since scan 7 update:
+- ✅ PR #752 — feat(designer): apply-to-cluster action with canApplyRGDs gate (issue #713) — 2026-04-23
 - ✅ PR #748 — docs(contributing): kro upstream field parity SLO (issue #710) — 2026-04-23
+- ✅ PR #743 — feat(designer): CEL expression linter for readyWhen/includeWhen (issue #721) — 2026-04-23
 
 ---
 
@@ -54,6 +56,8 @@ Items shipped since scan 7 update:
 | 2026-04-22 | reconstructed-5 | ~66 | - | 16 | 0 | PRs #734–#736; feat: live DAG polling pause (#736, issue #719); pressure: 0/5 bullets; backlog cap active (48 items) |
 | 2026-04-22 | reconstructed-6 | ~71 | - | 16 | 0 | PRs #737–#741; feat: SRE sparkline (#739), health snapshot (#740), stuck-escalation (#738); fix: Lighthouse 50→45 (⚠️ regression); pressure: 0/5 bullets; backlog cap active (48 items) |
 | 2026-04-23 | reconstructed-7 | ~72 | - | 16 | 0 | PR #743: feat(designer) CEL expression linter (issue #721 ✅); pressure: 0/5 bullets (7th consecutive scan); open feat: issues: #744 #717 #713 #710; SM §4b still not reached; backlog cap active (48 items) |
+| 2026-04-23 | batch-1 | 73 | - | 16 | 0 | session sess-7d63c961; PR #748: docs(contributing): kro upstream field parity SLO (issue #710 ✅); skills_delta=0 (8th run); health=GREEN |
+| 2026-04-23 | reconstructed-8 | 75 | - | 16 | 0 | vibe-vision-auto scan 8; PRs #749+#752: SM metrics chore + feat(designer) apply-to-cluster (issue #713 ✅); pressure: 0/5 bullets (9th consecutive scan); skills_delta=0; backlog cap active (48 items, 27.66); only open hard-blocker: #728 second OWNERS approver |
 
 > ⚠️ Metrics rows for batches 52–current are missing. SM §4b is not writing metrics rows.
 > This is item 27.55. Reconstructed rows above are estimates from merged PR count.
