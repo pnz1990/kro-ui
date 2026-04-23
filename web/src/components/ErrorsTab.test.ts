@@ -1,11 +1,11 @@
-// ErrorsTab.test.ts — Unit tests for groupErrorPatterns and isHealthyCondition.
+// ErrorsTab.test.ts — Unit tests for groupErrorPatterns, aggregateTopMessages, and isHealthyCondition.
 //
 // Issue #159: ReconciliationSuspended=False must NOT appear in error patterns.
 // The inversion logic (HEALTHY_WHEN_FALSE) is tested for both the condition health
 // helper and the aggregation function.
 
 import { describe, it, expect } from 'vitest'
-import { groupErrorPatterns } from './ErrorsTab'
+import { groupErrorPatterns, aggregateTopMessages } from './ErrorsTab'
 import { isHealthyCondition } from '@/lib/conditions'
 import type { K8sObject } from '@/lib/api'
 
@@ -241,5 +241,69 @@ describe('groupErrorPatterns — IN_PROGRESS instances are not aggregated', () =
     } as K8sObject]
     const groups = groupErrorPatterns(instances)
     expect(groups).toHaveLength(0)
+  })
+})
+
+// ── aggregateTopMessages (spec issue-775, 30.2) ───────────────────────────
+
+describe('aggregateTopMessages', () => {
+  it('T-TM01: empty groups → empty result', () => {
+    expect(aggregateTopMessages([])).toEqual([])
+  })
+
+  it('T-TM02: single-instance messages are filtered out (count ≤ 1)', () => {
+    const groups = [
+      { conditionType: 'Ready', reason: 'Err', message: 'only one instance', count: 1, instances: [] },
+    ]
+    expect(aggregateTopMessages(groups)).toEqual([])
+  })
+
+  it('T-TM03: messages with count > 1 appear in the result', () => {
+    const groups = [
+      { conditionType: 'Ready', reason: 'Err', message: 'timeout waiting for node X', count: 5, instances: [] },
+      { conditionType: 'Ready', reason: 'Err', message: 'single failure', count: 1, instances: [] },
+    ]
+    const result = aggregateTopMessages(groups)
+    expect(result).toHaveLength(1)
+    expect(result[0].message).toBe('timeout waiting for node X')
+    expect(result[0].count).toBe(5)
+  })
+
+  it('T-TM04: sorted by count descending', () => {
+    const groups = [
+      { conditionType: 'Ready', reason: '', message: 'common error', count: 3, instances: [] },
+      { conditionType: 'Ready', reason: '', message: 'very common error', count: 10, instances: [] },
+      { conditionType: 'Ready', reason: '', message: 'less common', count: 2, instances: [] },
+    ]
+    const result = aggregateTopMessages(groups)
+    expect(result[0].count).toBe(10)
+    expect(result[1].count).toBe(3)
+    expect(result[2].count).toBe(2)
+  })
+
+  it('T-TM05: topN limits the result', () => {
+    const groups = Array.from({ length: 10 }, (_, i) => ({
+      conditionType: 'Ready',
+      reason: '',
+      message: `error message ${i}`,
+      count: 10 - i,
+      instances: [],
+    }))
+    const result = aggregateTopMessages(groups, 3)
+    expect(result).toHaveLength(3)
+  })
+
+  it('T-TM06: "(no message)" is excluded from aggregation', () => {
+    const groups = [
+      { conditionType: 'Ready', reason: '', message: '(no message)', count: 5, instances: [] },
+    ]
+    expect(aggregateTopMessages(groups)).toEqual([])
+  })
+
+  it('T-TM07: empty message string is excluded', () => {
+    const groups = [
+      { conditionType: 'Ready', reason: '', message: '', count: 5, instances: [] },
+    ]
+    expect(aggregateTopMessages(groups)).toEqual([])
   })
 })

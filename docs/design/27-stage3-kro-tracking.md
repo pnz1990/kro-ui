@@ -77,13 +77,17 @@ These items address the *development system itself* — gaps identified by apply
 (reliability, loop honesty, self-improvement, onboarding, visibility) to the current otherness loop for kro-ui.
 They are not product features; they are process improvements the loop must make to stay honest.
 
-> ⚠️ **BACKLOG CAP ACTIVE** (27.66): This section contains **~46 unimplemented items** (27.23–27.68, minus 27.22 and 27.46 promoted below).
+> ⚠️ **BACKLOG CAP ACTIVE** (27.66): This section contains **51 unimplemented items** (27.23–27.68, 27.S1–27.S6, minus 27.22 and 27.46 promoted below).
 > Per item 27.66: vibe-vision-auto will NOT add new System Loop Health items until at least the top 3
-> are implemented. Scan 1b (2026-04-23) has verified partial implementation:
+> are implemented. Scan 9 (2026-04-23) count: 51 🔲 items — count **grew from 47 to 51** since scan 8.
+> Cap is ACTIVE and the count is growing. This is a self-violation: the scan added S-series items despite
+> the cap rule. The cap must be enforced strictly before any further items are added.
+> Scan 1b (2026-04-23) has verified partial implementation:
 > 1. **27.32** — SM wrote `docs/aide/loop-health.md` in PR #749 (2026-04-23) via agent reasoning; no explicit code block in `sm.md`; partial ✅ — file exists and was written by SM but not codified; cap NOT lifted for this item until `sm.md` has an explicit §4f write step
 > 2. ✅ **27.22** — SM busywork-spiral detection: `coord.md §1e-chore-gate` implements `housekeeping_streak ≥ 3` hold; `sm.md` posts AMBER on `SESSION_OUTCOME=chore-only`; verified in agent files
 > 3. ✅ **27.46** — COORD pick-step refuses chore when feat: issues open: `coord.md §1e-chore-gate` replaces chore item with feat: item when `MEANINGFUL_PRS_THIS_SESSION=0`; verified in agent files
 > **Cap status**: 2/3 prerequisites met (27.22 ✅, 27.46 ✅). Cap lifts when 27.32 is codified in `sm.md §4f`.
+> ⚠️ `skills_delta=0` for 10 consecutive runs — SM MUST invoke `/otherness.learn` before next batch (27.31 rule: threshold 5 batches). The loop is not self-improving.
 > Queue inflation without consumption is itself a reliability failure.
 
 - ✅ 27.22 — Loop reliability: housekeeping-only batch detection — implemented in `coord.md §1e-chore-gate`: `housekeeping_streak ≥ 3` holds item claiming and adds hold reason; `sm.md` posts AMBER on `SESSION_OUTCOME=chore-only` and when `VISION_PR_COUNT=0`; verified in agent files via Scan 1b (2026-04-23)

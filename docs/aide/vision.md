@@ -186,4 +186,8 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Designer apply-to-cluster action (POST /api/v1/rgds/apply, canApplyRGDs gate) — PR #752 shipped (2026-04-23)
 - ✅ Lighthouse score diff comment on PRs (perf.yml posts branch vs main delta) — PR #757 shipped (2026-04-23)
 - ✅ RGD detail "Changes since last revision" banner on Graph tab (kro v0.9.1+) — PR #782 shipped (2026-04-23)
+- ✅ Instance reconciliation timeline on ConditionsPanel (29.1): state transitions with lastTransitionTime — PR #785 shipped (2026-04-23)
+- ✅ E2E journey 091: donation reviewer / kro contributor persona anchor journey — PR #787 shipped (2026-04-23)
+- ✅ E2E journey 092: multi-cluster operator persona anchor journey — PR #788 shipped (2026-04-23)
+- ✅ Designer onboarding guided tour: 4-step overlay on first /author visit (31.1, issue #766) — PR #790 shipped (2026-04-23)
 
