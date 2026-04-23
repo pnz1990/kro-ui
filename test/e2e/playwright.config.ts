@@ -86,6 +86,23 @@ export default defineConfig({
       // useTheme() light mode, changing token colors and breaking journey 006.
       colorScheme: 'dark',
     },
+
+    // Pre-mark the Designer guided tour as seen so the overlay backdrop
+    // never intercepts pointer events in journeys that navigate to /author.
+    // The tour is a first-visit UX feature; E2E tests verify individual
+    // Designer capabilities, not the tour itself (tour is tested in
+    // DesignerTour.test.tsx unit tests and the dedicated 087-tour journey).
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: BASE_URL,
+          localStorage: [
+            { name: 'kro-ui-designer-toured', value: 'true' },
+          ],
+        },
+      ],
+    },
   },
 
   // Global setup/teardown: kind cluster lifecycle + kro install + server start
