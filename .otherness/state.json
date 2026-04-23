@@ -2873,8 +2873,8 @@
       "priority": "medium"
     },
     "issue-767": {
-      "state": "todo",
-      "status": "todo",
+      "state": "done",
+      "status": "done",
       "title": "feat: 28.1",
       "labels": [
         "kind/enhancement",
@@ -2882,7 +2882,10 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "pr_number": 782,
+      "done_at": "2026-04-23T07:31:47Z"
     },
     "issue-768": {
       "state": "todo",
