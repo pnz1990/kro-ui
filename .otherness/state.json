@@ -2870,9 +2870,9 @@
       "priority": "medium"
     },
     "issue-766": {
-      "state": "in_review",
+      "state": "done",
       "status": "todo",
-      "title": "feat: 31.1",
+      "title": "feat(designer): onboarding guided tour",
       "labels": [
         "kind/enhancement",
         "priority/medium",
