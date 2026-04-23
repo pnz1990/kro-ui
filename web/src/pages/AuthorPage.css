@@ -35,6 +35,41 @@
   flex-wrap: wrap;
 }
 
+/* Container for header action buttons (tour trigger + share) */
+.author-page__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* "?" tour trigger button — circular, subtle, always accessible (spec issue-766 O5) */
+.author-page__tour-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: none;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: color 0.12s, background 0.12s;
+}
+
+.author-page__tour-trigger-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface-2);
+}
+
+.author-page__tour-trigger-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
 .author-page__title {
   font-family: var(--font-sans);
   font-size: 1.5rem;
