@@ -17,12 +17,19 @@
  *
  * Validates that:
  *   1. The /author page loads with the RGD authoring form
- *   2. A resource can be added via "+ Add Resource"
- *   3. The advanced options accordion can be expanded
- *   4. A readyWhen row can be added and typed into
- *   5. Typing an unclosed string literal triggers the inline CEL error hint
+ *   2. The Resources tab is accessible via the tab bar
+ *   3. A resource can be added via "+ Add Resource" (Resources tab only)
+ *   4. The advanced options accordion can be expanded to reveal readyWhen inputs
+ *   5. A readyWhen row can be added and typed into
+ *   6. Typing an unclosed string literal triggers the inline CEL error hint
  *      (CELLintHint component — role="alert", class rgd-authoring-form__cel-error)
- *   6. Clearing the expression removes the error hint
+ *   7. Clearing the expression removes the error hint
+ *   8. A valid CEL expression produces no error hint
+ *
+ * The /author page has a tabbed layout (Schema | Resources | YAML | Preview).
+ * The "+ Add Resource" button and resource editing controls live in the Resources tab.
+ * Navigation to the Resources tab (data-testid="designer-tab-resources") is
+ * required before any resource operation.
  *
  * Spec ref: .specify/specs/issue-744/spec.md
  *
@@ -34,10 +41,65 @@
  * - Brace depth: 0
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const PORT = parseInt(process.env.KRO_UI_PORT ?? '40107', 10)
 const BASE = `http://localhost:${PORT}`
+
+/**
+ * Navigate to /author, switch to the Resources tab, add one resource,
+ * expand its advanced section, and add one readyWhen row.
+ * Returns the Playwright Page already positioned with the readyWhen input visible.
+ */
+async function openDesignerWithReadyWhen(page: Page): Promise<void> {
+  await page.goto(`${BASE}/author`, { waitUntil: 'domcontentloaded' })
+
+  // Wait for the authoring form to mount
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="rgd-authoring-form"]') !== null ||
+      document.querySelector('.rgd-authoring-form') !== null,
+    { timeout: 25_000 }
+  )
+
+  // Navigate to the Resources tab (default is Schema; resources live here)
+  await page.locator('[data-testid="designer-tab-resources"]').click()
+
+  // Wait for Resources tab to become active
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="designer-tab-resources"]')
+        ?.getAttribute('aria-selected') === 'true',
+    { timeout: 5_000 }
+  )
+
+  // Click "+ Add Resource" to create a resource node
+  await page.getByText('+ Add Resource', { exact: true }).click()
+
+  // Wait for at least one advanced-expand button (resource added)
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="advanced-expand-"]').length > 0,
+    { timeout: 10_000 }
+  )
+
+  // Expand advanced options for the first resource
+  await page.locator('[data-testid^="advanced-expand-"]').first().click()
+
+  // Wait for readyWhen add button to appear
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="readywhen-add-"]').length > 0,
+    { timeout: 10_000 }
+  )
+
+  // Add a readyWhen row
+  await page.locator('[data-testid^="readywhen-add-"]').first().click()
+
+  // Wait for the readyWhen expression input
+  await page.waitForFunction(
+    () => document.querySelectorAll('[data-testid^="readywhen-expr-"]').length > 0,
+    { timeout: 10_000 }
+  )
+}
 
 test.describe('Journey 091 — Designer CEL expression linter', () => {
 
@@ -77,9 +139,9 @@ test.describe('Journey 091 — Designer CEL expression linter', () => {
     expect(formVisible, 'RGD authoring form must be visible on /author').toBe(true)
   })
 
-  // ── Step 3: Add a resource and expand advanced options ───────────────────────
+  // ── Step 3: Navigate to Resources tab, add resource, expand advanced ─────────
 
-  test('Step 3: Add resource and expand advanced section', async ({ page }) => {
+  test('Step 3: Navigate to Resources tab, add resource and expand advanced section', async ({ page }) => {
     const health = await page.request.get(`${BASE}/api/v1/healthz`)
     if (!health.ok()) {
       test.skip(true, 'kro-ui server not reachable — skipping CEL linter journey')
@@ -96,23 +158,34 @@ test.describe('Journey 091 — Designer CEL expression linter', () => {
       { timeout: 25_000 }
     )
 
-    // Click "+ Add Resource" button
+    // Navigate to the Resources tab
+    const resourcesTab = page.locator('[data-testid="designer-tab-resources"]')
+    await expect(resourcesTab).toBeVisible({ timeout: 10_000 })
+    await resourcesTab.click()
+
+    // Wait for Resources tab to be active
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="designer-tab-resources"]')
+          ?.getAttribute('aria-selected') === 'true',
+      { timeout: 5_000 }
+    )
+
+    // Click "+ Add Resource" (only available in Resources tab)
     const addResourceBtn = page.getByText('+ Add Resource', { exact: true })
     await expect(addResourceBtn).toBeVisible({ timeout: 10_000 })
     await addResourceBtn.click()
 
-    // Wait for at least one advanced-expand button to appear (resource was added)
+    // Wait for advanced-expand button to appear
     await page.waitForFunction(
       () => document.querySelectorAll('[data-testid^="advanced-expand-"]').length > 0,
       { timeout: 10_000 }
     )
 
-    // Expand the advanced section of the first resource
-    const advancedExpand = page.locator('[data-testid^="advanced-expand-"]').first()
-    await expect(advancedExpand).toBeVisible({ timeout: 5_000 })
-    await advancedExpand.click()
+    // Expand the advanced section
+    await page.locator('[data-testid^="advanced-expand-"]').first().click()
 
-    // Wait for the readyWhen add button to become visible
+    // readyWhen add button should be visible
     await page.waitForFunction(
       () => document.querySelectorAll('[data-testid^="readywhen-add-"]').length > 0,
       { timeout: 10_000 }
@@ -133,48 +206,12 @@ test.describe('Journey 091 — Designer CEL expression linter', () => {
       return
     }
 
-    await page.goto(`${BASE}/author`, { waitUntil: 'domcontentloaded' })
-
-    // Wait for form
-    await page.waitForFunction(
-      () =>
-        document.querySelector('[data-testid="rgd-authoring-form"]') !== null ||
-        document.querySelector('.rgd-authoring-form') !== null,
-      { timeout: 25_000 }
-    )
-
-    // Add a resource
-    const addResourceBtn = page.getByText('+ Add Resource', { exact: true })
-    await addResourceBtn.click()
-
-    // Wait for resource to be added (advanced-expand button present)
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="advanced-expand-"]').length > 0,
-      { timeout: 10_000 }
-    )
-
-    // Expand advanced section
-    await page.locator('[data-testid^="advanced-expand-"]').first().click()
-
-    // Wait for readyWhen add button
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="readywhen-add-"]').length > 0,
-      { timeout: 10_000 }
-    )
-
-    // Add a readyWhen row
-    await page.locator('[data-testid^="readywhen-add-"]').first().click()
-
-    // Wait for the readyWhen expression input to appear
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="readywhen-expr-"]').length > 0,
-      { timeout: 10_000 }
-    )
+    await openDesignerWithReadyWhen(page)
 
     const readyWhenInput = page.locator('[data-testid^="readywhen-expr-"]').first()
     await expect(readyWhenInput).toBeVisible({ timeout: 5_000 })
 
-    // Type an unclosed string literal — this triggers the CEL linter after 300ms debounce
+    // Type an unclosed string literal — triggers the CEL linter after 300ms debounce
     await readyWhenInput.fill('"hello')
 
     // Wait for the lint error hint to appear (debounce: 300ms + tolerance)
@@ -211,36 +248,7 @@ test.describe('Journey 091 — Designer CEL expression linter', () => {
       return
     }
 
-    await page.goto(`${BASE}/author`, { waitUntil: 'domcontentloaded' })
-
-    // Wait for form
-    await page.waitForFunction(
-      () =>
-        document.querySelector('[data-testid="rgd-authoring-form"]') !== null ||
-        document.querySelector('.rgd-authoring-form') !== null,
-      { timeout: 25_000 }
-    )
-
-    // Add a resource and expand advanced section
-    const addResourceBtn = page.getByText('+ Add Resource', { exact: true })
-    await addResourceBtn.click()
-
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="advanced-expand-"]').length > 0,
-      { timeout: 10_000 }
-    )
-    await page.locator('[data-testid^="advanced-expand-"]').first().click()
-
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="readywhen-add-"]').length > 0,
-      { timeout: 10_000 }
-    )
-    await page.locator('[data-testid^="readywhen-add-"]').first().click()
-
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="readywhen-expr-"]').length > 0,
-      { timeout: 10_000 }
-    )
+    await openDesignerWithReadyWhen(page)
 
     const readyWhenInput = page.locator('[data-testid^="readywhen-expr-"]').first()
     await readyWhenInput.fill('"hello')
@@ -294,47 +302,16 @@ test.describe('Journey 091 — Designer CEL expression linter', () => {
       return
     }
 
-    await page.goto(`${BASE}/author`, { waitUntil: 'domcontentloaded' })
-
-    await page.waitForFunction(
-      () =>
-        document.querySelector('[data-testid="rgd-authoring-form"]') !== null ||
-        document.querySelector('.rgd-authoring-form') !== null,
-      { timeout: 25_000 }
-    )
-
-    const addResourceBtn = page.getByText('+ Add Resource', { exact: true })
-    await addResourceBtn.click()
-
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="advanced-expand-"]').length > 0,
-      { timeout: 10_000 }
-    )
-    await page.locator('[data-testid^="advanced-expand-"]').first().click()
-
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="readywhen-add-"]').length > 0,
-      { timeout: 10_000 }
-    )
-    await page.locator('[data-testid^="readywhen-add-"]').first().click()
-
-    await page.waitForFunction(
-      () => document.querySelectorAll('[data-testid^="readywhen-expr-"]').length > 0,
-      { timeout: 10_000 }
-    )
+    await openDesignerWithReadyWhen(page)
 
     const readyWhenInput = page.locator('[data-testid^="readywhen-expr-"]').first()
     // Valid CEL: compare a resource field to a number
     await readyWhenInput.fill('${schema.spec.replicas} >= 1')
 
-    // Wait 500ms via polling (debounce is 300ms) — no waitForTimeout
-    // Poll until the DOM has been stable for 2 cycles with no lint error
+    // Wait for debounce to settle and assert no CEL error hint via polling
+    // (no waitForTimeout — poll until DOM stable with no lint error for 2 checks)
     await page.waitForFunction(
-      () => {
-        // Absence check: no cel-error element present with lint message
-        const celErrors = document.querySelectorAll('.rgd-authoring-form__cel-error')
-        return celErrors.length === 0
-      },
+      () => document.querySelectorAll('.rgd-authoring-form__cel-error').length === 0,
       { timeout: 3_000 }
     )
 
