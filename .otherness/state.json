@@ -2615,7 +2615,7 @@
       "done_at": "2026-04-22T11:12:35Z"
     },
     "issue-709": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 26.7",
       "labels": [
         "kind/enhancement",
@@ -2623,7 +2623,8 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
     },
     "issue-710": {
       "state": "todo",
@@ -2648,7 +2649,7 @@
       "priority": "medium"
     },
     "issue-712": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Health system: SRE dashboard in-session health sparkline",
       "labels": [
         "kind/enhancement",
@@ -2656,7 +2657,8 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
     },
     "issue-713": {
       "state": "todo",
@@ -2670,7 +2672,7 @@
       "priority": "medium"
     },
     "issue-714": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 26.8",
       "labels": [
         "kind/enhancement",
@@ -2678,10 +2680,11 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
     },
     "issue-715": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 26.9",
       "labels": [
         "kind/enhancement",
@@ -2689,7 +2692,8 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
     },
     "issue-716": {
       "state": "done",
@@ -2714,7 +2718,7 @@
       "priority": "medium"
     },
     "issue-718": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance management: namespace instance count summary",
       "labels": [
         "kind/enhancement",
@@ -2722,7 +2726,8 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
     },
     "issue-719": {
       "state": "done",
@@ -2752,7 +2757,7 @@
       "done_at": "2026-04-22T21:56:01Z"
     },
     "issue-720": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Health system: health snapshot clipboard export",
       "labels": [
         "kind/enhancement",
@@ -2760,20 +2765,26 @@
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
     },
     "issue-721": {
-      "state": "todo",
-      "title": "feat: Designer: CEL expression linter",
+      "state": "done",
+      "title": "feat(designer): CEL expression linter for readyWhen/includeWhen fields",
       "labels": [
         "kind/enhancement",
         "priority/medium",
         "size/s",
         "area/agent-loop"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr_merged": true,
+      "pr_number": 743,
+      "done_at": "2026-04-23T00:14:01Z"
     }
   },
   "sm_cycle_count": 6,
-  "pm_cycle_count": 5
+  "pm_cycle_count": 5,
+  "batch_count": 1,
+  "housekeeping_streak": 0
 }
