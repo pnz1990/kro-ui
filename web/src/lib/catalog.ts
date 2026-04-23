@@ -182,18 +182,63 @@ export function collectAllLabels(rgds: K8sObject[]): string[] {
   return Array.from(set).sort()
 }
 
-// ── Sort options ─────────────────────────────────────────────────────
-
-export type SortOption = 'name' | 'kind' | 'instances' | 'resources' | 'newest'
+// ── Complexity score ─────────────────────────────────────────────────
 
 /**
- * Sort an array of RGDs with their associated instance counts.
+ * Count how many other RGDs reference this RGD via chaining
+ * (i.e., how many referrers this RGD has in the catalog).
+ * Returns 0 when the RGD is not referenced by any other RGD.
+ */
+export function countChainingReferences(obj: K8sObject, allRgds: K8sObject[]): number {
+  const name = extractName(obj)
+  if (!name) return 0
+  const chainingMap = buildChainingMap(allRgds)
+  return (chainingMap.get(name) ?? []).length
+}
+
+/** Multiplier for chaining depth in complexity formula. */
+const CHAINING_WEIGHT = 2
+/** Multiplier for forEach collections in complexity formula. */
+const FOR_EACH_WEIGHT = 3
+
+/**
+ * Compute a complexity score for an RGD.
+ *
+ * Formula: resources.length + (chainingReferenceCount × 2) + (forEachCount × 3)
+ *
+ * - `resources.length`: base cost — every managed resource adds complexity
+ * - `chainingReferenceCount × 2`: chained RGDs are harder to debug across boundaries
+ * - `forEachCount × 3`: forEach collections expand N×, increasing blast radius
+ *
+ * Returns 0 for missing / malformed input.
+ */
+export function computeComplexityScore(obj: K8sObject, chainingReferenceCount = 0): number {
+  const spec = obj.spec
+  if (typeof spec !== 'object' || spec === null) return 0
+  const resources = (spec as Record<string, unknown>).resources
+  if (!Array.isArray(resources)) return 0
+
+  const resourceCount = resources.length
+  const forEachCount = resources.filter((r) => {
+    if (typeof r !== 'object' || r === null) return false
+    return 'forEach' in (r as Record<string, unknown>)
+  }).length
+
+  return resourceCount + chainingReferenceCount * CHAINING_WEIGHT + forEachCount * FOR_EACH_WEIGHT
+}
+
+// ── Sort options ─────────────────────────────────────────────────────
+
+export type SortOption = 'name' | 'kind' | 'instances' | 'resources' | 'newest' | 'complexity'
+
+/**
+ * Sort an array of RGDs with their associated instance counts and complexity scores.
  * Returns a new sorted array — does not mutate the input.
  */
 export function sortCatalog(
-  entries: Array<{ rgd: K8sObject; instanceCount: number | null | undefined }>,
+  entries: Array<{ rgd: K8sObject; instanceCount: number | null | undefined; complexityScore?: number }>,
   option: SortOption,
-): Array<{ rgd: K8sObject; instanceCount: number | null | undefined }> {
+): Array<{ rgd: K8sObject; instanceCount: number | null | undefined; complexityScore?: number }> {
   const sorted = [...entries]
   sorted.sort((a, b) => {
     switch (option) {
@@ -221,6 +266,11 @@ export function sortCatalog(
           return typeof t === 'string' ? t : ''
         }
         return ts(b.rgd).localeCompare(ts(a.rgd))
+      }
+      case 'complexity': {
+        const sa = a.complexityScore ?? 0
+        const sb = b.complexityScore ?? 0
+        return sb - sa
       }
     }
   })
