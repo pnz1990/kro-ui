@@ -54,6 +54,7 @@ the graph diff view. This is the most heavily exercised surface in kro-ui.
 **O1**: RGD list MUST display health state for each RGD without requiring a detail page visit.
 **O2**: DAG MUST show node type, readyWhen CEL, and includeWhen conditions when present.
 **O3**: Compile errors MUST be surfaced inline (not only in logs).
+**O4** (from 28.3): DAG features MUST include a pre-implementation anti-pattern check — before opening a PR for any DAG feature, the implementing agent MUST read `web/src/components/DAGGraph.tsx` and `web/src/lib/dag.ts` and enumerate the 5 most recent DAG-related anti-pattern entries in `AGENTS.md`; no DAG PR may be opened without this check recorded in the PR description.
 
 ---
 
