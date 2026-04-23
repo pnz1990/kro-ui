@@ -162,6 +162,7 @@ export default defineConfig({
       //  fetch-timeout (084), air-gapped-smoke (085),
       //  degraded-cluster-persona (086), rbac-restricted-persona (087),
       //  designer-roundtrip-persona (090),
+<<<<<<< HEAD
       //  kro-contributor-persona (091))
       name: 'chunk-9',
       testMatch: /(060|062[a-z]?|063|064|065|066|069|070|071|072|073|074|075|076|077|078|079|080|081|082|083|084|085|086|087|090|091)-.*\.spec\.ts/,
