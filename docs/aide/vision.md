@@ -32,7 +32,7 @@ and kro upstream features as they land (new CRDs, GraphRevision hash, CEL extens
 
 ## Donation Readiness Gap Analysis
 
-> Last updated: 2026-04-22 (scan 6) — autonomous vision scan (vibe-vision-auto)
+> Last updated: 2026-04-23 (scan 7) — autonomous vision scan (vibe-vision-auto)
 
 The bar is donation to `kubernetes-sigs`. The gaps below are what a kubernetes-sigs maintainer
 reviewing this today would find. Each has a corresponding `🔲 Future` item in a design doc.
@@ -176,4 +176,5 @@ Each has a corresponding `🔲 Future` item in doc 27.
 - ✅ Stuck-reconciling escalation banner at 10 minutes with kubectl describe command — PR #738 shipped (2026-04-22)
 - ✅ SRE dashboard in-session health sparkline (HealthTrendSparkline below donut) — PR #739 shipped (2026-04-22)
 - ✅ Health snapshot clipboard export button in Overview header — PR #740 shipped (2026-04-22)
+- ✅ Designer CEL expression linter for readyWhen/includeWhen fields — PR #743 shipped (2026-04-23)
 
