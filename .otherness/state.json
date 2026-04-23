@@ -23,6 +23,11 @@
       "last_seen": "2026-04-20T21:56:16Z",
       "item": "issue-570",
       "cycle": 1
+    },
+    "sess-14d5911c": {
+      "last_seen": "2026-04-22T08:36:12Z",
+      "item": "issue-680-done",
+      "cycle": 2
     }
   },
   "features": {
@@ -2056,7 +2061,7 @@
       "done_at": "2026-04-20T18:46:56Z"
     },
     "issue-534": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: RGD list: bulk operations (delete multiple, export selected)",
       "issue_number": 534,
       "labels": [
@@ -2068,7 +2073,7 @@
       "priority": "medium"
     },
     "issue-535": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Catalog: saved searches and filter presets",
       "issue_number": 535,
       "labels": [
@@ -2080,7 +2085,7 @@
       "priority": "medium"
     },
     "issue-536": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance bulk operations: select multiple instances, bulk delete with confirmation",
       "issue_number": 536,
       "labels": [
@@ -2092,7 +2097,7 @@
       "priority": "medium"
     },
     "issue-537": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance diff: full side-by-side comparison between two instance snapshots",
       "issue_number": 537,
       "labels": [
@@ -2104,7 +2109,7 @@
       "priority": "medium"
     },
     "issue-538": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Instance resource graph: show all k8s resources owned by this instance",
       "issue_number": 538,
       "labels": [
@@ -2116,7 +2121,7 @@
       "priority": "medium"
     },
     "issue-539": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Health trend chart: sparkline showing health state changes over last 24h per RGD",
       "issue_number": 539,
       "labels": [
@@ -2128,7 +2133,7 @@
       "priority": "medium"
     },
     "issue-540": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Health alert subscriptions: notify when RGD/instance enters error state",
       "issue_number": 540,
       "labels": [
@@ -2140,7 +2145,7 @@
       "priority": "medium"
     },
     "issue-542": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Designer: import existing RGD from cluster (load from live cluster \u2192 editable form)",
       "issue_number": 542,
       "labels": [
@@ -2152,8 +2157,8 @@
       "priority": "medium"
     },
     "issue-543": {
-      "state": "todo",
-      "title": "feat: Designer: node library",
+      "state": "done",
+      "title": "feat: Designer node library",
       "issue_number": 543,
       "labels": [
         "kind/enhancement",
@@ -2161,11 +2166,14 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "641",
+      "pr_merged": true,
+      "done_at": "2026-04-21T22:26:20Z"
     },
     "issue-544": {
-      "state": "todo",
-      "title": "feat: Designer: collaboration mode \u2014 share designer URL with readonly view",
+      "state": "done",
+      "title": "feat: Designer collaboration mode",
       "issue_number": 544,
       "labels": [
         "kind/enhancement",
@@ -2173,7 +2181,10 @@
         "size/s",
         "kro-ui"
       ],
-      "priority": "medium"
+      "priority": "medium",
+      "pr": "642",
+      "pr_merged": true,
+      "done_at": "2026-04-21T22:26:20Z"
     },
     "issue-570": {
       "state": "done",
@@ -2215,7 +2226,7 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-572": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.10",
       "issue_number": 572,
       "labels": [
@@ -2242,7 +2253,7 @@
       "done_at": "2026-04-20T22:13:59Z"
     },
     "issue-574": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.12",
       "issue_number": 574,
       "labels": [
@@ -2254,7 +2265,7 @@
       "priority": "medium"
     },
     "issue-575": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.13",
       "issue_number": 575,
       "labels": [
@@ -2266,7 +2277,7 @@
       "priority": "medium"
     },
     "issue-576": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: 27.14",
       "issue_number": 576,
       "labels": [
@@ -2278,7 +2289,7 @@
       "priority": "medium"
     },
     "issue-577": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: DAG scale guard: RGDs with >100 nodes render a dense unreadable SVG today; add a collapsed",
       "issue_number": 577,
       "labels": [
@@ -2290,7 +2301,7 @@
       "priority": "medium"
     },
     "issue-578": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: DAG minimap: for large graphs (>50 nodes) add a fixed-position mini-map (SVG overlay, no e",
       "issue_number": 578,
       "labels": [
@@ -2302,7 +2313,7 @@
       "priority": "medium"
     },
     "issue-579": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: GraphRevision diff: complete the side-by-side YAML diff view started in spec 009 (PR #318 ",
       "issue_number": 579,
       "labels": [
@@ -2314,7 +2325,7 @@
       "priority": "medium"
     },
     "issue-580": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Color-blind accessible health indicators",
       "issue_number": 580,
       "labels": [
@@ -2326,7 +2337,7 @@
       "priority": "medium"
     },
     "issue-581": {
-      "state": "todo",
+      "state": "done",
       "title": "feat: Accessibility audit expansion",
       "issue_number": 581,
       "labels": [
@@ -2355,8 +2366,425 @@
       "pr_number": 591,
       "pr_merged": true,
       "done_at": "2026-04-20T21:55:13Z"
+    },
+    "issue-640": {
+      "state": "done"
+    },
+    "issue-644": {
+      "state": "done",
+      "title": "feat: 27.16 \u2014 self-host Inter and JetBrains Mono fonts (remove Google Fonts CDN dependency)",
+      "issue_number": 644,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "pr_merged": true,
+      "pr": "650",
+      "done_at": "2026-04-21T22:57:42Z"
+    },
+    "issue-645": {
+      "state": "done",
+      "title": "feat: 27.20 \u2014 frontend per-request fetch timeout (AbortSignal.timeout 30s fallback)",
+      "issue_number": 645,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-646": {
+      "state": "done",
+      "title": "feat: 27.21 \u2014 Fleet per-cluster inner deadline (context.WithTimeout 5s in summariseContext)",
+      "issue_number": 646,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-647": {
+      "state": "done",
+      "title": "feat: Designer localStorage draft persistence \u2014 restore in-progress RGD on navigation",
+      "issue_number": 647,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium"
+    },
+    "issue-648": {
+      "state": "done",
+      "title": "feat: partial-RBAC instance visibility \u2014 'N RGD(s) hidden \u2014 insufficient permissions' advisory",
+      "issue_number": 648,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "pr_merged": true,
+      "done_at": "2026-04-21T23:43:37Z"
+    },
+    "issue-684": {
+      "state": "done",
+      "title": "feat: Designer tab focus restoration: navigating away from `/author` and returning resets the ac",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "684",
+      "pr_merged": true,
+      "done_at": "2026-04-22T05:38:04Z"
+    },
+    "issue-683": {
+      "state": "done",
+      "title": "feat: Designer axe-core coverage: the `/author` page is not included in journey 074 axe-core sca",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "683",
+      "assigned_to": "sess-e49374f8",
+      "assigned_at": "2026-04-22T05:39:56Z",
+      "branch": "feat/issue-683",
+      "worktree": "../kro-ui.issue-683",
+      "pr_number": 689,
+      "pr_url": "https://github.com/pnz1990/kro-ui/pull/689",
+      "pr_merged": true,
+      "done_at": "2026-04-22T10:52:27Z"
+    },
+    "issue-682": {
+      "state": "done",
+      "title": "feat: DAG screen reader text alternative: the DAG is an SVG with `role=\"button\"` nodes; there is",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "682",
+      "branch": "feat/issue-682",
+      "worktree": "/home/runner/work/kro-ui/kro-ui.issue-682",
+      "pr_merged": true,
+      "pr_number": 686,
+      "done_at": "2026-04-22T03:51:17Z"
+    },
+    "issue-680": {
+      "state": "done",
+      "title": "feat(revisions): navigate-by-change arrows in GraphRevision YAML diff",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "680",
+      "pr_merged": true,
+      "pr_number": 694,
+      "done_at": "2026-04-22T08:36:12Z"
+    },
+    "issue-679": {
+      "state": "todo",
+      "title": "feat: 27.24",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "679"
+    },
+    "issue-678": {
+      "state": "done",
+      "title": "feat: 27.23",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "678",
+      "pr_merged": true,
+      "pr_number": 701,
+      "done_at": "2026-04-22T11:29:38Z"
+    },
+    "issue-677": {
+      "state": "done",
+      "title": "feat: 27.17",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "677",
+      "branch": "feat/issue-677",
+      "pr": 692,
+      "updated_at": "2026-04-22T12:10:11Z",
+      "pr_merged": true,
+      "done_at": "2026-04-22T14:16:41Z"
+    },
+    "issue-676": {
+      "state": "done",
+      "title": "feat: Air-gapped environment smoke test: start kro-ui binary with no external network access (bl",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "676",
+      "branch": "feat/issue-676",
+      "pr": 704,
+      "updated_at": "2026-04-22T12:10:11Z",
+      "pr_merged": true,
+      "done_at": "2026-04-22T14:16:41Z"
+    },
+    "issue-675": {
+      "state": "done",
+      "title": "feat: RBAC-restricted persona journey: an operator with read-only access to only 2 of 5 namespac",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "675",
+      "branch": "feat/issue-675",
+      "pr": 706,
+      "updated_at": "2026-04-22T12:10:11Z",
+      "pr_merged": true,
+      "done_at": "2026-04-22T14:16:41Z"
+    },
+    "issue-674": {
+      "state": "done",
+      "title": "feat: Degraded-cluster persona anchor journey: an operator who sees a degraded cluster in the Fl",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "674",
+      "branch": "feat/issue-674",
+      "pr": 705,
+      "updated_at": "2026-04-22T12:10:11Z"
+    },
+    "issue-664": {
+      "state": "done",
+      "title": "feat: 27.19",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "664",
+      "pr_merged": true,
+      "pr_number": 700,
+      "done_at": "2026-04-22T11:22:52Z"
+    },
+    "issue-663": {
+      "state": "done",
+      "title": "feat: 27.18",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "kro-ui"
+      ],
+      "priority": "medium",
+      "issue": "663",
+      "pr_merged": true,
+      "pr_number": 699,
+      "done_at": "2026-04-22T11:12:35Z"
+    },
+    "issue-709": {
+      "state": "done",
+      "title": "feat: 26.7",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
+    },
+    "issue-710": {
+      "state": "todo",
+      "title": "feat: RGD display: kro upstream field parity SLO",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-711": {
+      "state": "todo",
+      "title": "feat: Instance management: stuck-reconciling escalation banner",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-712": {
+      "state": "done",
+      "title": "feat: Health system: SRE dashboard in-session health sparkline",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
+    },
+    "issue-713": {
+      "state": "todo",
+      "title": "feat: Designer: apply-to-cluster action",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-714": {
+      "state": "done",
+      "title": "feat: 26.8",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
+    },
+    "issue-715": {
+      "state": "done",
+      "title": "feat: 26.9",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
+    },
+    "issue-716": {
+      "state": "done",
+      "title": "feat: RGD display: first-time user zero-RGD empty state",
+      "branch": "feat/issue-716",
+      "pr_number": 733,
+      "labels": [
+        "kind/enhancement",
+        "priority/medium"
+      ],
+      "priority": "medium"
+    },
+    "issue-717": {
+      "state": "todo",
+      "title": "feat: RGD display: Lighthouse score regression comment on PRs",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium"
+    },
+    "issue-718": {
+      "state": "done",
+      "title": "feat: Instance management: namespace instance count summary",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
+    },
+    "issue-719": {
+      "state": "done",
+      "title": "feat: Instance management: live DAG polling pause on tab background",
+      "assigned_to": "sess-c4ede11b",
+      "assigned_at": "2026-04-22T21:34:19Z",
+      "branch": "feat/issue-719",
+      "worktree": "../kro-ui.issue-719",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s"
+      ],
+      "areas": [
+        "area/ui"
+      ],
+      "file_spaces": [
+        "web/src/hooks/",
+        "web/src/components/",
+        "web/src/pages/"
+      ],
+      "issue_number": 719,
+      "priority": "medium",
+      "pr_number": 736,
+      "pr_url": "https://github.com/pnz1990/kro-ui/pull/736",
+      "pr_merged": true,
+      "done_at": "2026-04-22T21:56:01Z"
+    },
+    "issue-720": {
+      "state": "done",
+      "title": "feat: Health system: health snapshot clipboard export",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "note": "already-implemented-issue-closed"
+    },
+    "issue-721": {
+      "state": "done",
+      "title": "feat(designer): CEL expression linter for readyWhen/includeWhen fields",
+      "labels": [
+        "kind/enhancement",
+        "priority/medium",
+        "size/s",
+        "area/agent-loop"
+      ],
+      "priority": "medium",
+      "pr_merged": true,
+      "pr_number": 743,
+      "done_at": "2026-04-23T00:14:01Z"
     }
   },
   "sm_cycle_count": 6,
-  "pm_cycle_count": 5
+  "pm_cycle_count": 5,
+  "batch_count": 1,
+  "housekeeping_streak": 0
 }
