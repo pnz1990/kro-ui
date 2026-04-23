@@ -683,3 +683,87 @@ describe('deriveChildState — GH #398 Deployment scenarios', () => {
     expect(stateFor([])).toBe('alive')
   })
 })
+
+// ── stateEnteredAt (spec issue-773 29.4) ─────────────────────────────────────
+
+describe('buildNodeStateMap stateEnteredAt', () => {
+  const READY_TS = '2026-04-23T10:00:00Z'
+  const OTHER_TS = '2026-04-23T09:00:00Z'
+
+  /** Healthy instance with Ready=True condition. */
+  const healthyInstance: K8sObject = {
+    metadata: { name: 'inst', namespace: 'default' },
+    spec: {},
+    status: {
+      conditions: [
+        { type: 'Ready', status: 'True', lastTransitionTime: '2026-04-23T08:00:00Z' },
+      ],
+    },
+  }
+
+  function makeChildWithConditions(
+    nodeId: string,
+    conditions: Array<{ type: string; status: string; lastTransitionTime?: string }>,
+  ): K8sObject {
+    return {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: nodeId,
+        namespace: 'default',
+        labels: { 'kro.run/node-id': nodeId },
+      },
+      status: { conditions },
+    }
+  }
+
+  it('T-SA01: stateEnteredAt set from Ready condition lastTransitionTime', () => {
+    const child = makeChildWithConditions('cm', [
+      { type: 'Ready', status: 'True', lastTransitionTime: READY_TS },
+    ])
+    const map = buildNodeStateMap(healthyInstance, [child], [])
+    expect(map['cm']?.stateEnteredAt).toBe(READY_TS)
+  })
+
+  it('T-SA02: stateEnteredAt falls back to first condition when Ready absent', () => {
+    const child = makeChildWithConditions('cm', [
+      { type: 'Available', status: 'True', lastTransitionTime: OTHER_TS },
+    ])
+    const map = buildNodeStateMap(healthyInstance, [child], [])
+    expect(map['cm']?.stateEnteredAt).toBe(OTHER_TS)
+  })
+
+  it('T-SA03: stateEnteredAt is undefined when child has no conditions', () => {
+    // Plain child with no status.conditions
+    const child: K8sObject = {
+      apiVersion: 'v1',
+      kind: 'ConfigMap',
+      metadata: {
+        name: 'cm',
+        namespace: 'default',
+        labels: { 'kro.run/node-id': 'cm' },
+      },
+    }
+    const map = buildNodeStateMap(healthyInstance, [child], [])
+    expect(map['cm']?.stateEnteredAt).toBeUndefined()
+  })
+
+  it('T-SA04: Ready condition without lastTransitionTime → falls back to next condition', () => {
+    const child = makeChildWithConditions('cm', [
+      { type: 'Ready', status: 'True' }, // no lastTransitionTime
+      { type: 'Available', status: 'True', lastTransitionTime: OTHER_TS },
+    ])
+    const map = buildNodeStateMap(healthyInstance, [child], [])
+    // Ready has no lastTransitionTime, should fall back to Available's time
+    expect(map['cm']?.stateEnteredAt).toBe(OTHER_TS)
+  })
+
+  it('T-SA05: stateEnteredAt preserved when state is error', () => {
+    const child = makeChildWithConditions('cm', [
+      { type: 'Ready', status: 'False', lastTransitionTime: READY_TS },
+    ])
+    const map = buildNodeStateMap(healthyInstance, [child], [])
+    expect(map['cm']?.state).toBe('error')
+    expect(map['cm']?.stateEnteredAt).toBe(READY_TS)
+  })
+})
