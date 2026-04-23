@@ -7,8 +7,9 @@
 // Fix #64: SVG height is fitted to actual node bounding box.
 // Fix #73 / Spec 021: hover tooltip via shared DAGTooltip (portal, viewport-clamped).
 // Spec 021: readyWhen badge on nodes with hasReadyWhen.
+// Issue #771 / 29.2: `/` keyboard shortcut opens node-search box for quick selection.
 
-import { useState, useRef, useId } from 'react'
+import { useState, useRef, useId, useEffect } from 'react'
 import type { DAGGraph, DAGNode } from '@/lib/dag'
 
 import { nodeBadge, liveStateClass as liveStateClassHelper, forEachLabel, nodeStateForNode, fittedWidth, fittedHeight } from '@/lib/dag'
@@ -217,8 +218,79 @@ export default function LiveDAG({
   const svgWidth = fittedWidth(graph)
   const svgRef = useRef<SVGSVGElement>(null)
   const descId = useId()
+  const searchId = useId()
   const [hoveredTooltip, setHoveredTooltip] = useState<DAGTooltipTarget | null>(null)
 
+  // ── 29.2: Node search ──────────────────────────────────────────────────
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  /** Nodes that match the current search query (case-insensitive substring). */
+  const matchingNodeIds: Set<string> = isSearchOpen && searchQuery.length > 0
+    ? new Set(
+        graph.nodes
+          .filter((n) => {
+            const q = searchQuery.toLowerCase()
+            return (
+              n.label.toLowerCase().includes(q) ||
+              (n.kind ?? '').toLowerCase().includes(q) ||
+              n.id.toLowerCase().includes(q)
+            )
+          })
+          .map((n) => n.id),
+      )
+    : new Set(graph.nodes.map((n) => n.id))
+
+  /** First matching node (for Enter key selection). */
+  const topMatch: DAGNode | undefined = isSearchOpen && searchQuery.length > 0
+    ? graph.nodes.find((n) => matchingNodeIds.has(n.id))
+    : undefined
+
+  function openSearch() {
+    setIsSearchOpen(true)
+    setSearchQuery('')
+  }
+
+  function closeSearch() {
+    setIsSearchOpen(false)
+    setSearchQuery('')
+  }
+
+  /** Handle `/` keydown on the container. Only fires when no text-input is focused. */
+  function handleContainerKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === '/' && !isSearchOpen) {
+      // O7: do not intercept when a text input inside this container is already focused
+      const active = document.activeElement
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return
+      e.preventDefault()
+      openSearch()
+    }
+  }
+
+  // Auto-focus the search input when it opens.
+  useEffect(() => {
+    if (isSearchOpen) {
+      searchInputRef.current?.focus()
+    }
+  }, [isSearchOpen])
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeSearch()
+      containerRef.current?.focus()
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (topMatch) {
+        onNodeClick?.(topMatch)
+      }
+      closeSearch()
+    }
+  }
+
+  // ── Arrow key navigation ───────────────────────────────────────────────
   // Sorted node list for Arrow key navigation (y ASC, x ASC — reading order).
   const sortedNodes = [...graph.nodes].sort((a, b) => {
     if (a.y !== b.y) return a.y - b.y
@@ -255,11 +327,59 @@ export default function LiveDAG({
   }
 
   return (
-    <div className="dag-graph-container live-dag-container">
+    <div
+      className="dag-graph-container live-dag-container"
+      ref={containerRef}
+      onKeyDown={handleContainerKeyDown}
+      tabIndex={-1}
+    >
       {/* sr-only description — WCAG 2.1 SC 1.1.1: text alternative for the SVG graph */}
       <span id={descId} className="sr-only">
         {buildDagDescription(graph)}
       </span>
+
+      {/* 29.2: Node search box overlay — opens on `/`, closes on Escape or Enter */}
+      {isSearchOpen && (
+        <div className="dag-node-search" role="search" aria-label="DAG node search">
+          <input
+            ref={searchInputRef}
+            id={searchId}
+            className="dag-node-search__input"
+            type="text"
+            role="searchbox"
+            aria-label="Search DAG nodes"
+            placeholder="Search by name or kind…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          {searchQuery.length > 0 && (
+            <span className="dag-node-search__hint" aria-live="polite">
+              {matchingNodeIds.size === 0
+                ? 'No matches'
+                : `${matchingNodeIds.size} match${matchingNodeIds.size !== 1 ? 'es' : ''}${topMatch ? ` — Enter to select "${topMatch.label}"` : ''}`}
+            </span>
+          )}
+          <button
+            className="dag-node-search__close"
+            aria-label="Close node search"
+            onClick={closeSearch}
+            tabIndex={0}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* sr-only hint for `/` shortcut */}
+      {!isSearchOpen && (
+        <span className="sr-only" aria-live="off">
+          Press / to search nodes
+        </span>
+      )}
+
       <svg
         ref={svgRef}
         data-testid="dag-svg"
@@ -305,24 +425,32 @@ export default function LiveDAG({
           })}
         </g>
 
-        {/* Nodes */}
+        {/* Nodes — dimmed when search active and node does not match */}
         <g>
-          {graph.nodes.map((node) => (
-            <NodeGroup
-              key={node.id}
-              node={node}
-              state={nodeStateForNode(node, nodeStateMap)}
-              isSelected={node.id === selectedNodeId}
-              onNodeClick={onNodeClick}
-              onHover={(target) => {
-                if (target) { cancelTooltipHide(); setHoveredTooltip(target) }
-                else { scheduleTooltipHide() }
-              }}
-              svgRef={svgRef}
-              children={node.nodeType === 'collection' ? children : undefined}
-              onArrowKey={handleArrowKey}
-            />
-          ))}
+          {graph.nodes.map((node) => {
+            const isDimmed =
+              isSearchOpen && searchQuery.length > 0 && !matchingNodeIds.has(node.id)
+            return (
+              <g
+                key={node.id}
+                style={{ opacity: isDimmed ? 0.25 : 1, transition: 'opacity var(--transition-fast)' }}
+              >
+                <NodeGroup
+                  node={node}
+                  state={nodeStateForNode(node, nodeStateMap)}
+                  isSelected={node.id === selectedNodeId}
+                  onNodeClick={onNodeClick}
+                  onHover={(target) => {
+                    if (target) { cancelTooltipHide(); setHoveredTooltip(target) }
+                    else { scheduleTooltipHide() }
+                  }}
+                  svgRef={svgRef}
+                  children={node.nodeType === 'collection' ? children : undefined}
+                  onArrowKey={handleArrowKey}
+                />
+              </g>
+            )
+          })}
         </g>
       </svg>
 

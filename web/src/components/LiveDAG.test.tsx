@@ -178,4 +178,143 @@ describe('LiveDAG', () => {
     // At least one path element rendered for the edge
     expect(container.querySelectorAll('path.dag-edge').length).toBeGreaterThanOrEqual(1)
   })
+
+  // ── T29-2: Node search keyboard shortcut (issue #771) ─────────────────
+
+  it('T29-2-01: pressing "/" opens the node search box', () => {
+    const graph = makeGraph([
+      makeNode('cfg', { label: 'config', kind: 'ConfigMap' }),
+      makeNode('svc', { label: 'service', kind: 'Service' }),
+    ])
+    const { container } = render(<LiveDAG graph={graph} nodeStateMap={{}} />)
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+
+    expect(container.querySelector('.dag-node-search')).toBeInTheDocument()
+    const input = container.querySelector('.dag-node-search__input')
+    expect(input).toBeInTheDocument()
+    expect(input).toHaveAttribute('role', 'searchbox')
+    expect(input).toHaveAttribute('aria-label', 'Search DAG nodes')
+  })
+
+  it('T29-2-02: pressing Escape closes the search box', () => {
+    const graph = makeGraph([makeNode('cfg', { label: 'config', kind: 'ConfigMap' })])
+    const { container } = render(<LiveDAG graph={graph} nodeStateMap={{}} />)
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+    expect(container.querySelector('.dag-node-search')).toBeInTheDocument()
+
+    const input = container.querySelector<HTMLInputElement>('.dag-node-search__input')!
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(container.querySelector('.dag-node-search')).not.toBeInTheDocument()
+  })
+
+  it('T29-2-03: typing in search filters nodes — non-matching nodes become dimmed', () => {
+    const graph = makeGraph([
+      makeNode('cfg', { label: 'config', kind: 'ConfigMap' }),
+      makeNode('svc', { label: 'service', kind: 'Service' }),
+    ])
+    const { container } = render(<LiveDAG graph={graph} nodeStateMap={{}} />)
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+
+    const input = container.querySelector<HTMLInputElement>('.dag-node-search__input')!
+    fireEvent.change(input, { target: { value: 'config' } })
+
+    // The SVG g wrappers have opacity applied via style
+    // "cfg" matches "config" label, "svc" does not
+    const svgG = container.querySelectorAll('svg > g > g')
+    // Find the wrapper for the non-matching node — it should have opacity: 0.25
+    // We look for a <g> whose inner dag-node is svc
+    const svcWrapper = Array.from(svgG).find((g) => g.querySelector('[data-testid="dag-node-svc"]'))
+    const cfgWrapper = Array.from(svgG).find((g) => g.querySelector('[data-testid="dag-node-cfg"]'))
+    expect(svcWrapper).toHaveStyle({ opacity: '0.25' })
+    expect(cfgWrapper).not.toHaveStyle({ opacity: '0.25' })
+  })
+
+  it('T29-2-04: pressing Enter selects the top match and closes search', () => {
+    const onNodeClick = vi.fn()
+    const cfg = makeNode('cfg', { label: 'config', kind: 'ConfigMap' })
+    const svc = makeNode('svc', { label: 'service', kind: 'Service', y: 140 })
+    const graph = makeGraph([cfg, svc])
+    const { container } = render(
+      <LiveDAG graph={graph} nodeStateMap={{}} onNodeClick={onNodeClick} />,
+    )
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+
+    const input = container.querySelector<HTMLInputElement>('.dag-node-search__input')!
+    fireEvent.change(input, { target: { value: 'config' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    // onNodeClick called with the matching node
+    expect(onNodeClick).toHaveBeenCalledOnce()
+    expect(onNodeClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'cfg' }))
+    // search box closed
+    expect(container.querySelector('.dag-node-search')).not.toBeInTheDocument()
+  })
+
+  it('T29-2-05: Enter with no matches does not call onNodeClick', () => {
+    const onNodeClick = vi.fn()
+    const graph = makeGraph([makeNode('cfg', { label: 'config', kind: 'ConfigMap' })])
+    const { container } = render(
+      <LiveDAG graph={graph} nodeStateMap={{}} onNodeClick={onNodeClick} />,
+    )
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+
+    const input = container.querySelector<HTMLInputElement>('.dag-node-search__input')!
+    fireEvent.change(input, { target: { value: 'zzznomatch' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onNodeClick).not.toHaveBeenCalled()
+    // search box still closes after Enter
+    expect(container.querySelector('.dag-node-search')).not.toBeInTheDocument()
+  })
+
+  it('T29-2-06: closing the search resets the query (no dimming after close)', () => {
+    const graph = makeGraph([
+      makeNode('cfg', { label: 'config', kind: 'ConfigMap' }),
+      makeNode('svc', { label: 'service', kind: 'Service' }),
+    ])
+    const { container } = render(<LiveDAG graph={graph} nodeStateMap={{}} />)
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+
+    const input = container.querySelector<HTMLInputElement>('.dag-node-search__input')!
+    fireEvent.change(input, { target: { value: 'config' } })
+    fireEvent.keyDown(input, { key: 'Escape' })
+
+    // After close, search box gone
+    expect(container.querySelector('.dag-node-search')).not.toBeInTheDocument()
+
+    // Re-open — input should be empty and no dimming
+    fireEvent.keyDown(dagContainer, { key: '/' })
+    const newInput = container.querySelector<HTMLInputElement>('.dag-node-search__input')!
+    expect(newInput.value).toBe('')
+  })
+
+  it('T29-2-07: "/" does not open search when an input is already focused', () => {
+    const graph = makeGraph([makeNode('cfg')])
+    const { container } = render(<LiveDAG graph={graph} nodeStateMap={{}} />)
+
+    // Simulate focused input inside the container
+    const fakeInput = document.createElement('input')
+    document.body.appendChild(fakeInput)
+    fakeInput.focus()
+
+    const dagContainer = container.querySelector('.live-dag-container')!
+    fireEvent.keyDown(dagContainer, { key: '/' })
+
+    // Search box should NOT open because document.activeElement is an input
+    expect(container.querySelector('.dag-node-search')).not.toBeInTheDocument()
+
+    document.body.removeChild(fakeInput)
+  })
 })
