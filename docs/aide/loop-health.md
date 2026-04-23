@@ -6,18 +6,18 @@
 
 ---
 
-## Quick-Glance (as of 2026-04-23 — batch-1 sess-7d63c961)
+## Quick-Glance (as of 2026-04-23 — batch-2 sess-826241e3)
 
 | Field | Value |
 |-------|-------|
-| **Health** | GREEN — 1 design-doc-backed PR merged (PR #748); CI all-green; E2E pass 11m49s; SM phase now writing this file (27.32 partial ✅) |
-| **Last feature PR** | PR #748 — docs(contributing): kro upstream field parity SLO (issue #710 ✅, 2026-04-23) |
-| **Last meaningful feature PR** | PR #748 — kro upstream field parity SLO; PR #743 — CEL expression linter (issue #721 ✅) |
-| **Next priority** | Open: #747 [NEEDS HUMAN] feat/issue-717 push (GitHub App lacks `workflows` permission); #713 (Designer apply-to-cluster); #679 (27.24 community outreach); skills_delta=0 for 8 consecutive runs — 27.24 learn frequency gate still pending |
+| **Health** | GREEN — 1 design-doc-backed PR merged (PR #752); CI all-green; E2E pass 11m43s |
+| **Last feature PR** | PR #752 — feat(designer): apply-to-cluster action, POST /api/v1/rgds/apply with canApplyRGDs gate (issue #713 ✅, 2026-04-23) |
+| **Last meaningful feature PR** | PR #752 — Designer apply-to-cluster (issue #713 ✅); PR #748 — kro upstream field parity SLO (issue #710 ✅) |
+| **Next priority** | issue-717 [NEEDS HUMAN] #751 (workflows permission for perf.yml); issue-679 (27.24 community outreach); skills_delta=0 for 9 consecutive runs — learning velocity issue pending per 27.31 |
 
-> ⚠️ **issue-717 blocked**: feat(perf): Lighthouse regression comment on PRs is implemented on branch `feat/issue-717` but cannot be pushed because the GitHub App token lacks `workflows` permission. See issue #747 for resolution path.
+> ⚠️ **issue-717 blocked**: feat(perf): Lighthouse regression comment on PRs is implemented but GitHub App token lacks `workflows` permission. See issue #751.
 
-> ℹ️ **pressure**: 0/5 pressure bullets addressed for 8 consecutive runs. `skills_delta=0` persists. Items 27.22 (housekeeping-detection), 27.24 (learn frequency gate), and 27.46 (loop honesty thresholds) remain unimplemented in agent files.
+> ℹ️ **skills_delta=0** for 9 consecutive runs. Learning velocity issue should be opened per 27.31 rule (threshold: 5). Already past threshold at 9 — open `/otherness.learn` targeting top 3 issues by comment count.
 
 ---
 
