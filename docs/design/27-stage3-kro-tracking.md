@@ -63,6 +63,7 @@ release has landed since our last check:
 - ✅ 27.22 — release.yml `id-token: write` permission added (prerequisite for cosign keyless signing). Addressed as part of spec issue-572 (27.10), 2026-04.
 - ✅ 27.23 — SECURITY.md post-donation update: added `## Post-Donation Security Policy` section to `SECURITY.md` documenting the planned update to route security reports through `security@kubernetes.io` upon kubernetes-sigs donation; section is clearly marked as a pre-donation placeholder; cross-references `GOVERNANCE.md` and `OWNERS` for completeness; donation PR reviewers will see the update path explicitly (PR #issue-678, 2026-04)
 - 🔲 27.24 — Community outreach for second OWNERS approver: `OWNERS` has a single approver (`pnz1990`); kubernetes-sigs rejects donations with a single-person bus factor and requires >= 2 approvers before accepting a project; `GOVERNANCE.md` documents the path to becoming a reviewer/approver but there is no concrete outreach plan; open a GitHub discussion or email the `kubernetes-sigs/kro` maintainer list to identify a candidate from the kro community who can review 3+ PRs and qualify as approver before the donation PR is filed; this is a social/process gap, not a code gap — it takes weeks, not days
+- 🔲 27.25 — Self-improvement: concrete frame-lock breaking mechanism — item 27.25 in the System Loop Health section detects monoculture (same reasoning chain every session) and triggers `/otherness.arch-audit`; but the arch-audit instruction says "assume the current approach is wrong and look for evidence" without specifying what a DIFFERENT approach would look like; this is detection without prescription — if the audit finds frame-lock, there is no defined corrective action; add a `## Frame-Lock Response Playbook` section to `docs/aide/vision.md` that defines 3 concrete alternative reasoning frames an agent can be asked to apply (e.g. "Invert: what would make this feature harmful?", "Outside-in: what does a kubernetes-sigs reviewer expect vs. what we've built?", "Deletion: what existing features could be removed to make the product simpler without losing value?"); when `/otherness.arch-audit` reports frame-lock, the SM must pick one of these frames for the next COORD session; without a prescribed alternative, the "break frame-lock" instruction produces the same reasoning in a new wrapper
 
 ---
 
@@ -76,13 +77,20 @@ These items address the *development system itself* — gaps identified by apply
 (reliability, loop honesty, self-improvement, onboarding, visibility) to the current otherness loop for kro-ui.
 They are not product features; they are process improvements the loop must make to stay honest.
 
-> ⚠️ **BACKLOG CAP ACTIVE** (27.66): This section contains **48 unimplemented items** (27.22–27.68).
+> ⚠️ **BACKLOG CAP ACTIVE** (27.66): This section contains **51 unimplemented items** (27.22–27.68 + 27.S1–27.S5).
 > Per item 27.66: vibe-vision-auto will NOT add new System Loop Health items until at least the top 3
 > are implemented. The scan has verified that none of these items are ✅. The three highest-priority
 > items that the SM must implement before this cap can be lifted are:
-> 1. **27.32** — SM must write `docs/aide/loop-health.md` every batch (§4f) — confirmed missing as of 2026-04-22
+> 1. **27.32** — SM must write `docs/aide/loop-health.md` every batch (§4f) — `docs/aide/loop-health.md` EXISTS
+>    but the SM phase file has NO code to write it (grep confirms absence). File was written by a one-off
+>    session commit (PR #749), not by SM §4f. Without SM code, it will stop being updated when sessions change.
+>    Status: **partially implemented** — file exists but not maintained by SM phase code.
 > 2. **27.22** — SM busywork-spiral detection: 3 consecutive chore-only batches → post AMBER + pick feat: issue
+>    Status: `~/.otherness/agents/phases/sm.md` has §4f consecutive-worsening detection but does NOT check
+>    for chore-only PRs specifically. Item NOT implemented.
 > 3. **27.46** — COORD pick-step must refuse chore/test issues when feat: issues are open
+>    Status: `~/.otherness/agents/standalone.md` does NOT contain explicit feat-priority pick enforcement.
+>    Item NOT implemented.
 > Once these three items have verifiable agent-file implementations (checkable by Scan 1b via file timestamps),
 > new items may be added. Queue inflation without consumption is itself a reliability failure.
 
