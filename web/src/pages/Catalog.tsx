@@ -18,6 +18,8 @@ import {
   matchesSearch,
   matchesLabelFilter,
   sortCatalog,
+  countChainingReferences,
+  computeComplexityScore,
 } from '@/lib/catalog'
 import type { SortOption } from '@/lib/catalog'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -33,6 +35,7 @@ import './Catalog.css'
 const CATALOG_CARD_HEIGHT = 160
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'complexity', label: 'Most complex' },
   { value: 'name', label: 'Name A–Z' },
   { value: 'kind', label: 'Kind A–Z' },
   { value: 'instances', label: 'Most instances' },
@@ -86,7 +89,7 @@ export default function Catalog() {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedQuery = useDebounce(searchQuery, 300)
   const [activeLabels, setActiveLabels] = useState<string[]>([])
-  const [sortOption, setSortOption] = useState<SortOption>('name')
+  const [sortOption, setSortOption] = useState<SortOption>('complexity')
   const [statusFilter, setStatusFilter] = useState<'all' | 'ready' | 'errors'>('all')
 
   // spec issue-534: selection mode state
@@ -199,7 +202,9 @@ export default function Catalog() {
       items.map((rgd) => {
         const name = extractRGDName(rgd)
         const instanceCount = instanceCounts.has(name) ? instanceCounts.get(name) : undefined
-        return { rgd, instanceCount }
+        const chainingCount = countChainingReferences(rgd, items)
+        const complexityScore = computeComplexityScore(rgd, chainingCount)
+        return { rgd, instanceCount, complexityScore }
       }),
     [items, instanceCounts],
   )
@@ -597,10 +602,10 @@ export default function Catalog() {
       )}
 
       {!isLoading && error === null && (
-        <VirtualGrid
+         <VirtualGrid
           items={sorted}
           itemHeight={CATALOG_CARD_HEIGHT}
-          renderItem={({ rgd, instanceCount }) => {
+          renderItem={({ rgd, instanceCount, complexityScore }) => {
             const name = extractRGDName(rgd)
             return (
               <CatalogCard
@@ -616,6 +621,7 @@ export default function Catalog() {
                 selectable={selectionMode}
                 selected={selectedNames.has(name)}
                 onToggle={handleCardToggle}
+                complexityScore={complexityScore}
               />
             )
           }}
