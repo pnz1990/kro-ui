@@ -595,3 +595,13 @@
   font-weight: 500;
   margin-bottom: 0.75rem;
 }
+
+/* ── CEL lint hint (spec issue-721) ─────────────────────────────────────── */
+
+.rgd-authoring-form__cel-error {
+  font-size: 0.75rem;
+  color: var(--color-status-error);
+  margin-top: 2px;
+  line-height: 1.4;
+  /* O5: Only rendered when there is a message (React unmounts when null) */
+}

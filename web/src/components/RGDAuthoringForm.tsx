@@ -6,7 +6,9 @@
 //
 // Spec: .specify/specs/044-rgd-designer-full-features/
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { lintCEL } from '@/lib/cel-linter'
+import type { CELContext } from '@/lib/cel-linter'
 import type {
   RGDAuthoringState,
   AuthoringField,
@@ -106,6 +108,46 @@ function makeNewResource(): AuthoringResource {
  *              externalRef fields, advanced options (includeWhen/readyWhen)
  *              (US1, US3, US4, US5, US6)
  */
+
+// ── CELLintHint ─────────────────────────────────────────────────────────────
+// Renders debounced lint diagnostics below a CEL input field.
+// Debounce: 300ms after the expression stops changing (spec issue-721 O1).
+// O4: error text uses --color-status-error token, role="alert" for a11y.
+// O5: renders nothing when diagnostics array is empty.
+
+interface CELLintHintProps {
+  expr: string
+  context?: CELContext
+}
+
+function CELLintHint({ expr, context = 'readyWhen' }: CELLintHintProps) {
+  const [message, setMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!expr || !expr.trim()) {
+      setMessage(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      const diags = lintCEL(expr, context)
+      setMessage(diags.length > 0 ? diags[0].message : null)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [expr, context])
+
+  if (!message) return null
+
+  return (
+    <div
+      className="rgd-authoring-form__cel-error"
+      role="alert"
+      aria-live="polite"
+    >
+      {message}
+    </div>
+  )
+}
+
 export default function RGDAuthoringForm({ state, onChange, staticIssues, readonly = false, visibleSections = 'all' }: RGDAuthoringFormProps) {
   // ── Local UI state (not persisted to RGDAuthoringState) ──────────────────
   const [expandedTemplates, setExpandedTemplates] = useState<Set<string>>(new Set())
@@ -1095,12 +1137,13 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues, readon
                         data-testid={`resource-include-when-${res._key}`}
                         aria-label="includeWhen CEL expression"
                       />
-                      <span
-                        className="rgd-authoring-form__cel-badge"
-                        title="CEL — Common Expression Language. When this expression evaluates to false, the resource is not created. Example: ${schema.spec.enableCache} == true"
-                      >CEL</span>
-                    </div>
-                  </div>
+                       <span
+                         className="rgd-authoring-form__cel-badge"
+                         title="CEL — Common Expression Language. When this expression evaluates to false, the resource is not created. Example: ${schema.spec.enableCache} == true"
+                       >CEL</span>
+                     </div>
+                     <CELLintHint expr={res.includeWhen ?? ''} context="includeWhen" />
+                   </div>
 
                   {/* US4: readyWhen repeatable rows */}
                   <div className="rgd-authoring-form__advanced-row">
@@ -1121,12 +1164,13 @@ export default function RGDAuthoringForm({ state, onChange, staticIssues, readon
                               data-testid={`readywhen-expr-${res._key}-${i}`}
                               aria-label={`readyWhen expression ${i + 1}`}
                             />
-                            <span
-                              className="rgd-authoring-form__cel-badge"
-                              title="CEL — Common Expression Language. This expression must evaluate to true for the resource to be considered Ready. Example: ${web.status.availableReplicas} >= 1 | hash functions (kro ≥0.9.1): hash.fnv64a(str)→bytes (recommended), hash.sha256(str)→bytes, hash.md5(str)→bytes"
-                            >CEL</span>
-                          </div>
-                          <button
+                             <span
+                               className="rgd-authoring-form__cel-badge"
+                               title="CEL — Common Expression Language. This expression must evaluate to true for the resource to be considered Ready. Example: ${web.status.availableReplicas} >= 1 | hash functions (kro ≥0.9.1): hash.fnv64a(str)→bytes (recommended), hash.sha256(str)→bytes, hash.md5(str)→bytes"
+                             >CEL</span>
+                           </div>
+                           <CELLintHint expr={rw} context="readyWhen" />
+                           <button
                             type="button"
                             className="rgd-authoring-form__remove-btn"
                             onClick={() => removeReadyWhen(res._key, i)}
