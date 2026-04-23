@@ -136,6 +136,35 @@ files are the authoritative sources. Key non-negotiables:
 - **Every handler: 5-second response budget**
 - **Graceful degradation**: absent data is "Not reported", never `?` or `undefined`
 
+## kro Upstream Field Parity SLO
+
+kro-ui tracks the `kubernetes-sigs/kro` release cadence. When upstream kro ships
+a new CRD field that is **user-visible** in the kro-ui display surface, that field
+MUST appear in the display surface within **2 kro-ui releases** of the kro version
+that introduced it.
+
+**"User-visible" means the field appears in at least one of:**
+- DAG node inspection panel (node detail, readyWhen CEL, includeWhen conditions)
+- YAML tab or YAML diff view
+- Spec validation linting (ValidationTab)
+- RGD overview card or catalog entry
+
+**What does NOT require immediate display:**
+- Internal implementation details with no semantic meaning to the operator
+  (e.g., internal reconciler annotations, GC-only labels)
+- Fields behind an alpha feature gate that is off by default in the current kro release
+
+**How new kro fields are detected:**  
+The `.github/workflows/kro-upstream-check.yml` workflow runs weekly and opens a
+tracking issue whenever a new kro release is detected (doc 27 §27.1). When a
+new-field tracking issue is opened, a contributor should link it to the relevant
+component (DAG, YAML, Validation) and assign it to a spec.
+
+**For contributors:** If you spot a kro CRD field that kro-ui ignores, open an
+issue with the label `kind/enhancement` and a reference to the kro PR or release
+that introduced it. The field parity SLO applies from the date the tracking issue
+is opened.
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under the
