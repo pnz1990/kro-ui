@@ -8,7 +8,7 @@ require (
 	github.com/google/gnostic-models v0.7.1
 	github.com/kubernetes-sigs/kro v0.9.1
 	github.com/rs/cors v1.11.1
-	github.com/rs/zerolog v1.35.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.20.0
