@@ -6,7 +6,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/cel-go v0.28.0
 	github.com/google/gnostic-models v0.7.1
-	github.com/kubernetes-sigs/kro v0.9.1
+	github.com/kubernetes-sigs/kro v0.9.2
 	github.com/rs/cors v1.11.1
 	github.com/rs/zerolog v1.35.0
 	github.com/spf13/cobra v1.10.2
