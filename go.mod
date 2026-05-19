@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/go-chi/chi/v5 v5.2.5
-	github.com/google/cel-go v0.28.0
+	github.com/google/cel-go v0.28.1
 	github.com/google/gnostic-models v0.7.1
 	github.com/kubernetes-sigs/kro v0.9.1
 	github.com/rs/cors v1.11.1
