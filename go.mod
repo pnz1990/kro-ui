@@ -3,7 +3,7 @@ module github.com/pnz1990/kro-ui
 go 1.26.2
 
 require (
-	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/google/cel-go v0.28.0
 	github.com/google/gnostic-models v0.7.1
 	github.com/kubernetes-sigs/kro v0.9.1
