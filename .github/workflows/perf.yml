@@ -57,7 +57,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v7.0.0
 
       # ── Build frontend ────────────────────────────────────────────────────
       - uses: oven-sh/setup-bun@v2
