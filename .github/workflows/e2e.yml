@@ -27,7 +27,7 @@ jobs:
           bun-version: latest
 
       - name: Cache bun dependencies (web)
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-web-${{ hashFiles('web/bun.lock') }}
@@ -56,7 +56,7 @@ jobs:
           node-version: '22'
 
       - name: Cache bun dependencies (e2e)
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.bun/install/cache
           key: bun-e2e-${{ hashFiles('test/e2e/bun.lock') }}
@@ -72,7 +72,7 @@ jobs:
       # cannot be cached, but the ~300MB browser binary download can be.
       - name: Cache Playwright Chromium
         id: playwright-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ hashFiles('test/e2e/bun.lock') }}
