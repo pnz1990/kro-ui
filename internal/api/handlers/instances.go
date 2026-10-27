@@ -24,16 +24,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/pnz1990/kro-ui/internal/api/types"
 	k8sclient "github.com/pnz1990/kro-ui/internal/k8s"
 )
 
+// clusterScopedNamespace is the path sentinel the frontend sends for instances
+// of cluster-scoped kinds (an RGD with scope: Cluster): chi cannot route an
+// empty segment, so "_" stands for "no namespace", as in GetResource.
+const clusterScopedNamespace = "_"
+
+// instanceNamespace maps the namespace path segment to the namespace used
+// against the API server: "" for cluster-scoped instances.
+func instanceNamespace(segment string) string {
+	if segment == clusterScopedNamespace {
+		return ""
+	}
+	return segment
+}
+
+// scopedResource returns the client for a resource in the given namespace,
+// or the cluster-scoped client when the namespace is empty, so that a
+// cluster-scoped instance is never requested under /namespaces/<ns>/.
+func scopedResource(res dynamic.NamespaceableResourceInterface, namespace string) dynamic.ResourceInterface {
+	if namespace == "" {
+		return res
+	}
+	return res.Namespace(namespace)
+}
+
 // GetInstance returns a single CR instance detail.
 // The RGD name is passed as a query param so we can resolve the correct GVR.
+// Namespace "_" denotes a cluster-scoped instance.
 func (h *Handler) GetInstance(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
-	namespace := chi.URLParam(r, "namespace")
+	namespace := instanceNamespace(chi.URLParam(r, "namespace"))
 	name := chi.URLParam(r, "name")
 	rgdName := r.URL.Query().Get("rgd")
 
@@ -44,7 +70,7 @@ func (h *Handler) GetInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	obj, err := h.factory.Dynamic().Resource(gvr).Namespace(namespace).Get(r.Context(), name, metav1.GetOptions{})
+	obj, err := scopedResource(h.factory.Dynamic().Resource(gvr), namespace).Get(r.Context(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Error().Err(err).Str("namespace", namespace).Str("name", name).Msg("failed to get instance")
 		if k8serrors.IsNotFound(err) {
@@ -59,14 +85,16 @@ func (h *Handler) GetInstance(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetInstanceEvents returns Kubernetes events for a given instance.
+// Namespace "_" denotes a cluster-scoped instance: its events carry an empty
+// involvedObject.namespace and are listed across all namespaces.
 func (h *Handler) GetInstanceEvents(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
-	namespace := chi.URLParam(r, "namespace")
+	namespace := instanceNamespace(chi.URLParam(r, "namespace"))
 	name := chi.URLParam(r, "name")
 
 	eventsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
 	fieldSelector := "involvedObject.name=" + name + ",involvedObject.namespace=" + namespace
-	list, err := h.factory.Dynamic().Resource(eventsGVR).Namespace(namespace).List(
+	list, err := scopedResource(h.factory.Dynamic().Resource(eventsGVR), namespace).List(
 		r.Context(), metav1.ListOptions{FieldSelector: fieldSelector},
 	)
 	if err != nil {
@@ -87,7 +115,7 @@ func (h *Handler) GetInstanceEvents(w http.ResponseWriter, r *http.Request) {
 // fan-out that causes throttling on large clusters (EKS/GKE).
 func (h *Handler) GetInstanceChildren(w http.ResponseWriter, r *http.Request) {
 	log := zerolog.Ctx(r.Context())
-	namespace := chi.URLParam(r, "namespace")
+	namespace := instanceNamespace(chi.URLParam(r, "namespace"))
 	name := chi.URLParam(r, "name")
 	rgdName := r.URL.Query().Get("rgd")
 

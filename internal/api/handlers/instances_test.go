@@ -806,3 +806,59 @@ func TestGetInstanceChildren_NilChildren(t *testing.T) {
 	// Should be {"items":[]} not {"items":null}
 	assert.Contains(t, body, `"items":[]`, "nil children must be coerced to empty array")
 }
+
+// TestGetInstance_ClusterScoped verifies that the "_" namespace sentinel fetches
+// a cluster-scoped instance (an RGD with scope: Cluster) without a namespace.
+// Before the fix the handler asked the API server for
+// /namespaces/_/<plural>/<name>, which can only be a 404.
+func TestGetInstance_ClusterScoped(t *testing.T) {
+	regionGVR := schema.GroupVersionResource{Group: "region.example.com", Version: "v1alpha1", Resource: "regions"}
+	region := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "region.example.com/v1alpha1",
+		"kind":       "Region",
+		"metadata":   map[string]any{"name": "dev-usa"},
+	}}
+
+	dyn := newStubDynamic()
+	dyn.resources[rgdGVR] = &stubNamespaceableResource{
+		getItems: map[string]*unstructured.Unstructured{
+			"regions": makeRGDObject("regions", "Region", "region.example.com", "v1alpha1"),
+		},
+	}
+	dyn.resources[regionGVR] = &stubNamespaceableResource{
+		// Only the cluster-scoped client knows the object: a namespaced
+		// lookup under the sentinel must not happen.
+		getItems:    map[string]*unstructured.Unstructured{"dev-usa": region},
+		nsResources: map[string]*stubResourceClient{"_": {getItems: map[string]*unstructured.Unstructured{}}},
+	}
+	eventsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "events"}
+	dyn.resources[eventsGVR] = &stubNamespaceableResource{
+		items:       []unstructured.Unstructured{},
+		nsResources: map[string]*stubResourceClient{"_": {listErr: fmt.Errorf("events listed under the sentinel namespace")}},
+	}
+
+	disc := newStubDiscovery()
+	disc.resources["region.example.com/v1alpha1"] = &metav1.APIResourceList{
+		GroupVersion: "region.example.com/v1alpha1",
+		APIResources: []metav1.APIResource{
+			{Name: "regions", Kind: "Region", Namespaced: false, Verbs: metav1.Verbs{"get", "list"}},
+		},
+	}
+	h := newRGDTestHandler(dyn, disc)
+
+	r := chi.NewRouter()
+	r.Get("/api/v1/instances/{namespace}/{name}", h.GetInstance)
+	r.Get("/api/v1/instances/{namespace}/{name}/events", h.GetInstanceEvents)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/instances/_/dev-usa?rgd=regions", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+	assert.Contains(t, rr.Body.String(), `"dev-usa"`)
+
+	// Events of a cluster-scoped instance are listed without a namespace.
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/instances/_/dev-usa/events", nil)
+	rr = httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
+}
